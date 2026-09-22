@@ -34,8 +34,38 @@
 #      One message is expected: "install: cannot stat 'mp.h'". FILES
 #      lists the header of libmp, which Lite2 removed.
 #
-# It is safe to rerun: mtree only adds what is missing, and the header
-# install replaces what it installed.
+#   3. Host tools, in ${L2_BUILD}/tools/bin: Lite2's own lorder, from
+#      usr.bin/lorder/lorder.sh, which bsd.lib.mk runs to order an
+#      archive and which the host does not have. NetBSD 1.6's build.sh
+#      installs its own tree's lorder the same way, as nblorder.
+#
+#   4. libc, by Lite2's own lib/libc all and install targets, with its
+#      objects in ${L2_BUILD}/obj. Each setting answers a measured
+#      failure:
+#
+#	CC	gcc -m32 for 32-bit i386 ELF. -fno-stack-protector and
+#		-fno-pic undo distribution GCC's defaults, which leave
+#		__stack_chk_fail_local and _GLOBAL_OFFSET_TABLE_
+#		unresolved. -fcommon because stdio/glue.h defines
+#		__sglue in a header, which without it both fwalk.o and
+#		findfp.o define. -nostdinc -isystem: the root's headers,
+#		not the host's.
+#	CPP	for assembly. -traditional-cpp, as NetBSD 1.5 preprocesses
+#		assembly, so Lite2's _/**/x and SYS_/**/x pasting works.
+#		-I rather than -isystem, which puts line markers inside an
+#		instruction that uses a system header's macro.
+#	AS, LD	--32 and -m elf_i386.
+#	NOMAN	no manual pages yet.
+#	LIBOWN, LIBGRP, LIBMODE=644
+#		the building user's, and writable: install makes the
+#		library 444 and then runs ranlib -t on it, which writes.
+#
+#      Lite2's own compiler warnings remain, several hundred of them,
+#      and tsort reports loops among the profiling objects.
+#
+# It is safe to rerun: mtree only adds what is missing, the header
+# install replaces what it installed, and the libc build redoes only
+# what has changed.
 #
 # WHAT IT DOES NOT DO
 #
@@ -43,11 +73,11 @@
 #   That is enough to compile against; a disk image will need the real
 #   ownership recorded separately.
 #
-#   No libraries or programs yet, and no object directories.
+#   No library but libc, no crt0 and no programs yet.
 #
-# HOST TOOLS: bmake, mtree and pax --
+# HOST TOOLS: bmake, mtree, pax and ctags, besides GCC and binutils --
 #
-#	sudo apt install bmake mtree-netbsd pax
+#	sudo apt install bmake mtree-netbsd pax universal-ctags
 #
 set -e
 
@@ -78,15 +108,21 @@ case "$L2_BUILD" in
 esac
 ROOT="$L2_BUILD/root"
 
+pkgs="bmake mtree-netbsd pax universal-ctags"
 missing=
-for t in bmake mtree pax; do
+for t in bmake mtree pax ctags gcc cpp as ld ar ranlib nm tsort; do
 	command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
 done
 if [ -n "$missing" ]; then
 	printf '%s\n' "sysroot.sh: not found:$missing" >&2
-	printf '%s\n' "  sudo apt install bmake mtree-netbsd pax" >&2
+	printf '%s\n' "  sudo apt install $pkgs" >&2
 	exit 1
 fi
+
+me=$(id -un)
+grp=$(id -gn)
+TOOLS="$L2_BUILD/tools/bin"
+OBJ="$L2_BUILD/obj"
 
 mkdir -p "$ROOT"
 
@@ -97,4 +133,21 @@ mtree -N "$SRC/etc" -W -def "$SRC/etc/mtree/4.4BSD.dist" -p "$ROOT" -u \
 printf '%s\n' "sysroot.sh: headers -> $ROOT/usr/include"
 cd "$SRC/include"
 sh "$REPO_ROOT/build/make.sh" install SHARED=copies DESTDIR="$ROOT" \
-    BINOWN="$(id -un)" BINGRP="$(id -gn)"
+    BINOWN="$me" BINGRP="$grp"
+
+printf '%s\n' "sysroot.sh: host tools -> $TOOLS"
+mkdir -p "$TOOLS"
+install -m 755 "$SRC/usr.bin/lorder/lorder.sh" "$TOOLS/lorder"
+
+cc_i386="gcc -m32 -fcommon -fno-stack-protector -fno-pic"
+cc_i386="$cc_i386 -nostdinc -isystem $ROOT/usr/include"
+cpp_i386="cpp -m32 -traditional-cpp -nostdinc -I$ROOT/usr/include"
+
+printf '%s\n' "sysroot.sh: libc -> $ROOT/usr/lib"
+mkdir -p "$OBJ$SRC/lib/libc"
+cd "$SRC/lib/libc"
+PATH="$TOOLS:$PATH" MAKEOBJDIRPREFIX="$OBJ" \
+    sh "$REPO_ROOT/build/make.sh" all install NOMAN=noman \
+    DESTDIR="$ROOT" BINOWN="$me" BINGRP="$grp" \
+    LIBOWN="$me" LIBGRP="$grp" LIBMODE=644 \
+    CC="$cc_i386" CPP="$cpp_i386" AS="as --32" LD="ld -m elf_i386"

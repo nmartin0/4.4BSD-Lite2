@@ -46,9 +46,10 @@
 #
 #   No sysroot and no compiler settings.
 #
-# Until those are dealt with, use it with -n or -V only. The one
-# exception is the header install build/sysroot.sh runs: include/ is
-# marked NOOBJ and installs only under the DESTDIR it is given.
+# Until those are dealt with, use it with -n or -V only. The
+# exceptions are the stages build/sysroot.sh runs: include/ is marked
+# NOOBJ and installs only under the DESTDIR it is given, and libc is
+# built in an object directory the script creates first.
 #
 # 72 SUBDIR entries in this tree name directories that are not in it
 # (bin/Makefile lists ed and expr). A recursive target prints
