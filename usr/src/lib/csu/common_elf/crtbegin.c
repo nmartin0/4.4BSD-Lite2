@@ -49,13 +49,17 @@
 
 #include <sys/param.h>		/* sysident.h requires `NetBSD' constant */
 #include <sys/exec.h>
-#include <sys/exec_elf.h>
 #include <stdlib.h>
 
 #ifdef DWARF2_EH
 #include "dwarf2_eh.h"
 #endif
-#include "sysident.h"
+/*
+ * AI-ONLY NOTE: NetBSD includes <sys/exec_elf.h> and "sysident.h" here,
+ * to put a .note.netbsd.ident section in every program: a note that
+ * labels the binary as NetBSD. This is not NetBSD, and neither header
+ * exists in this tree, so both are left out.
+ */
 #include "dot_init.h"
 
 static void (*__CTOR_LIST__[1])(void)

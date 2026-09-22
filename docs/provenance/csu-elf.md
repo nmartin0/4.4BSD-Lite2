@@ -74,3 +74,12 @@ The maintainer decided to import it unchanged and record this
 provenance, rather than seek written confirmation from the NetBSD
 Foundation or write a replacement. No notice is added to it here: it
 is not ours to add.
+
+## Changes since the import
+
+Each change is marked at its site with an `AI-ONLY NOTE`.
+
+- `common_elf/crtbegin.c`: the includes of `<sys/exec_elf.h>` and
+  `"sysident.h"` are removed. They emit NetBSD's `.note.netbsd.ident`
+  section, which labels every program as NetBSD; neither header is in
+  this tree.
