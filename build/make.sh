@@ -44,16 +44,14 @@
 #   /usr/obj, which does not exist here, so bmake builds in the source
 #   directory and writes into this repository.
 #
-#   No guard against endless recursion. Lite2's recursion loop in
-#   bsd.subdir.mk and bsd.prog.mk does not stop when cd fails, and 72
-#   SUBDIR entries in this tree name directories that are not in it
-#   (bin/Makefile lists ed and expr). A recursive target then reruns
-#   make in the same directory without end: thousands of processes
-#   within minutes, measured on this tree.
-#
 #   No sysroot and no compiler settings.
 #
 # Until those are dealt with, use it with -n or -V only.
+#
+# 72 SUBDIR entries in this tree name directories that are not in it
+# (bin/Makefile lists ed and expr). A recursive target prints
+# "cd: can't cd to ..." for each and moves on to the next entry; the
+# recursion loops in share/mk end the entry when cd fails.
 #
 set -e
 

@@ -75,10 +75,12 @@ MANALL=
 .endif
 manpages: ${MANALL}
 
+# AI-ONLY NOTE: `set -e', as in bsd.subdir.mk's loop and for the same
+# reason: a failed cd must end the entry, not rerun make here.
 _PROGSUBDIR: .USE
 .if defined(SUBDIR) && !empty(SUBDIR)
 	@for entry in ${SUBDIR}; do \
-		(echo "===> $$entry"; \
+		(set -e; echo "===> $$entry"; \
 		if test -d ${.CURDIR}/$${entry}.${MACHINE}; then \
 			cd ${.CURDIR}/$${entry}.${MACHINE}; \
 		else \
