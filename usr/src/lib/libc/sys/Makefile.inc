@@ -38,7 +38,11 @@ OBJS+=	${ASM} ${PSEUDO}
 POBJS+=	${ASM:.o=.po} ${PSEUDO:.o=.po}
 CLEANFILES+=${ASM} ${PSEUDO} ${POBJS} 
 
-${ASM}: ${.CURDIR}/${MACHINE}/SYS.h /usr/include/sys/syscall.h
+# AI-ONLY NOTE: ${DESTDIR}, so a build into a separate target root
+# depends on that root's syscall.h, not the build host's; empty on a
+# native build. NetBSD 1.3 has the same prefix.
+${ASM}: ${.CURDIR}/${MACHINE}/SYS.h \
+    ${DESTDIR}/usr/include/sys/syscall.h
 	@echo creating ${.PREFIX}.o ${.PREFIX}.po
 	@printf '#include "SYS.h"\nRSYSCALL(${.PREFIX})\n' | \
 	    ${CPP} ${CFLAGS:M-[ID]*} ${AINC} | ${AS} -o ${.PREFIX}.o
@@ -49,7 +53,8 @@ ${ASM}: ${.CURDIR}/${MACHINE}/SYS.h /usr/include/sys/syscall.h
 	@${LD} -x -r ${.PREFIX}.po
 	@mv a.out ${.PREFIX}.po
 
-${PSEUDO}: ${.CURDIR}/${MACHINE}/SYS.h /usr/include/sys/syscall.h
+${PSEUDO}: ${.CURDIR}/${MACHINE}/SYS.h \
+    ${DESTDIR}/usr/include/sys/syscall.h
 	@echo creating ${.PREFIX}.o ${.PREFIX}.po
 	@printf '#include "SYS.h"\nPSEUDO(${.PREFIX},${.PREFIX:S/_//})\n' | \
 	    ${CPP} ${CFLAGS:M-[ID]*} ${AINC} | ${AS} -o ${.PREFIX}.o
