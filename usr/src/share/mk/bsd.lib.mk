@@ -63,17 +63,20 @@ all: ${MANALL}
 
 OBJS+=	${SRCS:R:S/$/.o/g}
 
+# AI-ONLY NOTE: ar cq, not cTq, here and for lib${LIB}_p.a: to GNU ar, T
+# makes a thin archive holding only paths. NetBSD 1.0 and 1.1 and
+# FreeBSD 2.0.5 use cq.
 lib${LIB}.a:: ${OBJS}
 	@echo building standard ${LIB} library
 	@rm -f lib${LIB}.a
-	@${AR} cTq lib${LIB}.a `lorder ${OBJS} | tsort` ${LDADD}
+	@${AR} cq lib${LIB}.a `lorder ${OBJS} | tsort` ${LDADD}
 	ranlib lib${LIB}.a
 
 POBJS+=	${OBJS:.o=.po}
 lib${LIB}_p.a:: ${POBJS}
 	@echo building profiled ${LIB} library
 	@rm -f lib${LIB}_p.a
-	@${AR} cTq lib${LIB}_p.a `lorder ${POBJS} | tsort` ${LDADD}
+	@${AR} cq lib${LIB}_p.a `lorder ${POBJS} | tsort` ${LDADD}
 	ranlib lib${LIB}_p.a
 
 llib-l${LIB}.ln: ${SRCS}
