@@ -64,21 +64,27 @@ install: ${SHARED}
 		chown ${BINOWN}.${BINGRP} ${DESTDIR}/usr/include/$$i; \
 	done
 
+# AI-ONLY NOTE: copies reads the kernel headers from ${.CURDIR}/../sys,
+# not /sys, which on a Linux build host is sysfs; copies them with pax,
+# since `tar Hcf' means something else to GNU tar; recurses with find,
+# so the headers under ufs/ufs, ufs/ffs, ufs/lfs and ufs/mfs are not
+# missed; no longer requires /usr/X11; and removes machine with rm -rf,
+# since copies makes it a directory, as this file's rm -rf note says.
+# NetBSD 1.0's copies target has the same shape, rm -rf included;
+# -follow is NetBSD 1.1's.
 copies:
 	@echo copies: ${LDIRS}
 	@-for i in ${LDIRS}; do \
 		rm -rf ${DESTDIR}/usr/include/$$i; \
-		cd /sys; \
-		tar Hcf - $$i/*.h | (cd ${DESTDIR}/usr/include; tar xpfB -); \
 	done
-	rm -f ${DESTDIR}/usr/include/machine
+	cd ${.CURDIR}/../sys; \
+	pax -rw -pa -L \
+	    `find ${LDIRS} -follow -type f -name '*.h' '!' -path \
+	    'netiso/xebec/*' -print` ${DESTDIR}/usr/include
+	rm -rf ${DESTDIR}/usr/include/machine
 	mkdir ${DESTDIR}/usr/include/machine
-	cd /sys/${MACHINE}/include && \
-	    tar Hcf - *.h | (cd ${DESTDIR}/usr/include/machine; tar xpfB -);
-	rm -f ${DESTDIR}/usr/include/X11
-	mkdir ${DESTDIR}/usr/include/X11
-	cd /usr/X11/include/X11 && \
-	    tar Hcf - *.h | (cd ${DESTDIR}/usr/include/X11; tar xpfB -);
+	cd ${.CURDIR}/../sys/${MACHINE}/include && \
+	    pax -rw -pa -L *.h ${DESTDIR}/usr/include/machine
 
 symlinks:
 	@echo symlinks: ${LDIRS}
