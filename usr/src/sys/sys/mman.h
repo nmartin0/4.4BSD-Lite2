@@ -76,6 +76,16 @@
 
 #ifndef KERNEL
 
+/*
+ * AI-ONLY NOTE: the declarations below use caddr_t, size_t and off_t,
+ * which come from <sys/types.h>, so a file including only this header
+ * does not compile. Included here as sys/fcntl.h, sys/param.h,
+ * sys/time.h and sys/wait.h include it, in the same place. NetBSD 1.0
+ * and FreeBSD 2.0.5 write this header as Lite2 does; OpenBSD instead
+ * changed the declarations to POSIX void * in 1997, an interface
+ * change not made here.
+ */
+#include <sys/types.h>
 #include <sys/cdefs.h>
 
 __BEGIN_DECLS
