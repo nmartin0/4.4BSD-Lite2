@@ -8,9 +8,13 @@ BINGRP?=	bin
 BINOWN?=	bin
 BINMODE?=	555
 
+# AI-ONLY NOTE: `set -e' makes a failed cd end that entry. Without it,
+# make reran in this directory without end for every SUBDIR entry
+# missing from the tree (bin/Makefile lists ed and expr). NetBSD 1.0
+# and OpenBSD both write this loop with `set -e'.
 _SUBDIRUSE: .USE
 	@for entry in ${SUBDIR}; do \
-		(if test -d ${.CURDIR}/$${entry}.${MACHINE}; then \
+		(set -e; if test -d ${.CURDIR}/$${entry}.${MACHINE}; then \
 			echo "===> $${entry}.${MACHINE}"; \
 			cd ${.CURDIR}/$${entry}.${MACHINE}; \
 		else \
