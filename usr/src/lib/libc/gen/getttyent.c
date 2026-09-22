@@ -42,6 +42,10 @@ static char sccsid[] = "@(#)getttyent.c	8.1 (Berkeley) 6/4/93";
 
 static char zapchar;
 static FILE *tf;
+/* AI-ONLY NOTE: at file scope, as NetBSD 1.3 has it: GCC 14 rejects a
+ * static function declaration inside a function. */
+static char *skip __P((char *));
+static char *value __P((char *));
 
 struct ttyent *
 getttynam(tty)
@@ -65,7 +69,6 @@ getttyent()
 	register char *p;
 #define	MAXLINELENGTH	100
 	static char line[MAXLINELENGTH];
-	static char *skip(), *value();
 
 	if (!tf && !setttyent())
 		return (NULL);

@@ -43,6 +43,10 @@ static char sccsid[] = "@(#)sleep.c	8.1 (Berkeley) 6/4/93";
 	vec.sv_handler = a; vec.sv_mask = vec.sv_onstack = 0
 
 static int ringring;
+/* AI-ONLY NOTE: at file scope, since GCC 14 rejects a static function
+ * declaration inside a function. Unprototyped, because setvec() takes
+ * void (*)(int). */
+static void sleephandler();
 
 unsigned int
 sleep(seconds)
@@ -52,7 +56,6 @@ sleep(seconds)
 	struct itimerval itv, oitv;
 	struct sigvec vec, ovec;
 	long omask;
-	static void sleephandler();
 
 	itp = &itv;
 	if (!seconds)
