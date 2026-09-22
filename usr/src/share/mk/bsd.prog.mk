@@ -17,23 +17,27 @@ BINGRP?=	bin
 BINOWN?=	bin
 BINMODE?=	555
 
-LIBC?=		/usr/lib/libc.a
-LIBCOMPAT?=	/usr/lib/libcompat.a
-LIBCURSES?=	/usr/lib/libcurses.a
-LIBDBM?=	/usr/lib/libdbm.a
-LIBDES?=	/usr/lib/libdes.a
-LIBL?=		/usr/lib/libl.a
-LIBKDB?=	/usr/lib/libkdb.a
-LIBKRB?=	/usr/lib/libkrb.a
-LIBKVM?=	/usr/lib/libkvm.a
-LIBM?=		/usr/lib/libm.a
-LIBMP?=		/usr/lib/libmp.a
-LIBPC?=		/usr/lib/libpc.a
-LIBPLOT?=	/usr/lib/libplot.a
-LIBRESOLV?=	/usr/lib/libresolv.a
-LIBRPC?=	/usr/lib/sunrpc.a
-LIBTERM?=	/usr/lib/libterm.a
-LIBUTIL?=	/usr/lib/libutil.a
+# AI-ONLY NOTE: ${DESTDIR} on each library, so a build into a separate
+# target root depends on that root's libraries and not the build
+# host's; empty on a native build. NetBSD 1.0 writes all of its
+# equivalent lines this way.
+LIBC?=		${DESTDIR}/usr/lib/libc.a
+LIBCOMPAT?=	${DESTDIR}/usr/lib/libcompat.a
+LIBCURSES?=	${DESTDIR}/usr/lib/libcurses.a
+LIBDBM?=	${DESTDIR}/usr/lib/libdbm.a
+LIBDES?=	${DESTDIR}/usr/lib/libdes.a
+LIBL?=		${DESTDIR}/usr/lib/libl.a
+LIBKDB?=	${DESTDIR}/usr/lib/libkdb.a
+LIBKRB?=	${DESTDIR}/usr/lib/libkrb.a
+LIBKVM?=	${DESTDIR}/usr/lib/libkvm.a
+LIBM?=		${DESTDIR}/usr/lib/libm.a
+LIBMP?=		${DESTDIR}/usr/lib/libmp.a
+LIBPC?=		${DESTDIR}/usr/lib/libpc.a
+LIBPLOT?=	${DESTDIR}/usr/lib/libplot.a
+LIBRESOLV?=	${DESTDIR}/usr/lib/libresolv.a
+LIBRPC?=	${DESTDIR}/usr/lib/sunrpc.a
+LIBTERM?=	${DESTDIR}/usr/lib/libterm.a
+LIBUTIL?=	${DESTDIR}/usr/lib/libutil.a
 
 .if defined(SHAREDSTRINGS)
 CLEANFILES+=strings
