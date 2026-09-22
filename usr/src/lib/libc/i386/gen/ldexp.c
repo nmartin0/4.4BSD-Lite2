@@ -55,8 +55,11 @@ ldexp (double value, int exp)
 {
 	double temp, texp, temp2;
 	texp = exp;
-	asm ("fscale ; fxch %%st(1) ; fstp%L1 %1 "
-		: "=f" (temp), "=0" (temp2)
-		: "0" (texp), "f" (value));
+	/* AI-ONLY NOTE: FreeBSD 2.0.5's constraints; modern GCC rejects the
+	 * original "=0" matching constraint on an output. Checked against
+	 * libm's ldexp at -O0 and -O2. */
+	asm ("fscale "
+		: "=u" (temp2), "=t" (temp)
+		: "0" (texp), "1" (value));
 	return (temp);
 }
