@@ -62,7 +62,10 @@ trap "rm -f $R $S; exit 1" 1 2 3 13 15
 #
 # if the line has " U " it's a globally undefined symbol, put it into
 # the reference file.
-nm -go $* | sed "
+# AI-ONLY NOTE: the file names are written first because GNU nm -o
+# prints no "file:" line, and without them an object no other one
+# refers to is left out of the list. NetBSD 1.6's lorder does the same.
+(for file in $*; do echo $file":"; done; nm -go $*) | sed "
 	/:$/ {
 		s/://
 		s/.*/& &/
