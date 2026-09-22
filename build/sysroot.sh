@@ -63,9 +63,14 @@
 #      Lite2's own compiler warnings remain, several hundred of them,
 #      and tsort reports loops among the profiling objects.
 #
+#   5. The ELF startup files, crt0.o, gcrt0.o, crtbegin.o and crtend.o,
+#      by lib/csu/i386_elf's own all and install targets, into
+#      ${ROOT}/usr/lib. They are NetBSD 1.6's (docs/provenance/
+#      csu-elf.md); their Makefile carries the flags they need.
+#
 # It is safe to rerun: mtree only adds what is missing, the header
-# install replaces what it installed, and the libc build redoes only
-# what has changed.
+# install replaces what it installed, and the libc and startup-file
+# builds redo only what has changed.
 #
 # WHAT IT DOES NOT DO
 #
@@ -73,7 +78,8 @@
 #   That is enough to compile against; a disk image will need the real
 #   ownership recorded separately.
 #
-#   No library but libc, no crt0 and no programs yet.
+#   No library but libc, and no programs yet: the startup files are
+#   installed, but the compiler is not yet told to link with them.
 #
 # HOST TOOLS: bmake, mtree, pax and ctags, besides GCC and binutils --
 #
@@ -151,3 +157,11 @@ PATH="$TOOLS:$PATH" MAKEOBJDIRPREFIX="$OBJ" \
     DESTDIR="$ROOT" BINOWN="$me" BINGRP="$grp" \
     LIBOWN="$me" LIBGRP="$grp" LIBMODE=644 \
     CC="$cc_i386" CPP="$cpp_i386" AS="as --32" LD="ld -m elf_i386"
+
+printf '%s\n' "sysroot.sh: startup files -> $ROOT/usr/lib"
+mkdir -p "$OBJ$SRC/lib/csu/i386_elf"
+cd "$SRC/lib/csu/i386_elf"
+MAKEOBJDIRPREFIX="$OBJ" \
+    sh "$REPO_ROOT/build/make.sh" all install NOMAN=noman \
+    DESTDIR="$ROOT" BINOWN="$me" BINGRP="$grp" \
+    CC="$cc_i386" AS="as --32" LD="ld -m elf_i386"
