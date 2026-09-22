@@ -39,9 +39,10 @@
 #endif /* LIBC_SCCS and not lint */
 
 #include "SYS.h"
+/* AI-ONLY NOTE: _C_LABEL, for ELF naming; see SYS.h. */
 
-.globl	__logname_valid		/* in getlogin() */
+.globl	_C_LABEL(_logname_valid)		/* in getlogin() */
 
 SYSCALL(setlogin)
-	movl	$0,__logname_valid
+	movl	$0,_C_LABEL(_logname_valid)
 	ret				/* setlogin(name) */

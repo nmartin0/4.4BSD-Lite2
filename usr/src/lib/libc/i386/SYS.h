@@ -38,17 +38,33 @@
 
 #include <sys/syscall.h>
 
+/*
+ * AI-ONLY NOTE: C symbols go through _C_LABEL: plain under ELF, where
+ * C names carry no leading underscore, and _name otherwise. The block
+ * is NetBSD 1.5's <machine/asm.h>; its __STDC__ arm goes unused, since
+ * assembly is preprocessed with -traditional-cpp, as NetBSD 1.5 does.
+ */
+#ifdef __ELF__
+#define	_C_LABEL(x)	x
+#else
+#ifdef __STDC__
+#define	_C_LABEL(x)	_ ## x
+#else
+#define	_C_LABEL(x)	_/**/x
+#endif
+#endif
+
 #ifdef PROF
-#define	ENTRY(x)	.globl _/**/x; \
-			.data; 1:; .long 0; .text; .align 2; _/**/x: \
+#define	ENTRY(x)	.globl _C_LABEL(x); \
+			.data; 1:; .long 0; .text; .align 2; _C_LABEL(x): \
 			movl $1b,%eax; call mcount
 #else
-#define	ENTRY(x)	.globl _/**/x; .text; .align 2; _/**/x: 
+#define	ENTRY(x)	.globl _C_LABEL(x); .text; .align 2; _C_LABEL(x): 
 #endif PROF
 #define	SYSCALL(x)	2: jmp cerror; ENTRY(x); lea SYS_/**/x,%eax; LCALL(7,0); jb 2b
 #define	RSYSCALL(x)	SYSCALL(x); ret
 #define	PSEUDO(x,y)	ENTRY(x); lea SYS_/**/y, %eax; ; LCALL(7,0); ret
-#define	CALL(x,y)	call _/**/y; addl $4*x,%esp
+#define	CALL(x,y)	call _C_LABEL(y); addl $4*x,%esp
 /* gas fucks up offset -- although we don't currently need it, do for BCS */
 #define	LCALL(x,y)	.byte 0x9a ; .long y; .word x
 

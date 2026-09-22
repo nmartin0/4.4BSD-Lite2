@@ -39,10 +39,11 @@
 #endif /* SYSLIBC_SCCS and not lint */
 
 #include "SYS.h"
+/* AI-ONLY NOTE: _C_LABEL, for ELF naming; see SYS.h. */
 
 ENTRY(ptrace)
 	xorl	%eax,%eax
-	movl	%eax,_errno
+	movl	%eax,_C_LABEL(errno)
 	lea	SYS_ptrace,%eax
 	LCALL(7,0)
 	jb	err

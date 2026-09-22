@@ -40,8 +40,11 @@
 
 /* bzero (base,cnt) */
 
-	.globl _bzero
-_bzero:
+#include "DEFS.h"
+
+/* AI-ONLY NOTE: ENTRY, as FreeBSD 2.0.5 writes it, so the name follows
+ * _C_LABEL (see DEFS.h). */
+ENTRY(bzero)
 	pushl	%edi
 	movl	8(%esp),%edi
 	movl	12(%esp),%ecx

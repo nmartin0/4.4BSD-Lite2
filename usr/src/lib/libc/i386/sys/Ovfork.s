@@ -39,6 +39,10 @@
 #endif /* SYSLIBC_SCCS and not lint */
 
 #include "SYS.h"
+/* AI-ONLY NOTE: ENTRY and SYS_vfork, as NetBSD 1.0 writes them, in
+ * place of `.set vfork,66': under ELF the C function is named vfork
+ * too, and the two would collide. errno goes through _C_LABEL; see
+ * SYS.h. */
 
 /*
  * pid = vfork();
@@ -47,21 +51,18 @@
  * %eax == pid of child in parent, %eax == pid of parent in child.
  *
  */
-	.set	vfork,66
-.globl	_vfork
-
-_vfork:
+ENTRY(vfork)
 	popl	%ecx		/* my rta into ecx */
-	movl	$vfork, %eax
+	movl	$(SYS_vfork),%eax
 	LCALL(7,0)
 	jb	verror
 vforkok:
 	cmpl	$0,%edx		/* child process? */
 	jne	child		/* yes */
 	jmp 	parent 
-.globl	_errno
+.globl	_C_LABEL(errno)
 verror:
-	movl	%eax,_errno
+	movl	%eax,_C_LABEL(errno)
 	movl	$-1,%eax
 	jmp	%ecx
 child:

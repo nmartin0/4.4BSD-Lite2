@@ -49,10 +49,11 @@
  */
 
 #include "DEFS.h"
+/* AI-ONLY NOTE: _C_LABEL, for ELF naming; see DEFS.h. */
 
 ENTRY(setjmp)
 	pushl	$0
-	call	_sigblock
+	call	_C_LABEL(sigblock)
 	popl	%edx
 	movl	4(%esp),%ecx 
 	movl	0(%esp),%edx
@@ -69,7 +70,7 @@ ENTRY(setjmp)
 ENTRY(longjmp)
 	movl	4(%esp),%edx
 	pushl	24(%edx)
-	call	_sigsetmask
+	call	_C_LABEL(sigsetmask)
 	popl	%eax
 	movl	4(%esp),%edx
 	movl	8(%esp),%eax
