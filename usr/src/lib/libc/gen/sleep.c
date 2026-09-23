@@ -43,6 +43,15 @@ static char sccsid[] = "@(#)sleep.c	8.1 (Berkeley) 6/4/93";
 	vec.sv_handler = a; vec.sv_mask = vec.sv_onstack = 0
 
 static int ringring;
+/*
+ * AI-ONLY NOTE: declared here, not inside sleep(): GCC 14 rejects a
+ * static function declaration at block scope. Taken from OpenBSD
+ * (1996), lib/libc/gen/sleep.c, which declares it __P((int)) and gives
+ * the definition the signal number the handler is passed. NetBSD
+ * rewrote these two files around nanosleep instead, which is more
+ * than this needs.
+ */
+static void sleephandler __P((int));
 
 unsigned int
 sleep(seconds)
@@ -52,7 +61,6 @@ sleep(seconds)
 	struct itimerval itv, oitv;
 	struct sigvec vec, ovec;
 	long omask;
-	static void sleephandler();
 
 	itp = &itv;
 	if (!seconds)
@@ -91,7 +99,8 @@ sleep(seconds)
 }
 
 static void
-sleephandler()
+sleephandler(sig)
+	int sig;
 {
 	ringring = 1;
 }

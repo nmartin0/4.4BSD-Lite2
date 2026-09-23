@@ -39,6 +39,16 @@ static char sccsid[] = "@(#)ns_ntoa.c	8.1 (Berkeley) 6/4/93";
 #include <netns/ns.h>
 #include <stdio.h>
 
+/*
+ * AI-ONLY NOTE: declared here, not inside the function that calls it:
+ * GCC 14 rejects a static function declaration at block scope, and no
+ * option accepts it. Taken from OpenBSD (1996), lib/libc, which has
+ * these at file scope with __P prototypes; NetBSD 1.3 (1998) did the
+ * same later. The contemporaries otherwise keep the block-scope form,
+ * which no longer compiles.
+ */
+static char *spectHex __P((char *));
+
 char *
 ns_ntoa(addr)
 	struct ns_addr addr;
@@ -50,7 +60,6 @@ ns_ntoa(addr)
 	char *cp2;
 	register u_char *up = addr.x_host.c_host;
 	u_char *uplim = up + 6;
-	static char *spectHex();
 
 	net.net_e = addr.x_net;
 	sprintf(obuf, "%lx", ntohl(net.long_e));
