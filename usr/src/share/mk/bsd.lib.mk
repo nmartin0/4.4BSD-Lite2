@@ -63,17 +63,26 @@ all: ${MANALL}
 
 OBJS+=	${SRCS:R:S/$/.o/g}
 
+# AI-ONLY NOTE: ar cq, not cTq, for both libraries below: to GNU ar, T
+# makes a thin archive holding only paths, while 4.4BSD's ar reads it
+# as `truncate names'. NetBSD 1.0 and 1.1, FreeBSD 2.0.5 and OpenBSD
+# 1996 all archive with cq.
+#
+# tsort is left alone. OpenBSD writes `tsort -q' here, to silence the
+# notices tsort prints about the cycle among the profiling objects,
+# but -q is BSD tsort's; GNU tsort rejects it, prints nothing, and the
+# archive would then be built from an empty file list.
 lib${LIB}.a:: ${OBJS}
 	@echo building standard ${LIB} library
 	@rm -f lib${LIB}.a
-	@${AR} cTq lib${LIB}.a `lorder ${OBJS} | tsort` ${LDADD}
+	@${AR} cq lib${LIB}.a `lorder ${OBJS} | tsort` ${LDADD}
 	ranlib lib${LIB}.a
 
 POBJS+=	${OBJS:.o=.po}
 lib${LIB}_p.a:: ${POBJS}
 	@echo building profiled ${LIB} library
 	@rm -f lib${LIB}_p.a
-	@${AR} cTq lib${LIB}_p.a `lorder ${POBJS} | tsort` ${LDADD}
+	@${AR} cq lib${LIB}_p.a `lorder ${POBJS} | tsort` ${LDADD}
 	ranlib lib${LIB}_p.a
 
 llib-l${LIB}.ln: ${SRCS}
