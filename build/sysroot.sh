@@ -50,7 +50,9 @@
 #      archive and which the host does not have. NetBSD 1.6's build.sh
 #      installs its own tree's lorder the same way, as nblorder.
 #
-#   4. libc, by Lite2's own lib/libc all and install targets.
+#   4. The libraries named in $libs, by their own all and install
+#      targets: libc, then libutil, which twelve programs in this
+#      tree name in LDADD.
 #
 #      The compiler, assembler and linker settings, the object
 #      directory, the target root and the install owner all come from
@@ -126,6 +128,10 @@ fi
 
 TOOLS="$L2_BUILD/tools/bin"
 
+# The libraries to build, in order. These two have been built and
+# checked; the rest of lib/ follows as each is tried.
+libs="libc libutil"
+
 mkdir -p "$ROOT"
 
 printf '%s\n' "sysroot.sh: hierarchy -> $ROOT"
@@ -140,9 +146,11 @@ printf '%s\n' "sysroot.sh: host tools -> $TOOLS"
 mkdir -p "$TOOLS"
 install -m 755 "$SRC/usr.bin/lorder/lorder.sh" "$TOOLS/lorder"
 
-printf '%s\n' "sysroot.sh: libc -> $ROOT/usr/lib"
-cd "$SRC/lib/libc"
-sh "$REPO_ROOT/build/make.sh" all install NOMAN=noman
+for lib in $libs; do
+	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
+	cd "$SRC/lib/$lib"
+	sh "$REPO_ROOT/build/make.sh" all install NOMAN=noman
+done
 
 printf '%s\n' "sysroot.sh: startup files -> $ROOT/usr/lib"
 cd "$SRC/lib/csu/i386_elf"
