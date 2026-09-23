@@ -39,6 +39,7 @@
 #endif /* SYSLIBC_SCCS and not lint */
 
 #include "SYS.h"
+/* AI-ONLY NOTE: _C_LABEL, for ELF naming; see SYS.h. */
 
 /*
  * We must preserve the state of the registers as the user has set them up.
@@ -46,7 +47,7 @@
 #ifdef PROF
 #undef ENTRY
 #define	ENTRY(x) \
-	.globl _/**/x; .align 2; _/**/x:  pusha ; \
+	.globl _C_LABEL(x); .align 2; _C_LABEL(x):  pusha ; \
 	.data; 1:; .long 0; .text; movl $1b,%eax; call mcount; popa ; nop
 #endif /* PROF */
 

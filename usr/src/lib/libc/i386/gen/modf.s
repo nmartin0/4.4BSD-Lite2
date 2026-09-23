@@ -46,10 +46,13 @@
  * Sun Mar 11 20:27:30 PST 1990
  */
 
+#include "DEFS.h"
+
 /* With CHOP mode on, frndint behaves as TRUNC does.  Useful. */
+/* AI-ONLY NOTE: ENTRY, as NetBSD 1.0 writes it, so the name follows
+ * _C_LABEL (see DEFS.h). */
 .text
-.globl _modf
-_modf:
+ENTRY(modf)
 	pushl %ebp
 	movl %esp,%ebp
 	subl $16,%esp

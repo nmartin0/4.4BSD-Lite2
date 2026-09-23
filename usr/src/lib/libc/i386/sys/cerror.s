@@ -39,9 +39,10 @@
 #endif /* SYSLIBC_SCCS and not lint */
 
 #include "SYS.h"
+/* AI-ONLY NOTE: _C_LABEL, for ELF naming; see SYS.h. */
 
-	.globl	_errno
+	.globl	_C_LABEL(errno)
 cerror:
-	movl	%eax,_errno
+	movl	%eax,_C_LABEL(errno)
 	movl	$-1,%eax
 	ret

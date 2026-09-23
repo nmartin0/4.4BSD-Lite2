@@ -36,12 +36,35 @@
  *	@(#)DEFS.h	8.1 (Berkeley) 6/4/93
  */
 
+/*
+ * AI-ONLY NOTE: C symbols go through _C_LABEL: plain under ELF, where
+ * C names carry no leading underscore, and _name otherwise. The block
+ * is NetBSD 1.5's <machine/asm.h> (2000); OpenBSD's i386 asm.h says
+ * the same, `#define _C_LABEL(name) name'. Its __STDC__ arm goes
+ * unused here, since assembly is preprocessed with -traditional-cpp,
+ * as NetBSD 1.5 does.
+ *
+ * Both of them keep this in the kernel's <machine/asm.h>, and their
+ * libc DEFS.h is one line including it. This tree has no i386 asm.h,
+ * so the block lives here and in SYS.h, as ENTRY already does. When
+ * the kernel brings an asm.h, these can include it instead.
+ */
+#ifdef __ELF__
+#define	_C_LABEL(x)	x
+#else
+#ifdef __STDC__
+#define	_C_LABEL(x)	_ ## x
+#else
+#define	_C_LABEL(x)	_/**/x
+#endif
+#endif
+
 #ifdef PROF
-#define	ENTRY(x)	.globl _/**/x; _/**/x:  \
+#define	ENTRY(x)	.globl _C_LABEL(x); _C_LABEL(x):  \
 			.data; 1:; .long 0; .text; lea 1b,%eax ; call mcount
 #define	ASENTRY(x)	.globl x; x: \
 			.data; 1:; .long 0; .text; lea 1b,%eax ; call mcount
 #else
-#define	ENTRY(x)	.globl _/**/x; _/**/x: 
+#define	ENTRY(x)	.globl _C_LABEL(x); _C_LABEL(x): 
 #define	ASENTRY(x)	.globl x; x: 
 #endif
