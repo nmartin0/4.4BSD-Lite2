@@ -94,3 +94,13 @@ Each change is marked at its site with an `AI-ONLY NOTE`.
   `"sysident.h"` are removed. They emit NetBSD's `.note.netbsd.ident`
   section, which labels every program as NetBSD; neither header is in
   this tree.
+
+## Changes since the import
+
+Each change is marked at its site with an `AI-ONLY NOTE`.
+
+- `common_elf/crtbegin.c`: the includes of `<sys/exec_elf.h>` and
+  `"sysident.h"` are removed. They emit NetBSD's `.note.netbsd.ident`
+  section, which labels every program as NetBSD; neither header is in
+  this tree, and `sysident.h` is not in NetBSD's `lib/csu` either.
+
