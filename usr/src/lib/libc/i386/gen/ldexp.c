@@ -53,10 +53,18 @@ static char sccsid[] = "@(#)ldexp.c	8.1 (Berkeley) 6/4/93";
 double
 ldexp (double value, int exp)
 {
-	double temp, texp, temp2;
-	texp = exp;
-	asm ("fscale ; fxch %%st(1) ; fstp%L1 %1 "
-		: "=f" (temp), "=0" (temp2)
-		: "0" (texp), "f" (value));
+	double temp;
+
+	/*
+	 * AI-ONLY NOTE: modern GCC rejects the original constraints,
+	 * "matching constraint not valid in output operand": they tie an
+	 * output to an input with "=0". Taken from OpenBSD (1996),
+	 * lib/libc/arch/i386/gen/ldexp.c, which still ships it unchanged;
+	 * NetBSD 1.1 wrote the same. FreeBSD 2.0.5's rewrite keeps three
+	 * locals for two results and was not needed.
+	 */
+	asm ("fscale"
+		: "=t" (temp)
+		: "0" (value), "u" ((double)exp));
 	return (temp);
 }
