@@ -8,9 +8,20 @@ BINGRP?=	bin
 BINOWN?=	bin
 BINMODE?=	555
 
+# AI-ONLY NOTE: `set -e' makes a failed cd end that entry. Without it,
+# make reran in this directory without end for every SUBDIR entry
+# missing from the tree (bin/Makefile lists ed and expr).
+#
+# Taken from NetBSD 1.0 (October 1994), share/mk/bsd.subdir.mk, which
+# reads `(set -e; if test -d ...'; OpenBSD's has read the same since
+# 1996 and still does. Chosen over the other thing both of them did --
+# rewriting the loop, which OpenBSD has since done around SKIPDIR and
+# Makefile.bsd-wrapper -- because one token leaves Lite2's loop as it
+# is. Neither file carries a copyright notice; both descend from the
+# 4.4BSD file this one is.
 _SUBDIRUSE: .USE
 	@for entry in ${SUBDIR}; do \
-		(if test -d ${.CURDIR}/$${entry}.${MACHINE}; then \
+		(set -e; if test -d ${.CURDIR}/$${entry}.${MACHINE}; then \
 			echo "===> $${entry}.${MACHINE}"; \
 			cd ${.CURDIR}/$${entry}.${MACHINE}; \
 		else \
