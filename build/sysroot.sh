@@ -75,6 +75,12 @@
 #	LIBMODE	644: install makes a library 444 and then runs
 #		ranlib -t on it, which writes.
 #
+#   5. The ELF startup files, crt0.o, gcrt0.o, crtbegin.o and crtend.o,
+#      by lib/csu/i386_elf's own all and install targets, into
+#      ${ROOT}/usr/lib. They are NetBSD 1.6's (docs/provenance/
+#      csu-elf.md); the flags they need are in their own Makefile, so
+#      only the compiler, assembler and linker are passed here.
+#
 # It is safe to rerun: mtree only adds what is missing, and the header
 # install replaces what it installed.
 #
@@ -84,8 +90,8 @@
 #   That is enough to compile against; a disk image will need the real
 #   ownership recorded separately.
 #
-#   No library but libc, and no programs yet. Nothing links: that needs
-#   startup files, which this tree has only in an a.out form.
+#   No library but libc, and no programs yet: the startup files are
+#   installed, but nothing tells the compiler to link with them.
 #
 # HOST TOOLS: bmake, mtree and pax --
 #
@@ -162,3 +168,11 @@ PATH="$TOOLS:$PATH" MAKEOBJDIRPREFIX="$OBJ" \
     DESTDIR="$ROOT" BINOWN="$me" BINGRP="$grp" \
     LIBOWN="$me" LIBGRP="$grp" LIBMODE=644 \
     CC="$cc_i386" CPP="$cpp_i386" AS="as --32" LD="ld -m elf_i386"
+
+printf '%s\n' "sysroot.sh: startup files -> $ROOT/usr/lib"
+mkdir -p "$OBJ$SRC/lib/csu/i386_elf"
+cd "$SRC/lib/csu/i386_elf"
+MAKEOBJDIRPREFIX="$OBJ" \
+    sh "$REPO_ROOT/build/make.sh" all install NOMAN=noman \
+    DESTDIR="$ROOT" BINOWN="$me" BINGRP="$grp" \
+    CC="$cc_i386" AS="as --32" LD="ld -m elf_i386"
