@@ -39,8 +39,13 @@ libkern.${MACHINE}:: ${KMSRCS}
 	cp -p ${.ALLSRC} /sys/libkern/${MACHINE}
 .endif
 
+# AI-ONLY NOTE: ${DESTDIR}, so the tags go into the root being built
+# and not the build host's /var/db; ${BINOWN} and ${BINGRP} rather
+# than bin, so an unprivileged build can install them. NetBSD 1.1 and
+# OpenBSD 1996 both write the line this way.
 beforeinstall: tags
-	install -c -o bin -g bin -m 444 tags /var/db/libc.tags
+	install -c -o ${BINOWN} -g ${BINGRP} -m 444 tags \
+		${DESTDIR}/var/db/libc.tags
 
 tags: ${SRCS}
 	ctags ${.ALLSRC:M*.c}
