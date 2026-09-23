@@ -54,6 +54,15 @@ S=/tmp/_symbol_$$
 # remove temporary files on HUP, INT, QUIT, PIPE, TERM
 trap "rm -f $R $S; exit 1" 1 2 3 13 15
 
+# AI-ONLY NOTE: the file names are written first, because GNU nm -o
+# prints no "file:" line and without them an object that nothing else
+# refers to is left out of the archive with no message: Lite2's lorder
+# listed 420 of libc's 478 objects. Taken from OpenBSD's lorder, which
+# writes the pairs directly and lets NM be overridden; NetBSD 1.6 fixed
+# the same fault by feeding synthetic "file:" lines through the sed
+# script below, which this does not need.
+for file in "$@"; do echo "$file $file" ; done
+
 # if the line ends in a colon, assume it's the first occurrence of a new
 # object file.  Echo it twice, just to make sure it gets into the output.
 #
@@ -62,7 +71,7 @@ trap "rm -f $R $S; exit 1" 1 2 3 13 15
 #
 # if the line has " U " it's a globally undefined symbol, put it into
 # the reference file.
-nm -go $* | sed "
+${NM:-nm} -go "$@" | sed "
 	/:$/ {
 		s/://
 		s/.*/& &/
