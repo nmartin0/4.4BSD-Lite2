@@ -38,7 +38,20 @@ OBJS+=	${ASM} ${PSEUDO}
 POBJS+=	${ASM:.o=.po} ${PSEUDO:.o=.po}
 CLEANFILES+=${ASM} ${PSEUDO} ${POBJS} 
 
-${ASM}: ${.CURDIR}/${MACHINE}/SYS.h /usr/include/sys/syscall.h
+# AI-ONLY NOTE: ${DESTDIR}, so a build into a separate target root
+# depends on that root's syscall.h, not the build host's; empty on a
+# native build.
+#
+# Taken from NetBSD 1.3 (1998), lib/libc/sys/Makefile.inc, the
+# earliest release with this prefix, and kept by every NetBSD since.
+# The contemporaries all name the running system's header here --
+# NetBSD 1.0, 1.1 and 1.2, FreeBSD 2.0.5 and OpenBSD 1996 -- because
+# each was built on itself. FreeBSD 3.0 and OpenBSD later rebuilt
+# these rules instead, which is a larger change than this needs.
+# Neither file carries a copyright block; no new copyright arises
+# from a variable prefix.
+${ASM}: ${.CURDIR}/${MACHINE}/SYS.h \
+    ${DESTDIR}/usr/include/sys/syscall.h
 	@echo creating ${.PREFIX}.o ${.PREFIX}.po
 	@printf '#include "SYS.h"\nRSYSCALL(${.PREFIX})\n' | \
 	    ${CPP} ${CFLAGS:M-[ID]*} ${AINC} | ${AS} -o ${.PREFIX}.o
@@ -49,7 +62,8 @@ ${ASM}: ${.CURDIR}/${MACHINE}/SYS.h /usr/include/sys/syscall.h
 	@${LD} -x -r ${.PREFIX}.po
 	@mv a.out ${.PREFIX}.po
 
-${PSEUDO}: ${.CURDIR}/${MACHINE}/SYS.h /usr/include/sys/syscall.h
+${PSEUDO}: ${.CURDIR}/${MACHINE}/SYS.h \
+    ${DESTDIR}/usr/include/sys/syscall.h
 	@echo creating ${.PREFIX}.o ${.PREFIX}.po
 	@printf '#include "SYS.h"\nPSEUDO(${.PREFIX},${.PREFIX:S/_//})\n' | \
 	    ${CPP} ${CFLAGS:M-[ID]*} ${AINC} | ${AS} -o ${.PREFIX}.o
