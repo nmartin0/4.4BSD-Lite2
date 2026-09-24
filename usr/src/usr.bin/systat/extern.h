@@ -37,6 +37,11 @@
 #include <fcntl.h>
 #include <kvm.h>
 
+/*
+ * AI-ONLY NOTE (revision): `extern struct cmdtab cmdtab[];' used to
+ * stand here and is now in systat.h, after struct cmdtab. See
+ * usr.bin/ftp/extern.h, changed the same way and at the same time.
+ */
 extern struct	cmdtab *curcmd;
 extern struct	text *xtext;
 extern WINDOW	*wnd;

@@ -32,6 +32,16 @@
  * SUCH DAMAGE.
  */
 
+/*
+ * AI-ONLY NOTE (revision): the second line of the string below ends
+ * with a backslash, which it did not. A bare newline inside a string
+ * literal was taken by the compilers of the day and is an error to
+ * GCC 14. NetBSD 1.0 has the well-formed version of this string, a
+ * backslash at the end of every continued line; only that form is
+ * taken, as its wording differs from this tree's. 4.4BSD-Lite and
+ * FreeBSD 2.0.5 carry the same broken string. No note was left here
+ * when the change was made, which is why this one is later.
+ */
 #ifndef lint
 char copyright[] =
 "@(#) Copyright (c) 1988 Mark Nudleman.\n\

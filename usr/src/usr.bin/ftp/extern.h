@@ -140,6 +140,14 @@ void	syst __P((int, char **));
 void    tvsub __P((struct timeval *, struct timeval *, struct timeval *));
 void	user __P((int, char **));
 
+/*
+ * AI-ONLY NOTE (revision): `extern struct cmd cmdtab[];' used to stand
+ * here and is now in ftp_var.h, after struct cmd, where NetBSD 1.5 and
+ * after keep it; an array of an incomplete type is what GCC 14
+ * rejects. The note explaining it went into ftp_var.h when the line
+ * moved and none was left here, which is why this one is later than
+ * the change it describes.
+ */
 extern jmp_buf	abortprox;
 extern int	abrtflag;
 extern FILE	*cout;

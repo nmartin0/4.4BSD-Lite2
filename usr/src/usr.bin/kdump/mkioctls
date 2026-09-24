@@ -33,6 +33,11 @@
 #
 #	@(#)mkioctls	8.2 (Berkeley) 4/28/95
 #
+# AI-ONLY NOTE (revision): $DESTDIR, not /usr/include, which is the
+# running system's headers. FreeBSD 2.0.5 writes this line the same
+# way; the Makefile passes DESTDIR in. The explanation was put in the
+# Makefile when this changed and not here, so this note is later than
+# the change.
 awk '
 BEGIN {
 	print "#include <sys/param.h>"
