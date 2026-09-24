@@ -3,12 +3,21 @@
 PROG=	telnetd
 CFLAGS+=-DLINEMODE -DKLUDGELINEMODE -DUSE_TERMIO -DDIAGNOSTICS
 CFLAGS+=-DOLD_ENVIRON -DENV_HACK
-CFLAGS+=-DAUTHENTICATION -DENCRYPTION -I${.CURDIR}/../../lib
+CFLAGS+=-DAUTHENTICATION -I${.CURDIR}/../../lib
 SRCS=	authenc.c global.c slc.c state.c sys_term.c telnetd.c \
 	termstat.c utility.c
 DPADD=	${LIBUTIL} ${LIBTERM}
 LDADD=	-lutil -ltermcap -ltelnet
+
+# AI-ONLY NOTE: Kerberos is optional here, as it is in the programs
+# under usr.bin that offer it; see usr.bin/login/Makefile for the
+# reasoning and the donors. This tree cannot build kerberosIV, so
+# with it always on this program did not build at all.
+.if defined(KERBEROS)
+CFLAGS+=-DENCRYPTION
+DPADD+=	${LIBKRB} ${LIBDES}
 LDADD+=	-lkrb -ldes
+.endif
 MAN8=	telnetd.0
 
 # These are the sources that have encryption stuff in them.
