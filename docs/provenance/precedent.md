@@ -74,6 +74,41 @@ maintainer's working copies; it is not part of building this system.
   NetBSD 1.2 also carries the fixed form, which the same search
   missed.
 
+- **`ftp, systat: declare the command table after its struct`**
+  (`b4b737d6`). The message credits NetBSD 1.6 with keeping the
+  declaration in ftp_var.h. **NetBSD 1.5 is the earliest** that does
+  (`ftp_var.h:310`), and 1.6 and 10 follow it; **OpenBSD's current tree
+  arrived at the same arrangement independently**, which the message
+  does not mention. The change itself is unaffected, and a later sweep
+  of all fourteen trees strengthened it: Lite1, Lite2, NetBSD 1.0
+  through 1.4, FreeBSD 2.0.5 and OpenBSD 1996 declare it in extern.h,
+  the four later trees in ftp_var.h, and **not one tree of the fourteen
+  reorders the include** -- NetBSD 1.5 and after moved the struct
+  nearer the include rather than the include past the struct. The
+  alternative considered at the time, moving `#include "extern.h"'
+  below the struct, therefore has no precedent anywhere; it compiles,
+  and that is all that can be said for it.
+
+## Two decisions checked after the fact
+
+Both were committed without being put to the maintainer first, which
+the rule above now forbids, and both were re-researched afterwards
+across every tree. Both stand:
+
+- ftp and systat's command table, above.
+- `mail, window: drop -R` (`6d2429a6`). -R told the older compilers to
+  put initialized data into read-only text; GCC has never had it.
+  NetBSD 1.1 and FreeBSD 2.0.5 drop it and keep the rest of the line;
+  NetBSD 1.2 and after, and OpenBSD 1996, have no CFLAGS line in this
+  Makefile at all. Lite2's line held -R and nothing else -- it had
+  already lost the -DUSE_OLD_TTY that Lite1 and NetBSD 1.0 carry -- so
+  dropping the flag and dropping the line are the same act here, and
+  the result is what NetBSD 1.2 and OpenBSD 1996 have. window keeps
+  -DVMIN_BUG: it guards live code in wwrint.c, `#if defined(OLD_TTY)
+  || defined(VMIN_BUG)', and no tree drops it while still building
+  window, so dropping it would have changed which branch compiles on
+  nobody's authority.
+
 ## What in this tree is ours
 
 No function body, algorithm or data structure in 4.4BSD-Lite2 is ours,
