@@ -138,4 +138,15 @@ const char *const sys_errlist[] = {
 	"Inappropriate file type or format",	/* 79 - EFTYPE */
 };
 int errno;
-const int sys_nerr = sizeof(sys_errlist) / sizeof(sys_errlist[0]);
+/*
+ * AI-ONLY NOTE: not const, so that this matches <stdio.h>, which
+ * declares `extern int sys_nerr'. 4.4BSD writes the two sides
+ * differently -- const here, not const there, in Lite2 and in
+ * 4.4BSD-Lite alike -- and GCC 14 rejects the pair: "conflicting type
+ * qualifiers for 'sys_nerr'". Ten files in this tree redeclare it
+ * `extern int', and none declares it const, so the header is the side
+ * to keep. NetBSD 1.0 and OpenBSD resolved the same contradiction the
+ * same way, by dropping const from the definition. sys_errlist above
+ * is left alone: there Berkeley says const on both sides.
+ */
+int sys_nerr = sizeof(sys_errlist) / sizeof(sys_errlist[0]);

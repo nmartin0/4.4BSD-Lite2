@@ -240,9 +240,7 @@ int	 getc __P((FILE *));
 int	 getchar __P((void));
 char	*gets __P((char *));
 #if !defined(_ANSI_SOURCE) && !defined(_POSIX_SOURCE)
-/* AI-ONLY NOTE: __const, as gen/errlst.c defines it and as the line
- * below already declares sys_errlist; FreeBSD 2.0.5's form. */
-extern __const int sys_nerr;		/* perror(3) external variables */
+extern int sys_nerr;			/* perror(3) external variables */
 extern __const char *__const sys_errlist[];
 #endif
 void	 perror __P((const char *));
