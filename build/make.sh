@@ -60,6 +60,9 @@
 #   BINOWN, BINGRP, LIBOWN, LIBGRP, LIBMODE
 #		the building user, and libraries writable: install makes
 #		them 444 and then runs ranlib -t, which writes.
+#   HOSTCC	cc for programs the build runs here rather than on the
+#		target: bin/sh compiles mkinit, mknodes and mksyntax and
+#		runs them to generate source.
 #   CC, CPP, AS, LD
 #		the settings below. Lite2 defaults all four with ?=, so
 #		these take effect and a command-line assignment wins.
@@ -233,9 +236,12 @@ CC="$CC -static"
 CC="$CC -specs=$SPECS --sysroot=$ROOT -Wl,-nostdlib"
 CC="$CC -nostdinc -isystem $ROOT/usr/include"
 CPP="cpp -m32 -traditional-cpp -nostdinc -I$ROOT/usr/include"
+# The few programs a build runs on this machine rather than the
+# target: -std=gnu89 for the same reason the target compiler has it.
+HOSTCC="cc -std=gnu89"
 AS="as --32"
 LD="ld -m elf_i386"
 export LC_ALL MACHINE MAKEFLAGS DESTDIR MAKEOBJDIRPREFIX PATH
-export BINOWN BINGRP LIBOWN LIBGRP LIBMODE CC CPP AS LD
+export BINOWN BINGRP LIBOWN LIBGRP LIBMODE CC CPP AS LD HOSTCC
 
 exec bmake "$@"
