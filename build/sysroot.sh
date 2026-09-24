@@ -51,8 +51,11 @@
 #      installs its own tree's lorder the same way, as nblorder.
 #
 #   4. The libraries named in $libs, by their own all and install
-#      targets: libc, then libutil, which twelve programs in this
-#      tree name in LDADD.
+#      targets, in that order: libc; libutil, which twelve programs
+#      here name in LDADD; libterm, which builds libtermcap.a; and
+#      libedit, which also installs histedit.h. Each was built and
+#      checked before being added; the rest of lib/ follows the same
+#      way.
 #
 #      The compiler, assembler and linker settings, the object
 #      directory, the target root and the install owner all come from
@@ -130,7 +133,7 @@ TOOLS="$L2_BUILD/tools/bin"
 
 # The libraries to build, in order. These two have been built and
 # checked; the rest of lib/ follows as each is tried.
-libs="libc libutil"
+libs="libc libutil libterm libedit"
 
 mkdir -p "$ROOT"
 
@@ -149,7 +152,10 @@ install -m 755 "$SRC/usr.bin/lorder/lorder.sh" "$TOOLS/lorder"
 for lib in $libs; do
 	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
 	cd "$SRC/lib/$lib"
-	sh "$REPO_ROOT/build/make.sh" all install NOMAN=noman
+	# depend first: Lite2's libraries hang generated headers off the
+	# .depend target -- libedit makes six that way -- and without it
+	# make compiles before they exist.
+	sh "$REPO_ROOT/build/make.sh" depend all install NOMAN=noman
 done
 
 printf '%s\n' "sysroot.sh: startup files -> $ROOT/usr/lib"
