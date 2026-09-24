@@ -84,7 +84,20 @@ static	struct llinfo_arp *arplookup __P((u_long, int, int));
 static	void in_arpinput __P((struct mbuf *));
 
 extern	struct ifnet loif;
-extern	struct timeval time;
+/*
+ * AI-ONLY NOTE: the declaration of time that stood here is gone.
+ * <sys/kernel.h>, which this file includes above, declares it
+ * `extern volatile struct timeval time;', and this one left out the
+ * volatile: "conflicting type qualifiers for 'time'". NetBSD 1.0,
+ * FreeBSD 2.0.5 and OpenBSD 1996 have no such line in this file at
+ * all and take the declaration from the header, as this now does.
+ * 4.4BSD-Lite has the same mismatch, so it is not a Lite2 change.
+ *
+ * Five other files in this tree declare time without the volatile
+ * and will do the same when they are built: netccitt/if_x25subr.c,
+ * netiso/tp_meas.c, netiso/if_eon.c, netiso/clnp_frag.c and
+ * vax/if/if_qe.c. None is in an INET-only i386 configuration.
+ */
 struct	llinfo_arp llinfo_arp = {&llinfo_arp, &llinfo_arp};
 struct	ifqueue arpintrq = {0, 0, 0, 50};
 int	arp_inuse, arp_allocated, arp_intimer;

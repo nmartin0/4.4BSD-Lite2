@@ -178,6 +178,29 @@ Kerberos -- login, su, rlogin, rsh, passwd, telnet, rlogind, rshd,
 telnetd -- are conditional instead, as every BSD of the period has
 them.
 
+## Five more files that declare time without volatile
+
+<sys/kernel.h> declares `extern volatile struct timeval time;'. These
+five declare it again, without the volatile, and GCC 14 rejects the
+pair -- "conflicting type qualifiers for 'time'":
+
+  netccitt/if_x25subr.c
+  netiso/tp_meas.c
+  netiso/if_eon.c
+  netiso/clnp_frag.c
+  vax/if/if_qe.c
+
+netinet/if_ether.c had the same and is fixed: the local declaration is
+simply deleted, which is what NetBSD 1.0, FreeBSD 2.0.5 and OpenBSD
+1996 all have in that file. 4.4BSD-Lite has the same mismatch in all
+six, so it is not a 4.4BSD-Lite2 change.
+
+These five are left alone because none is in an INET-only i386
+configuration: four are ISO or CCITT networking and the fifth is a VAX
+driver. They will need the same one-line deletion when something
+builds them, and the donors for that are the same three trees -- which
+should be re-read then rather than trusted from here.
+
 ## The i386 disk, floppy and tape drivers
 
 i386/isa/wd.c and fd.c use the 4.3BSD names for the driver queue --
