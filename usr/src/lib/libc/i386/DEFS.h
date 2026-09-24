@@ -65,6 +65,6 @@
 #define	ASENTRY(x)	.globl x; x: \
 			.data; 1:; .long 0; .text; lea 1b,%eax ; call mcount
 #else
-#define	ENTRY(x)	.globl _C_LABEL(x); _C_LABEL(x): 
+#define	ENTRY(x)	.globl _C_LABEL(x); _C_LABEL(x):
 #define	ASENTRY(x)	.globl x; x: 
 #endif

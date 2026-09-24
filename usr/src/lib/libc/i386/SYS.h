@@ -66,7 +66,7 @@
 			.data; 1:; .long 0; .text; .align 2; _C_LABEL(x): \
 			movl $1b,%eax; call mcount
 #else
-#define	ENTRY(x)	.globl _C_LABEL(x); .text; .align 2; _C_LABEL(x): 
+#define	ENTRY(x)	.globl _C_LABEL(x); .text; .align 2; _C_LABEL(x):
 #endif PROF
 #define	SYSCALL(x)	2: jmp cerror; ENTRY(x); lea SYS_/**/x,%eax; LCALL(7,0); jb 2b
 #define	RSYSCALL(x)	SYSCALL(x); ret
