@@ -239,9 +239,13 @@ CPP="cpp -m32 -traditional-cpp -nostdinc -I$ROOT/usr/include"
 # The few programs a build runs on this machine rather than the
 # target: -std=gnu89 for the same reason the target compiler has it.
 HOSTCC="cc -std=gnu89"
+# byacc, not bison: this tree's grammars use the old yacc form
+# `rule = { action }', which Berkeley yacc accepts and bison 3.8
+# rejects. NetBSD builds its own as nbyacc for the same reason.
+YACC="byacc"
 AS="as --32"
 LD="ld -m elf_i386"
 export LC_ALL MACHINE MAKEFLAGS DESTDIR MAKEOBJDIRPREFIX PATH
-export BINOWN BINGRP LIBOWN LIBGRP LIBMODE CC CPP AS LD HOSTCC
+export BINOWN BINGRP LIBOWN LIBGRP LIBMODE CC CPP AS LD HOSTCC YACC
 
 exec bmake "$@"
