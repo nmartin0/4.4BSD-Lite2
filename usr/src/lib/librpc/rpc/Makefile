@@ -21,7 +21,11 @@ all: librpc.a
 beforeinstall: ${HDRS}
 	rm -rf ${DESTDIR}/usr/include/rpc
 	mkdir ${DESTDIR}/usr/include/rpc
-	chown bin.bin ${DESTDIR}/usr/include/rpc
+# AI-ONLY NOTE: ${BINOWN}.${BINGRP}, not bin.bin, as this tree's own
+# include/Makefile writes it in all four of its header loops. install -o
+# bin fails for anyone but root, and this line is not prefixed with `-',
+# so the whole install stopped.
+	chown ${BINOWN}.${BINGRP} ${DESTDIR}/usr/include/rpc
 	chmod 755 ${DESTDIR}/usr/include/rpc
 	cd ${.CURDIR}; install -c -o ${BINOWN} -g ${BINGRP} -m 444 ${HDRS} \
 	    ${DESTDIR}/usr/include/rpc
