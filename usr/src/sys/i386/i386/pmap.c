@@ -1511,7 +1511,20 @@ i386_protection_init()
 	}
 }
 
-static
+/*
+ * AI-ONLY NOTE: the static below is commented out, which is how this
+ * tree writes it in the other ports: hp300/hp300/pmap.c and
+ * luna68k/luna68k/pmap.c each comment out six of them, this function
+ * among them, and both declare `boolean_t pmap_testbit
+ * __P((vm_offset_t, int));' at the top as this file declares it. A
+ * bare static after a non-static declaration is what GCC 14 rejects,
+ * and the i386 pmap was the only one of the four with one. NetBSD
+ * 1.0 and OpenBSD 1996 also define it non-static, with no forward
+ * declaration at all; FreeBSD 2.0.5 keeps static and puts the
+ * definition above its callers instead, which would move forty
+ * lines.
+ */
+/* static */
 boolean_t
 pmap_testbit(pa, bit)
 	register vm_offset_t pa;
