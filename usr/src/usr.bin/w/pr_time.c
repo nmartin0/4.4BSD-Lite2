@@ -69,12 +69,20 @@ pr_attime(started, now)
 
 	/* If not today, use day-hour-am/pm. */
 	else if (*now / SECSPERDAY != *started / SECSPERDAY) {
-		(void)strcpy(fmt, __CONCAT("%a%", "I%p"));
+		/*
+		 * AI-ONLY NOTE: adjacent string literals, not __CONCAT,
+		 * which pastes them with ## -- not a valid token, and GCC
+		 * 14 rejects it. NetBSD 1.6 writes it this way, the
+		 * earliest release that does; NetBSD 10, FreeBSD 13 and
+		 * OpenBSD today go further and merge the halves into one
+		 * string. Every contemporary still has __CONCAT here.
+		 */
+		(void)strcpy(fmt, "%a%" "I%p");
 	}
 
 	/* Default is hh:mm{am,pm}. */
 	else {
-		(void)strcpy(fmt, __CONCAT("%l:%", "M%p"));
+		(void)strcpy(fmt, "%l:%" "M%p");
 	}
 
 	(void)strftime(buf, sizeof(buf), fmt, tp);

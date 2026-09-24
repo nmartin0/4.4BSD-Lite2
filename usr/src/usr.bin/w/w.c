@@ -349,7 +349,8 @@ pr_header(nowp, nusers)
 	 * %, M, and % in a character string with the file name.
 	 */
 	(void)strftime(buf, sizeof(buf),
-	    __CONCAT("%l:%","M%p"), localtime(nowp));
+		    /* AI-ONLY NOTE: see pr_time.c, changed the same way. */
+	    "%l:%" "M%p", localtime(nowp));
 	(void)printf("%s ", buf);
 
 	/*

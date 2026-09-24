@@ -368,11 +368,16 @@ started(k, ve)
 		(void)time(&now);
 	if (now - k->ki_u.u_start.tv_sec < 24 * SECSPERHOUR) {
 		/* I *hate* SCCS... */
-		static char fmt[] = __CONCAT("%l:%", "M%p");
+		/*
+		 * AI-ONLY NOTE: adjacent string literals, not __CONCAT.
+		 * See usr.bin/w/pr_time.c, changed the same way: NetBSD
+		 * 1.6 is the earliest release that writes it so.
+		 */
+		static char fmt[] = "%l:%" "M%p";
 		(void)strftime(buf, sizeof(buf) - 1, fmt, tp);
 	} else if (now - k->ki_u.u_start.tv_sec < 7 * SECSPERDAY) {
 		/* I *hate* SCCS... */
-		static char fmt[] = __CONCAT("%a%", "I%p");
+		static char fmt[] = "%a%" "I%p";
 		(void)strftime(buf, sizeof(buf) - 1, fmt, tp);
 	} else
 		(void)strftime(buf, sizeof(buf) - 1, "%e%b%y", tp);
