@@ -36,7 +36,13 @@ LIBMP?=		${DESTDIR}/usr/lib/libmp.a
 LIBPC?=		${DESTDIR}/usr/lib/libpc.a
 LIBPLOT?=	${DESTDIR}/usr/lib/libplot.a
 LIBRESOLV?=	${DESTDIR}/usr/lib/libresolv.a
-LIBRPC?=	${DESTDIR}/usr/lib/sunrpc.a
+# AI-ONLY NOTE: librpc.a is what lib/librpc/rpc builds -- its Makefile
+# says LIB= rpc -- and what -lrpc finds. sunrpc.a is the name of a
+# library this tree does not build, here and in 4.4BSD-Lite both; the
+# six Makefiles that name ${LIBRPC} all link -lrpc. NetBSD 1.0, FreeBSD
+# 2.0.5 and OpenBSD 1996 dropped LIBRPC when RPC moved into libc, so
+# none of them has a line to copy.
+LIBRPC?=	${DESTDIR}/usr/lib/librpc.a
 LIBTERM?=	${DESTDIR}/usr/lib/libterm.a
 LIBUTIL?=	${DESTDIR}/usr/lib/libutil.a
 
