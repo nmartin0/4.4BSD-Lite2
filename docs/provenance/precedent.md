@@ -49,6 +49,45 @@ trees look most useful -- they are the worst place to look, on two
 independent grounds. That work goes to NetBSD 1.0, which is
 BSD-licensed and may be copied.
 
+## Every claim names a tree and a release, and is read before it is made
+
+Two failures, one of which nearly reached the tree, produced this rule.
+
+A symlink shadow tree of sys/ was proposed as the way to build a kernel
+without writing into the source tree, and called "the traditional BSD
+answer". It is not. lndir is an X11 idiom and is in none of the trees
+here; every BSD of the era writes the kernel build into the source
+tree, and FreeBSD 2.0.5 even ships sys/compile. The proposal was
+rejected before it was written, but it was put forward wearing the
+vocabulary of precedent.
+
+usr.bin/lorder/lorder.sh's note said its form was "taken from
+OpenBSD's lorder", with no release. OpenBSD 1996 reads `nm -go $*';
+the form actually taken -- pairs written directly, "$@" quoted, NM
+overridable -- is OpenBSD's current tree. The code is right and the
+citation pointed at the wrong decade. It is corrected in the file.
+
+So, without exception:
+
+1. A citation names the tree AND the release or branch. Not "OpenBSD's
+   lorder" but "OpenBSD's current tree, usr.bin/lorder/lorder.sh".
+   An undated citation in this tree reads as a contemporary, and the
+   contemporaries are 4.4BSD-Lite, NetBSD 1.0 and 1.1, FreeBSD 2.0.5
+   and OpenBSD 1996.
+
+2. Nothing outside the BSD trees on disk is precedent. If an idea
+   comes from X11, from GNU, from Linux, from a model's training or
+   from its own reasoning, it is this project's own invention: it is
+   labelled as such, the alternatives are given, and the maintainer
+   decides. That no BSD does a thing is itself the finding, and is
+   reported rather than covered over with a plausible-sounding
+   source.
+
+3. A claim is written only after the file it describes has been read
+   in the session that writes it -- not from memory of what a BSD
+   "usually does". The sweep described below is how that reading is
+   done; if it was not run, the claim is not made.
+
 ## Proving an absence
 
 A found donor proves itself: the line is shown. An absence does not,
