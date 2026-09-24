@@ -62,4 +62,16 @@ typedef	unsigned int		u_int32_t;
 typedef	long long		  int64_t;
 typedef	unsigned long long	u_int64_t;
 
+/*
+ * AI-ONLY NOTE: register_t is used by <sys/ktrace.h>, <sys/systm.h>
+ * and usr.bin/kdump, and this tree defines it for hp300 and sparc and
+ * not for i386. The line is this tree's own, copied from
+ * sys/hp300/include/types.h and sys/sparc/include/types.h, where it
+ * reads the same and sits in the same place. No BSD of the period has
+ * it in an i386 types.h to take instead: NetBSD 1.0's does not define
+ * it either. int32_t is what the two architectures here use and is
+ * the width of a register on this one.
+ */
+typedef	int32_t			register_t;
+
 #endif	/* _MACHTYPES_H_ */
