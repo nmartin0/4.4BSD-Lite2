@@ -35,7 +35,7 @@
 #ifndef lint
 char copyright[] =
 "@(#) Copyright (c) 1988 Mark Nudleman.\n\
-@(#) Copyright (c) 1988, 1993
+@(#) Copyright (c) 1988, 1993\
 	Regents of the University of California.  All rights reserved.\n";
 #endif /* not lint */
 
