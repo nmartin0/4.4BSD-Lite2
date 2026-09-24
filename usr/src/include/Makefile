@@ -32,12 +32,14 @@ MFILES=	float.h frame.h stdarg.h varargs.h
 LFILES=	errno.h fcntl.h syslog.h termios.h
 
 DIRS=arpa protocols
-# AI-ONLY NOTE: isofs added. sbin/mountd and sbin/mount_cd9660 include
-# <sys/../isofs/cd9660/cd9660_mount.h>, which resolves only where the
-# isofs headers have been installed beside sys. OpenBSD extends this
-# list the same way for what its own programs need, adding scsi and
-# gnu/ext2fs to the nine here.
-LDIRS=	isofs net netccitt netinet netiso netns nfs sys ufs vm
+# AI-ONLY NOTE: isofs and miscfs added. sbin/mountd and
+# sbin/mount_cd9660 include <sys/../isofs/cd9660/cd9660_mount.h>, and
+# usr.sbin/pstat includes <miscfs/union/union.h>; both resolve only
+# where those headers have been installed beside sys. This tree has
+# nine miscfs headers and installed none of them. OpenBSD extends this
+# list the same way for what its own programs need, adding ddb, scsi
+# and gnu/ext2fs to the nine here.
+LDIRS=	isofs miscfs net netccitt netinet netiso netns nfs sys ufs vm
 
 NOOBJ=	noobj
 
