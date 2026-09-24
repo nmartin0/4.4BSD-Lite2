@@ -60,6 +60,17 @@ static char sccsid[] = "@(#)bad144.c	8.2 (Berkeley) 4/27/95";
 #include <sys/ioctl.h>
 #include <sys/file.h>
 #include <sys/disklabel.h>
+/*
+ * AI-ONLY NOTE: dinode.h first, for the ufs_daddr_t that fs.h below
+ * uses and does not itself include. The type is 4.4BSD-Lite2's own --
+ * `typedef int32_t ufs_daddr_t' in ufs/ufs/dinode.h -- and neither
+ * 4.4BSD-Lite, NetBSD 1.0 nor FreeBSD 2.0.5 has it, so no other tree
+ * has this problem to solve. This tree does: of the twenty-seven
+ * files here that include <ufs/ffs/fs.h>, twenty-six also include
+ * dinode.h, inode.h or quota.h and so get the type. This file was the
+ * one that did not.
+ */
+#include <ufs/ufs/dinode.h>
 #include <ufs/ffs/fs.h>
 
 #include <stdio.h>
