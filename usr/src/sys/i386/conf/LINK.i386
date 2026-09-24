@@ -2,9 +2,12 @@
 # LINK -- GENERIC without the drivers 4.4BSD-Lite2 left unfinished.
 #
 # AI-ONLY NOTE: this configuration is not Berkeley's. It is GENERIC.i386
-# with wd, fd and wt removed, because those three drivers use the 4.3BSD
-# names for the driver queue -- av_forw, b_forw, b_actl -- and struct buf
-# in <sys/buf.h> has had b_actf and b_actb since before 4.4BSD-Lite.
+# with wd, fd and wt removed. wd and fd use the 4.3BSD names for the
+# driver queue -- av_forw, b_forw, b_actl -- and struct buf in
+# <sys/buf.h> has had b_actf and b_actb since before 4.4BSD-Lite. wt
+# has none of those and fails on its own account, at a static
+# declaration of cmds after a non-static one; it is left out here with
+# the other two rather than fixed in passing.
 # 4.4BSD-Lite has the same mixture in the same files, so these drivers
 # have never compiled against Berkeley's own header; it is one more piece
 # of an unfinished i386 port, like the missing kvm_i386.c.

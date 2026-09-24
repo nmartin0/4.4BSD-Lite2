@@ -178,6 +178,42 @@ Kerberos -- login, su, rlogin, rsh, passwd, telnet, rlogind, rshd,
 telnetd -- are conditional instead, as every BSD of the period has
 them.
 
+## The i386 disk, floppy and tape drivers
+
+i386/isa/wd.c and fd.c use the 4.3BSD names for the driver queue --
+av_forw, b_forw and b_actl -- and struct buf in <sys/buf.h> has had
+b_actf and b_actb since before 4.4BSD-Lite. Seven sites in wd.c and
+two in fd.c; wt.c has none, and fails for a reason of its own, a
+static declaration of cmds after a non-static one at wt.c:904. It is
+left out of LINK.i386 with the other two only because it was grouped
+with them before that was checked.
+
+4.4BSD-Lite has the same mixture in the same files, and its buf.h
+already has only the new names, so these drivers never compiled
+against Berkeley's own header in either release. This is not a
+consumer left behind by a Lite2 change; it is one more piece of an
+unfinished i386 port.
+
+Donors, checked: FreeBSD 2.0.5 alone. Its wd.c is the same 386BSD
+lineage, has the same routines under the same names, and uses b_actf
+with the b_actb back pointer -- but it queues buffers where this one
+queues drive tables, and its wdtab is an array indexed by controller
+where this one is a single structure, so it is a model rather than a
+line-for-line source. NetBSD 1.0 rewrote the driver around a softc and
+TAILQ; OpenBSD 1996 ships no wd.c at all, its i386/isa holding only
+ahc_isa, pccom, pccons, pcvt and the like.
+
+So, for when this is picked up again:
+
+  A	adapt the ten sites to b_actf and b_actb, modelled on FreeBSD
+	2.0.5's, keeping this tree's single-controller structure.
+  B	import FreeBSD 2.0.5's wd.c, fd.c and wt.c whole -- 2012 lines
+	against this tree's 1208 for wd.c, carrying five years of
+	FreeBSD's other changes with them.
+
+Neither is done. i386/conf/LINK.i386 omits the three so that the rest
+of the kernel can be built and linked meanwhile.
+
 ## Machine-specific programs that do not build here
 
 usr.sbin/eeprom is a sparc program. It includes <machine/openpromio.h>,
