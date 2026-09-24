@@ -170,10 +170,21 @@ struct {
 	{ MNT_DELEXPORT, "delexport" },
 	{ MNT_RELOAD, "reload" },
 	{ MNT_FORCE, "force" },
-	{ MNT_MLOCK, "mlock" },
-	{ MNT_WAIT, "wait" },
-	{ MNT_MPBUSY, "mpbusy" },
-	{ MNT_MPWANT, "mpwant" },
+	/*
+	 * AI-ONLY NOTE: MNT_MLOCK, MNT_MPBUSY and MNT_MPWANT are gone
+	 * from this release's <sys/mount.h>: 4.4BSD-Lite2 replaced that
+	 * hand-rolled locking with `struct lock mnt_lock' in struct
+	 * mount, and this table was not followed through. All three are
+	 * in 4.4BSD-Lite and NetBSD 1.0. NetBSD 1.4 made the same kernel
+	 * change and ends this table the same way, at MNT_FORCE and
+	 * MNT_MWAIT.
+	 *
+	 * MNT_MWAIT, not MNT_WAIT, for the last entry: MNT_WAIT is 1,
+	 * the argument to VFS_SYNC, not a mount flag. NetBSD 1.4 writes
+	 * MNT_MWAIT here, which is what this tree's own mount.h defines
+	 * and what the entry means.
+	 */
+	{ MNT_MWAIT, "wait" },
 	{ MNT_UNMOUNT, "unmount" },
 	{ MNT_WANTRDWR, "wantrdwr" },
 	{ 0 }
@@ -436,10 +447,15 @@ ufs_print(vp)
 
 	KGETRET(VTOI(vp), &inode, sizeof(struct inode), "vnode's inode");
 	flag = ip->i_flag;
-	if (flag & IN_LOCKED)
-		*flags++ = 'L';
-	if (flag & IN_WANTED)
-		*flags++ = 'W';
+	/*
+	 * AI-ONLY NOTE: IN_LOCKED and IN_WANTED are gone from this
+	 * release's <ufs/ufs/inode.h> for the same reason as the mount
+	 * flags above: Lite2 replaced them with `struct lock i_lock' in
+	 * struct inode. Both are in 4.4BSD-Lite and NetBSD 1.0, and
+	 * IN_LWAIT went the same way. NetBSD 1.4, which made the same
+	 * change, prints exactly the seven flags this tree's inode.h
+	 * still defines, which is what is left here.
+	 */
 	if (flag & IN_RENAME)
 		*flags++ = 'R';
 	if (flag & IN_UPDATE)
@@ -454,8 +470,6 @@ ufs_print(vp)
 		*flags++ = 'S';
 	if (flag & IN_EXLOCK)
 		*flags++ = 'E';
-	if (flag & IN_LWAIT)
-		*flags++ = 'Z';
 	if (flag == 0)
 		*flags++ = '-';
 	*flags = '\0';
