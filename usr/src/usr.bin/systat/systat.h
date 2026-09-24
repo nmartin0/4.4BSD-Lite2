@@ -47,6 +47,13 @@ struct  cmdtab {
 	char	c_flags;		/* see below */
 };
 
+/*
+ * AI-ONLY NOTE: declared here, after struct cmdtab, and not in
+ * extern.h, which does not have the struct. See usr.bin/ftp's
+ * ftp_var.h, changed the same way, after NetBSD 1.6.
+ */
+extern	struct cmdtab	cmdtab[];
+
 #define	CF_INIT		0x1		/* been initialized */
 #define	CF_LOADAV	0x2		/* display w/ load average */
 

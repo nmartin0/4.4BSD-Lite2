@@ -115,6 +115,17 @@ struct cmd {
 	void	(*c_handler) __P((int, char **)); /* function to call */
 };
 
+/*
+ * AI-ONLY NOTE: declared here, after struct cmd, and not in
+ * extern.h, which this file includes before the struct exists. An
+ * array of an incomplete type is what GCC 14 rejects: "array type
+ * has incomplete element type 'struct cmd'". NetBSD 1.6 keeps this
+ * declaration in ftp_var.h for the same reason and leaves the rest
+ * of extern.h alone; every earlier tree, and NetBSD through 1.4,
+ * has it in extern.h as this did.
+ */
+extern	struct cmd	cmdtab[];
+
 struct macel {
 	char mac_name[9];	/* macro name */
 	char *mac_start;	/* start of macro in macbuf */
