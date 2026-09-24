@@ -61,7 +61,16 @@ struct proc;
 static	void unixdomainpr __P((struct socket *, caddr_t));
 
 static struct	file *file, *fileNFILE;
-static int	nfiles;
+/*
+ * AI-ONLY NOTE: ns_nfiles, not nfiles. This file defines KERNEL before
+ * <sys/file.h> to get struct file, and that same block declares
+ * `extern int nfiles', so a static of the same name is a static
+ * declaration after a non-static one, which GCC 14 rejects. NetBSD 10
+ * renames the local to ns_nfiles for this reason; every contemporary,
+ * and NetBSD through 1.6, keeps the clash, which older compilers
+ * allowed.
+ */
+static int	ns_nfiles;
 extern	kvm_t *kvmd;
 
 void
@@ -73,13 +82,13 @@ unixpr(off)
 	char *filebuf;
 	struct protosw *unixsw = (struct protosw *)off;
 
-	filebuf = (char *)kvm_getfiles(kvmd, KERN_FILE, 0, &nfiles);
+	filebuf = (char *)kvm_getfiles(kvmd, KERN_FILE, 0, &ns_nfiles);
 	if (filebuf == 0) {
 		printf("Out of memory (file table).\n");
 		return;
 	}
 	file = (struct file *)(filebuf + sizeof(fp));
-	fileNFILE = file + nfiles;
+	fileNFILE = file + ns_nfiles;
 	for (fp = file; fp < fileNFILE; fp++) {
 		if (fp->f_count == 0 || fp->f_type != DTYPE_SOCKET)
 			continue;
