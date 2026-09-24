@@ -35,14 +35,22 @@
 
 PROG=	telnet
 
-CFLAGS+=-DTERMCAP -DKLUDGELINEMODE -DUSE_TERMIO -DAUTHENTICATION -DENCRYPTION
+CFLAGS+=-DTERMCAP -DKLUDGELINEMODE -DUSE_TERMIO -DAUTHENTICATION
 CFLAGS+=-DENV_HACK
 CFLAGS+=-I${.CURDIR}/../../lib
 
-CFLAGS+= -DKRB4
 
 LDADD=	-ltermcap -ltelnet
+
+# AI-ONLY NOTE: Kerberos is optional, as in lib/libtelnet and in every
+# program that offers it here; see usr.bin/login/Makefile. The
+# encryption this switches on lives in libtelnet's Kerberos half, so
+# the two are turned on together.
+.if defined(KERBEROS)
+CFLAGS+= -DENCRYPTION -DKRB4
 LDADD+=	-lkrb -ldes
+DPADD+=	${LIBKRB} ${LIBDES}
+.endif
 DPADD=	${LIBTERMCAP}
 
 SRCS=	authenc.c commands.c main.c network.c ring.c sys_bsd.c telnet.c \

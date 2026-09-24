@@ -2,10 +2,19 @@
 
 LIB=	telnet
 SRCS=	auth.c encrypt.c genget.c getent.c misc.c
-SRCS+=	kerberos.c enc_des.c
 #SRCS+=	kerberos5.c
-CFLAGS+= -DENCRYPTION -DAUTHENTICATION -DHAS_CGETENT
-CFLAGS+= -DKRB4 -DDES_ENCRYPTION -I/usr/include/kerberosIV
+CFLAGS+= -DAUTHENTICATION -DHAS_CGETENT
+
+# AI-ONLY NOTE: the Kerberos half of this library is optional now, as
+# the Kerberos half of every program that uses it is; see
+# usr.bin/login/Makefile. Its -I named /usr/include/kerberosIV, the
+# running system's headers, which a build into a separate root must
+# not read; under KERBEROS it reads the target root's instead.
+.if defined(KERBEROS)
+SRCS+=	kerberos.c enc_des.c
+CFLAGS+= -DENCRYPTION -DKRB4 -DDES_ENCRYPTION
+CFLAGS+= -I${DESTDIR}/usr/include/kerberosIV
+.endif
 
 # These are the sources that have encryption stuff in them.
 CRYPT_SRC= auth.c enc-proto.h enc_des.c encrypt.c
