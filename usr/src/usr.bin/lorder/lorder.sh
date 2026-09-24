@@ -57,10 +57,18 @@ trap "rm -f $R $S; exit 1" 1 2 3 13 15
 # AI-ONLY NOTE: the file names are written first, because GNU nm -o
 # prints no "file:" line and without them an object that nothing else
 # refers to is left out of the archive with no message: Lite2's lorder
-# listed 420 of libc's 478 objects. Taken from OpenBSD's lorder, which
-# writes the pairs directly and lets NM be overridden; NetBSD 1.6 fixed
-# the same fault by feeding synthetic "file:" lines through the sed
-# script below, which this does not need.
+# listed 420 of libc's 478 objects.
+#
+# AI-ONLY NOTE (revision): this line is OpenBSD's CURRENT tree,
+# usr.bin/lorder/lorder.sh, which writes the pairs directly, quotes
+# "$@" and lets NM be overridden. The note here said only "OpenBSD's
+# lorder", which in this tree reads as the 1996 tree used as a
+# contemporary, and that is wrong: OpenBSD 1996 reads `nm -go $*',
+# with no NM and no quoting, as NetBSD 1.0 does. The contemporary fix
+# for the same fault is NetBSD 1.6's, which feeds synthetic "file:"
+# lines through the sed script below; this form needs no such round
+# trip, which is why it was chosen, but it comes from a later tree and
+# now says so.
 for file in "$@"; do echo "$file $file" ; done
 
 # if the line ends in a colon, assume it's the first occurrence of a new
