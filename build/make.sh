@@ -217,6 +217,18 @@ case "$PWD" in
 	noobj=$(MACHINE=i386 MAKEOBJDIRPREFIX='' bmake -m "$MKDIR" \
 	    -V '${NOOBJ}' 2>/dev/null || true)
 	[ -n "$noobj" ] || mkdir -p "$OBJ$PWD"
+
+	# and one for every directory below this one that has a
+	# Makefile, since a recursive target runs make in each and
+	# bmake builds in the source directory when the object one is
+	# missing. Directories whose Makefile sets NOOBJ are skipped,
+	# for the reason above; grepping for it is enough here and
+	# costs one pass rather than a make per directory.
+	find . -mindepth 2 -name Makefile -type f 2>/dev/null |
+	while read -r mf; do
+		grep -q '^NOOBJ' "$mf" && continue
+		mkdir -p "$OBJ$PWD/$(dirname "${mf#./}")"
+	done
 	;;
 esac
 
