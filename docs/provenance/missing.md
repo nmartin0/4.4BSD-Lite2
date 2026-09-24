@@ -110,6 +110,16 @@ sendmail and uucp documents.
 			Imported from NetBSD 1.0, the only file taken
 			from another system so far.
 
+## Programs that are Kerberos itself
+
+libexec/kpasswdd is the Kerberos password daemon: its own source
+includes <kerberosIV/des.h> and calls the library throughout, so
+making its Makefile's Kerberos optional achieves nothing and was not
+done. It builds when kerberosIV does. The programs that merely offer
+Kerberos -- login, su, rlogin, rsh, passwd, telnet, rlogind, rshd,
+telnetd -- are conditional instead, as every BSD of the period has
+them.
+
 ## Machine-specific programs that do not build here
 
 usr.sbin/eeprom is a sparc program. It includes <machine/openpromio.h>,
