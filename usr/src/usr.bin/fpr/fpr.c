@@ -46,6 +46,17 @@ static char sccsid[] = "@(#)fpr.c	8.1 (Berkeley) 6/6/93";
 
 #include <stdio.h>
 
+/*
+ * AI-ONLY NOTE: declared here because GCC 14 knows gettext as a
+ * built-in taking arguments, and without a declaration the call
+ * below is read as that one: "too few arguments to function
+ * 'gettext'". This line is NetBSD 1.4's, the earliest release with
+ * it; the contemporaries all leave the function undeclared. NetBSD
+ * 10 renames the function to get_text instead, which is the surer
+ * fix and a larger one, and is not done here.
+ */
+void gettext __P((void));
+
 #define BLANK ' '
 #define TAB '\t'
 #define NUL '\000'
