@@ -41,6 +41,18 @@ static char sccsid[] = "@(#)wwgets.c	8.1 (Berkeley) 6/6/93";
 #include "ww.h"
 #include "char.h"
 
+/*
+ * AI-ONLY NOTE: declared here, not inside wwgets(): GCC 14 rejects a
+ * static function declaration at block scope. This line is NetBSD
+ * 1.4's, from usr.bin/window/wwgets.c, where it sits at file scope
+ * just after the includes with the argument types named; rub() below
+ * takes exactly those, c being an int by default. NetBSD 1.5 and 1.6
+ * keep it; 4.4BSD-Lite, NetBSD 1.0 through 1.3, FreeBSD 2.0.5 and
+ * OpenBSD 1996 all write it inside the function, as this did, and
+ * NetBSD 10 and OpenBSD no longer ship window at all.
+ */
+static void rub __P((int, struct ww *));
+
 wwgets(buf, n, w)
 char *buf;
 int n;
@@ -49,7 +61,6 @@ register struct ww *w;
 	register char *p = buf;
 	register char c;
 	char uc = w->ww_unctrl;
-	static void rub();
 
 	w->ww_unctrl = 0;
 	for (;;) {
