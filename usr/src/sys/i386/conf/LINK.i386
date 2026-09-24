@@ -1,0 +1,42 @@
+#
+# LINK -- GENERIC without the drivers 4.4BSD-Lite2 left unfinished.
+#
+# AI-ONLY NOTE: this configuration is not Berkeley's. It is GENERIC.i386
+# with wd, fd and wt removed, because those three drivers use the 4.3BSD
+# names for the driver queue -- av_forw, b_forw, b_actl -- and struct buf
+# in <sys/buf.h> has had b_actf and b_actb since before 4.4BSD-Lite.
+# 4.4BSD-Lite has the same mixture in the same files, so these drivers
+# have never compiled against Berkeley's own header; it is one more piece
+# of an unfinished i386 port, like the missing kvm_i386.c.
+#
+# It exists so the rest of the kernel can be compiled and linked while
+# that is decided. GENERIC.i386 is left exactly as Berkeley wrote it.
+# Shipping more than one configuration per port is ordinary: NetBSD 1.0's
+# i386 conf holds ALL, DISKLESS, GENERICAHA and six others beside
+# GENERIC, and FreeBSD 2.0.5's holds GENERIC and LINT.
+#
+# See docs/provenance/missing.md for what would be needed to build the
+# three drivers, and which tree has a donor for them.
+#
+machine		"i386"
+cpu		"i386"
+ident		LINK
+timezone	8 dst
+maxusers	2
+options		INET
+options		"TCP_COMPAT_42"
+options		"COMPAT_43"
+
+config		vmunix	swap on generic
+
+controller	isa0
+
+device		cn0	at isa? port "IO_KBD" tty irq 1 vector cnrint
+device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
+device		com0	at isa? port "IO_COM1" tty irq 4 vector comintr
+device		ne0	at isa? port 0x320 net irq 9 vector neintr
+device we0 at isa? port 0x280 net irq 3 iomem 0xd0000 iosiz 8192 vector weintr
+
+pseudo-device	loop
+pseudo-device	ether
+pseudo-device	sl	1
