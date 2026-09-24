@@ -10,7 +10,12 @@ AINC=	-I${.CURDIR}/../libc/${MACHINE}
 	${.CURDIR}/regexp
 
 # compat 4.1 sources
-SRCS=	ftime.c getpw.c gtty.c stty.c tell.c vlimit.c vtimes.c
+# AI-ONLY NOTE: this tree ships none of the 4.1 sources -- lib/compat/4.1
+# holds five manual pages and no code -- so none is named here. NetBSD
+# 1.0 and OpenBSD 1996 name gtty.c, ftime.c and stty.c, the three they
+# have, and comment the rest out; the same practice, applied to what is
+# in this tree.
+SRCS=
 
 .if (${MACHINE} == "vax")
 SRCS+=	reset.s
@@ -21,8 +26,11 @@ MAN3+=	ftime.0 getpw.0 stty.0 vlimit.0 vtimes.0
 MLINKS+=stty.3 gtty.3
 
 # compat 4.3 sources
-SRCS+=	cfree.c ecvt.c gcvt.c lsearch.c regex.c rexec.c sibuf.c sobuf.c \
-	strout.c
+# AI-ONLY NOTE: ecvt.c, gcvt.c, regex.c, sibuf.c, sobuf.c and strout.c
+# are not in this tree. NetBSD 1.0 names cfree.c, lsearch.c, regex.c and
+# rexec.c here; OpenBSD 1996 drops cfree.c as well. These four are the
+# ones present.
+SRCS+=	cfree.c lsearch.c rexec.c
 
 .if	(${MACHINE} == "hp300" || ${MACHINE} == "luna68k")
 SRCS+=	insque.s remque.s
