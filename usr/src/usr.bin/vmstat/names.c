@@ -38,6 +38,39 @@
 char *defdrives[] = { 0 };
 #endif
 
+/*
+ * AI-ONLY NOTE: this file has cases for hp300, tahoe, vax, luna68k,
+ * mips and sun, and none for i386, so read_names is undefined and
+ * usr.bin/vmstat, usr.bin/vmstat.sparc and usr.bin/systat do not link.
+ * Berkeley left the i386 port short here, as it did in lib/libkvm.
+ *
+ * This is NetBSD 1.0's i386 case, the same stub they give pc532. It
+ * returns success and fills nothing, and vmstat.c already has
+ * Berkeley's own path for that: a drive whose name is still NULL is
+ * labelled ??0, ??1 and so on, and the statistics are reported as
+ * usual. defdrives above is already empty for this machine, which is
+ * the other half of the same answer.
+ *
+ * FreeBSD 2.0.5 has a real implementation here instead, by Rodney W.
+ * Grimes: it reads namelist[X_DK_NAMES] out of the kernel and gives
+ * the drives their true names. It is not taken because it depends on
+ * a kernel symbol this tree has not been shown to export, which
+ * cannot be checked until a kernel built from this tree runs. If real
+ * names are wanted later, that is where to look; the choice is
+ * recorded in docs/provenance/missing.md.
+ *
+ * Neither lineage kept this file: NetBSD replaced it with dkstats.c
+ * at 1.2 and FreeBSD dropped it by 3.0, and OpenBSD already had
+ * dkstats.c in 1996. The stub is what fits this tree as it stands.
+ */
+#if defined(i386)
+int
+read_names()
+{
+	return 1;
+}
+#endif
+
 #if defined(hp300) || defined(luna68k)
 #if defined(hp300)
 #include <hp/dev/device.h>
