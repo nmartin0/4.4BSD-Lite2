@@ -14,6 +14,12 @@ AS		?=	as
 AFLAGS		?=
 
 CC		?=	gcc
+# AI-ONLY NOTE: HOSTCC compiles the few programs a build runs on the
+# machine doing the building -- bin/sh's mkinit, mknodes and mksyntax
+# generate source and must run here, not on the target. OpenBSD's
+# sys.mk has carried this since 1996 and its bin/sh uses it; NetBSD
+# reached the same with HOST_CC in 1.4 and bsd.hostprog.mk in 1.5.
+HOSTCC		?=	cc
 
 .if ${MACHINE} == "sparc"
 CFLAGS		?=	-O4
