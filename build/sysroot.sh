@@ -134,7 +134,7 @@ TOOLS="$L2_BUILD/tools/bin"
 
 # The libraries to build, in order. These two have been built and
 # checked; the rest of lib/ follows as each is tried.
-libs="libc libutil libterm libedit libl"
+libs="libc libutil libterm libedit libl libcompat"
 
 mkdir -p "$ROOT"
 
