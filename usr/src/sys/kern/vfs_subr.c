@@ -821,6 +821,24 @@ vop_noislocked(ap)
 	return (lockstatus(vp->v_vnlock));
 }
 
+#ifdef DIAGNOSTIC
+/*
+ * AI-ONLY NOTE: compiled only under DIAGNOSTIC. Without it,
+ * <sys/vnode.h> defines vref, vhold and holdrele as static
+ * __inline functions, complete with bodies, in every file that
+ * includes the header -- so these definitions are a second copy
+ * and GCC 14 says so: "redefinition of 'vref'". Under DIAGNOSTIC
+ * the header declares them instead and these are the only
+ * definitions.
+ *
+ * NetBSD 1.4 and 1.6 guard the same three functions in this file
+ * the same way, being the only trees that have both the inlines
+ * and these. 4.4BSD-Lite, NetBSD 1.0, 1.1 and 1.2 and OpenBSD
+ * 1996 have no inlines at all, so the question does not arise
+ * there and removing the inlines instead would match them --
+ * that was considered and not taken, the inlines being 4.4BSD-
+ * Lite2's own addition.
+ */
 /*
  * Vnode reference.
  */
@@ -835,6 +853,7 @@ vref(vp)
 	vp->v_usecount++;
 	simple_unlock(&vp->v_interlock);
 }
+#endif /* DIAGNOSTIC */
 
 /*
  * vput(), just unlock and vrele()
@@ -909,6 +928,9 @@ vrele(vp)
 }
 
 #ifdef DIAGNOSTIC
+#ifdef DIAGNOSTIC
+/* AI-ONLY NOTE: see the guard above vref, which covers these
+ * two for the same reason. */
 /*
  * Page or buffer structure gets a reference.
  */
@@ -936,6 +958,7 @@ holdrele(vp)
 	vp->v_holdcnt--;
 	simple_unlock(&vp->v_interlock);
 }
+#endif /* DIAGNOSTIC */
 #endif /* DIAGNOSTIC */
 
 /*
