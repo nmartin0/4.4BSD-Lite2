@@ -110,6 +110,15 @@ sendmail and uucp documents.
 			Imported from NetBSD 1.0, the only file taken
 			from another system so far.
 
+## Machine-specific programs that do not build here
+
+usr.sbin/eeprom is a sparc program. It includes <machine/openpromio.h>,
+which only that port has, so it cannot build for i386 and is left
+alone. NetBSD 1.0 does not ship usr.sbin/eeprom at all -- it keeps the
+program under its sparc port -- so no tree has a guard here to copy.
+
+usr.bin/vmstat.sparc is likewise a sparc program.
+
 ## The kernel
 
 Separate from all of the above, and larger: 35 functions in eight
