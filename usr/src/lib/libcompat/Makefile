@@ -26,11 +26,18 @@ MAN3+=	ftime.0 getpw.0 stty.0 vlimit.0 vtimes.0
 MLINKS+=stty.3 gtty.3
 
 # compat 4.3 sources
-# AI-ONLY NOTE: ecvt.c, gcvt.c, regex.c, sibuf.c, sobuf.c and strout.c
-# are not in this tree. NetBSD 1.0 names cfree.c, lsearch.c, regex.c and
-# rexec.c here; OpenBSD 1996 drops cfree.c as well. These four are the
-# ones present.
-SRCS+=	cfree.c lsearch.c rexec.c
+# AI-ONLY NOTE: ecvt.c, gcvt.c, sibuf.c, sobuf.c and strout.c are not in
+# this tree and are not named. regex.c is here now, imported from
+# NetBSD 1.0, because usr.bin/more and usr.bin/rdist call re_comp and
+# re_exec and nothing else in this tree defines them; 4.4BSD-Lite2
+# ships its manual page, 4.3/re_comp.3, and no code. NetBSD 1.0 names
+# cfree.c, lsearch.c, regex.c and rexec.c here, which is now the same
+# list; OpenBSD 1996 drops cfree.c as well.
+#
+# regex.c and regexp/regerror.c both define regerror. NetBSD 1.0 builds
+# both into this library too: an archive may hold two definitions, and
+# a link fails only if something pulls in both members.
+SRCS+=	cfree.c lsearch.c regex.c rexec.c
 
 .if	(${MACHINE} == "hp300" || ${MACHINE} == "luna68k")
 SRCS+=	insque.s remque.s
