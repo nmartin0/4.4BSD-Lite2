@@ -132,6 +132,10 @@ fi
 
 TOOLS="$L2_BUILD/tools/bin"
 
+# the compiler for programs this machine runs, as make.sh defines it;
+# set here too because the host tools below are built without make.
+HOSTCC=${HOSTCC:-"cc -std=gnu89"}
+
 # The libraries to build, in order. These two have been built and
 # checked; the rest of lib/ follows as each is tried.
 libs="libc libutil libterm libcurses libedit libl libcompat"
@@ -150,6 +154,34 @@ sh "$REPO_ROOT/build/make.sh" install SHARED=copies
 printf '%s\n' "sysroot.sh: host tools -> $TOOLS"
 mkdir -p "$TOOLS"
 install -m 755 "$SRC/usr.bin/lorder/lorder.sh" "$TOOLS/lorder"
+
+# yacc, built from this tree with the host compiler. The packaged byacc
+# reads these grammars, but what it writes declares `extern int
+# yylex(void);', which this tree's own yacc does not, and the kernel's
+# config is built from a grammar here too. NetBSD builds its own the
+# same way and calls it nbyacc.
+# shellcheck disable=SC2086  # HOSTCC carries its own flags
+$HOSTCC -w -o "$TOOLS/yacc" "$SRC"/usr.bin/yacc/*.c
+
+# config, for the kernel: the build runs it, so it is built for this
+# machine, with the yacc above and the host lex. Three things the host
+# needs and 4.4BSD did not: -fcommon, because config.h declares
+# variables without extern and GCC has defaulted to -fno-common since
+# 10; sys/sysmacros.h, because glibc moved major, minor and makedev out
+# of <sys/types.h>; and --noyywrap, since lex's yywrap is in -ll, which
+# is a target library here.
+cdir="$L2_BUILD/tools/config.build"
+rm -rf "$cdir"
+mkdir -p "$cdir"
+cd "$cdir"
+"$TOOLS/yacc" -d "$SRC/usr.sbin/config/config.y"
+mv y.tab.c config.c
+flex --noyywrap -t "$SRC/usr.sbin/config/lang.l" > lang.c
+C=$SRC/usr.sbin/config
+# shellcheck disable=SC2086  # HOSTCC carries its own flags
+$HOSTCC -w -fcommon -include sys/sysmacros.h -I. -I"$C" \
+    -o "$TOOLS/config" config.c lang.c "$C/main.c" "$C/mkioconf.c" \
+    "$C/mkmakefile.c" "$C/mkglue.c" "$C/mkheaders.c" "$C/mkswapconf.c"
 
 for lib in $libs; do
 	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
