@@ -52,10 +52,11 @@
 #
 #   4. The libraries named in $libs, by their own all and install
 #      targets, in that order: libc; libutil, which twelve programs
-#      here name in LDADD; libterm, which builds libtermcap.a; and
-#      libedit, which also installs histedit.h. Each was built and
-#      checked before being added; the rest of lib/ follows the same
-#      way.
+#      here name in LDADD; libterm, which builds libtermcap.a;
+#      libedit, which also installs histedit.h; and libl, the lex
+#      run-time, which this tree ships the sources for but has no
+#      Makefile for until now. Each was built and checked before
+#      being added; the rest of lib/ follows the same way.
 #
 #      The compiler, assembler and linker settings, the object
 #      directory, the target root and the install owner all come from
@@ -133,7 +134,7 @@ TOOLS="$L2_BUILD/tools/bin"
 
 # The libraries to build, in order. These two have been built and
 # checked; the rest of lib/ follows as each is tried.
-libs="libc libutil libterm libedit"
+libs="libc libutil libterm libedit libl"
 
 mkdir -p "$ROOT"
 
