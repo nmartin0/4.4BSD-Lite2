@@ -93,7 +93,15 @@ static struct str *nodestr[MAXTYPES];	/* type of structure used by the node */
 static int nstr;			/* number of structures */
 static struct str str[MAXTYPES];	/* the structures */
 static struct str *curstr;		/* current structure */
-static FILE *infp = stdin;
+/*
+ * AI-ONLY NOTE: assigned in main rather than here. On 4.4BSD stdin is
+ * a constant address, &__sF[0], so it can initialise a static; in the
+ * C library of a build host it need not be, and glibc's is not:
+ * "initializer element is not constant". This program is compiled
+ * with the host's compiler, because the build runs it. NetBSD 1.6
+ * splits the declaration and the assignment the same way.
+ */
+static FILE *infp;
 static char line[1024];
 static int linno;
 static char *linep;
@@ -116,6 +124,7 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
+	infp = stdin;
 	if (argc != 3)
 		error("usage: mknodes file\n");
 	if ((infp = fopen(argv[1], "r")) == NULL)
