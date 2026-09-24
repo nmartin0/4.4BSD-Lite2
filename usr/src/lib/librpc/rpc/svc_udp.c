@@ -54,6 +54,17 @@ static enum xprt_stat	svcudp_stat();
 static bool_t		svcudp_getargs();
 static bool_t		svcudp_freeargs();
 static void		svcudp_destroy();
+/*
+ * AI-ONLY NOTE: declared here, beside the other statics, not inside
+ * the functions that call them: GCC 14 rejects a static function
+ * declaration at block scope. These two lines are OpenBSD 1996's,
+ * from lib/libc/rpc/svc_udp.c, where they sit in this same block
+ * with the argument types named; the definitions below take exactly
+ * those. NetBSD 1.0 and 1.1 and FreeBSD 2.0.5 all still write the
+ * declarations inside the functions, as this did.
+ */
+static void	cache_set __P((SVCXPRT *, u_long));
+static int	cache_get __P((SVCXPRT *, struct rpc_msg *, char **, u_long *));
 
 static struct xp_ops svcudp_op = {
 	svcudp_recv,
@@ -174,7 +185,6 @@ svcudp_recv(xprt, msg)
 	register int rlen;
 	char *reply;
 	u_long replylen;
-	static int cache_get();
 
     again:
 	xprt->xp_addrlen = sizeof(struct sockaddr_in);
@@ -208,7 +218,6 @@ svcudp_reply(xprt, msg)
 	register XDR *xdrs = &(su->su_xdrs);
 	register int slen;
 	register bool_t stat = FALSE;
-	static void cache_set();
 
 	xdrs->x_op = XDR_ENCODE;
 	XDR_SETPOS(xdrs, 0);
