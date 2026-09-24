@@ -497,7 +497,13 @@ kvm_read(kd, kva, buf, len)
 			 */
 			if (cc == 0)
 				break;
-			(char *)cp += cc;
+			/*
+			 * AI-ONLY NOTE: a cast is not an lvalue. GCC
+			 * allowed this once and has not since 4.0;
+			 * OpenBSD 1996 and NetBSD 1.1 both write the
+			 * line this way.
+			 */
+			cp = (char *)cp + cc;
 			kva += cc;
 			len -= cc;
 		}
