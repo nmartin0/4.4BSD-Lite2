@@ -74,6 +74,19 @@ what is present would build:
 These are the papers describing the same removed tools, and the
 sendmail and uucp documents.
 
+## Manual pages named and not shipped
+
+  usr.bin/m4		bsd.prog.mk looks for ${PROG}.1 when a Makefile
+			names no page, and there is no m4.1 here or in
+			4.4BSD-Lite. NetBSD 1.0, FreeBSD 2.0.5 and
+			OpenBSD 1996 all have one. m4 is an
+			AT&T-derived program, and its documentation is
+			the kind the settlement removed, so the page is
+			most likely absent on purpose; taking another
+			system's would want that question answered
+			first. m4 builds with NOMAN.
+  games/ching		names ching.0 with no ching.6 to make it from.
+
 ## Sources named by SRCS
 
   lib/libcompat		thirteen of its twenty-two: the whole of 4.1
@@ -151,8 +164,9 @@ most work for each one:
   trek			wants gtty, one of libcompat's 4.1 sources
 			that 4.4BSD-Lite2 does not ship.
   xneko, xroach		want X11/Xlib.h. X is not in this tree.
-  phantasia		needs nroff, which this build host lacks; it
-			builds where nroff exists.
+  ching			its Makefile names ching.0 and no ching.6 is
+			in the tree, nor in 4.4BSD-Lite; NetBSD 1.0
+			has no ching at all. It builds with NOMAN.
 
 ## Programs that are Kerberos itself
 
