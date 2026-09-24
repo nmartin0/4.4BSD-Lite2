@@ -215,8 +215,29 @@ void	vhold __P((struct vnode *));
 void	vref __P((struct vnode *));
 #else
 #define	VATTR_NULL(vap)	(*(vap) = va_null)	/* initialize a vattr */
+/*
+ * AI-ONLY NOTE: these three are defined void. Without a return type
+ * they are int by the old rule, and vref is declared
+ * `void vref __P((struct vnode *vp));' further down this same
+ * header, which GCC 14 will not have: "conflicting types for
+ * 'vref'". Thirty-seven kernel sources include this file and none
+ * of them compiled.
+ *
+ * 4.4BSD-Lite2 introduced these inline definitions; 4.4BSD-Lite,
+ * NetBSD 1.0, 1.1 and 1.2 and OpenBSD 1996 have none, vref being a
+ * function there and nothing more. NetBSD 1.4 and 1.6, which do
+ * have them, write `ilstatic void vref' and define them `static
+ * __inline void'. vhold and holdrele are given the same treatment
+ * here: only vref clashes today, because only vref is declared
+ * again below, but all three are untyped in the same block and the
+ * later trees give all three void.
+ *
+ * Not taken: NetBSD 1.4's ilstatic macro, which reshapes this
+ * header to let the DIAGNOSTIC and inline forms share one set of
+ * declarations. Nothing here needs it.
+ */
 #define	HOLDRELE(vp)	holdrele(vp)		/* decrease buf or page ref */
-static __inline holdrele(vp)
+static __inline void holdrele(vp)
 	struct vnode *vp;
 {
 	simple_lock(&vp->v_interlock);
@@ -224,7 +245,7 @@ static __inline holdrele(vp)
 	simple_unlock(&vp->v_interlock);
 }
 #define	VHOLD(vp)	vhold(vp)		/* increase buf or page ref */
-static __inline vhold(vp)
+static __inline void vhold(vp)
 	struct vnode *vp;
 {
 	simple_lock(&vp->v_interlock);
@@ -232,7 +253,7 @@ static __inline vhold(vp)
 	simple_unlock(&vp->v_interlock);
 }
 #define	VREF(vp)	vref(vp)		/* increase reference */
-static __inline vref(vp)
+static __inline void vref(vp)
 	struct vnode *vp;
 {
 	simple_lock(&vp->v_interlock);
