@@ -42,6 +42,15 @@ static char sccsid[] = "@(#)t3000.c	8.1 (Berkeley) 6/6/93";
 #include "tip.h"
 #include <stdio.h>
 
+/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
+static	int	t3000_connect __P((void));
+static	int	t3000_swallow __P((char *));
+static	void	sigALRM __P((int));
+static	void	t3000_nap __P((void));
+static	void	t3000_napx __P((int));
+static	int	t3000_sync __P((void));
+static	void	t3000_write __P((int, char *, int));
+
 #define	MAXRETRY	5
 
 static	void sigALRM();
@@ -58,7 +67,6 @@ t3000_dialer(num, acu)
 #ifdef ACULOG
 	char line[80];
 #endif
-	static int t3000_connect(), t3000_swallow();
 
 	if (boolean(value(VERBOSE)))
 		printf("Using \"%s\"\n", acu);
@@ -376,7 +384,6 @@ static int ringring;
 t3000_nap()
 {
 
-        static void t3000_napx();
 	int omask;
         struct itimerval itv, oitv;
         register struct itimerval *itp = &itv;

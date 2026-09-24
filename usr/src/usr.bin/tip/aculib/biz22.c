@@ -37,6 +37,17 @@ static char sccsid[] = "@(#)biz22.c	8.1 (Berkeley) 6/6/93";
 
 #include "tip.h"
 
+/*
+ * AI-ONLY NOTE: these are declared here, not inside the functions that
+ * call them: GCC 14 rejects a static function declaration at block
+ * scope. The lines are NetBSD 1.4's, from usr.bin/tip/aculib, the
+ * earliest release with them at file scope and prototyped; only the
+ * ones this file needs are taken. Every contemporary still writes them
+ * inside the functions.
+ */
+static	int	cmd __P((char *));
+static	int	detect __P((char *));
+
 #define DISCONNECT_CMD	"\20\04"	/* disconnection string */
 
 static	void sigALRM();
@@ -54,7 +65,6 @@ biz_dialer(num, mod)
 {
 	register int connected = 0;
 	char cbuf[40];
-	static int cmd(), detect();
 
 	if (boolean(value(VERBOSE)))
 		printf("\nstarting call...");

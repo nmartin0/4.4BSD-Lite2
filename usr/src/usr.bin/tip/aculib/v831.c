@@ -40,6 +40,10 @@ static char sccsid[] = "@(#)v831.c	8.1 (Berkeley) 6/6/93";
  */
 #include "tip.h"
 
+/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
+static	int	dialit __P((char *, char *));
+static	char   *sanitize __P((char *));
+
 int	v831_abort();
 static	void alarmtr();
 extern	int errno;
@@ -52,7 +56,6 @@ v831_dialer(num, acu)
 {
         int status, pid, connected = 1;
         register int timelim;
-	static int dialit();
 
         if (boolean(value(VERBOSE)))
                 printf("\nstarting call...");
@@ -188,7 +191,6 @@ dialit(phonenum, acu)
 	struct sgttyb cntrl;
         char c;
         int i, two = 2;
-	static char *sanitize();
 
         phonenum = sanitize(phonenum);
 #ifdef DEBUG

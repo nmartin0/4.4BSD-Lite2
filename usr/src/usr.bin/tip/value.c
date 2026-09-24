@@ -40,6 +40,14 @@ static char sccsid[] = "@(#)value.c	8.1 (Berkeley) 6/6/93";
 #define MIDDLE	35
 
 static value_t *vlookup();
+/*
+ * AI-ONLY NOTE: declared here, not inside vlex(): GCC 14 rejects a
+ * static function declaration at block scope. NetBSD 1.4 is the
+ * earliest release with it at file scope, in this block, prototyped
+ * `static void vtoken __P((char *));'; the definition below takes a
+ * char *. Every contemporary still writes it inside the function.
+ */
+static void vtoken __P((char *));
 static int col = 0;
 
 /*
@@ -136,7 +144,6 @@ vlex(s)
 	register char *s;
 {
 	register value_t *p;
-	static void vtoken();
 
 	if (equal(s, "all")) {
 		for (p = vtable; p->v_name; p++)

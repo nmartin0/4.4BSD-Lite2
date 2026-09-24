@@ -41,6 +41,11 @@ static char sccsid[] = "@(#)ventel.c	8.1 (Berkeley) 6/6/93";
  */
 #include "tip.h"
 
+/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
+static	void	echo __P((char *));
+static	int	gobble __P((char, char *));
+static	int	vensync __P((int));
+
 #define	MAXRETRY	5
 
 static	void sigALRM();
@@ -64,8 +69,6 @@ ven_dialer(num, acu)
 	register char *cp;
 	register int connected = 0;
 	char *msg, *index(), line[80];
-	static int gobble(), vensync();
-	static void echo();
 
 	/*
 	 * Get in synch with a couple of carriage returns

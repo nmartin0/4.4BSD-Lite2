@@ -40,6 +40,13 @@ static char sccsid[] = "@(#)v3451.c	8.1 (Berkeley) 6/6/93";
  */
 #include "tip.h"
 
+/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
+static	void	alarmtr __P((int));
+static	int	expect __P((char *));
+static	int	notin __P((char *, char *));
+static	int	prefix __P((char *, char *));
+static	void	vawrite __P((char *, int));
+
 static	jmp_buf Sjbuf;
 
 v3451_dialer(num, acu)
@@ -53,8 +60,6 @@ v3451_dialer(num, acu)
 #ifdef ACULOG
 	char line[80];
 #endif
-	static int expect();
-	static void vawrite();
 
 	/*
 	 * Get in synch
@@ -149,8 +154,6 @@ expect(cp)
 	char buf[300];
 	register char *rp = buf;
 	int timeout = 30, online = 0;
-	static int notin();
-	static void alarmtr();
 
 	if (strcmp(cp, "\"\"") == 0)
 		return (1);
@@ -193,7 +196,6 @@ static int
 notin(sh, lg)
 	char *sh, *lg;
 {
-	static int prefix();
 
 	for (; *lg; lg++)
 		if (prefix(sh, lg))
