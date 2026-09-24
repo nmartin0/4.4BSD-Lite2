@@ -72,7 +72,20 @@ static struct incl *incl;
 static int eoftoken;		/* current EOF token */
 static void endinclude __P((void));
 
-#define	yywrap() 1
+/*
+ * AI-ONLY NOTE: no yywrap macro. lex declares `extern int yywrap
+ * (void);' in what it generates, and the macro rewrites that
+ * declaration into a call: "macro yywrap passed 1 arguments, but
+ * takes just 0". The function comes from -ll instead, which the
+ * Makefile now links, as usr.sbin/config's does -- this program's own
+ * predecessor in this tree -- along with bin/sh, games/atc and
+ * kerberosIV/compile_et. Every BSD of the period writes this macro:
+ * 4.4BSD-Lite, OpenBSD 1996 and NetBSD through 1.6; none met a lex
+ * that declares the function. usr.bin/mklocale here defines a guarded
+ * function and usr.sbin/amd/fsinfo undefines the macro under
+ * FLEX_SCANNER; either would do, and linking the library is what the
+ * nearest neighbour does.
+ */
 
 %}
 

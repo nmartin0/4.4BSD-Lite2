@@ -7,6 +7,9 @@ CFLAGS+=-I${.CURDIR} -I.
 CLEANFILES=gram.c scan.c y.tab.h
 MAN8=	config.0
 
+DPADD=	${LIBL}
+LDADD=	-ll
+
 .include <bsd.prog.mk>
 
 .depend: gram.c scan.c
