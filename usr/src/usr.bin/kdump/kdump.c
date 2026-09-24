@@ -218,7 +218,14 @@ dumpheader(kth)
 
 #include <sys/syscall.h>
 #define KTRACE
-#include "/sys/kern/syscalls.c"
+/*
+ * AI-ONLY NOTE: a path inside the tree, not /sys, which names the
+ * kernel source of the running system -- on a Linux build host,
+ * sysfs. OpenBSD 1996 writes exactly this line; NetBSD reached it by
+ * 1.4. A quoted include resolves against this file's own directory,
+ * so ../../sys is usr/src/sys.
+ */
+#include "../../sys/kern/syscalls.c"
 #undef KTRACE
 int nsyscalls = sizeof (syscallnames) / sizeof (syscallnames[0]);
 
