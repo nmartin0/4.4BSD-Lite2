@@ -43,7 +43,13 @@ LIBRESOLV?=	${DESTDIR}/usr/lib/libresolv.a
 # 2.0.5 and OpenBSD 1996 dropped LIBRPC when RPC moved into libc, so
 # none of them has a line to copy.
 LIBRPC?=	${DESTDIR}/usr/lib/librpc.a
-LIBTERM?=	${DESTDIR}/usr/lib/libterm.a
+# AI-ONLY NOTE: libtermcap.a is what lib/libterm builds -- its Makefile
+# says LIB= termcap -- and what -ltermcap finds. libterm.a is the name
+# of a library this tree does not build, here and in 4.4BSD-Lite both.
+# NetBSD 1.0 and FreeBSD 2.0.5 renamed the variable to LIBTERMCAP and
+# gave it this value; the name is left alone here, since six Makefiles
+# in this tree use ${LIBTERM}.
+LIBTERM?=	${DESTDIR}/usr/lib/libtermcap.a
 LIBUTIL?=	${DESTDIR}/usr/lib/libutil.a
 
 .if defined(SHAREDSTRINGS)
