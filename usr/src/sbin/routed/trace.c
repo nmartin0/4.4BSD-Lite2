@@ -54,10 +54,20 @@ int	traceactions = 0;
 static	struct timeval lastlog;
 static	char *savetracename;
 
+/*
+ * AI-ONLY NOTE: declared here, not inside traceinit(): GCC 14
+ * rejects a static function declaration at block scope, "invalid
+ * storage class", and no option accepts it. This line is NetBSD
+ * 1.1's, from sbin/routed/trace.c, where it sits at file scope in
+ * this same place with the argument types named; the definition
+ * below takes exactly those. NetBSD 1.1 also prototypes dumpif and
+ * dumptrace there, which nothing here needs.
+ */
+static int iftraceinit __P((struct interface *, struct ifdebug *));
+
 traceinit(ifp)
 	register struct interface *ifp;
 {
-	static int iftraceinit();
 
 	if (iftraceinit(ifp, &ifp->int_input) &&
 	    iftraceinit(ifp, &ifp->int_output))

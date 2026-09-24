@@ -56,10 +56,20 @@ int	tracing = 0;
 
 char *xns_ntoa();
 
+/*
+ * AI-ONLY NOTE: declared here, not inside traceinit(): GCC 14
+ * rejects a static function declaration at block scope, "invalid
+ * storage class", and no option accepts it. This line is NetBSD
+ * 1.1's, from sbin/routed/trace.c: NetBSD has no XNSrouted, but the
+ * two files carry the same function, with the same argument types.
+ * NetBSD 1.1 also prototypes dumpif and dumptrace there, which
+ * nothing here needs.
+ */
+static int iftraceinit __P((struct interface *, struct ifdebug *));
+
 traceinit(ifp)
 	register struct interface *ifp;
 {
-	static int iftraceinit();
 
 	if (iftraceinit(ifp, &ifp->int_input) &&
 	    iftraceinit(ifp, &ifp->int_output))
