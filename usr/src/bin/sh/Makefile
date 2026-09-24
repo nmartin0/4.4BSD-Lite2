@@ -24,19 +24,24 @@ builtins.h builtins.c: ${.CURDIR}/mkbuiltins ${.CURDIR}/builtins.def
 init.c: mkinit ${SRCS}
 	./mkinit '${CC} -c ${CFLAGS} init.c' ${.ALLSRC:S/^mkinit$//}
 
+# AI-ONLY NOTE: these three are compiled with ${HOSTCC} and run during
+# the build to generate source, so they must be built for the machine
+# doing the building. OpenBSD's bin/sh/Makefile has used ${HOSTCC}
+# here since 1996. Built with ${CC} for a target that is not this
+# machine, mknodes dies with SIGSEGV as soon as make runs it.
 mkinit: ${.CURDIR}/mkinit.c
-	${CC} ${CFLAGS} ${.CURDIR}/mkinit.c -o $@
+	${HOSTCC} ${CFLAGS} ${.CURDIR}/mkinit.c -o $@
 
 nodes.c nodes.h: mknodes ${.CURDIR}/nodetypes ${.CURDIR}/nodes.c.pat
 	./mknodes ${.CURDIR}/nodetypes ${.CURDIR}/nodes.c.pat
 
 mknodes: ${.CURDIR}/mknodes.c
-	${CC} ${CFLAGS} ${.CURDIR}/mknodes.c -o $@
+	${HOSTCC} ${CFLAGS} ${.CURDIR}/mknodes.c -o $@
 
 syntax.c syntax.h: mksyntax
 	./mksyntax
 
 mksyntax: ${.CURDIR}/mksyntax.c ${.CURDIR}/parser.h
-	${CC} ${CFLAGS} ${.CURDIR}/mksyntax.c -o $@
+	${HOSTCC} ${CFLAGS} ${.CURDIR}/mksyntax.c -o $@
 
 .include <bsd.prog.mk>
