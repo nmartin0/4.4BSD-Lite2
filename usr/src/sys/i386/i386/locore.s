@@ -60,6 +60,29 @@
 #include "machine/cputypes.h"
 #endif
 
+/*
+ * AI-ONLY NOTE: _C_LABEL, and ENTRY and ALTENTRY through it.
+ *
+ * The a.out compilers put a leading underscore on every C symbol, so
+ * this file named them _main, _trap, _cnt. An ELF compiler adds
+ * nothing, and the two no longer meet: the kernel link reported
+ * hundreds of undefined symbols, every one of them this.
+ *
+ * NetBSD has carried this macro in <machine/asm.h> since 1.0 and
+ * converted its i386 assembly to use it at 1.4, where locore.s went
+ * from 198 bare _name references to 222 _C_LABEL uses. The same
+ * macro is already in this tree's lib/libc/i386/DEFS.h and SYS.h,
+ * put there for the same reason. It is defined here rather than in a
+ * machine/asm.h because this tree has no such header, and because
+ * locore.s includes vector.s and icu.s, so one definition serves all
+ * three.
+ */
+#ifdef __ELF__
+#define	_C_LABEL(x)	x
+#else
+#define	_C_LABEL(x)	_/**/x
+#endif
+
 #define	KDSEL		0x10
 
 /*
@@ -81,50 +104,50 @@
  * Within PTmap, the page directory can be found (third indirection).
  */
 	.set	PDRPDROFF,0x3F7		# Page dir index of Page dir
-	.globl	_PTmap, _PTD, _PTDpde, _Sysmap
-	.set	_PTmap,0xFDC00000
-	.set	_PTD,0xFDFF7000
-	.set	_Sysmap,0xFDFF8000
-	.set	_PTDpde,0xFDFF7000+4*PDRPDROFF
+	.globl	_C_LABEL(PTmap), _C_LABEL(PTD), _C_LABEL(PTDpde), _C_LABEL(Sysmap)
+	.set	_C_LABEL(PTmap),0xFDC00000
+	.set	_C_LABEL(PTD),0xFDFF7000
+	.set	_C_LABEL(Sysmap),0xFDFF8000
+	.set	_C_LABEL(PTDpde),0xFDFF7000+4*PDRPDROFF
 
 /*
  * APTmap, APTD is the alternate recursive pagemap.
  * It's used when modifying another process's page tables.
  */
 	.set	APDRPDROFF,0x3FE		# Page dir index of Page dir
-	.globl	_APTmap, _APTD, _APTDpde
-	.set	_APTmap,0xFF800000
-	.set	_APTD,0xFFBFE000
-	.set	_APTDpde,0xFDFF7000+4*APDRPDROFF
+	.globl	_C_LABEL(APTmap), _C_LABEL(APTD), _C_LABEL(APTDpde)
+	.set	_C_LABEL(APTmap),0xFF800000
+	.set	_C_LABEL(APTD),0xFFBFE000
+	.set	_C_LABEL(APTDpde),0xFDFF7000+4*APDRPDROFF
 
 /*
  * Access to each processes kernel stack is via a region of
  * per-process address space (at the beginning), immediatly above
  * the user process stack.
  */
-	.set	_kstack, USRSTACK
-	.globl	_kstack
+	.set	_C_LABEL(kstack), USRSTACK
+	.globl	_C_LABEL(kstack)
 	.set	PPDROFF,0x3F6
 	.set	PPTEOFF,0x400-UPAGES	# 0x3FE
 
 #define	ENTRY(name) \
-	.globl _/**/name; _/**/name:
+	.globl _C_LABEL(name); _C_LABEL(name):
 #define	ALTENTRY(name) \
-	.globl _/**/name; _/**/name:
+	.globl _C_LABEL(name); _C_LABEL(name):
 
 /*
  * Initialization
  */
 	.data
-	.globl	_cpu,_cold,_boothowto,_bootdev,_cyloffset,_atdevbase,_atdevphys
-_cpu:	.long	0		# are we 386, 386sx, or 486
-_cold:	.long	1		# cold till we are not
-_atdevbase:	.long	0	# location of start of iomem in virtual
-_atdevphys:	.long	0	# location of device mapping ptes (phys)
+	.globl	_C_LABEL(cpu),_C_LABEL(cold),_C_LABEL(boothowto),_C_LABEL(bootdev),_C_LABEL(cyloffset),_C_LABEL(atdevbase),_C_LABEL(atdevphys)
+_C_LABEL(cpu):	.long	0		# are we 386, 386sx, or 486
+_C_LABEL(cold):	.long	1		# cold till we are not
+_C_LABEL(atdevbase):	.long	0	# location of start of iomem in virtual
+_C_LABEL(atdevphys):	.long	0	# location of device mapping ptes (phys)
 
-	.globl	_IdlePTD, _KPTphys
-_IdlePTD:	.long	0
-_KPTphys:	.long	0
+	.globl	_C_LABEL(IdlePTD), _C_LABEL(KPTphys)
+_C_LABEL(IdlePTD):	.long	0
+_C_LABEL(KPTphys):	.long	0
 
 	.space 512
 tmpstk:
@@ -138,15 +161,15 @@ start:	movw	$0x1234,%ax
 	/*
 	 * pass parameters on stack (howto, bootdev, unit, cyloffset)
 	 * note: 0(%esp) is return address of boot
-	 * ( if we want to hold onto /boot, it's physical %esp up to _end)
+	 * ( if we want to hold onto /boot, it's physical %esp up to _C_LABEL(end))
 	 */
 
  1:	movl	4(%esp),%eax
-	movl	%eax,_boothowto-SYSTEM
+	movl	%eax,_C_LABEL(boothowto)-SYSTEM
 	movl	8(%esp),%eax
-	movl	%eax,_bootdev-SYSTEM
+	movl	%eax,_C_LABEL(bootdev)-SYSTEM
 	movl	12(%esp),%eax
-	movl	%eax, _cyloffset-SYSTEM
+	movl	%eax, _C_LABEL(cyloffset)-SYSTEM
 
 #ifdef cgd_notdef
 	/* find out our CPU type. */
@@ -166,9 +189,9 @@ start:	movw	$0x1234,%ax
       
         cmpl    $0, %eax
         jne     1f
-        movl    $CPU_386, _cpu-SYSTEM
+        movl    $CPU_386, _C_LABEL(cpu)-SYSTEM
 	jmp	2f
-1:      movl    $CPU_486, _cpu-SYSTEM
+1:      movl    $CPU_486, _C_LABEL(cpu)-SYSTEM
 2:
 #endif
 
@@ -187,7 +210,7 @@ start:	movw	$0x1234,%ax
 	addl	$ NBPG,%eax
 	loop	1b
 2:	shrl	$12,%eax
-	movl	%eax,_Maxmem-SYSTEM
+	movl	%eax,_C_LABEL(Maxmem)-SYSTEM
 
 	movl	$0x100000,%eax		# next, talley remaining memory
 	#movl	$((0xFFF000-0x100000)/NBPG),%ecx
@@ -200,7 +223,7 @@ start:	movw	$0x1234,%ax
 	addl	$ NBPG,%eax
 	loop	1b
 2:	shrl	$12,%eax
-	movl	%eax,_Maxmem-SYSTEM
+	movl	%eax,_C_LABEL(Maxmem)-SYSTEM
 #endif
 
 /* find end of kernel image */
@@ -224,7 +247,7 @@ start:	movw	$0x1234,%ax
 	rep
 	stosb
 
-	movl	%esi,_IdlePTD-SYSTEM /*physical address of Idle Address space */
+	movl	%esi,_C_LABEL(IdlePTD)-SYSTEM /*physical address of Idle Address space */
 	movl	$ tmpstk-SYSTEM,%esp	# bootstrap stack end location
 
 #define	fillkpt		\
@@ -245,14 +268,14 @@ start:	movw	$0x1234,%ax
 	addl	$ UPAGES+4,%ecx		# including our early context
 	movl	$ PG_V,%eax		#  having these bits set,
 	lea	(4*NBPG)(%esi),%ebx	#   physical address of KPT in proc 0,
-	movl	%ebx,_KPTphys-SYSTEM	#    in the kernel page table,
+	movl	%ebx,_C_LABEL(KPTphys)-SYSTEM	#    in the kernel page table,
 	fillkpt
 
 /* map I/O memory map */
 
 	movl	$0x100-0xa0,%ecx	# for this many pte s,
 	movl	$(0xa0000|PG_V|PG_UW),%eax # having these bits set,(perhaps URW?) XXX 06 Aug 92
-	movl	%ebx,_atdevphys-SYSTEM	#   remember phys addr of ptes
+	movl	%ebx,_C_LABEL(atdevphys)-SYSTEM	#   remember phys addr of ptes
 	fillkpt
 
  /* map proc 0's kernel stack into user page table page */
@@ -260,7 +283,7 @@ start:	movw	$0x1234,%ax
 	movl	$ UPAGES,%ecx		# for this many pte s,
 	lea	(1*NBPG)(%esi),%eax	# physical address in proc 0
 	lea	(SYSTEM)(%eax),%edx
-	movl	%edx,_proc0paddr-SYSTEM  # remember VA for 0th process init
+	movl	%edx,_C_LABEL(proc0paddr)-SYSTEM  # remember VA for 0th process init
 	orl	$ PG_V|PG_URKW,%eax	#  having these bits set,
 	lea	(3*NBPG)(%esi),%ebx	# physical address of stack pt in proc 0
 	addl	$(PPTEOFF*4),%ebx
@@ -303,36 +326,36 @@ start:	movw	$0x1234,%ax
 
 begin: /* now running relocated at SYSTEM where the system is linked to run */
 
-	.globl _Crtat
-	movl	_Crtat,%eax
+	.globl _C_LABEL(Crtat)
+	movl	_C_LABEL(Crtat),%eax
 	subl	$0xfe0a0000,%eax
-	movl	_atdevphys,%edx	# get pte PA
-	subl	_KPTphys,%edx	# remove base of ptes, now have phys offset
+	movl	_C_LABEL(atdevphys),%edx	# get pte PA
+	subl	_C_LABEL(KPTphys),%edx	# remove base of ptes, now have phys offset
 	shll	$ PGSHIFT-2,%edx  # corresponding to virt offset
 	addl	$ SYSTEM,%edx	# add virtual base
-	movl	%edx, _atdevbase
+	movl	%edx, _C_LABEL(atdevbase)
 	addl	%eax,%edx
-	movl	%edx,_Crtat
+	movl	%edx,_C_LABEL(Crtat)
 
 	/* set up bootstrap stack */
-	movl	$ _kstack+UPAGES*NBPG-4*12,%esp	# bootstrap stack end location
+	movl	$ _C_LABEL(kstack)+UPAGES*NBPG-4*12,%esp	# bootstrap stack end location
 	xorl	%eax,%eax		# mark end of frames
 	movl	%eax,%ebp
-	movl	_proc0paddr, %eax
+	movl	_C_LABEL(proc0paddr), %eax
 	movl	%esi, PCB_CR3(%eax)
 
 	lea	7*NBPG(%esi),%esi	# skip past stack.
 	pushl	%esi
 	
-	call	_init386		# wire 386 chip for unix operation
+	call	_C_LABEL(init386)		# wire 386 chip for unix operation
 	
-	movl	$0,_PTD
-	call 	_main
+	movl	$0,_C_LABEL(PTD)
+	call 	_C_LABEL(main)
 	popl	%esi
 
-	.globl	__ucodesel,__udatasel
-	movzwl	__ucodesel,%eax
-	movzwl	__udatasel,%ecx
+	.globl	_C_LABEL(_ucodesel),_C_LABEL(_udatasel)
+	movzwl	_C_LABEL(_ucodesel),%eax
+	movzwl	_C_LABEL(_udatasel),%ecx
 	# build outer stack frame
 	pushl	%ecx		# user ss
 	pushl	$ USRSTACK	# user esp
@@ -345,22 +368,22 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
 	lret	# goto user!
 
 	pushl	$lretmsg1	/* "should never get here!" */
-	call	_panic
+	call	_C_LABEL(panic)
 lretmsg1:
 	.asciz	"lret: toinit\n"
 
 
 	.set	exec,59
 	.set	exit,1
-	.globl	_icode
-	.globl	_szicode
+	.globl	_C_LABEL(icode)
+	.globl	_C_LABEL(szicode)
 
 #define	LCALL(x,y)	.byte 0x9a ; .long y; .word x
 /*
  * Icode is copied out to process 1 to exec /etc/init.
  * If the exec fails, process 1 exits.
  */
-_icode:
+_C_LABEL(icode):
 	# pushl	$argv-_icode	# gas fucks up again
 	movl	$argv,%eax
 	subl	$_icode,%eax
@@ -384,16 +407,16 @@ init:
 	.asciz	"/sbin/init"
 	.align	2
 argv:
-	.long	init+6-_icode		# argv[0] = "init" ("/sbin/init" + 6)
-	.long	eicode-_icode		# argv[1] follows icode after copyout
+	.long	init+6-_C_LABEL(icode)		# argv[0] = "init" ("/sbin/init" + 6)
+	.long	eicode-_C_LABEL(icode)		# argv[1] follows icode after copyout
 	.long	0
 eicode:
 
-_szicode:
-	.long	_szicode-_icode
+_C_LABEL(szicode):
+	.long	_C_LABEL(szicode)-_C_LABEL(icode)
 
-	.globl	_sigcode,_szsigcode
-_sigcode:
+	.globl	_C_LABEL(sigcode),_C_LABEL(szsigcode)
+_C_LABEL(sigcode):
 	movl	12(%esp),%eax	# unsure if call will dec stack 1st
 	call	%eax
 	xorl	%eax,%eax	# smaller movl $103,%eax
@@ -401,23 +424,23 @@ _sigcode:
 	LCALL(0x7,0)		# enter kernel with args on stack
 	hlt			# never gets here
 
-_szsigcode:
-	.long	_szsigcode-_sigcode
+_C_LABEL(szsigcode):
+	.long	_C_LABEL(szsigcode)-_C_LABEL(sigcode)
 
 	/*
 	 * Support routines for GCC
 	 */
-	.globl ___udivsi3
+	.globl _C_LABEL(__udivsi3)
 	ALIGN32
-___udivsi3:
+_C_LABEL(__udivsi3):
 	movl 4(%esp),%eax
 	xorl %edx,%edx
 	divl 8(%esp)
 	ret
 
-	.globl ___divsi3
+	.globl _C_LABEL(__divsi3)
 	ALIGN32
-___divsi3:
+_C_LABEL(__divsi3):
 	movl 4(%esp),%eax
 	#xorl %edx,%edx		/* not needed - cltd sign extends into %edx */
 	cltd
@@ -427,44 +450,44 @@ ___divsi3:
 	/*
 	 * I/O bus instructions via C
 	 */
-	.globl	_inb
+	.globl	_C_LABEL(inb)
 	ALIGN32
-_inb:	movl	4(%esp),%edx
+_C_LABEL(inb):	movl	4(%esp),%edx
 	subl	%eax,%eax	# clr eax
 	NOP
 	inb	%dx,%al
 	ret
 
 
-	.globl	_inw
+	.globl	_C_LABEL(inw)
 	ALIGN32
-_inw:	movl	4(%esp),%edx
+_C_LABEL(inw):	movl	4(%esp),%edx
 	subl	%eax,%eax	# clr eax
 	NOP
 	inw	%dx,%ax
 	ret
 
 
-	.globl	_rtcin
+	.globl	_C_LABEL(rtcin)
 	ALIGN32
-_rtcin:	movl	4(%esp),%eax
+_C_LABEL(rtcin):	movl	4(%esp),%eax
 	outb	%al,$0x70
 	subl	%eax,%eax	# clr eax
 	inb	$0x71,%al	# Compaq SystemPro 
 	ret
 
-	.globl	_outb
+	.globl	_C_LABEL(outb)
 	ALIGN32
-_outb:	movl	4(%esp),%edx
+_C_LABEL(outb):	movl	4(%esp),%edx
 	NOP
 	movl	8(%esp),%eax
 	outb	%al,%dx
 	NOP
 	ret
 
-	.globl	_outw
+	.globl	_C_LABEL(outw)
 	ALIGN32
-_outw:	movl	4(%esp),%edx
+_C_LABEL(outw):	movl	4(%esp),%edx
 	NOP
 	movl	8(%esp),%eax
 	outw	%ax,%dx
@@ -475,9 +498,9 @@ _outw:	movl	4(%esp),%edx
 	 * void bzero(void *base, u_int cnt)
 	 */
 
-	.globl _bzero
+	.globl _C_LABEL(bzero)
 	ALIGN32
-_bzero:
+_C_LABEL(bzero):
 	pushl	%edi
 	movl	8(%esp),%edi
 	movl	12(%esp),%ecx
@@ -497,9 +520,9 @@ _bzero:
 	 * fillw (pat,base,cnt)
 	 */
 
-	.globl _fillw
+	.globl _C_LABEL(fillw)
 	ALIGN32
-_fillw:
+_C_LABEL(fillw):
 	pushl	%edi
 	movl	8(%esp),%eax
 	movl	12(%esp),%edi
@@ -518,9 +541,9 @@ _fillw:
 	popl	%edi
 	ret
 
-	.globl _bcopyb
+	.globl _C_LABEL(bcopyb)
 	ALIGN32
-_bcopyb:
+_C_LABEL(bcopyb):
 	pushl	%esi
 	pushl	%edi
 	movl	12(%esp),%esi
@@ -539,10 +562,10 @@ _bcopyb:
 	 *  ws@tools.de     (Wolfgang Solfrank, TooLs GmbH) +49-228-985800
 	 */
 
-	.globl	_bcopy,_ovbcopy
+	.globl	_C_LABEL(bcopy),_C_LABEL(ovbcopy)
 	ALIGN32
-_ovbcopy:
-_bcopy:
+_C_LABEL(ovbcopy):
+_C_LABEL(bcopy):
 	pushl	%esi
 	pushl	%edi
 	movl	12(%esp),%esi
@@ -585,10 +608,10 @@ _bcopy:
 	ret
 
 #ifdef notdef
-	.globl	_copyout
+	.globl	_C_LABEL(copyout)
 	ALIGN32
-_copyout:
-	movl	_curpcb, %eax
+_C_LABEL(copyout):
+	movl	_C_LABEL(curpcb), %eax
 	movl	$cpyflt, PCB_ONFAULT(%eax) # in case we page/protection violate
 	pushl	%esi
 	pushl	%edi
@@ -602,14 +625,14 @@ _copyout:
 #ifdef notyet
 	shrl	$IDXSHIFT, %eax	/* fetch pte associated with address */
 	andb	$0xfc, %al
-	movl	_PTmap(%eax), %eax
+	movl	_C_LABEL(PTmap)(%eax), %eax
 
 	andb	$7, %al		/* if we are the one case that won't trap... */
 	cmpb	$5, %al
 	jne	2f
 				/* ... then simulate the trap! */
 	pushl	%edi
-	call	_trapwrite	/* trapwrite(addr) */
+	call	_C_LABEL(trapwrite)	/* trapwrite(addr) */
 	popl	%edx
 
 	cmpl	$0, %eax	/* if not ok, return */
@@ -648,14 +671,14 @@ _copyout:
 	popl	%edi
 	popl	%esi
 	xorl	%eax,%eax
-	movl	_curpcb,%edx
+	movl	_C_LABEL(curpcb),%edx
 	movl	%eax,PCB_ONFAULT(%edx)
 	ret
 
-	.globl	_copyin
+	.globl	_C_LABEL(copyin)
 	ALIGN32
-_copyin:
-	movl	_curpcb,%eax
+_C_LABEL(copyin):
+	movl	_C_LABEL(curpcb),%eax
 	movl	$cpyflt,PCB_ONFAULT(%eax) # in case we page/protection violate
 	pushl	%esi
 	pushl	%edi
@@ -675,7 +698,7 @@ _copyin:
 	popl	%edi
 	popl	%esi
 	xorl	%eax,%eax
-	movl	_curpcb,%edx
+	movl	_C_LABEL(curpcb),%edx
 	movl	%eax,PCB_ONFAULT(%edx)
 	ret
 
@@ -684,15 +707,15 @@ cpyflt:
 	popl	%ebx
 	popl	%edi
 	popl	%esi
-	movl	_curpcb,%edx
+	movl	_C_LABEL(curpcb),%edx
 	movl	$0,PCB_ONFAULT(%edx)
 	movl	$ EFAULT,%eax
 	ret
 #else
-	.globl	_copyout
+	.globl	_C_LABEL(copyout)
 	ALIGN32
-_copyout:
-	movl	_curpcb,%eax
+_C_LABEL(copyout):
+	movl	_C_LABEL(curpcb),%eax
 	movl	$cpyflt,PCB_ONFAULT(%eax) # in case we page/protection violate
 	pushl	%esi
 	pushl	%edi
@@ -710,14 +733,14 @@ _copyout:
 	popl	%edi
 	popl	%esi
 	xorl	%eax,%eax
-	movl	_curpcb,%edx
+	movl	_C_LABEL(curpcb),%edx
 	movl	%eax,PCB_ONFAULT(%edx)
 	ret
 
-	.globl	_copyin
+	.globl	_C_LABEL(copyin)
 	ALIGN32
-_copyin:
-	movl	_curpcb,%eax
+_C_LABEL(copyin):
+	movl	_C_LABEL(curpcb),%eax
 	movl	$cpyflt,PCB_ONFAULT(%eax) # in case we page/protection violate
 	pushl	%esi
 	pushl	%edi
@@ -735,14 +758,14 @@ _copyin:
 	popl	%edi
 	popl	%esi
 	xorl	%eax,%eax
-	movl	_curpcb,%edx
+	movl	_C_LABEL(curpcb),%edx
 	movl	%eax,PCB_ONFAULT(%edx)
 	ret
 
 	ALIGN32
 cpyflt: popl	%edi
 	popl	%esi
-	movl	_curpcb,%edx
+	movl	_C_LABEL(curpcb),%edx
 	movl	$0,PCB_ONFAULT(%edx)
 	movl	$ EFAULT,%eax
 	ret
@@ -750,9 +773,9 @@ cpyflt: popl	%edi
 #endif
 
 	# insb(port,addr,cnt)
-	.globl	_insb
+	.globl	_C_LABEL(insb)
 	ALIGN32
-_insb:
+_C_LABEL(insb):
 	pushl	%edi
 	movw	8(%esp),%dx
 	movl	12(%esp),%edi
@@ -767,9 +790,9 @@ _insb:
 	ret
 
 	# insw(port,addr,cnt)
-	.globl	_insw
+	.globl	_C_LABEL(insw)
 	ALIGN32
-_insw:
+_C_LABEL(insw):
 	pushl	%edi
 	movw	8(%esp),%dx
 	movl	12(%esp),%edi
@@ -783,9 +806,9 @@ _insw:
 	ret
 
 	# outsw(port,addr,cnt)
-	.globl	_outsw
+	.globl	_C_LABEL(outsw)
 	ALIGN32
-_outsw:
+_C_LABEL(outsw):
 	pushl	%esi
 	movw	8(%esp),%dx
 	movl	12(%esp),%esi
@@ -799,9 +822,9 @@ _outsw:
 	ret
 
 	# outsb(port,addr,cnt)
-	.globl	_outsb
+	.globl	_C_LABEL(outsb)
 	ALIGN32
-_outsb:
+_C_LABEL(outsb):
 	pushl	%esi
 	movw	8(%esp),%dx
 	movl	12(%esp),%esi
@@ -818,9 +841,9 @@ _outsb:
 	/*
 	 * void lgdt(struct region_descriptor *rdp);
 	 */
-	.globl	_lgdt
+	.globl	_C_LABEL(lgdt)
 	ALIGN32
-_lgdt:
+_C_LABEL(lgdt):
 	/* reload the descriptor table */
 	movl	4(%esp),%eax
 	lgdt	(%eax)
@@ -845,9 +868,9 @@ _lgdt:
 	/*
 	 * void lidt(struct region_descriptor *rdp);
 	 */
-	.globl	_lidt
+	.globl	_C_LABEL(lidt)
 	ALIGN32
-_lidt:
+_C_LABEL(lidt):
 	movl	4(%esp),%eax
 	lidt	(%eax)
 	ret
@@ -855,29 +878,29 @@ _lidt:
 	/*
 	 * void lldt(u_short sel)
 	 */
-	.globl	_lldt
+	.globl	_C_LABEL(lldt)
 	ALIGN32
-_lldt:
+_C_LABEL(lldt):
 	lldt	4(%esp)
 	ret
 
 	/*
 	 * void ltr(u_short sel)
 	 */
-	.globl	_ltr
+	.globl	_C_LABEL(ltr)
 	ALIGN32
-_ltr:
+_C_LABEL(ltr):
 	ltr	4(%esp)
 	ret
 
 	/*
 	 * void lcr3(caddr_t cr3)
 	 */
-	.globl	_lcr3
-	.globl	_load_cr3
+	.globl	_C_LABEL(lcr3)
+	.globl	_C_LABEL(load_cr3)
 	ALIGN32
-_load_cr3:
-_lcr3:
+_C_LABEL(load_cr3):
+_C_LABEL(lcr3):
 	inb	$0x84,%al	# check wristwatch
 	movl	4(%esp),%eax
  	orl	$ I386_CR3PAT,%eax
@@ -886,9 +909,9 @@ _lcr3:
 	ret
 
 	# tlbflush()
-	.globl	_tlbflush
+	.globl	_C_LABEL(tlbflush)
 	ALIGN32
-_tlbflush:
+_C_LABEL(tlbflush):
 	inb	$0x84,%al	# check wristwatch
 	movl	%cr3,%eax
  	orl	$ I386_CR3PAT,%eax
@@ -897,41 +920,41 @@ _tlbflush:
 	ret
 
 	# lcr0(cr0)
-	.globl	_lcr0,_load_cr0
+	.globl	_C_LABEL(lcr0),_C_LABEL(load_cr0)
 	ALIGN32
-_lcr0:
-_load_cr0:
+_C_LABEL(lcr0):
+_C_LABEL(load_cr0):
 	movl	4(%esp),%eax
 	movl	%eax,%cr0
 	ret
 
 	# rcr0()
-	.globl	_rcr0
+	.globl	_C_LABEL(rcr0)
 	ALIGN32
-_rcr0:
+_C_LABEL(rcr0):
 	movl	%cr0,%eax
 	ret
 
 	# rcr2()
-	.globl	_rcr2
+	.globl	_C_LABEL(rcr2)
 	ALIGN32
-_rcr2:
+_C_LABEL(rcr2):
 	movl	%cr2,%eax
 	ret
 
 	# rcr3()
-	.globl	_rcr3
-	.globl	__cr3
+	.globl	_C_LABEL(rcr3)
+	.globl	_C_LABEL(_cr3)
 	ALIGN32
-__cr3:
-_rcr3:
+_C_LABEL(_cr3):
+_C_LABEL(rcr3):
 	movl	%cr3,%eax
 	ret
 
 	# ssdtosd(*ssdp,*sdp)
-	.globl	_ssdtosd
+	.globl	_C_LABEL(ssdtosd)
 	ALIGN32
-_ssdtosd:
+_C_LABEL(ssdtosd):
 	pushl	%ebx
 	movl	8(%esp),%ecx
 	movl	8(%ecx),%ebx
@@ -957,7 +980,7 @@ _ssdtosd:
 	ALIGN32
 ALTENTRY(fuiword)
 ENTRY(fuword)
-	movl	_curpcb,%ecx
+	movl	_C_LABEL(curpcb),%ecx
 	movl	$fusufault,PCB_ONFAULT(%ecx)
 	movl	4(%esp),%edx
 	.byte	0x65		# use gs
@@ -967,7 +990,7 @@ ENTRY(fuword)
 	
 	ALIGN32
 ENTRY(fusword)
-	movl	_curpcb,%ecx
+	movl	_C_LABEL(curpcb),%ecx
 	movl	$fusufault,PCB_ONFAULT(%ecx) #in case we page/protection violate
 	movl	4(%esp),%edx
 	.byte	0x65		# use gs
@@ -978,7 +1001,7 @@ ENTRY(fusword)
 	ALIGN32
 ALTENTRY(fuibyte)
 ENTRY(fubyte)
-	movl	_curpcb,%ecx
+	movl	_C_LABEL(curpcb),%ecx
 	movl	$fusufault,PCB_ONFAULT(%ecx) #in case we page/protection violate
 	movl	4(%esp),%edx
 	.byte	0x65		# use gs
@@ -988,7 +1011,7 @@ ENTRY(fubyte)
 	
 	ALIGN32
 fusufault:
-	movl	_curpcb,%ecx
+	movl	_C_LABEL(curpcb),%ecx
 	xorl	%eax,%eax
 	movl	%eax,PCB_ONFAULT(%ecx) #in case we page/protection violate
 	decl	%eax
@@ -997,7 +1020,7 @@ fusufault:
 	ALIGN32
 ALTENTRY(suiword)
 ENTRY(suword)
-	movl	_curpcb,%ecx
+	movl	_C_LABEL(curpcb),%ecx
 	movl	$fusufault,PCB_ONFAULT(%ecx) #in case we page/protection violate
 	movl	4(%esp),%edx
 	movl	8(%esp),%eax
@@ -1005,14 +1028,14 @@ ENTRY(suword)
 #ifdef notdef
 	shrl	$IDXSHIFT, %edx	/* fetch pte associated with address */
 	andb	$0xfc, %dl
-	movl	_PTmap(%edx), %edx
+	movl	_C_LABEL(PTmap)(%edx), %edx
 
 	andb	$7, %dl		/* if we are the one case that won't trap... */
 	cmpb	$5 , %edx
 	jne	1f
 				/* ... then simulate the trap! */
 	pushl	%edi
-	call	_trapwrite	/* trapwrite(addr) */
+	call	_C_LABEL(trapwrite)	/* trapwrite(addr) */
 	popl	%edx
 	cmpl	$0, %eax	/* if not ok, return */
 	jne	fusufault
@@ -1028,22 +1051,22 @@ ENTRY(suword)
 	
 	ALIGN32
 ENTRY(susword)
-	movl	_curpcb,%ecx
+	movl	_C_LABEL(curpcb),%ecx
 	movl	$fusufault,PCB_ONFAULT(%ecx) #in case we page/protection violate
 	movl	4(%esp),%edx
 	movl	8(%esp),%eax
 #ifdef notdef
 shrl	$IDXSHIFT, %edx	/* calculate pte address */
 andb	$0xfc, %dl
-movl	_PTmap(%edx), %edx
+movl	_C_LABEL(PTmap)(%edx), %edx
 andb	$7, %edx	/* if we are the one case that won't trap... */
 cmpb	$5 , %edx
 jne	1f
 /* ..., then simulate the trap! */
 	pushl	%edi
-	call	_trapwrite	/* trapwrite(addr) */
+	call	_C_LABEL(trapwrite)	/* trapwrite(addr) */
 	popl	%edx
-movl	_curpcb, %ecx	# restore trashed registers
+movl	_C_LABEL(curpcb), %ecx	# restore trashed registers
 cmpl	$0, %eax	/* if not ok, return */
 jne	fusufault
 movl	8(%esp),%eax
@@ -1058,22 +1081,22 @@ movl	8(%esp),%eax
 	ALIGN32
 ALTENTRY(suibyte)
 ENTRY(subyte)
-	movl	_curpcb,%ecx
+	movl	_C_LABEL(curpcb),%ecx
 	movl	$fusufault,PCB_ONFAULT(%ecx) #in case we page/protection violate
 	movl	4(%esp),%edx
 	movl	8(%esp),%eax
 #ifdef notdef
 shrl	$IDXSHIFT, %edx	/* calculate pte address */
 andb	$0xfc, %dl
-movl	_PTmap(%edx), %edx
+movl	_C_LABEL(PTmap)(%edx), %edx
 andb	$7, %edx	/* if we are the one case that won't trap... */
 cmpb	$5 , %edx
 jne	1f
 /* ..., then simulate the trap! */
 	pushl	%edi
-	call	_trapwrite	/* trapwrite(addr) */
+	call	_C_LABEL(trapwrite)	/* trapwrite(addr) */
 	popl	%edx
-movl	_curpcb, %ecx	# restore trashed registers
+movl	_C_LABEL(curpcb), %ecx	# restore trashed registers
 cmpl	$0, %eax	/* if not ok, return */
 jne	fusufault
 movl	8(%esp),%eax
@@ -1120,16 +1143,16 @@ movl	8(%esp),%eax
 	ret
 
 /*
- * The following primitives manipulate the run queues.  _whichqs tells which
- * of the 32 queues _qs have processes in them.  Setrunqueue puts processes
+ * The following primitives manipulate the run queues.  _C_LABEL(whichqs) tells which
+ * of the 32 queues _C_LABEL(qs) have processes in them.  Setrunqueue puts processes
  * into queues, Remrq removes them from queues.  The running process is on
  * no queue, other processes are on a queue related to p->p_priority, divided
  * by 4 actually to shrink the 0-127 range of priorities into the 32 available
  * queues.
  */
-	.globl	_whichqs,_qs,_cnt,_panic
-	.comm	_noproc,4
-	.comm	_runrun,4
+	.globl	_C_LABEL(whichqs),_C_LABEL(qs),_C_LABEL(cnt),_C_LABEL(panic)
+	.comm	_C_LABEL(noproc),4
+	.comm	_C_LABEL(runrun),4
 
 /*
  * Setrq(p)
@@ -1142,11 +1165,11 @@ ENTRY(setrunqueue)
 	cmpl	$0,P_BACK(%eax)		# should not be on q already
 	je	set1
 	pushl	$set2
-	call	_panic
+	call	_C_LABEL(panic)
 set1:
 	movzbl	P_PRIORITY(%eax),%edx
 	shrl	$2,%edx
-	btsl	%edx,_whichqs		# set q full bit
+	btsl	%edx,_C_LABEL(whichqs)		# set q full bit
 	shll	$3,%edx
 	addl	$_qs,%edx		# locate q hdr
 	movl	%edx,P_FORW(%eax)	# link process on tail of q
@@ -1168,10 +1191,10 @@ ENTRY(remrq)
 	movl	4(%esp),%eax
 	movzbl	P_PRIORITY(%eax),%edx
 	shrl	$2,%edx
-	btrl	%edx,_whichqs		# clear full bit, panic if clear already
+	btrl	%edx,_C_LABEL(whichqs)		# clear full bit, panic if clear already
 	jb	rem1
 	pushl	$rem3
-	call	_panic
+	call	_C_LABEL(panic)
 rem1:
 	pushl	%edx
 	movl	P_FORW(%eax),%ecx	# unlink process
@@ -1187,7 +1210,7 @@ rem1:
 	cmpl	P_FORW(%ecx),%ecx	# q still has something?
 	je	rem2
 	shrl	$3,%edx			# yes, set bit as still full
-	btsl	%edx,_whichqs
+	btsl	%edx,_C_LABEL(whichqs)
 rem2:
 	movl	$0,P_BACK(%eax)		# zap reverse link to indicate off list
 	ret
@@ -1203,8 +1226,8 @@ sw0:	.asciz	"Xswitch"
 	ALIGN32
 Idle:
 idle:
-	call	_spl0
-	cmpl	$0,_whichqs
+	call	_C_LABEL(spl0)
+	cmpl	$0,_C_LABEL(whichqs)
 	jne	sw1
 	hlt		# wait for interrupt
 	jmp	idle
@@ -1212,7 +1235,7 @@ idle:
 	.align 4 /* ..so that profiling doesn't lump Idle with Xswitch().. */
 badsw:
 	pushl	$sw0
-	call	_panic
+	call	_C_LABEL(panic)
 	/*NOTREACHED*/
 
 /*
@@ -1221,11 +1244,11 @@ badsw:
 	ALIGN32
 ENTRY(Xswitch)
 
-	incl	_cnt+V_SWTCH
+	incl	_C_LABEL(cnt)+V_SWTCH
 
 	/* switch to new process. first, save context as needed */
 
-	movl	_curproc,%ecx
+	movl	_C_LABEL(curproc),%ecx
 
 	/* if no process to save, don't bother */
 	cmpl	$0,%ecx
@@ -1244,28 +1267,28 @@ ENTRY(Xswitch)
 
 #ifdef NPX
 	/* have we used fp, and need a save? */
-	mov	_curproc,%eax
-	cmp	%eax,_npxproc
+	mov	_C_LABEL(curproc),%eax
+	cmp	%eax,_C_LABEL(npxproc)
 	jne	1f
 	pushl	%ecx			/* h/w bugs make saving complicated */
 	leal	PCB_SAVEFPU(%ecx),%eax
 	pushl	%eax
-	call	_npxsave		/* do it in a big C function */
+	call	_C_LABEL(npxsave)		/* do it in a big C function */
 	popl	%eax
 	popl	%ecx
 1:
 #endif
 
-	movl	_CMAP2,%eax		# save temporary map PTE
+	movl	_C_LABEL(CMAP2),%eax		# save temporary map PTE
 	movl	%eax,PCB_CMAP2(%ecx)	# in our context
-	movl	$0,_curproc		#  out of process
+	movl	$0,_C_LABEL(curproc)		#  out of process
 
 	# movw	_cpl, %ax
 	# movw	%ax, PCB_IML(%ecx)	# save ipl
 
 	/* save is done, now choose a new process or idle */
 sw1:
-	movl	_whichqs,%edi
+	movl	_C_LABEL(whichqs),%edi
 2:
 	cli
 	bsfl	%edi,%eax		# find a full q
@@ -1295,10 +1318,10 @@ swfnd:
 	je	3f
 	btsl	%ebx,%edi		# nope, set to indicate full
 3:
-	movl	%edi,_whichqs		# update q status
+	movl	%edi,_C_LABEL(whichqs)		# update q status
 
 	movl	$0,%eax
-	movl	%eax,_want_resched
+	movl	%eax,_C_LABEL(want_resched)
 
 #ifdef	DIAGNOSTIC
 	cmpl	%eax,P_WCHAN(%ecx)
@@ -1324,21 +1347,21 @@ swfnd:
 	movl	%eax, (%esp)
 
 	movl	PCB_CMAP2(%edx),%eax	# get temporary map
-	movl	%eax,_CMAP2		# reload temporary map PTE
+	movl	%eax,_C_LABEL(CMAP2)		# reload temporary map PTE
 
-	movl	%ecx,_curproc		# into next process
-	movl	%edx,_curpcb
+	movl	%ecx,_C_LABEL(curproc)		# into next process
+	movl	%edx,_C_LABEL(curpcb)
 
 	/* pushl	PCB_IML(%edx)
-	call	_splx
+	call	_C_LABEL(splx)
 	popl	%eax*/
 
 	movl	%edx,%eax		# return (1);
 	ret
 
-	.globl	_mvesp
+	.globl	_C_LABEL(mvesp)
 	ALIGN32
-_mvesp:	movl	%esp,%eax
+_C_LABEL(mvesp):	movl	%esp,%eax
 	ret
 /*
  * struct proc *switch_to_inactive(p) ; struct proc *p;
@@ -1353,7 +1376,7 @@ _mvesp:	movl	%esp,%eax
 ENTRY(switch_to_inactive)
 	popl	%edx			# old pc
 	popl	%eax			# arg, our return value
-	movl	_IdlePTD,%ecx
+	movl	_C_LABEL(IdlePTD),%ecx
 	movl	%ecx,%cr3		# good bye address space
  #write buffer?
 	movl	$tmpstk-4,%esp		# temporary stack, compensated for call
@@ -1367,7 +1390,7 @@ ENTRY(switch_to_inactive)
 	ALIGN32
 ENTRY(savectx)
 	movl	4(%esp), %ecx
-	movw	_cpl, %ax
+	movw	_C_LABEL(cpl), %ax
 	movw	%ax,  PCB_IML(%ecx)
 	movl	(%esp), %eax	
 	movl	%eax, PCB_EIP(%ecx)
@@ -1390,7 +1413,7 @@ ENTRY(savectx)
 	 * have to handle h/w bugs for reloading.  We used to lose the
 	 * parent's npx state for forks by forgetting to reload.
 	 */
-	mov	_npxproc,%eax
+	mov	_C_LABEL(npxproc),%eax
 	testl	%eax,%eax
   	je	1f
 
@@ -1399,7 +1422,7 @@ ENTRY(savectx)
 	leal	PCB_SAVEFPU(%eax),%eax
 	pushl	%eax
 	pushl	%eax
-	call	_npxsave
+	call	_C_LABEL(npxsave)
 	popl	%eax
 	popl	%eax
 	popl	%ecx
@@ -1409,13 +1432,13 @@ ENTRY(savectx)
 	leal	PCB_SAVEFPU(%ecx),%ecx
 	pushl	%ecx
 	pushl	%eax
-	call	_bcopy
+	call	_C_LABEL(bcopy)
 	addl	$12,%esp
 	popl	%ecx
 1:
 #endif
 
-	movl	_CMAP2, %edx		# save temporary map PTE
+	movl	_C_LABEL(CMAP2), %edx		# save temporary map PTE
 	movl	%edx, PCB_CMAP2(%ecx)	# in our context
 
 	cmpl	$0, 8(%esp)
@@ -1464,7 +1487,7 @@ ENTRY(addupc)
 	addl PR_BASE(%edx),%eax		/* praddr += up-> pr_base */
 	movl 16(%ebp),%ecx		/* ticks */
 
-	movl _curpcb,%edx
+	movl _C_LABEL(curpcb),%edx
 	movl $proffault,PCB_ONFAULT(%edx)
 	addl %ecx,(%eax)		/* storage location += ticks */
 	movl $0,PCB_ONFAULT(%edx)
@@ -1483,21 +1506,21 @@ proffault:
 
 .data
 	ALIGN32
-	.globl	_cyloffset, _curpcb
-_cyloffset:	.long	0
-	.globl	_proc0paddr
-_proc0paddr:	.long	0
+	.globl	_C_LABEL(cyloffset), _C_LABEL(curpcb)
+_C_LABEL(cyloffset):	.long	0
+	.globl	_C_LABEL(proc0paddr)
+_C_LABEL(proc0paddr):	.long	0
 LF:	.asciz "Xswitch %x"
 
 .text
  # To be done:
-	.globl _astoff
-_astoff:
+	.globl _C_LABEL(astoff)
+_C_LABEL(astoff):
 	ret
 
 #define	IDTVEC(name)	.align 4; .globl _X/**/name; _X/**/name:
 #define	PANIC(msg)	xorl %eax,%eax; movl %eax,_waittime; pushl 1f; \
-			call _panic; 1: .asciz msg
+			call _C_LABEL(panic); 1: .asciz msg
 #define	PRINTF(n,msg)	pushal ; nop ; pushl 1f; call _printf; MSG(msg) ; \
 			 popl %eax ; popal
 #define	MSG(msg)	.data; 1: .asciz msg; .text
@@ -1580,10 +1603,10 @@ IDTVEC(fpu)
  */
 	movw	%ax,%ds
 	movw	%ax,%es
-	pushl	_cpl
+	pushl	_C_LABEL(cpl)
 	pushl	$0		/* dummy unit to finish building intr frame */
-	incl	_cnt+V_TRAP
-	call	_npxintr
+	incl	_C_LABEL(cnt)+V_TRAP
+	call	_C_LABEL(npxintr)
 	jmp	doreti
 #else
 	pushl $0; TRAP(T_ARITHTRAP)
@@ -1631,14 +1654,14 @@ alltraps:
 	movw	%ax,%ds
 	movw	%ax,%es
 calltrap:
-	incl	_cnt+V_TRAP
-	call	_trap
+	incl	_C_LABEL(cnt)+V_TRAP
+	call	_C_LABEL(trap)
 	/*
 	 * Return through doreti to handle ASTs.  Have to change trap frame
 	 * to interrupt frame.
 	 */
 	movl	$T_ASTFLT,4+4+32(%esp)	/* new trap type (err code not used) */
-	pushl	_cpl
+	pushl	_C_LABEL(cpl)
 	pushl	$0			/* dummy unit */
 	jmp	doreti
 
@@ -1660,7 +1683,7 @@ bpttraps:
 	movzwl	52(%esp),%eax
 	test	$3,%eax	
 	jne	calltrap
-	call	_kgdb_trap_glue		
+	call	_C_LABEL(kgdb_trap_glue)		
 	jmp	calltrap
 #endif
 
@@ -1676,8 +1699,8 @@ IDTVEC(syscall)
 	movl	$KDSEL,%eax		# switch to kernel segments
 	movw	%ax,%ds
 	movw	%ax,%es
-	incl	_cnt+V_SYSCALL  # kml 3/25/93
-	call	_syscall
+	incl	_C_LABEL(cnt)+V_SYSCALL  # kml 3/25/93
+	call	_C_LABEL(syscall)
 	/*
 	 * Return through doreti to handle ASTs.  Have to change syscall frame
 	 * to interrupt frame.
@@ -1698,10 +1721,10 @@ IDTVEC(syscall)
 	pushl	$T_ASTFLT
 	pushal
 	nop
-	movl	__udatasel,%eax	/* switch back to user segments */
+	movl	_C_LABEL(_udatasel),%eax	/* switch back to user segments */
 	push	%eax		/* XXX - better to preserve originals? */
 	push	%eax
-	pushl	_cpl
+	pushl	_C_LABEL(cpl)
 	pushl	$0
 	jmp	doreti
 
