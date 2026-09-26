@@ -323,10 +323,21 @@ extern int kstack[];
  * specified pc, psl.
  */
 void
+/*
+ * AI-ONLY NOTE: u_long code, not unsigned. <sys/signalvar.h>
+ * prototypes this function with u_long, and GCC 14 rejects an
+ * old-style definition whose types disagree with a prototype in
+ * scope: "argument 'code' doesn't match prototype". NetBSD fixed it
+ * the same way at 1.1, the release after 1.0, and kept it through
+ * 1.6; OpenBSD 1996 has u_long here too. Nobody changed the
+ * prototype. hp300 and sparc in this tree already write u_long,
+ * while luna68k and news3400 write unsigned as this did and will
+ * want the same change when they are built.
+ */
 sendsig(catcher, sig, mask, code)
 	sig_t catcher;
 	int sig, mask;
-	unsigned code;
+	u_long code;
 {
 	register struct proc *p = curproc;
 	register int *regs;
@@ -478,7 +489,14 @@ boot(arghowto)
 	register long dummy;		/* r12 is reserved */
 	register int howto;		/* r11 == how to boot */
 	register int devtype;		/* r10 == major of root dev */
-	extern char *panicstr;
+	/*
+	 * AI-ONLY NOTE: the declaration of panicstr that stood here is
+	 * gone. <sys/systm.h>, included above, declares it `extern const
+	 * char *panicstr;' -- identically in 4.4BSD-Lite, NetBSD 1.0,
+	 * FreeBSD 2.0.5 and OpenBSD 1996 -- and this one left out the
+	 * const. It was the only local declaration of panicstr in this
+	 * tree, and no other release has one in this file.
+	 */
 extern int cold;
 
 	howto = arghowto;
