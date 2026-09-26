@@ -68,8 +68,30 @@ SYSTEM_OBJ=	locore.o ${OBJS} param.o ioconf.o vnode_if.o
 #SYSTEM_DEP=	Makefile symbols.sort ${SYSTEM_OBJ}
 SYSTEM_DEP=	Makefile ${SYSTEM_OBJ} libkern.a
 SYSTEM_LD_HEAD=	@echo loading $@; rm -f $@
+# AI-ONLY NOTE: -Ttext, not -T, and no -n.
+#
+# -T FE000000 meant `put the text at this address' to the a.out
+# linker of the day. To GNU ld, -T names a linker script, so it looks
+# for a file called FE000000 and stops. -Ttext says what the old -T
+# said. OpenBSD 1996 already writes it that way here --
+# `-z -Ttext F0100000 -e start' -- with its own address; NetBSD 1.0
+# and FreeBSD 2.0.5 keep -T with theirs. The address is unchanged and
+# is this tree's own: KERNBASE is 0xFE000000 in i386/include/param.h,
+# as it is in 4.4BSD-Lite.
+#
+# -n asked for an a.out NMAGIC binary. This toolchain produces ELF,
+# as the userland does since the csu work, so it is dropped and
+# vmunix is an ELF kernel.
+#
+# What the later releases do instead: a linker script, which is what
+# -T means now and what every modern BSD kernel is linked with. That
+# would place the sections explicitly rather than leaning on ld's
+# defaults, and is the right shape for this if the load address or
+# the section layout ever needs saying exactly. It is not done here:
+# no BSD of this period has one to copy, and a script written from
+# nothing would be this project's own invention.
 SYSTEM_LD=	@strip=-x; [ X${DEBUG} = X-g ] && strip=-X; \
-		${LD} $$strip -n -T FE000000 -o $@ ${SYSTEM_OBJ} vers.o libkern.a
+		${LD} $$strip -Ttext FE000000 -o $@ ${SYSTEM_OBJ} vers.o libkern.a
 #SYSTEM_LD_TAIL= @echo rearranging symbols;\
 #		symorder symbols.sort $@;\
 SYSTEM_LD_TAIL=	@size $@; chmod 755 $@; \
