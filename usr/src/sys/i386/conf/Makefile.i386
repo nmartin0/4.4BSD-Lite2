@@ -90,8 +90,26 @@ SYSTEM_LD_HEAD=	@echo loading $@; rm -f $@
 # the section layout ever needs saying exactly. It is not done here:
 # no BSD of this period has one to copy, and a script written from
 # nothing would be this project's own invention.
+# AI-ONLY NOTE: the format the kernel is linked in. ELF by default,
+# since that is what this tree's toolchain produces and what the
+# userland has used since the csu work; set OBJECT_FMT to anything
+# else for a.out and -n comes back. -Ttext serves both -- GNU ld takes
+# it in either mode, and NetBSD 1.4 likewise keeps one -Ttext line and
+# branches only on the magic-number flag.
+#
+# The shape of the conditional is this tree's own:
+# sparc/conf/Makefile.sparc writes `DEBUG?=' and then `.if ${DEBUG} ==
+# "-g"' around a variable holding the differing flag, which is the only
+# conditional in any of the kernel Makefile templates here.
+OBJECT_FMT?=ELF
+.if ${OBJECT_FMT} == "ELF"
+LDFORMAT=
+.else
+LDFORMAT=-n
+.endif
 SYSTEM_LD=	@strip=-x; [ X${DEBUG} = X-g ] && strip=-X; \
-		${LD} $$strip -Ttext FE000000 -o $@ ${SYSTEM_OBJ} vers.o libkern.a
+		${LD} $$strip ${LDFORMAT} -Ttext FE000000 -o $@ ${SYSTEM_OBJ} \
+		vers.o libkern.a
 #SYSTEM_LD_TAIL= @echo rearranging symbols;\
 #		symorder symbols.sort $@;\
 SYSTEM_LD_TAIL=	@size $@; chmod 755 $@; \
