@@ -88,6 +88,30 @@ So, without exception:
    "usually does". The sweep described below is how that reading is
    done; if it was not run, the claim is not made.
 
+## The CSRG history is read-only, like XNU
+
+github.com/weiss/original-bsd carries the Computer Systems Research
+Group's own history, every release from 1BSD to 4.4BSD-Lite2, with the
+commits that made them. It answers questions no other tree can: when a
+line in this tree was written, what it replaced, and whether Berkeley
+corrected it somewhere else.
+
+It is read-only, on the same terms as XNU and Rhapsody, and for a
+sharper reason: most of what it holds is the encumbered 4.4BSD that
+the USL settlement removed from the Lite releases. Nothing is copied
+from it. What may be taken is what the history says -- dates, commit
+messages, which files changed together, and the fact that a given
+line exists elsewhere in Berkeley's own tree.
+
+Where it does settle a question, the finding is what gets recorded,
+and any line adopted must also exist in a tree that may be copied. The
+console device in i386/conf/LINK.i386 is the first use: the history
+showed that the driver was called cn until 1992, that the
+reorganisation renamed it to pc, that GENERIC.i386 and CIRCE were
+never followed through while ARGO and BLITZ were, and that the
+corrected line is Berkeley's own. The Lite releases ship only
+GENERIC.i386, which is why the corrected form is not in this tree.
+
 ## Proving an absence
 
 A found donor proves itself: the line is shown. An absence does not,

@@ -34,7 +34,21 @@ config		vmunix	swap on generic
 
 controller	isa0
 
-device		cn0	at isa? port "IO_KBD" tty irq 1 vector cnrint
+# AI-ONLY NOTE: pc0 and pcrint, where GENERIC.i386 says cn0 and
+# cnrint. In 1991 the console driver really was called cn and lived in
+# i386/isa/cons.c, and files.i386 said `optional cn device-driver'.
+# The 1992 reorganisation made i386/i386/cons.c the machine-independent
+# layer, standard rather than optional, and moved the hardware driver
+# to i386/isa/pccons.c as `optional pc device-driver'. GENERIC.i386 was
+# not followed through, so it still asks for a driver that no longer
+# exists: nothing in this tree defines cndriver, while pccons.c defines
+# pcdriver and its handler is pcrint.
+#
+# The line below is Berkeley's own. Their ARGO and BLITZ configurations
+# were updated at the rename and read exactly this; GENERIC.i386 and
+# CIRCE were missed. The Lite releases ship only GENERIC.i386, so the
+# corrected form is not in this tree -- it is in the CSRG history.
+device		pc0	at isa? port "IO_KBD" tty irq 1 vector pcrint
 device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
 device		com0	at isa? port "IO_COM1" tty irq 4 vector comintr
 device		ne0	at isa? port 0x320 net irq 9 vector neintr
