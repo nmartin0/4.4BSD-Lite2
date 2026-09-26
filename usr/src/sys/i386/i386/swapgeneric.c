@@ -41,7 +41,14 @@
 #include <sys/param.h>
 #include <sys/conf.h>
 #include <sys/buf.h>
-#include <sys/vm.h>
+/*
+ * AI-ONLY NOTE: the include of <sys/vm.h> that stood here is gone.
+ * No tree has that header: not 4.4BSD-Lite2, not 4.4BSD-Lite, not
+ * NetBSD 1.0, 1.1 or 1.2, not FreeBSD 2.0.5 or 3.0, not OpenBSD
+ * 1996. Their swapgeneric.c does not include it either; only
+ * 4.4BSD-Lite's and this one ever did, and neither could have
+ * compiled.
+ */
 #include <sys/systm.h>
 #include <sys/reboot.h>
 

@@ -53,10 +53,24 @@
 
 #include <machine/cpu.h>
 
-#include <vm/vm_param.h>
-#include <vm/lock.h>
-#include <vm/vm_prot.h>
-#include <vm/pmap.h>
+/*
+ * AI-ONLY NOTE: <vm/vm.h>, in place of the four headers that stood
+ * here. 4.4BSD-Lite2 deleted vm/lock.h, which 4.4BSD-Lite and NetBSD
+ * 1.0 both have, and moved what it held: simple_lock_data_t is now
+ * typedef'd in vm/vm.h line 62 and nowhere else in this tree, so
+ * <vm/pmap.h> above cannot be compiled without it. Dropping the
+ * include, or pointing it at <sys/lock.h>, both leave that type
+ * undefined; this is the only spelling that works.
+ *
+ * It is also what the rest of this tree does: hp300, sparc and
+ * news3400 include <vm/vm.h> alone in their own mem.c, 92 files here
+ * include it, and the only two left naming vm/lock.h are this file
+ * and luna68k/luna68k/mem.c. NetBSD 1.0, 1.1 and 1.2 and OpenBSD
+ * 1996 have <vm/vm.h> alone here as well; NetBSD 1.4 adds UVM beside
+ * it and 1.6 has only UVM's umbrella header. FreeBSD keeps the four
+ * as late as 3.0, never having deleted vm/lock.h.
+ */
+#include <vm/vm.h>
 
 extern        char *vmmap;            /* poor name! */
 /*ARGSUSED*/

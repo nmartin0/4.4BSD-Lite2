@@ -178,6 +178,19 @@ Kerberos -- login, su, rlogin, rsh, passwd, telnet, rlogind, rshd,
 telnetd -- are conditional instead, as every BSD of the period has
 them.
 
+## luna68k/luna68k/mem.c still includes vm/lock.h
+
+4.4BSD-Lite2 deleted vm/lock.h and moved what it held into vm/vm.h,
+where simple_lock_data_t is now typedef'd and nowhere else. Ninety-two
+files here include <vm/vm.h>; two were left naming the deleted header,
+i386/i386/mem.c and luna68k/luna68k/mem.c.
+
+The i386 one is fixed, by replacing its four vm includes with
+<vm/vm.h> -- which is what hp300, sparc and news3400 already have in
+their own mem.c, and what NetBSD 1.0, 1.1 and 1.2 and OpenBSD 1996
+have in theirs. luna68k is left alone: it is not built here, and the
+same one-line change will serve when it is.
+
 ## Five more files that declare time without volatile
 
 <sys/kernel.h> declares `extern volatile struct timeval time;'. These
