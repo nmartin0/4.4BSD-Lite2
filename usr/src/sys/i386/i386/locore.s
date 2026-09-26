@@ -1080,7 +1080,14 @@ movl	8(%esp),%eax
 1: movl	4(%esp),%edx
 #endif
 	.byte	0x65		# use gs
-	movb	%eax,0(%edx)
+/*
+ * AI-ONLY NOTE: %al, not %eax. A byte move names a byte register;
+ * the assembler of the day took the 32-bit name and emitted the same
+ * instruction, and gas now refuses: "`%eax' not allowed with `movb'".
+ * NetBSD 1.0 and OpenBSD 1996 both write `movb %al,(%edx)' in this
+ * routine. The encoding is unchanged.
+ */
+	movb	%al,0(%edx)
 	xorl	%eax,%eax
 	movl	%eax,PCB_ONFAULT(%ecx) #in case we page/protection violate
 	ret
@@ -1557,8 +1564,22 @@ IDTVEC(fpu)
 	pushl	%ds
 	pushl	%es		/* now the stack frame is a trap frame */
 	movl	$KDSEL,%eax
-	movl	%ax,%ds
-	movl	%ax,%es
+/*
+ * AI-ONLY NOTE: movw, not movl. %ax and a segment register are both
+ * sixteen bits, and gas rejects the l suffix on them. This file
+ * already writes `movw %ax,%ds' correctly in six other places --
+ * the four here are the ones that slipped -- so this is the file's
+ * own spelling rather than another tree's. 4.4BSD-Lite, NetBSD 1.0
+ * through 1.4 and OpenBSD 1996 all write movl at these sites and
+ * their assemblers took it; NetBSD 1.6 is the first here to write
+ * movw. The encoding is unchanged.
+ *
+ * Two of the four, in the NPX block below, are not assembled in any
+ * configuration built so far: the guard tests NPX and the generated
+ * npx.h defines NNPX. They are corrected all the same.
+ */
+	movw	%ax,%ds
+	movw	%ax,%es
 	pushl	_cpl
 	pushl	$0		/* dummy unit to finish building intr frame */
 	incl	_cnt+V_TRAP
@@ -1653,8 +1674,8 @@ IDTVEC(syscall)
 	pushal	# only need eax,ecx,edx - trap resaves others
 	nop
 	movl	$KDSEL,%eax		# switch to kernel segments
-	movl	%ax,%ds
-	movl	%ax,%es
+	movw	%ax,%ds
+	movw	%ax,%es
 	incl	_cnt+V_SYSCALL  # kml 3/25/93
 	call	_syscall
 	/*
