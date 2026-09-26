@@ -40,9 +40,27 @@ fi
 
 touch version
 v=`cat version` u=${USER-root} d=`pwd` h=`hostname` t=`date`
-echo "char ostype[] = \"4.4BSD\";" > vers.c
-echo "char osrelease[] = \"4.4BSD-Lite\";" >> vers.c
-echo "char sccs[4] = { '@', '(', '#', ')' };" >>vers.c
-echo "char version[] = \"4.4BSD-Lite #${v}: ${t}\\n    ${u}@${h}:${d}\\n\";" >>vers.c
+# AI-ONLY NOTE: a here document, not four echoes. The lines below are
+# unchanged in what they say; only how they reach vers.c differs. The
+# version string ends each line with \\n, meaning the two characters a
+# C compiler reads as one newline escape, and 4.4BSD's echo passed
+# them through. Modern shells do not: /bin/sh on a Linux host expands
+# \\n itself, putting a real newline inside the string literal, and
+# the compiler stops with "missing terminating \" character". A here
+# document is left alone by the shell, so the characters arrive as
+# written.
+#
+# FreeBSD 4.0 writes this file exactly this way -- `cat << EOF >
+# vers.c' around the same declarations -- and is the earliest release
+# to do so; OpenBSD's current tree uses a here document too. NetBSD 10
+# went the other way, to printf with an awk pass. Every release of the
+# period uses echo and has the same exposure: 4.4BSD-Lite, NetBSD 1.0
+# through 1.6, FreeBSD 2.0.5 and 3.0, OpenBSD 1996.
+cat << EOF > vers.c
+char ostype[] = "4.4BSD";
+char osrelease[] = "4.4BSD-Lite";
+char sccs[4] = { '@', '(', '#', ')' };
+char version[] = "4.4BSD-Lite #${v}: ${t}\\n    ${u}@${h}:${d}\\n";
+EOF
 
 echo `expr ${v} + 1` > version
