@@ -227,13 +227,13 @@ start:	movw	$0x1234,%ax
 #endif
 
 /* find end of kernel image */
-	movl	$_end-SYSTEM,%ecx
+	movl	$_C_LABEL(end)-SYSTEM,%ecx
 	addl	$ NBPG-1,%ecx
 	andl	$~(NBPG-1),%ecx
 	movl	%ecx,%esi
 
 /* clear bss and memory for bootstrap pagetables. */
-	movl	$_edata-SYSTEM,%edi
+	movl	$_C_LABEL(edata)-SYSTEM,%edi
 	subl	%edi,%ecx
 	addl	$(UPAGES+5)*NBPG,%ecx
 /*
@@ -386,12 +386,12 @@ lretmsg1:
 _C_LABEL(icode):
 	# pushl	$argv-_icode	# gas fucks up again
 	movl	$argv,%eax
-	subl	$_icode,%eax
+	subl	$_C_LABEL(icode),%eax
 	pushl	%eax
 
 	# pushl	$init-_icode
 	movl	$init,%eax
-	subl	$_icode,%eax
+	subl	$_C_LABEL(icode),%eax
 	pushl	%eax
 	pushl	%eax	# dummy out rta
 
@@ -1171,7 +1171,7 @@ set1:
 	shrl	$2,%edx
 	btsl	%edx,_C_LABEL(whichqs)		# set q full bit
 	shll	$3,%edx
-	addl	$_qs,%edx		# locate q hdr
+	addl	$_C_LABEL(qs),%edx		# locate q hdr
 	movl	%edx,P_FORW(%eax)	# link process on tail of q
 	movl	P_BACK(%edx),%ecx
 	movl	%ecx,P_BACK(%eax)
@@ -1204,7 +1204,7 @@ rem1:
 	movl	P_FORW(%eax),%edx
 	movl	%edx,P_FORW(%ecx)
 	popl	%edx
-	movl	$_qs,%ecx
+	movl	$_C_LABEL(qs),%ecx
 	shll	$3,%edx
 	addl	%edx,%ecx
 	cmpl	P_FORW(%ecx),%ecx	# q still has something?
@@ -1300,7 +1300,7 @@ swfnd:
 	movl	%eax,%ebx		# save which one we are using
 
 	shll	$3,%eax
-	addl	$_qs,%eax		# select q
+	addl	$_C_LABEL(qs),%eax		# select q
 	movl	%eax,%esi
 
 #ifdef	DIAGNOSTIC
@@ -1444,7 +1444,7 @@ ENTRY(savectx)
 	cmpl	$0, 8(%esp)
 	je	1f
 	movl	%esp, %edx		# relocate current sp relative to pcb
-	subl	$_kstack, %edx		#   (sp is relative to kstack):
+	subl	$_C_LABEL(kstack), %edx		#   (sp is relative to kstack):
 	addl	%edx, %ecx		#   pcb += sp - kstack;
 	movl	%eax, (%ecx)		# write return pc at (relocated) sp@
 	# this mess deals with replicating register state gcc hides

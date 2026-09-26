@@ -76,14 +76,14 @@ extern	unsigned short netmask; /* group of interrupts masked with splimp() */
 	movw	$0x10, %ax ; \
 	movw	%ax, %ds ; \
 	movw	%ax,%es ; \
-	incl	_cnt+V_INTR ; \
-	incl	_isa_intr + offst * 4 ; \
-	movzwl	_cpl,%eax ; \
+	incl	_C_LABEL(cnt)+V_INTR ; \
+	incl	_C_LABEL(isa_intr) + offst * 4 ; \
+	movzwl	_C_LABEL(cpl),%eax ; \
 	pushl	%eax ; \
 	pushl	$ unit ; \
 	orw	mask ,%ax ; \
-	movw	%ax,_cpl ; \
-	orw	_imen,%ax ; \
+	movw	%ax,_C_LABEL(cpl) ; \
+	orw	_C_LABEL(imen),%ax ; \
 	outb	%al,$ IO_ICU1+1 ; \
 	movb	%ah,%al ; \
 	outb	%al,$ IO_ICU2+1	; \
