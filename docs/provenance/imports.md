@@ -172,8 +172,37 @@ These are refusals, not omissions. Each one gives up something.
 	BSDs wrote their own.
 	Cost: no editor, no calculator, no scheduler, no compression.
 
-  usr.bin/vacation's libdbm, the fourteen games, the Kerberos chain
-	Cost: those programs, and Kerberos authentication.
+  usr.bin/vacation's libdbm and the fourteen games
+	Cost: those programs.
+
+  Kerberos, in eleven Makefiles
+	4.4BSD-Lite2 turns Kerberos on unconditionally. There is no
+	conditional anywhere in Berkeley's tree, and kerberosIV is
+	shipped to support it, so login, su, rlogin, rsh, passwd,
+	telnet, rlogind, rshd, telnetd and rcp were all meant to
+	authenticate against a Kerberos KDC. They now do local
+	password authentication only. That is a reduction against what
+	Berkeley intended, and the sharpest one on this list.
+
+	It was not forced. kerberosIV can be built: four of its seven
+	DES table generators compile and run with the host compiler
+	unchanged, and what remains is a byte-order define that
+	include/conf.h asks for, one undeclared variable, two link
+	failures, HOSTCC for the generators as bin/sh has, and the
+	literal `make' in the parent Makefile that librpc needed too.
+	A day's work of the kind this branch is made of. An earlier
+	note in those Makefiles said the tree "cannot build
+	kerberosIV", which was untested and wrong.
+
+	Why it is still not done: Kerberos IV was superseded by
+	Kerberos 5 in 1993, two years before this release, and its DES
+	authentication has been breakable for decades. Every later BSD
+	made it conditional and then deleted it -- OpenBSD ships no
+	Kerberos at all today, and FreeBSD 13's login has none. There
+	is nothing here to authenticate against, and the same day spent
+	on wd.c would give the kernel a disk. The direction is what
+	every other BSD took; only the fact that Lite2 never took it
+	makes this a change.
 
   vmstat's real disk names
 	FreeBSD 2.0.5 has an implementation reading the kernel's
