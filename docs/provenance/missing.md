@@ -1,5 +1,42 @@
 # What 4.4BSD-Lite2 names and does not contain
 
+## How to tell why something is missing
+
+The CSRG history (see precedent.md; read-only) makes this mechanical.
+Every file in Berkeley's tree carries a redistribution marker, and the
+Lite releases kept the ones marked
+
+	%sccs.include.redist.c%
+
+and dropped the ones marked
+
+	%sccs.include.proprietary.c%
+
+with .man and .roff variants for documentation. So a file absent from
+this tree can be looked up rather than guessed about. Checked this
+way:
+
+  bin/ed/ed.c			proprietary
+  usr.bin/bc/bc.y		proprietary
+  usr.bin/spell/spell.c		proprietary
+  lib/libcompat/4.1/ftime.c	proprietary  (and the rest of 4.1)
+  lib/libcompat/4.3/regex.c	proprietary
+  usr.bin/m4/m4.1		proprietary.man
+  games/ching/ching.6		proprietary.roff
+  lib/libcompat/4.3/rexec.c	redist       (and so present here)
+  usr.bin/compress/zopen.c	redist       (but see below)
+  lib/libkvm/kvm_i386.c		not in the CSRG tree at all
+  sys/vm/lock.h			deleted by Berkeley before Lite2
+
+Three things follow. The AT&T-derived programs and their manual pages
+were removed by marker, not by accident -- which settles the question
+this file had left open about m4's and ching's missing pages. zopen.c
+is redistributable and still absent, because usr.bin/compress was
+removed whole for the LZW patent rather than for its licence. And
+kvm_i386.c is absent from Berkeley's own tree, so no cut removed it:
+it was never written.
+
+
 The build lists in this tree refer to programs, libraries, sources and
 documents that are not here. None of them is missing from this fork:
 4.4BSD-Lite lacks every one of them too, so they were never shipped in
@@ -98,6 +135,22 @@ sendmail and uucp documents.
 			has hp300, luna68k, mips and sparc. Ten
 			programs are waiting on it.
   usr.bin/pascal	libcpats.c.
+  lib/libcompat		4.3/regex.c, imported from NetBSD 1.0 for the
+			re_comp and re_exec that usr.bin/more and
+			usr.bin/rdist call. Berkeley's own regex.c is
+			marked proprietary -- its 1991 commit reads
+			"new copyright; att/bsd/shared" -- and is 407
+			lines of regular expression engine, with
+			advance(), backref() and cclass() of its own.
+			The file imported is 93 lines and says what it
+			is at its head: compatibility routines that
+			implement re_comp and re_exec in terms of
+			regcomp and regexec. It contains no matching
+			code and calls the engine already in this tree,
+			libcompat/regexp, which is redistributable and
+			present. The two share an interface and nothing
+			else; NetBSD wrote theirs because Berkeley's
+			could not be redistributed.
   usr.bin/vmstat	names.c has cases for hp300, tahoe, vax, luna68k,
 			mips and sun, and none for i386, so read_names
 			was undefined and vmstat, vmstat.sparc and
