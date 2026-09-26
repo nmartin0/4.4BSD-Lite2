@@ -214,6 +214,38 @@ driver. They will need the same one-line deletion when something
 builds them, and the donors for that are the same three trees -- which
 should be re-read then rather than trusted from here.
 
+## Interrupt vectors: generated here, static everywhere else
+
+config writes sys/compile/NAME/vector.s, one stub per configured
+device with the handler's name compiled in -- `call _neintr' for the
+ne0 in the configuration file. 4.4BSD-Lite2 is the only tree here that
+still does this.
+
+Every other tree had moved to a static vector.s before ELF was a
+factor: one piece of assembly covering all sixteen interrupt lines,
+which looks up at run time who registered for a line and calls them.
+NetBSD 1.1 has it, OpenBSD 1996 has no mkglue.c at all, and FreeBSD
+2.0.5 -- the same 386BSD family as this kernel's i386 code -- has a
+298-line static vector.s with generic per-IRQ stubs. FreeBSD 4.0 and
+NetBSD 1.2 deleted the generator outright.
+
+What that design needs, and this tree does not have: the registration
+table and the code that fills it. FreeBSD 2.0.5 has register_intr()
+and unregister_intr() in an isa.c of 1056 lines; this tree's isa.c is
+254 lines and simply enables the line, the handler's name having been
+wired in by config. Adopting the static design therefore means the
+vector file, the registration machinery, and every driver's attach
+path -- a project of its own, replacing working code with another
+system's architecture.
+
+So it was not done. mkglue.c emits _C_LABEL(...) instead, which makes
+the generated vectors ELF-safe and leaves the design alone; the change
+is nine fprintf strings and was proved by expanding _C_LABEL the a.out
+way and comparing with what the generator wrote before: identical.
+
+If the interrupt design is ever revisited, FreeBSD 2.0.5 is the donor
+to read first, being the same lineage.
+
 ## The i386 disk, floppy and tape drivers
 
 i386/isa/wd.c and fd.c use the 4.3BSD names for the driver queue --

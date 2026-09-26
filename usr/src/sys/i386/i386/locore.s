@@ -1518,7 +1518,8 @@ LF:	.asciz "Xswitch %x"
 _C_LABEL(astoff):
 	ret
 
-#define	IDTVEC(name)	.align 4; .globl _X/**/name; _X/**/name:
+/* AI-ONLY NOTE: through _C_LABEL, as ENTRY and ALTENTRY above are. */
+#define	IDTVEC(name)	.align 4; .globl _C_LABEL(X/**/name); _C_LABEL(X/**/name):
 #define	PANIC(msg)	xorl %eax,%eax; movl %eax,_waittime; pushl 1f; \
 			call _C_LABEL(panic); 1: .asciz msg
 #define	PRINTF(n,msg)	pushal ; nop ; pushl 1f; call _printf; MSG(msg) ; \

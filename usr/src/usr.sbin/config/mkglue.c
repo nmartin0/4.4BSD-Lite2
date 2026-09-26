@@ -353,13 +353,13 @@ vector() {
 #include	\"i386/isa/isa.h\"\n\
 #include	\"i386/isa/icu.h\"\n\
 \n\
-#define	VEC(name)	.align 4; .globl _V/**/name; _V/**/name:\n\n");
+#define	VEC(name)	.align 4; .globl _C_LABEL(V/**/name); _C_LABEL(V/**/name):\n\n");
 
 	fprintf(fp,"\
-	.globl	_hardclock\n\
+	.globl	_C_LABEL(hardclock)\n\
 VEC(clk)\n\
-	INTR1(0, _highmask, 0)\n\
-	call	_hardclock \n\
+	INTR1(0, _C_LABEL(highmask), 0)\n\
+	call	_C_LABEL(hardclock) \n\
 	INTREXIT1\n\n\n");
 
 	count=0;
@@ -373,20 +373,20 @@ VEC(clk)\n\
 				for (id2 = dp->d_vec; id2; id2 = id2->id_next) {
 					if (id2 == id) {
 						if(dp->d_irq == -1) continue;
-			fprintf(fp,"\t.globl _%s, _%s%dmask\n\t.data\n",
+			fprintf(fp,"\t.globl _C_LABEL(%s), _C_LABEL(%s%dmask)\n\t.data\n",
 				id->id, dp->d_name, dp->d_unit);
-			fprintf(fp,"_%s%dmask:\t.long 0\n\t.text\n",
+			fprintf(fp,"_C_LABEL(%s%dmask):\t.long 0\n\t.text\n",
 				dp->d_name, dp->d_unit);
 			fprintf(fp,"VEC(%s%d)\n\tINTR%d(%d, ",
 				dp->d_name, dp->d_unit,
 				dp->d_irq / 8 + 1, dp->d_unit);
 					if(eq(dp->d_mask,"null"))
-		 				fprintf(fp,"_%s%dmask, ",
+		 				fprintf(fp,"_C_LABEL(%s%dmask), ",
 							dp->d_name, dp->d_unit);
 					else
-		  				fprintf(fp,"_%smask, ",
+		  				fprintf(fp,"_C_LABEL(%smask), ",
 							dp->d_mask);
-		  	fprintf(fp,"%d)\n\tcall\t_%s\n\tINTREXIT%d\n\n\n",
+		  	fprintf(fp,"%d)\n\tcall\t_C_LABEL(%s)\n\tINTREXIT%d\n\n\n",
 				++count, id->id, (dp->d_irq > 7)?2:1); 
 						break;
 					}
