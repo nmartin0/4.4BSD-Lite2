@@ -1104,6 +1104,15 @@ movl	8(%esp),%eax
 #endif
 	.byte	0x65		# use gs
 /*
+ * AI-ONLY NOTE: this file said %al and movw until 10 June 1993,
+ * when Berkeley's commit "update with newer changed from NetBSD"
+ * replaced them -- eight movw %ax,%ds became five movw and two
+ * movl, and movb %al,(%edx) became movb %eax,0(%edx). The
+ * corrections below and at the segment loads restore what this file
+ * said before that merge. See docs/provenance/imports.md on what
+ * that merge means for donor evidence in this directory.
+ */
+/*
  * AI-ONLY NOTE: %al, not %eax. A byte move names a byte register;
  * the assembler of the day took the 32-bit name and emitted the same
  * instruction, and gas now refuses: "`%eax' not allowed with `movb'".

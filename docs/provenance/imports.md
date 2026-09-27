@@ -22,6 +22,31 @@ changes.
 A is the most authentic and G the least. D, E and F are the only
 kinds that put another system's text into usr/src.
 
+## A note on sys/i386, where the ancestry is mixed
+
+The rest of this tree is Berkeley's work with other systems as
+donors. i386 is not so simple. On 10 June 1993 Berkeley committed
+"update with newer changed from NetBSD" to i386/i386/locore.s and
+machdep.c: their own i386 port took changes from a descendant, two
+years before this release.
+
+That commit is where two of the faults corrected on this branch came
+from. Before it, locore.s had eight `movw %ax,%ds' and no movl, and
+wrote `movb %al,(%edx)'; after it, two of the eight were movl and the
+byte store named %eax. The corrections here restore what Berkeley's
+file said before the merge, which is a better claim than the six
+surviving movw lines alone supported.
+
+It also weakens donor evidence in this directory specifically. "NetBSD
+1.0 writes it this way" is ordinarily independent confirmation; in
+i386/i386/locore.s and machdep.c it may be the same text arriving by
+another route, since the two trees share a merge and not merely an
+ancestor. Where a claim in this directory rests on NetBSD alone, it
+should say so.
+
+Not everything in those files came from the merge: sendsig's `unsigned
+code' and the local panicstr declaration in machdep.c both predate it.
+
 ## A -- corrected to Berkeley's own intent
 
 The evidence for these is inside this tree or in Berkeley's own
