@@ -47,6 +47,34 @@ should say so.
 Not everything in those files came from the merge: sendsig's `unsigned
 code' and the local panicstr declaration in machdep.c both predate it.
 
+The same is true more widely, and the whole of it was measured rather
+than sampled. Berkeley's last months carry 98 commits importing from
+NetBSD, FreeBSD and 386BSD, many signed by Charles Hannum and Adam
+Glass. Of the 117 files changed on this branch, five were touched by
+one:
+
+  sys/i386/i386/locore.s	the 1993 NetBSD merge, above
+  sys/i386/i386/machdep.c	the same merge; our fixes predate it
+  sbin/routed/trace.c		April 1995, "prettiness police", from
+				Hannum; did not touch iftraceinit
+  usr.bin/kdump/kdump.c		April 1995, KNF and err(3) cleanup,
+				from Hannum; did not touch the include
+				path changed here
+  usr.sbin/config/mkglue.c	January 1991, "386BSD additions to
+				config"
+
+The last is worth stating plainly. The i386 vector generator patched
+here to emit _C_LABEL was never Berkeley's own work: it came from
+386BSD in 1991. That is part of why every later tree abandoned
+generating vectors rather than maintaining the generator, and it means
+the commit that changed it was extending a contribution rather than
+Berkeley's design.
+
+So 4.4BSD-Lite2 is not a pure CSRG artefact. It is Berkeley's tree
+with a substantial last round of its own descendants' work merged in,
+and in five of the files this branch touches the distinction between
+"Berkeley's code" and "another BSD's code" does not hold cleanly.
+
 ## A -- corrected to Berkeley's own intent
 
 The evidence for these is inside this tree or in Berkeley's own
