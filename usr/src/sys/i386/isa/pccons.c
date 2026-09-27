@@ -97,7 +97,27 @@ static openf;
 
 int	pcstart();
 int	pcparam();
-int	ttrstrt();
+/*
+ * AI-ONLY NOTE: the declaration of ttrstrt that stood here is gone.
+ * It said `int ttrstrt();' against the `void ttrstrt __P((void
+ * *tp));' in <sys/tty.h>, which this file includes, and GCC 14
+ * rejects the pair.
+ *
+ * Every BSD carries that same header line and cleaned the drivers
+ * out beneath it: NetBSD 1.0 has no local declaration of ttrstrt
+ * anywhere in its kernel, NetBSD 1.1 and FreeBSD 2.0.5 have one
+ * stray each, and 4.4BSD-Lite2 has six. NetBSD 1.0's and 1.1's
+ * pccons.c -- the nearest relative of this file -- call
+ * timeout(ttrstrt, tp, 1) with nothing declared, which is what this
+ * now does.
+ *
+ * The other five, and why this tree has four different spellings of
+ * the same declaration, are in docs/provenance/conventions.md.
+ *
+ * This file is compiled for the first time in this tree's history:
+ * GENERIC.i386 asks for a cn0 device that no driver provides, so
+ * config never selected it. See i386/conf/LINK.i386.
+ */
 char	partab[];
 
 /*
