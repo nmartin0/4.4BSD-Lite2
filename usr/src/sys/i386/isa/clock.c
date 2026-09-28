@@ -265,6 +265,47 @@ enablertclock() {
 	splnone();
 }
 
+/*
+ * AI-ONLY NOTE: cpu_initclocks and setstatclockrate, which
+ * kern/kern_clock.c calls and this port did not have. hp300,
+ * luna68k, sparc, pmax and news3400 all define both in their own
+ * clock.c; this file had the 386BSD names -- startrtclock,
+ * enablertclock, spinwait -- and was never connected to the 4.4BSD
+ * clock interface.
+ *
+ * What cpu_initclocks must do is visible in hp300's: settle hz,
+ * stathz and profhz, compute tick, then start the hardware.
+ * enablertclock above already starts the hardware here, so this sets
+ * the rates and calls it. The three donors all register the clock
+ * interrupt at run time instead -- intr_establish in NetBSD 1.0,
+ * register_intr in FreeBSD 2.0.5, isa_intr_establish in OpenBSD 1996
+ * -- which this tree has no equivalent of, its interrupts being
+ * wired in by config. So none of their versions could be taken.
+ *
+ * stathz stays zero: there is no statistics clock on this port.
+ * FreeBSD 2.0.5 and OpenBSD 1996 start a second clock on IRQ 8 for
+ * one, which is work this does not attempt. kern_clock.c reads
+ * stathz == 0 as meaning the hardclock does the statistics, which is
+ * what happens here.
+ *
+ * setstatclockrate is therefore empty, as NetBSD 1.0's i386 one is.
+ * hp300's switches between two reload values, having a second clock
+ * to switch.
+ */
+void
+cpu_initclocks()
+{
+
+	tick = 1000000 / hz;
+	enablertclock();
+}
+
+void
+setstatclockrate(newhz)
+	int newhz;
+{
+}
+
 
 
 

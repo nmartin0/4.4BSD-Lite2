@@ -66,6 +66,17 @@ struct clockframe {
 #define	CLKF_USERMODE(framep)	(ISPL((framep)->cf_if.if_cs) == SEL_UPL)
 #define	CLKF_BASEPRI(framep)	((framep)->cf_if.if_ppl == 0)
 #define	CLKF_PC(framep)		((framep)->cf_if.if_eip)
+/*
+ * AI-ONLY NOTE: CLKF_INTR, which this file did not define while
+ * kern/kern_clock.c calls it. Zero is what most of this tree
+ * answers: pmax and news3400 define it as zero, and hp300 wrote the
+ * real test against PSL_M, put it behind an #if 0, and left the zero
+ * live with a note saying why. Only luna68k and sparc answer it
+ * properly. The clockframe here is the generic intrframe and carries
+ * no flag saying whether the clock interrupted at interrupt level,
+ * so there is nothing to test yet.
+ */
+#define	CLKF_INTR(framep)	(0)	/* XXX */
 
 #define	resettodr()	/* no todr to set */
 
@@ -80,7 +91,15 @@ struct clockframe {
  * interrupt.  On tahoe, request an ast to send us through trap(),
  * marking the proc as needing a profiling tick.
  */
-#define	profile_tick(p, framep)	{ (p)->p_flag |= P_OWEUPC; aston(); }
+/*
+ * AI-ONLY NOTE: need_proftick, where this file said profile_tick.
+ * Berkeley renamed it in July 1992 -- "changes to pass clock frame by
+ * reference rather than value" -- and updated hp300, luna68k, sparc,
+ * pmax and news3400, all of which say need_proftick in their cpu.h.
+ * This file was not, so kern/subr_prof.c's call found nothing. The
+ * body is unchanged and is hp300's line for line.
+ */
+#define	need_proftick(p)	{ (p)->p_flag |= P_OWEUPC; aston(); }
 
 /*
  * Notify the current process (p) that it has a signal pending,

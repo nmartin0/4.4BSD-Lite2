@@ -145,8 +145,37 @@
 #define i386_btop(x)		((unsigned)(x) >> PGSHIFT)
 #define i386_ptob(x)		((unsigned)(x) << PGSHIFT)
 
-#ifndef KERNEL
-/* DELAY is in locore.s for the kernel */
+/*
+ * AI-ONLY NOTE: the guard here said `DELAY is in locore.s for the
+ * kernel', and it is not: no BSD's i386 locore.s defines DELAY and
+ * this tree's does not either, so a kernel build had no DELAY at all
+ * while isa/wt.c and isa/pccons.c call it.
+ *
+ * The loop below uses delaycount, which i386/isa/clock.c calibrates
+ * in findcpuspeed() to one millisecond's worth, so a microsecond
+ * argument is divided by a thousand. hp300, luna68k, sparc, pmax and
+ * news3400 all define DELAY as a busy loop in their own param.h,
+ * hp300 scaling it by its cpuspeed; this port has no cpuspeed --
+ * isa/if_ec.c declares one that nothing defines -- and delaycount is
+ * what it does calibrate.
+ *
+ * This is crude, and knowingly so: anything under a millisecond
+ * rounds to nothing, and pccons.c asks for DELAY(4000000) while
+ * wt.c asks for DELAY(1000). What every descendant did instead was
+ * write a real delay() that reads the 8254: NetBSD 1.0's and
+ * OpenBSD 1996's are in isa/clock.c and compute n * TIMER_FREQ / 1e6
+ * with a 64-bit intermediate, and OpenBSD's header then reads
+ * `#define DELAY(x) delay(x)'. FreeBSD 2.0.5 has its own in
+ * clock.c. That is the eventual answer here too -- some thirty lines
+ * adapted rather than copied, since each uses its own gettick() and
+ * TIMER_FREQ -- and it is not attempted now, when the object is to
+ * reach a link.
+ */
+#ifdef KERNEL
+extern unsigned int delaycount;		/* calibrated in clock.c */
+#define	DELAY(n)	{ register int N = delaycount * (n) / 1000; \
+			  while (--N > 0); }
+#else
 #define	DELAY(n)	{ register int N = (n); while (--N > 0); }
 #endif
 
