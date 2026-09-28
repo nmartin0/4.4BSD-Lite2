@@ -140,7 +140,29 @@ donet:
 	outb %al, $ IO_ICU2+1
 	sti
 
-	DONET(NETISR_RAW,_C_LABEL(rawintr))
+/*
+ * AI-ONLY NOTE: the DONET(NETISR_RAW, rawintr) that stood here is
+ * gone, in both dispatch lists. Nothing in 4.4BSD-Lite2 defines
+ * rawintr: the networking handles raw input through raw_input()
+ * and net/netisr.h keeps NETISR_RAW only as a constant. No other
+ * port in this tree dispatches it, and NetBSD 1.0, FreeBSD 2.0.5
+ * and OpenBSD 1996 have no such dispatch in their own i386
+ * assembly either.
+ *
+ * It came from 386BSD, whose net/raw_usrreq.c carried
+ *
+ *	rawintr() {}		XXX - referenced by locore.
+ *				will soon go away
+ *
+ * -- an empty function whose author wrote that it existed only
+ * because locore referred to it and would soon go away. It did go
+ * away; the reference did not, and Berkeley inherited it.
+ *
+ * NETISR_RAW is bit 0 of netisr. With no dispatch, anything that
+ * set that bit would leave it set rather than have btrl clear it.
+ * Nothing in this tree sets it.
+ */
+
 #ifdef INET
 	DONET(NETISR_IP,_C_LABEL(ipintr))
 	DONET(NETISR_ARP,_C_LABEL(arpintr))
@@ -303,7 +325,7 @@ _C_LABEL(spl0):
 	outb	%al,$ IO_ICU2+1
 	sti				# enable interrupts
 
-	DONET(NETISR_RAW,_C_LABEL(rawintr))
+/* AI-ONLY NOTE: the raw dispatch is gone here too; see above. */
 #ifdef INET
 	DONET(NETISR_IP,_C_LABEL(ipintr))
 	DONET(NETISR_ARP,_C_LABEL(arpintr))
