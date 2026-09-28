@@ -158,19 +158,46 @@ are small, and every one says so in its own AI-ONLY NOTE.
 
 ## D -- transplanted, never in 4.4BSD-Lite2
 
-	lib/csu/*		619 lines	NetBSD 1.6
+	lib/csu/*		619 lines	NetBSD 1.6 (see below)
 	lib/libkvm/kvm_i386.c	221 lines	NetBSD 1.0, adapted
 	vmstat/names.c i386 case  6 lines	NetBSD 1.0
 	lib/libl/Makefile	  4 lines	NetBSD 1.0
 
 The csu files are ELF startup code, which did not exist in 1995 and
-could not have. The other three fill holes in Berkeley's i386 port:
+could not have.
+
+Why 1.6 and not something closer to this tree's era, which every other
+choice here prefers: NetBSD 1.4 has an ELF csu, three years earlier,
+and it is the wrong one. Its crtbegin.c is 123 lines against 1.6's
+201, the difference being DWARF2 exception-frame registration, which
+the compiler this tree is built with expects a crtbegin to do; its
+crtend.c is ten lines against 26. ELF startup code tracks the
+toolchain and not the tree, so here later is closer, and this is the
+only place in this project where that is true.
+
+The other two are Berkeley's code that reached this tree through
+NetBSD rather than NetBSD's own work, and both carry Regents
+copyrights. kvm_i386.c is Berkeley's kvm_hp300.c ported to a machine
+Berkeley did not do: the same four functions in the same order.
+NetBSD 1.0 is not merely the earliest source for it but the only
+workable one -- this tree's kvm.c calls _kvm_freevtop, _kvm_initvtop,
+_kvm_kvatop and _kvm_uvatop, and of the four trees only NetBSD 1.0
+provides all four. NetBSD 1.1 and OpenBSD 1996 had dropped
+_kvm_uvatop; FreeBSD 2.0.5 has _kvm_vatop in its place.
+
+The other three fill holes in Berkeley's i386 port:
 kvm_i386.c and the names.c case are in no CSRG tree at all, so nothing
 removed them -- they were never written.
 
 ## E -- a reimplementation of something the Lite cut removed
 
 	lib/libcompat/4.3/regex.c   93 lines	NetBSD 1.0
+
+The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
+the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
+carries a Regents copyright and says it was contributed to Berkeley by
+James da Silva of the University of Maryland, so it is Berkeley-
+licensed code that Berkeley had, not a NetBSD invention.
 
 Berkeley's regex.c is 407 lines of regular expression engine marked
 %sccs.include.proprietary.c%. This is not that file: it is a shim that

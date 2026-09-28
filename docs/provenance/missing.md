@@ -299,6 +299,51 @@ way and comparing with what the generator wrote before: identical.
 If the interrupt design is ever revisited, FreeBSD 2.0.5 is the donor
 to read first, being the same lineage.
 
+## The i386 kernel's machine-dependent gaps
+
+The context switcher is here, under the name the settlement gave it.
+ENTRY(Xswitch) is at i386/i386/locore.s:1254, with ENTRY(setrunqueue)
+and ENTRY(switch_to_inactive) beside it. 386BSD 0.1 calls the same
+routine swtch, the 4.3BSD name; on 23 September 1993 Berkeley renamed
+it in a commit titled "changes for 4.4BSD-Lite requested by USL",
+which changed 34 lines and restored 34 -- swtch to Xswitch,
+swtch_to_inactive to switch_to_inactive, and the proc fields P_LINK,
+P_RLINK and P_PRI to P_FORW, P_BACK and P_PRIORITY. No code was
+removed. What USL required of this file was that the names change.
+
+The machine-independent kernel calls cpu_switch(p), in
+kern/kern_synch.c. The rename was applied to the assembly and never to
+the caller, so the kernel link fails on a name rather than on absent
+code. Anyone searching this tree for cpu_switch will conclude the
+routine was never written; it was, and it is thirty lines from where
+they will have looked.
+
+What is genuinely absent is per-port work the i386 port never
+received, and every piece of it has a model in this tree:
+
+  fuswintr, suswintr	hp300/hp300/locore.s, luna68k/luna68k/locore.s
+  splstatclock		hp300/include/param.h, luna68k/include/param.h
+			-- a macro, not a routine
+  chrtoblk		hp300/hp300/conf.c, luna68k/luna68k/conf.c,
+			and this tree has i386/i386/conf.c
+  blkclr		sparc/sparc/locore.s
+
+  rawintr		referenced from i386/isa/icu.s and defined in
+			no BSD tree on disk. Most likely a dead
+			reference.
+  memset		called by nothing in this tree: GCC 14 turns
+			loops in libkern's qdivrem.c and strncpy.c into
+			calls to it. A compiler artefact.
+
+min and MAX are not missing -- libkern/libkern.h and sys/param.h have
+them -- so whatever fails there is include order or build flags.
+
+So the i386 port is not missing its core. It is missing the
+connective tissue between Jolitz's code, which Berkeley took in from
+NetBSD in 1993 and which locore.s names in its own header, and
+Berkeley's per-port conventions: a name the settlement changed on one
+side only, and small routines every other port here has.
+
 ## The i386 disk, floppy and tape drivers
 
 i386/isa/wd.c and fd.c use the 4.3BSD names for the driver queue --
