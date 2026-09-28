@@ -30,6 +30,27 @@ options		INET
 options		"TCP_COMPAT_42"
 options		"COMPAT_43"
 
+# AI-ONLY NOTE: the filesystem and the pagers, which GENERIC.i386
+# does not name. Its three options above are the whole of it, so
+# config selects no filesystem at all: ufs/ffs/ffs_vnops.c is
+# `optional ffs' in sys/conf/files and vm/vnode_pager.c is `optional
+# vnodepager', and neither was built. The kernel link wanted
+# ffs_vnodeop_opv_desc, ffs_specop_opv_desc, vnode_pager_umount and
+# vnode_pager_uncache, which are in those two files.
+#
+# Every line here is one Berkeley wrote in a configuration of their
+# own. FFS and MFS come from their ARGO and BLITZ i386
+# configurations, which read `options FFS MFS INET NFS "COMPAT_43"
+# "TCP_COMPAT_42"'; the three pagers come from this tree's own
+# hp300 GENERIC, which reads `options SWAPPAGER VNODEPAGER
+# DEVPAGER'. NFS and the debug options ARGO also carries are left
+# out: they add subsystems rather than completing this one.
+options		FFS
+options		MFS
+options		SWAPPAGER
+options		VNODEPAGER
+options		DEVPAGER
+
 config		vmunix	swap on generic
 
 controller	isa0
