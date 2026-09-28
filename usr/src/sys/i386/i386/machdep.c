@@ -94,6 +94,27 @@ int	msgbufmapped;		/* set when safe to use msgbuf */
 int boothowto = 0, Maxmem = 0;
 long dumplo;
 int physmem, maxmem;
+
+/*
+ * AI-ONLY NOTE: machine and cpu_model, which kern/kern_sysctl.c
+ * declares as `extern char machine[], cpu_model[];' and reads for
+ * hw.machine and hw.model. Every port is expected to define them and
+ * this one did not: hp300/hp300/machdep.c has `char machine[] =
+ * "hp300";' and sparc/sparc/cpu.c `char machine[] = "sparc";'.
+ * NetBSD 1.0, FreeBSD 2.0.5 and OpenBSD 1996 all write the line
+ * below verbatim in their own i386 machdep.c.
+ *
+ * cpu_model is left empty. hp300 fills its buffer at boot with the
+ * model it detects, and the three donors fill theirs from an
+ * identifycpu() that reads the processor; this port detects nothing
+ * -- initcpu() is an empty function and there is no cpu_class or
+ * cputype anywhere in i386 -- so there is nothing true to put in it.
+ * An empty hw.model is better than an invented one, and filling it
+ * properly means writing the detection, which is its own piece of
+ * work.
+ */
+char	machine[] = "i386";		/* cpu "architecture" */
+char	cpu_model[120];
 extern int bootdev;
 #ifdef SMALL
 extern int forcemaxmem;
