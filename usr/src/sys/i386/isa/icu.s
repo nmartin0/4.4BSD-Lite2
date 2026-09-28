@@ -192,10 +192,23 @@ just_return:
  *		-- splXX masks with group mechanism for BSD purposes
  */
 
+/*
+ * AI-ONLY NOTE: splstatclock is a third name for this routine.
+ * kern_clock.c, kern_resource.c, kern_synch.c, subr_prof.c and
+ * vm_glue.c all call it and no port file defined it here. Every
+ * other port maps it to its own clock level -- hp300 to spl6(),
+ * luna68k to spl5(), pmax through a pointer -- and NetBSD 1.0's i386
+ * writes `#define splstatclock() splclock()'. On this port the spl
+ * family are routines rather than macros, with no header declaring
+ * them, so the mapping is done where splhigh and splclock are
+ * already two names for one routine: a label, as they are.
+ */
 	.globl	_C_LABEL(splhigh)
 	.globl	_C_LABEL(splclock)
+	.globl	_C_LABEL(splstatclock)
 _C_LABEL(splhigh):
 _C_LABEL(splclock):
+_C_LABEL(splstatclock):
 	cli				# disable interrupts
 	movw	$0xffff,%ax		# set new priority level
 	movw	%ax,%dx

@@ -54,6 +54,15 @@
  * based on the National DS8390 Network Interface chip set.
  */
 #include <sys/param.h>
+/*
+ * AI-ONLY NOTE: <sys/systm.h>, which this file did not include while
+ * calling min(). min is a static __inline in <libkern/libkern.h>,
+ * which systm.h includes, so every file that has systm.h gets it and
+ * this one did not: the link wanted a min symbol. if_ne.c and
+ * if_ec.c, the other drivers in this directory, both include it, and
+ * if_ne.c calls min three times.
+ */
+#include <sys/systm.h>
 #include <sys/mbuf.h>
 #include <sys/socket.h>
 #include <sys/ioctl.h>
@@ -385,7 +394,13 @@ westart(ifp)
 	 * Init transmit length registers, and set transmit start flag.
 	 */
 	s = splhigh();
-	len = MAX(len, ETHER_MIN_LEN);
+	/*
+	 * AI-ONLY NOTE: max, not MAX. <sys/param.h> defines MIN and MAX
+	 * only #ifndef KERNEL -- the kernel is meant to use libkern's
+	 * max, imax, lmax and ulmax instead -- so this call had nothing
+	 * behind it. Both operands are int, so plain max is the one.
+	 */
+	len = max(len, ETHER_MIN_LEN);
 	wecmd.cs_byte = inb(sc->we_io_nic_addr + WD_P0_COMMAND);
 	wecmd.cs_ps = 0;
 	outb(sc->we_io_nic_addr + WD_P0_COMMAND, wecmd.cs_byte);
