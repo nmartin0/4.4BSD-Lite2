@@ -1225,7 +1225,7 @@ rem2:
 	ret
 
 rem3:	.asciz	"remrq"
-sw0:	.asciz	"Xswitch"
+sw0:	.asciz	"cpu_switch"
 
 /*
  * When no processes are on the runq, Swtch branches to idle
@@ -1241,7 +1241,7 @@ idle:
 	hlt		# wait for interrupt
 	jmp	idle
 
-	.align 4 /* ..so that profiling doesn't lump Idle with Xswitch().. */
+	.align 4 /* ..so that profiling doesn't lump Idle with cpu_switch().. */
 badsw:
 	pushl	$sw0
 	call	_C_LABEL(panic)
@@ -1251,7 +1251,28 @@ badsw:
  * Swtch()
  */
 	ALIGN32
-ENTRY(Xswitch)
+/*
+ * AI-ONLY NOTE: cpu_switch, where this file said Xswitch.
+ *
+ * 386BSD 0.1 calls this routine swtch, the 4.3BSD name. On 23
+ * September 1993 Berkeley renamed it in a commit titled "changes for
+ * 4.4BSD-Lite requested by USL", which touched hp300, luna68k and
+ * i386 together and changed 34 lines here and restored 34 -- names,
+ * not code. hp300 and luna68k started from cpu_swtch and came out of
+ * it with cpu_switch, which is what kern/kern_synch.c calls and what
+ * sparc's locore.s also defines. This file started from swtch and
+ * came out with Xswitch, the name 4.3BSD used on the VAX and the
+ * Tahoe -- Berkeley's tahoe/tahoe/locore.s has ENTRY(Xswitch, 0) and
+ * its trap.c calls Xswitch() directly. So the name was a real one,
+ * just the older convention, on a port nobody was building.
+ *
+ * The machine-independent kernel calls cpu_switch(p), so the link
+ * failed on a name while the routine sat here. Renamed to agree with
+ * it and with the three ports whose locore.s this release ships.
+ * Nothing outside this file referred to Xswitch except tags files
+ * for vax and tahoe, whose sources are not shipped.
+ */
+ENTRY(cpu_switch)
 
 	incl	_C_LABEL(cnt)+V_SWTCH
 
@@ -1394,7 +1415,7 @@ ENTRY(switch_to_inactive)
 /*
  * savectx(pcb, altreturn)
  * Update pcb, saving current processor state and arranging
- * for alternate return ala longjmp in Xswitch if altreturn is true.
+ * for alternate return ala longjmp in cpu_switch if altreturn is true.
  */
 	ALIGN32
 ENTRY(savectx)
@@ -1519,7 +1540,7 @@ proffault:
 _C_LABEL(cyloffset):	.long	0
 	.globl	_C_LABEL(proc0paddr)
 _C_LABEL(proc0paddr):	.long	0
-LF:	.asciz "Xswitch %x"
+LF:	.asciz "cpu_switch %x"
 
 .text
  # To be done:
