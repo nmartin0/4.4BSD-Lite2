@@ -758,8 +758,27 @@ loop:
 	if (inb(KBSTAT)&1) dt = inb(KBDATA);
 	else { if (noblock) return (0x100); else goto loop; }
 
+	/*
+	 * AI-ONLY NOTE: reset_cpu, where this said _exit. Nothing in any
+	 * BSD defines an _exit for the kernel, and the routine this line
+	 * wants is twenty-four lines above in this same file:
+	 * reset_cpu(), which strobes the keyboard controller to reset the
+	 * machine, and which i386/i386/machdep.c already calls at its own
+	 * line 578. 386BSD 0.1's pccons.c has cpu_reset() on the
+	 * equivalent line, so the intent was never in doubt.
+	 *
+	 * Not done here, and worth doing separately: this tree calls the
+	 * routine reset_cpu while NetBSD 1.0, FreeBSD 2.0.5 and OpenBSD
+	 * 1996 all call it cpu_reset in their i386 machdep.c, as 386BSD
+	 * did. Renaming it would make this port agree with every other
+	 * BSD, and touches this file, i386/i386/machdep.c and the
+	 * bootstrap in i386/stand -- which is why it is not folded into a
+	 * one-line fix to a link failure. Nothing in the
+	 * machine-independent kernel calls either name, so the choice is
+	 * this port's alone.
+	 */
 	/* Check for cntl-alt-del */
-	if ((dt == 83)&&ctls&&alts) _exit();
+	if ((dt == 83)&&ctls&&alts) reset_cpu();
 
 	/* Check for make/break */
 	if (dt & 0x80) {
