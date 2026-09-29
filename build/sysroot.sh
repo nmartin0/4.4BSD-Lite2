@@ -95,9 +95,10 @@
 #   the root a program is built against, and building one is a
 #   separate run of build/make.sh in its own directory.
 #
-# HOST TOOLS: bmake, mtree, pax and ctags, besides GCC and binutils --
+# HOST TOOLS: bmake, mtree, pax, ctags and flex, besides GCC and
+# binutils --
 #
-#	sudo apt install bmake mtree-netbsd pax universal-ctags
+#	sudo apt install bmake mtree-netbsd pax universal-ctags flex
 #
 set -e
 
@@ -128,9 +129,13 @@ case "$L2_BUILD" in
 esac
 ROOT="$L2_BUILD/root"
 
-pkgs="bmake mtree-netbsd pax universal-ctags"
+pkgs="bmake mtree-netbsd pax universal-ctags flex"
 missing=
-for t in bmake mtree pax ctags gcc cpp as ld ar ranlib nm tsort; do
+# flex is here because config's scanner is generated from lang.l below.
+# It was used without being checked for, so a host without it got past
+# this point and failed two hundred lines later, inside the config
+# build, with flex's own "not found" and nothing naming the package.
+for t in bmake mtree pax ctags flex gcc cpp as ld ar ranlib nm tsort; do
 	command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
 done
 if [ -n "$missing" ]; then
