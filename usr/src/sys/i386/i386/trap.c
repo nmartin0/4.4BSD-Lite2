@@ -472,65 +472,29 @@ int type;
 	return (KERN_SUCCESS);
 }
 
-int
-user_write_fault (addr)
-void *addr;
-{
-	if (user_page_fault (curproc, &curproc->p_vmspace->vm_map,
-			     addr, VM_PROT_READ | VM_PROT_WRITE,
-			     T_PAGEFLT) == KERN_SUCCESS)
-		return (0);
-	else
-		return (EFAULT);
-}
-
-int
-copyout (from, to, len)
-void *from;
-void *to;
-u_int len;
-{
-	u_int *pte, *pde;
-	int rest_of_page;
-	int thistime;
-	int err;
-
-	/* be very careful not to overflow doing this check */
-	if (to >= (void *)USRSTACK || (void *)USRSTACK - to < len)
-		return (EFAULT);
-
-	pte = (u_int *)vtopte (to);
-	pde = (u_int *)vtopte (pte);
-
-	rest_of_page = PAGE_SIZE - ((int)to & (PAGE_SIZE - 1));
-
-	while (1) {
-		thistime = len;
-		if (thistime > rest_of_page)
-			thistime = rest_of_page;
-
-		if ((*pde & PG_V) == 0
-		    || (*pte & (PG_V | PG_UW)) != (PG_V | PG_UW))
-			if (err = user_write_fault (to))
-				return (err);
-
-		bcopy (from, to, thistime);
-
-		len -= thistime;
-
-		/*
-		 * Break out as soon as possible in the common case
-		 * that the whole transfer is containted in one page.
-		 */
-		if (len == 0)
-			break;
-
-		from += thistime;
-		to += thistime;
-		pte++;
-		pde = (u_int *)vtopte (pte);
-		rest_of_page = PAGE_SIZE;
-	}
-
-	return (0);
-}
+/*
+ * AI-ONLY NOTE: the copyout that stood here is gone, and with it
+ * user_write_fault, which nothing else in this tree called.
+ *
+ * locore.s defines copyout as well, at the label in the live #else
+ * arm of its `#ifdef notdef' block, so the kernel link failed with
+ * `multiple definition of copyout'. The collision is Berkeley's own:
+ * the CSRG history carries the same two definitions in the same two
+ * files with the same preprocessor nesting, so the collision reached
+ * this release rather than being made here. 4.4BSD-Lite was not
+ * checked.
+ *
+ * The assembly one is what stays. Every tree read for this puts
+ * copyout in assembly and has none in trap.c -- NetBSD 1.0
+ * (locore.s:773), NetBSD 1.1 (locore.s:753), NetBSD 1.2, and FreeBSD
+ * 2.0.5 (support.s:398) -- and so do the three other ports this
+ * release ships: hp300/hp300/locore.s:1413,
+ * luna68k/luna68k/locore.s:1242, sparc/sparc/locore.s:2714. It is
+ * also the counterpart of copyin, which exists only in locore.s, and
+ * it installs a PCB_ONFAULT handler around the copy, where this one
+ * relied on faulting the destination pages in beforehand.
+ *
+ * Not checked: OpenBSD 1996 and 4.4BSD-Lite, neither of which was
+ * reachable when this was written. So nothing here claims that no
+ * tree has a C copyout -- only that the four read do not.
+ */
