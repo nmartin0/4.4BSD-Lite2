@@ -68,8 +68,17 @@ of his. test_mk7.3's own README records that the licence for its
 `build/` contributions is not yet decided, and no licence is declared
 for its documents either.
 
-So no licence is asserted for them here. Nothing in this directory may
-be redistributed on the assumption that this tree's terms cover it:
+So no licence is asserted for them here, with one exception measured
+rather than assumed. `tools/console.py` carries
+`SPDX-License-Identifier: MIT` on its third line -- it is the only
+file in this directory that declares a licence, and the declaration
+is the copyright holder's own, so it stands on its own terms.
+`tools/pmem.py`, `tools/vmem.py`, `tools/vgadump.py` and
+`build/mksandbox.sh` carry an `SPDX-FileCopyrightText` line and no
+identifier; the documents carry neither.
+
+Apart from `console.py`, nothing in this directory may be
+redistributed on the assumption that this tree's terms cover it:
 4.4BSD-Lite2's licence (see ./COPYRIGHT at the top of this tree)
 applies to the Berkeley material, not to these files. The copyright
 holder is the maintainer of this tree, so the question is his to
