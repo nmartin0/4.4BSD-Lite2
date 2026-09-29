@@ -498,9 +498,29 @@ _C_LABEL(outw):	movl	4(%esp),%edx
 	 * void bzero(void *base, u_int cnt)
 	 */
 
-	.globl _C_LABEL(bzero)
+/*
+ * AI-ONLY NOTE: blkclr, a second name for this routine.
+ *
+ * i386/i386/pmap.c calls blkclr((caddr_t)val, size) in
+ * pmap_bootstrap_alloc and no file in this port defined it, so the
+ * kernel link wanted a symbol whose code was already here. The three
+ * other ports this release ships all answer it the same way:
+ * hp300/hp300/locore.s:2408 and luna68k/luna68k/locore.s:2082 write
+ * ALTENTRY(blkclr, _bzero), and sparc/sparc/locore.s:3502 writes
+ * ALTENTRY(blkclr) immediately above ENTRY(bzero). Their pmap.c
+ * carries the identical call line, so it is one routine under two
+ * names everywhere, not two routines.
+ *
+ * The two macros are identical in this file -- both expand to a
+ * .globl and a label -- and ALTENTRY above ENTRY is already how this
+ * file spells a second name, at fuiword/fuword, fuibyte/fubyte,
+ * suiword/suword and suibyte/subyte. So Berkeley's own .globl and
+ * label are rewritten in that form rather than a second pair being
+ * added beside them.
+ */
 	ALIGN32
-_C_LABEL(bzero):
+ALTENTRY(blkclr)
+ENTRY(bzero)
 	pushl	%edi
 	movl	8(%esp),%edi
 	movl	12(%esp),%ecx
