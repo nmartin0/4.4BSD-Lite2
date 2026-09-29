@@ -93,14 +93,12 @@ Each change is marked at its site with an `AI-ONLY NOTE`.
 - `common_elf/crtbegin.c`: the includes of `<sys/exec_elf.h>` and
   `"sysident.h"` are removed. They emit NetBSD's `.note.netbsd.ident`
   section, which labels every program as NetBSD; neither header is in
-  this tree.
-
-## Changes since the import
-
-Each change is marked at its site with an `AI-ONLY NOTE`.
-
-- `common_elf/crtbegin.c`: the includes of `<sys/exec_elf.h>` and
-  `"sysident.h"` are removed. They emit NetBSD's `.note.netbsd.ident`
-  section, which labels every program as NetBSD; neither header is in
   this tree, and `sysident.h` is not in NetBSD's `lib/csu` either.
 
+  One thing the removal left behind, recorded rather than edited: the
+  include of `<sys/param.h>` on line 50 still carries NetBSD's own
+  trailing comment, `/* sysident.h requires 'NetBSD' constant */`,
+  which now names a header this file no longer includes. The comment
+  is NetBSD's text, not ours, and `<sys/param.h>` is still needed, so
+  it is left as imported. A reader meeting it should not go looking
+  for the include.
