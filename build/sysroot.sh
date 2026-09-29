@@ -45,18 +45,25 @@
 #      One message is expected: "install: cannot stat 'mp.h'". FILES
 #      lists the header of libmp, which Lite2 removed.
 #
-#   3. Host tools, in ${L2_BUILD}/tools/bin: Lite2's own lorder, from
-#      usr.bin/lorder/lorder.sh, which bsd.lib.mk runs to order an
-#      archive and which the host does not have. NetBSD 1.6's build.sh
-#      installs its own tree's lorder the same way, as nblorder.
+#   3. Host tools, in ${L2_BUILD}/tools/bin, all three from this
+#      tree's own sources: lorder, from usr.bin/lorder/lorder.sh,
+#      which bsd.lib.mk runs to order an archive and which the host
+#      does not have; yacc, because the packaged byacc reads these
+#      grammars but writes a yylex declaration this tree's own yacc
+#      does not; and config, which the kernel build runs. NetBSD
+#      1.6's build.sh installs its own tree's lorder the same way, as
+#      nblorder, and builds its own yacc as nbyacc. Each of the three
+#      carries its reasoning at its site below.
 #
 #   4. The libraries named in $libs, by their own all and install
-#      targets, in that order: libc; libutil, which twelve programs
-#      here name in LDADD; libterm, which builds libtermcap.a;
-#      libedit, which also installs histedit.h; and libl, the lex
-#      run-time, which this tree ships the sources for but has no
-#      Makefile for until now. Each was built and checked before
-#      being added; the rest of lib/ follows the same way.
+#      targets, in that order: libc, libutil, libterm, libcurses,
+#      libedit, libl, libcompat, libm, libkvm, libtelnet and
+#      librpc/rpc. Some of what each is for: libutil is named in
+#      LDADD by twelve programs here; libterm builds libtermcap.a;
+#      libedit also installs histedit.h; libl is the lex run-time,
+#      whose sources this tree ships with no Makefile until now.
+#      Each was built and checked before being added; the rest of
+#      lib/ follows the same way.
 #
 #      The compiler, assembler and linker settings, the object
 #      directory, the target root and the install owner all come from
@@ -83,8 +90,10 @@
 #   That is enough to compile against; a disk image will need the real
 #   ownership recorded separately.
 #
-#   No library but libc, and no programs yet: the startup files are
-#   installed, but the compiler is not yet told to link with them.
+#   Not the whole of lib/. Eleven libraries are built; the rest are
+#   added one at a time as each is tried. Nor any program: this fills
+#   the root a program is built against, and building one is a
+#   separate run of build/make.sh in its own directory.
 #
 # HOST TOOLS: bmake, mtree, pax and ctags, besides GCC and binutils --
 #
@@ -136,8 +145,8 @@ TOOLS="$L2_BUILD/tools/bin"
 # set here too because the host tools below are built without make.
 HOSTCC=${HOSTCC:-"cc -std=gnu89"}
 
-# The libraries to build, in order. These two have been built and
-# checked; the rest of lib/ follows as each is tried.
+# The libraries to build, in order. Each was built and checked before
+# being added; the rest of lib/ follows as each is tried.
 libs="libc libutil libterm libcurses libedit libl libcompat"
 libs="$libs libm libkvm libtelnet librpc/rpc"
 
