@@ -78,49 +78,45 @@ root it, and `rootdev` is hard-wired to `makedev(0,0)` behind the
 dead `setconf`. It is tangled with the `wd.c` question in
 `docs/provenance/missing.md`.
 
-### How the kernel is built, which nothing in this tree says
+### How the kernel is built
 
-`build/make.sh` is written for the userland and drives the build into
-`MAKEOBJDIRPREFIX`; the kernel Makefile reaches the sources through
-`$S`, a path relative to the compile directory, so under `make.sh` it
-looks for `../../i386/i386/genassym.c` from inside the object tree
-and does not find it.
+`build/kernel.sh`, which takes a configuration name and defaults to
+`LINK.i386`. It runs `config`, builds `libkern.a`, then `make depend`
+and `make`, and reports the object count and whether the link
+completed.
 
-What was used instead, recorded because it is not obvious and was
-reconstructed once already:
-
-```sh
-cd usr/src/sys/compile/LINK.i386
-MAKEOBJDIRPREFIX= bmake -m <tree>/usr/src/share/mk \
-    CC="gcc -m32 -std=gnu89 -fcommon -fno-stack-protector \
-        -fno-pic -ffreestanding -nostdinc" \
-    CPP="cpp -m32 -traditional-cpp -nostdinc" \
-    AS="as --32" LD="ld -m elf_i386" depend all
-```
-
-**These flags are not a considered choice of this project's.** They
-were picked to reproduce a build and they do; `-ffreestanding` in
-particular is not carried over from anything. The kernel Makefile
+It is a separate script rather than a mode of `build/make.sh` because
+`make.sh` sets `MAKEOBJDIRPREFIX`, and the kernel Makefile reaches its
+sources through `$S`, a path relative to the compile directory: under
+an object directory it looks for `../../i386/i386/genassym.c` from
+inside `${L2_BUILD}` and does not find it. The kernel Makefile also
 sets `AS`, `CC`, `CPP` and `LD` with `=` rather than `?=`, so they
-must come from the command line and not the environment. Whether
-`build/make.sh` should grow a kernel mode, and what the kernel's
-flags should actually be, is open.
+must come from bmake's command line, where they beat a makefile
+assignment; the environment would not.
 
-### libkern.a is not built by anything
+**The kernel's compiler settings are this project's own.** No BSD of
+this period cross-compiled a kernel, so there is no donor line for any
+of them. Each is named in the script's header with the reason.
+`-ffreestanding` in particular is not carried over from anything.
 
-The kernel Makefile links `libkern.a` and makes it with
-`ln -s $S/libkern/obj/libkern.a libkern.a`. `usr/src/sys/libkern/obj`
-is one of 468 `obj` symlinks shipped in the 1995 tarball, pointing at
-`/usr/obj/sys/libkern`, so the link is dangling and the kernel link
-fails with `cannot find libkern.a` before it reaches symbol
-resolution.
+### libkern.a
 
-Its 31 objects do compile, by hand, with the kernel flags above plus
-`-I<compile dir>` for `machine/` and `-isystem <root>/usr/include`,
-because `bcmp.c` includes `<string.h>`. That mixing of kernel and
-userland include paths inside the kernel library is a design question
-and has not been decided; the library used for the measurements below
-was staged by hand and is not reproducible from this tree.
+`build/kernel.sh` builds it, into the compile directory. Nothing else
+in this tree does: the kernel Makefile links
+`${S}/libkern/obj/libkern.a`, and that `obj` is one of 468 symlinks
+shipped in the 1995 tarball
+pointing at `/usr/obj`, so it has always dangled. The Makefile's rule
+has no prerequisites and is prefixed `-@`, so a `libkern.a` that
+already exists is left alone and the dangling symlink is never
+followed.
+
+31 members. It is compiled with the kernel's own settings plus two
+include paths the kernel Makefile does not need: the compile
+directory, for the `machine/` symlink `config` writes there, and the
+target root's headers, because `libkern/bcmp.c` includes
+`<string.h>`. **Mixing kernel and userland include paths inside the
+kernel's own library is not a settled decision.** It is what compiles,
+it is confined to this one archive, and the script says so.
 
 **Consequence for the record:** the undefined-symbol counts in the
 commits of 28 September (13, 10, 8, 7, 6) cannot have come from a
