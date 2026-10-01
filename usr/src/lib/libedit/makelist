@@ -54,11 +54,30 @@ FILES="$@"
 
 case $FLAG in
 -h)
-    OIFS="$IFS"
-    IFS=".$IFS"
-    set - $FILES
-    IFS="$OIFS"
-    hdr="_h_`basename $1`_$2"
+#
+# AI-ONLY NOTE: the guard was built by splitting $FILES on `.' through
+# IFS -- `set - $FILES' then `_h_`basename $1`_$2' -- which assumes
+# $FILES is a bare `vi.c'. The Makefile passes ${.CURDIR}/vi.c, so a
+# checkout path containing a dot splits in the wrong place: under
+# .../4.4BSD-Lite2/ the guard came out as
+# `_h_4_4BSD-Lite2/usr/src/lib/libedit/vi', which the preprocessor
+# reads as the macro `_h_4_4BSD' with the rest as its body. All three
+# generated headers then defined that one macro, so common.h won and
+# vi.h and emacs.h were skipped whole -- leaving vi_command_mode
+# undeclared where common.c:114 calls it, and the build stopping on
+# conflicting types against vi.c:673.
+#
+# The two lines below are NetBSD 1.1's, November 1995, taken verbatim
+# and byte-identical to that release. It is the earliest release with
+# the fix: the CSRG history, 4.4BSD-Lite2, NetBSD 1.0 and FreeBSD
+# 2.0.5 all carry the IFS split above. FreeBSD never fixed it --
+# 2.1.0 through 4.0.0 still have Berkeley's version, and FreeBSD has
+# it today only by having imported NetBSD's libedit into contrib/ --
+# so this is one fix with one origin and not three trees agreeing.
+# On a path with no dot it produces the same `_h_vi_c' as before.
+#
+    set - `echo $FILES | sed -e 's/\\\\./_/g'`
+    hdr="_h_`basename $1`"
     cat $FILES | $AWK '
 	BEGIN {
 	    printf("/* Automatically generated file, do not edit */\n");
