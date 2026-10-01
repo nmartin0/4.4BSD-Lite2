@@ -68,7 +68,8 @@ case $FLAG in
 # conflicting types against vi.c:673.
 #
 # The two lines below are NetBSD 1.1's, November 1995, taken verbatim
-# and byte-identical to that release. It is the earliest release with
+# and byte-identical to that release -- checked with cmp against it,
+# after a first attempt here carried two backslashes too many. It is the earliest release with
 # the fix: the CSRG history, 4.4BSD-Lite2, NetBSD 1.0 and FreeBSD
 # 2.0.5 all carry the IFS split above. FreeBSD never fixed it --
 # 2.1.0 through 4.0.0 still have Berkeley's version, and FreeBSD has
@@ -76,7 +77,7 @@ case $FLAG in
 # so this is one fix with one origin and not three trees agreeing.
 # On a path with no dot it produces the same `_h_vi_c' as before.
 #
-    set - `echo $FILES | sed -e 's/\\\\./_/g'`
+    set - `echo $FILES | sed -e 's/\\./_/g'`
     hdr="_h_`basename $1`"
     cat $FILES | $AWK '
 	BEGIN {
