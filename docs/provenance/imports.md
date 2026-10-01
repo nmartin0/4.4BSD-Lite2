@@ -31,11 +31,24 @@ machdep.c: their own i386 port took changes from a descendant, two
 years before this release.
 
 That commit is where two of the faults corrected on this branch came
-from. Before it, locore.s had eight `movw %ax,%ds' and no movl, and
-wrote `movb %al,(%edx)'; after it, two of the eight were movl and the
-byte store named %eax. The corrections here restore what Berkeley's
-file said before the merge, which is a better claim than the six
-surviving movw lines alone supported.
+from. Before it, locore.s had sixteen `movw' loading %ds or %es and
+no movl at all, and wrote `movb %al,(%edx)'; after it, six movw
+remained, four were movl, and the byte store named %eax. The
+corrections here restore what Berkeley's file said before the merge,
+which is a better claim than the six surviving movw lines alone
+supported.
+
+Counted against the CSRG history rather than from memory, with
+`git show 3298e079f31^:usr/src/sys/i386/i386/locore.s' and the same
+at that commit. The segment loads come in %ds/%es pairs:
+
+	before   8 pairs, every one movw
+	after    5 pairs -- 3 movw, 2 movl
+
+So three pairs are gone, dissolved into the restructuring that merge
+also did (the file grew from 1584 lines to 1679), and two pairs were
+converted from movw to movl. Four lines changed instruction; six no
+longer exist in that form. Nothing was converted the other way.
 
 It also weakens donor evidence in this directory specifically. "NetBSD
 1.0 writes it this way" is ordinarily independent confirmation; in

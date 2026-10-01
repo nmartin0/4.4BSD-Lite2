@@ -1124,10 +1124,11 @@ movl	8(%esp),%eax
 #endif
 	.byte	0x65		# use gs
 /*
- * AI-ONLY NOTE: this file said %al and movw until 10 June 1993,
+ * AI-ONLY NOTE: this file said %al and movw until 11 June 1993,
  * when Berkeley's commit "update with newer changed from NetBSD"
- * replaced them -- eight movw %ax,%ds became five movw and two
- * movl, and movb %al,(%edx) became movb %eax,0(%edx). The
+ * (3298e079f31) replaced them -- of eight %ds/%es pairs, every one
+ * movw, five survived and two of those five became movl, and
+ * movb %al,(%edx) became movb %eax,0(%edx). The
  * corrections below and at the segment loads restore what this file
  * said before that merge. See docs/provenance/imports.md on what
  * that merge means for donor evidence in this directory.
