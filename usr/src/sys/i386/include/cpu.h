@@ -39,6 +39,25 @@
 /*
  * Definitions unique to i386 cpu support.
  */
+/*
+ * AI-ONLY NOTE: #ifndef LOCORE from here to the end of the C, so that
+ * locore.s can include this file for the CPU_ and CPUCLASS_ constants
+ * below. The guard has to sit above these two includes and not merely
+ * above the first struct: machine/frame.h declares struct trapframe
+ * and carries no guard of its own, so the assembler reaches it first.
+ *
+ * The idiom is this tree's own: i386/i386/pte.h guards its C the same
+ * way at lines 50 and 131, and thirty headers across sys/ do
+ * likewise. NetBSD reached these constants instead through a
+ * machine/cputypes.h this tree does not have, which is why the merge
+ * that brought the detection here left both switched off.
+ *
+ * -DLOCORE is passed for exactly one compile in the whole build,
+ * locore.o, so no C file is affected: genassym.c includes this header
+ * as C and does not define LOCORE.
+ */
+#ifndef LOCORE
+
 #include <machine/frame.h>
 #include <machine/segments.h>
 
@@ -111,6 +130,36 @@ struct clockframe {
 
 int	astpending;		/* need to trap before returning to user mode */
 int	want_resched;		/* resched() was called */
+
+/*
+ * AI-ONLY NOTE: cpu and cpu_class. locore.s has declared cpu since
+ * before 4.4BSD-Lite and no header declared it for C, because until
+ * now nothing set it and nothing read it. identifycpu() in
+ * i386/i386/machdep.c reads the first and sets the second.
+ */
+extern int	cpu;		/* CPU_386, CPU_486 or CPU_586 */
+extern int	cpu_class;	/* CPUCLASS_386, _486 or _586 */
+
+#endif /* !LOCORE */
+
+/*
+ * AI-ONLY NOTE: the classes, which this file did not have while
+ * carrying the kinds below. Berkeley took the five CPU_ values from
+ * NetBSD's machine/cputypes.h when the June 1993 merge arrived and
+ * left the three CPUCLASS_ values behind -- which is the half that
+ * identifycpu() sets and that copyout and the CR0_WP enable test.
+ * Taken from the same place, under this file's own copyright as the
+ * kinds already are, rather than importing a header that carries
+ * another author's.
+ */
+
+/*
+ * Classes of processor
+ */
+
+#define	CPUCLASS_386	0
+#define	CPUCLASS_486	1
+#define	CPUCLASS_586	2
 
 /*
  * Kinds of processor

@@ -53,6 +53,17 @@
 #define	PSL_NT		0x00004000	/* nested task bit */
 #define	PSL_RF		0x00010000	/* restart flag bit */
 #define	PSL_VM		0x00020000	/* virtual 8086 mode bit */
+/*
+ * AI-ONLY NOTE: PSL_AC and PSL_ID, which this file stopped short of.
+ * They are architectural: bit 18 is alignment checking, which no 386
+ * has, and bit 21 is the identification flag, which no early 486 has.
+ * Toggling each is how locore.s now tells the three apart, and bit 21
+ * is what makes cpuid safe to execute -- on a 386 it faults. Same
+ * values and same position as NetBSD 1.0's machine/psl.h, lines 59
+ * and 62.
+ */
+#define	PSL_AC		0x00040000	/* alignment checking */
+#define	PSL_ID		0x00200000	/* identification bit */
 
 #define	PSL_MBZ		0xfffc7fb7	/* must be zero bits */
 #define	PSL_MBO		0x00000002	/* must be one bits */

@@ -115,6 +115,14 @@ int physmem, maxmem;
  */
 char	machine[] = "i386";		/* cpu "architecture" */
 char	cpu_model[120];
+
+/*
+ * AI-ONLY NOTE: cpu_class, which no file in this port defined while
+ * locore.s set cpu and nothing read it. The classes are in
+ * machine/cpu.h beside the kinds; this is the variable identifycpu()
+ * below fills from one and that copyout and the CR0_WP enable test.
+ */
+int	cpu_class;
 extern int bootdev;
 #ifdef SMALL
 extern int forcemaxmem;
@@ -153,6 +161,7 @@ cpu_startup(firstaddr)
 	 * Good {morning,afternoon,evening,night}.
 	 */
 	printf(version);
+	identifycpu();
 	printf("real mem  = %d\n", ctob(physmem));
 
 	/*
@@ -664,6 +673,63 @@ physstrat(bp, strat, prio)
 	splx(s);
 	vunmapbuf(bp);
 	bp->b_un.b_addr = baddr;
+}
+
+/*
+ * AI-ONLY NOTE: identifycpu, which this port did not have. Every
+ * other port defines one: hp300/hp300/machdep.c:459 calls it from
+ * cpu_startup on the line after printf(version), which is where the
+ * call above now sits, and sparc and luna68k do likewise.
+ *
+ * It reads the cpu that locore.s now sets, names the processor in
+ * cpu_model for hw.model, and sets cpu_class, which copyout tests to
+ * decide whether it must walk the page tables and which gates the
+ * CR0_WP enable below.
+ *
+ * The table and the switch are NetBSD 1.0's machdep.c in shape;
+ * i386_cpus is shorter here because locore.s sets only CPU_386,
+ * CPU_486 and CPU_586 -- the SX kinds and the Cyrix one need
+ * detection this port does not do, and an entry nothing can set
+ * would be an invented fact.
+ *
+ * CR0_WP: enabled on a 486 and above, which is where the bit exists.
+ * Without it the processor does not honour PG_RW against kernel
+ * writes and copyout's fast path would write through a read-only
+ * user page on any CPU, not merely a 386. OpenBSD 1996 does this in
+ * C at the end of its identifycpu (machdep.c:501) rather than in
+ * locore.s as NetBSD 1.0 does, which is the better place: it cannot
+ * run before the class is known.
+ */
+struct cpu_nameclass {
+	char	*cpu_name;
+	int	cpu_class;
+};
+
+struct cpu_nameclass i386_cpus[] = {
+	{ "i386SX",	CPUCLASS_386 },		/* CPU_386SX */
+	{ "i386DX",	CPUCLASS_386 },		/* CPU_386   */
+	{ "i486SX",	CPUCLASS_486 },		/* CPU_486SX */
+	{ "i486DX",	CPUCLASS_486 },		/* CPU_486   */
+	{ "Pentium",	CPUCLASS_586 },		/* CPU_586   */
+};
+
+identifycpu()
+{
+
+	if (cpu < 0 || cpu >= sizeof i386_cpus / sizeof i386_cpus[0]) {
+		printf("CPU: unknown type %d\n", cpu);
+		cpu_class = CPUCLASS_386;
+		return;
+	}
+
+	cpu_class = i386_cpus[cpu].cpu_class;
+	sprintf(cpu_model, "%s (%s-class CPU)", i386_cpus[cpu].cpu_name,
+	    cpu_class == CPUCLASS_386 ? "386" :
+	    cpu_class == CPUCLASS_486 ? "486" : "586");
+	printf("CPU: %s\n", cpu_model);
+
+	if (cpu_class >= CPUCLASS_486)
+		load_cr0(rcr0() | CR0_WP);
 }
 
 initcpu()

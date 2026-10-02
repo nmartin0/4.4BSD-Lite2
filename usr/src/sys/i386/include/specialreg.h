@@ -42,4 +42,13 @@
 #define	CR0_EM	0x00000004	/* EMulate NPX, e.g. trap, don't execute code */
 #define	CR0_TS	0x00000008	/* Process has done Task Switch, do NPX save */
 #define	CR0_ET	0x00000010	/* 32 bit (if set) vs 16 bit (387 vs 287) */
+/*
+ * AI-ONLY NOTE: CR0_WP, which this file stopped short of. The bits
+ * above are the 386's; write protection is a 486 addition, and it is
+ * what makes the processor honour PG_RW against kernel writes. On a
+ * 386 there is no such bit, which is the whole reason copyout has to
+ * walk the page tables there. Same value and same comment as NetBSD
+ * 1.0's machine/specialreg.h line 51.
+ */
+#define	CR0_WP	0x00010000	/* Write Protect (honor PG_RW in all modes) */
 #define	CR0_PG	0x80000000	/* Paging Enable */

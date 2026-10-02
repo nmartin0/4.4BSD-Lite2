@@ -56,9 +56,16 @@
 
 #include "machine/specialreg.h"
 
-#ifdef cgd_notdef
-#include "machine/cputypes.h"
-#endif
+/*
+ * AI-ONLY NOTE: machine/cpu.h, where this said machine/cputypes.h
+ * behind an #ifdef that was never defined. The June 1993 merge
+ * brought NetBSD's CPU detection into this file and the header it
+ * reaches the constants through does not exist here; both the
+ * include and the detection were switched off rather than resolved.
+ * This tree keeps the same constants in machine/cpu.h, whose C is
+ * now guarded with #ifndef LOCORE so this file can include it.
+ */
+#include "machine/cpu.h"
 
 /*
  * AI-ONLY NOTE: _C_LABEL, and ENTRY and ALTENTRY through it.
@@ -171,29 +178,71 @@ start:	movw	$0x1234,%ax
 	movl	12(%esp),%eax
 	movl	%eax, _C_LABEL(cyloffset)-SYSTEM
 
-#ifdef cgd_notdef
-	/* find out our CPU type. */
-        pushfl
-        popl    %eax
-        movl    %eax, %ecx
-        xorl    $0x40000, %eax
-        pushl   %eax
-        popfl
-        pushfl
-        popl    %eax
-        xorl    %ecx, %eax
-        shrl    $18, %eax
-        andl    $1, %eax
-        push    %ecx
-        popfl
-      
-        cmpl    $0, %eax
-        jne     1f
-        movl    $CPU_386, _C_LABEL(cpu)-SYSTEM
-	jmp	2f
-1:      movl    $CPU_486, _C_LABEL(cpu)-SYSTEM
-2:
-#endif
+/*
+ * AI-ONLY NOTE: the CPU detection, which stood here behind
+ * #ifdef cgd_notdef -- Chris Demetriou's own initials -- and has
+ * never been compiled. It arrived with his June 1993 merge
+ * (3298e079f31, "update with newer changed from NetBSD") already
+ * disabled, together with the include above, because the header it
+ * wanted was not in Berkeley's tree. Nothing in this file is
+ * Berkeley's here: the fragment is NetBSD's, imported and switched
+ * off, and _C_LABEL(cpu) has been written nowhere since, so it has
+ * read zero -- CPU_386SX -- for thirty-three years.
+ *
+ * The three stages below are NetBSD 1.0's, locore.s lines 201-236.
+ * The fragment carried only the first. Each flag that cannot be
+ * toggled names the processor that lacks it: PSL_AC is absent on a
+ * 386, PSL_ID on an early 486, and PSL_ID is what makes cpuid safe
+ * to reach -- executing it on a 386 faults.
+ *
+ * Not taken: NetBSD's Cyrix 486DLC detection and the CCR0 writes to
+ * ports 0x22 and 0x23 that follow it, which disable caching of the
+ * ISA hole. They are guarded by a flags test an Intel part jumps
+ * past, but they write chipset configuration registers, and nothing
+ * here can be run on the hardware they were written for. A Cyrix
+ * part will be reported as a 486, which is true of its class.
+ */
+	/* Try to toggle alignment check flag; does not exist on 386. */
+	pushfl
+	popl	%eax
+	movl	%eax,%ecx
+	orl	$PSL_AC,%eax
+	pushl	%eax
+	popfl
+	pushfl
+	popl	%eax
+	xorl	%ecx,%eax
+	andl	$PSL_AC,%eax
+	pushl	%ecx
+	popfl
+
+	testl	%eax,%eax
+	jnz	1f
+	movl	$CPU_386,_C_LABEL(cpu)-SYSTEM
+	jmp	3f
+
+	/* Try to toggle identification flag; does not exist on early 486s. */
+1:	pushfl
+	popl	%eax
+	movl	%eax,%ecx
+	xorl	$PSL_ID,%eax
+	pushl	%eax
+	popfl
+	pushfl
+	popl	%eax
+	xorl	%ecx,%eax
+	andl	$PSL_ID,%eax
+	pushl	%ecx
+	popfl
+
+	testl	%eax,%eax
+	jnz	2f
+	movl	$CPU_486,_C_LABEL(cpu)-SYSTEM
+	jmp	3f
+
+	/* Use the cpuid instruction; PSL_ID says it is there. */
+2:	movl	$CPU_586,_C_LABEL(cpu)-SYSTEM
+3:
 
 #ifdef garbage
 	/* count up memory */
