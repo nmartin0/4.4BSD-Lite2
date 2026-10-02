@@ -473,28 +473,44 @@ int type;
 }
 
 /*
- * AI-ONLY NOTE: the copyout that stood here is gone, and with it
- * user_write_fault, which nothing else in this tree called.
+ * AI-ONLY NOTE: trapwrite, which is Berkeley's user_write_fault under
+ * the name its descendants kept.
  *
- * locore.s defines copyout as well, at the label in the live #else
- * arm of its `#ifdef notdef' block, so the kernel link failed with
- * `multiple definition of copyout'. The collision is Berkeley's own:
- * the CSRG history carries the same two definitions in the same two
- * files with the same preprocessor nesting, so the collision reached
- * this release rather than being made here. 4.4BSD-Lite was not
- * checked.
+ * Berkeley added this routine and a copyout in C on 14 July 1992,
+ * Keith Bostic committing Pace Willisson's work: "a version of
+ * copyout that checks for a valid user address and user write
+ * permission, simulating faults if necessary (this is needed to deal
+ * with the fact that the 386 does not honor read-only pages for
+ * kernel accesses)". They named the helper user_write_fault. That
+ * commit touched this file alone and did not disable the copyout in
+ * locore.s, so both definitions shipped and no i386 kernel of either
+ * Lite release could link.
  *
- * The assembly one is what stays. Every tree read for this puts
- * copyout in assembly and has none in trap.c -- NetBSD 1.0
- * (locore.s:773), NetBSD 1.1 (locore.s:753), NetBSD 1.2, and FreeBSD
- * 2.0.5 (support.s:398) -- and so do the three other ports this
- * release ships: hp300/hp300/locore.s:1413,
- * luna68k/luna68k/locore.s:1242, sparc/sparc/locore.s:2714. It is
- * also the counterpart of copyin, which exists only in locore.s, and
- * it installs a PCB_ONFAULT handler around the copy, where this one
- * relied on faulting the destination pages in beforehand.
+ * `trap.c: copyout is in locore.s' deleted both, which was wrong: it
+ * kept the routine Berkeley's fix was written to replace. The body
+ * below is that commit's, recovered unchanged.
  *
- * Not checked: OpenBSD 1996 and 4.4BSD-Lite, neither of which was
- * reachable when this was written. So nothing here claims that no
- * tree has a C copyout -- only that the four read do not.
+ * The name is 386BSD 0.1's. Its trap.c:368 has `trapwrite(unsigned
+ * addr)' under the comment "Compensate for 386 brain damage (missing
+ * URKR)", written the same month and independently; its locore.s
+ * calls _trapwrite from four places, all of them disabled, and that
+ * disabled block is still in this tree's locore.s calling a
+ * _trapwrite nothing defined. NetBSD 1.0 and FreeBSD 2.0.5 both kept
+ * 386BSD's name and Berkeley's elaborated body, which is what makes
+ * trapwrite the surviving spelling and user_write_fault the one with
+ * no descendants. Taking it closes a call that has dangled here since
+ * the 1993 merge.
+ *
+ * user_page_fault stays where it is: trap() calls it at line 211.
  */
+int
+trapwrite (addr)
+void *addr;
+{
+	if (user_page_fault (curproc, &curproc->p_vmspace->vm_map,
+			     addr, VM_PROT_READ | VM_PROT_WRITE,
+			     T_PAGEFLT) == KERN_SUCCESS)
+		return (0);
+	else
+		return (EFAULT);
+}

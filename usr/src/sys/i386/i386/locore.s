@@ -781,6 +781,40 @@ cpyflt:
 	movl	$ EFAULT,%eax
 	ret
 #else
+/*
+ * AI-ONLY NOTE: the 386 path, which this routine has never had.
+ *
+ * On a 386 the processor does not honour PG_RW against kernel writes
+ * -- there is no CR0_WP bit to set -- so `rep movsl' here writes
+ * straight through a read-only user page instead of faulting.
+ * Berkeley knew: on 14 July 1992 Keith Bostic committed Pace
+ * Willisson's fix, "a version of copyout that checks for a valid user
+ * address and user write permission, simulating faults if necessary
+ * (this is needed to deal with the fact that the 386 does not honor
+ * read-only pages for kernel accesses)". It went into trap.c as a
+ * second copyout in C, and the commit did not disable this one, which
+ * is why 4.4BSD-Lite and Lite2 both carry two definitions of the
+ * symbol and neither can have linked an i386 kernel.
+ *
+ * `trap.c: copyout is in locore.s' deleted the C one, keeping this,
+ * on the grounds that NetBSD, FreeBSD and OpenBSD all define copyout
+ * in assembly alone. They do -- because they set CR0_WP and dropped
+ * the 386. Reading that as a consensus about where copyout belongs,
+ * rather than a decision about which processors to support, left this
+ * port silently wrong, and wrong on every CPU until CR0_WP was
+ * enabled. This restores Berkeley's fix in the form its descendants
+ * gave it.
+ *
+ * The form is NetBSD 1.0's locore.s and FreeBSD 2.0.5's support.s,
+ * which agree: walk each page of the destination, and where the PTE
+ * is not valid, user and writable, call trapwrite() to fault it in by
+ * hand. Both reached it by finishing 386BSD 0.1's own version, which
+ * sat disabled under `#ifdef notdef' in the block above this one and
+ * calls a _trapwrite that nothing in this tree defines. The whole
+ * thing is gated twice over: #if I386_CPU compiles it out of a kernel
+ * that does not want 386 support at all, and the cpu_class test skips
+ * it at run time on anything newer, so a 486 pays one compare.
+ */
 	.globl	_C_LABEL(copyout)
 	ALIGN32
 _C_LABEL(copyout):
@@ -791,6 +825,56 @@ _C_LABEL(copyout):
 	movl	12(%esp),%esi
 	movl	16(%esp),%edi
 	movl	20(%esp),%ecx
+
+#if defined(I386_CPU)
+	cmpl	$CPUCLASS_386,_C_LABEL(cpu_class)
+	jne	2f
+
+	/*
+	 * The 386 will not fault on a kernel write to a read-only user
+	 * page, so check each page of the destination by hand and fault
+	 * in any that is not already valid, user and writable.
+	 */
+	pushl	%ecx
+	pushl	%edi
+	movl	%edi,%edx
+	addl	%ecx,%edx
+	decl	%edx
+	shrl	$IDXSHIFT,%edx
+	andb	$0xfc,%dl
+	movl	%edi,%eax
+	shrl	$IDXSHIFT,%eax
+	andb	$0xfc,%al
+	subl	%eax,%edx
+	shrl	$2,%edx
+	incl	%edx			# %edx = number of pages
+	movl	%edi,%eax
+
+1:	movl	%eax,%ecx
+	shrl	$IDXSHIFT,%ecx
+	andb	$0xfc,%cl
+	movl	_C_LABEL(PTmap)(%ecx),%ecx
+	andb	$0x07,%cl
+	cmpb	$0x07,%cl		# valid, user and writable?
+	je	3f
+
+	pushl	%edx
+	pushl	%eax
+	call	_C_LABEL(trapwrite)	# trapwrite(addr)
+	popl	%ecx
+	popl	%edx
+	testl	%eax,%eax
+	jnz	cpyflt
+
+3:	addl	$NBPG,%eax
+	decl	%edx
+	jnz	1b
+
+	popl	%edi
+	popl	%ecx
+
+2:
+#endif /* I386_CPU */
 	shrl	$2,%ecx
 	cld
 	rep

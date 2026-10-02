@@ -23,6 +23,17 @@
 #
 machine		"i386"
 cpu		"i386"
+# AI-ONLY NOTE: the processor classes, as cpu lines. config turns each
+# into a -D (mkmakefile.c:164), which is how I386_CPU reaches the
+# copyout in locore.s: with it, the page-walk for the 386 is compiled
+# in and skipped at run time on anything newer; without it, that code
+# is not in the kernel at all. NetBSD 1.0's i386 configurations write
+# exactly these three lines, and nothing else here spells them.
+# The cpu "i386" above stays: this tree's sources test -Di386 widely
+# and NetBSD's do not, having replaced it with these.
+cpu		"I386_CPU"
+cpu		"I486_CPU"
+cpu		"I586_CPU"
 ident		LINK
 timezone	8 dst
 maxusers	2
