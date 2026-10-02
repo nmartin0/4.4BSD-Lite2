@@ -40,8 +40,8 @@ corrected to Berkeley's own intent.
 incomplete type in `vfs_subr.c`. A whole build configuration is
 broken and nothing tracks it.
 
-**`wd`, `fd` and `wt` are out of `LINK.i386`.** Ten `b_actf`/`b_actb`
-sites in `wd.c` and `fd.c`; `wt.c` fails separately on a static
+**`wd`, `fd` and `wt` are out of `LINK.i386`.** Nine `b_actf`/`b_actb`
+sites — seven in `wd.c`, two in `fd.c`; `wt.c` fails separately on a static
 declaration following a non-static one. Donor checked: FreeBSD 2.0.5
 alone. These are the local disk, so Tier 1 needs them.
 

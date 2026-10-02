@@ -183,9 +183,10 @@ boots.
 
 `wd`, `fd` and `wt` are out of `LINK.i386`. `wd.c` and `fd.c` use the
 4.3BSD queue names `av_forw`, `b_forw`, `b_actl` against a `struct
-buf` that has had `b_actf`/`b_actb` since before 4.4BSD-Lite — ten
-sites. `wt.c` is out for a different reason: a static declaration of
-`cmds` following a non-static one.
+buf` that has had `b_actf`/`b_actb` since before 4.4BSD-Lite — nine
+sites, seven in `wd.c` and two in `fd.c`. `wt.c` is out for a
+different reason: a static declaration of `cmds` following a
+non-static one.
 
 **Donor checked, not assumed: FreeBSD 2.0.5 alone.** NetBSD 1.0
 rewrote `wd.c` around a softc and TAILQ; OpenBSD 1996 ships none.
@@ -248,6 +249,13 @@ the packaged byacc. Pointing it at the tree's own would let
 `ftpcmd.y` stand as Berkeley wrote it. "The tree would generate itself
 with its own tools", which `74b0fa86` calls "the end this is working
 towards".
+
+Not a one-line switch, and `74b0fa86` says why: it "wants every yacc
+file here rebuilt and checked against the result". Fifteen `.y` files
+outside `contrib/`, each regenerated under a different yacc and
+verified. `fbd2592b` settles the only question that would otherwise
+block it — `ftpcmd.y`'s non-static `yylex` "is right under either"
+yacc — so nothing has to be reverted first.
 
 ### The kernel is linked without a linker script
 
