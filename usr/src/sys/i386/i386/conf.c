@@ -291,3 +291,76 @@ iszerodev(dev)
 {
 	return (major(dev) == 2 && minor(dev) == 12);
 }
+
+/*
+ * AI-ONLY NOTE: chrtoblktbl and chrtoblk, which this port did not
+ * have while miscfs/specfs/spec_vnops.c:170 and
+ * miscfs/kernfs/kernfs_vfsops.c:81 both call chrtoblk. Four of this
+ * release's ports define both in their own conf.c -- hp300 at 367
+ * and 397, and luna68k, news3400 and pmax likewise -- and i386 is
+ * the one that does not, which is why the kernel link wanted the
+ * symbol.
+ *
+ * The function below is hp300/hp300/conf.c's, unchanged. The table
+ * is not copied from anywhere: it is this port's own device numbers,
+ * read off the two switch tables above. Each entry is the block
+ * major that names the same hardware as that character major, and
+ * NODEV where there is none:
+ *
+ *	char  3 wd   -> block 0 wd    st506/rll/esdi/ide disk
+ *	char  4 sw   -> block 1 swap  swap pseudo-device
+ *	char  9 Fd   -> block 2 Fd    floppy disk
+ *	char 10 wt   -> block 3 wt    QIC cartridge tape
+ *	char 11 xd   -> block 4 xd    temp alt st506 disk
+ *
+ * Every other character major -- cn, ctty, mm, pts, ptc, log, com,
+ * pc, bpf and the hole at 13 -- has no block device at all.
+ *
+ * MAXDEV is 15, the length of cdevsw, which nchrdev below computes
+ * the same way. The bound matters because chrtoblk indexes
+ * chrtoblktbl[major(dev)] with a character major, so the table must
+ * cover every major nchrdev admits and the bound must not let an
+ * index past the end through.
+ *
+ * The number is this port's own, not taken from anywhere, and the
+ * four ports that have one disagree: news3400 writes 43 against a
+ * cdevsw of 43 and pmax 19 against 19, both equal to their nchrdev,
+ * while hp300 writes 21 against 23 and luna68k 21 against 23.
+ * Those last two are wrong -- character majors 21 and 22 return
+ * NODEV there whether or not they have a block device -- and the two
+ * that agree are what fixes the invariant as MAXDEV == nchrdev.
+ * Recorded rather than fixed: neither port has ever been compiled
+ * here, and correcting another port's table is not this change.
+ */
+#define MAXDEV	15
+static int chrtoblktbl[MAXDEV] = {
+      /* VCHR */      /* VBLK */
+	/* 0 */		NODEV,
+	/* 1 */		NODEV,
+	/* 2 */		NODEV,
+	/* 3 */		0,
+	/* 4 */		1,
+	/* 5 */		NODEV,
+	/* 6 */		NODEV,
+	/* 7 */		NODEV,
+	/* 8 */		NODEV,
+	/* 9 */		2,
+	/* 10 */	3,
+	/* 11 */	4,
+	/* 12 */	NODEV,
+	/* 13 */	NODEV,
+	/* 14 */	NODEV,
+};
+
+/*
+ * Convert a character device number to a block device number.
+ */
+chrtoblk(dev)
+	dev_t dev;
+{
+	int blkmaj;
+
+	if (major(dev) >= MAXDEV || (blkmaj = chrtoblktbl[major(dev)]) == NODEV)
+		return (NODEV);
+	return (makedev(blkmaj, minor(dev)));
+}

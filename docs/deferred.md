@@ -94,6 +94,26 @@ from 4.4BSD-Lite too.
 > backwards, and the reason given at the time — reaching a link sooner
 > — was about momentum rather than authenticity.
 
+### `chrtoblktbl`'s bound is wrong in hp300 and luna68k
+
+Found while writing i386's. `chrtoblk` indexes
+`chrtoblktbl[major(dev)]` and refuses anything at or above `MAXDEV`.
+Measured across the four ports that have the table:
+
+	news3400   MAXDEV 43   cdevsw 43   ok
+	pmax       MAXDEV 19   cdevsw 19   ok
+	hp300      MAXDEV 21   cdevsw 23   two majors unreachable
+	luna68k    MAXDEV 21   cdevsw 23   two majors unreachable
+
+On hp300 and luna68k, character majors 21 and 22 return `NODEV`
+whether or not they have a block device. The number looks like one
+chosen when the table was written and left behind as devices were
+added; luna68k derives from hp300 and inherited it.
+
+Not fixed: neither port has ever been compiled here (`roadmap.md`
+Tier 0), and the two that agree establish the invariant as
+`MAXDEV == nchrdev`, which is what i386's new table uses.
+
 ## 2. Performance and correctness sacrificed
 
 ### `DELAY()` rounds anything under a millisecond to nothing
