@@ -1140,7 +1140,55 @@ ENTRY(fuword)
 	movl	0(%edx),%eax
 	movl	$0,PCB_ONFAULT(%ecx)
 	ret
-	
+
+/*
+ * AI-ONLY NOTE: fuswintr and suswintr, which kern/subr_prof.c:224
+ * calls and this port did not define.
+ *
+ * They fetch and store a short word from inside the statistics clock
+ * interrupt, to bump a counter in the running process's profiling
+ * buffer. An interrupt has no context to sleep in, so if the page is
+ * not resident they must fail rather than page it in -- and failing
+ * is harmless: addupc_intr records the tick and calls need_proftick,
+ * and trap() does the work a moment later through addupc_task, where
+ * copyin and copyout are safe.
+ *
+ * Failing always is what FreeBSD 2.0.5 does, i386/i386/support.s
+ * lines 573-582, both names on one body with the reason written at
+ * the site: "These two routines are called from the profiling code,
+ * potentially at interrupt time. If they fail, that's okay, good
+ * things will happen later. Fail all the time for now - until the
+ * trap code is able to deal with this." That is this port's position
+ * exactly, and it is taken for the same reason.
+ *
+ * The alternative, and why it is not taken. NetBSD 1.0 implements
+ * them properly: the body sets PCB_ONFAULT to a second handler,
+ * fusubail, and trap.c tests for it (netbsd-1-0 trap.c:192-194,
+ * "fusubail is used by [fs]uswintr to avoid page faulting") so the
+ * page-in is declined. OpenBSD 1996 inherited that. It works, and it
+ * needs a clause added to this tree's fault dispatch -- which is
+ * Berkeley's own text, last touched by William Nesheim in May 1991
+ * and untouched by the June 1993 merge, so there is no defect there
+ * to correct.
+ *
+ * Both trees have since removed the whole mechanism. OpenBSD deleted
+ * it in 2003 along with the rest of fetch(9) and store(9); NetBSD's
+ * addupc_intr now defers unconditionally, because its spin locks
+ * make faulting there impossible rather than merely unwise. This
+ * kernel is to become multiprocessor, so the NetBSD path would have
+ * to come out again, and a clause added to the fault dispatch with a
+ * known expiry is worse than no clause at all.
+ *
+ * ALTENTRY above ENTRY, one body for both names, is this file's own
+ * spelling -- fuiword/fuword directly above, and fuibyte, suiword
+ * and suibyte below -- and FreeBSD writes these two the same way.
+ */
+	ALIGN32
+ALTENTRY(suswintr)
+ENTRY(fuswintr)
+	movl	$-1,%eax
+	ret
+
 	ALIGN32
 ENTRY(fusword)
 	movl	_C_LABEL(curpcb),%ecx
