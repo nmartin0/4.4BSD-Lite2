@@ -161,6 +161,31 @@ cpu_startup(firstaddr)
 	 * Good {morning,afternoon,evening,night}.
 	 */
 	printf(version);
+	/*
+	 * AI-ONLY NOTE: startrtclock, which this port defines and
+	 * nothing called. It is i386/isa/clock.c:84 and is what
+	 * programs the 8254 -- counter 0 into rate generator mode,
+	 * 16-bit, loaded with XTALSPEED/hz -- and what calls
+	 * findcpuspeed to calibrate delaycount.
+	 *
+	 * Measured before this change: `startrtclock' appears nowhere
+	 * in the tree but its own definition, objdump finds no call to
+	 * it in vmunix, and delaycount is common storage, so it reads
+	 * zero. The DELAY macro in machine/param.h computes
+	 * delaycount * n / 1000, so every DELAY in the kernel was a
+	 * no-op for every argument, and IRQ0 was unmasked by
+	 * enablertclock on a counter nobody had programmed.
+	 *
+	 * Here is where FreeBSD 2.0.5 calls it: machdep.c:225, in
+	 * cpu_startup, on the line after printf(version) and before
+	 * identifycpu -- which is why its cpu_initclocks says "Finish
+	 * initializing 8253 timer 0" rather than start it. NetBSD
+	 * 1.0's cpu_initclocks likewise only does intr_establish. The
+	 * placement is not arbitrary: cpu_startup runs at
+	 * init_main.c:131 and initclocks at :214, so a call from
+	 * cpu_initclocks would leave DELAY dead through device attach.
+	 */
+	startrtclock();
 	identifycpu();
 	printf("real mem  = %d\n", ctob(physmem));
 
