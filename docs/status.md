@@ -58,25 +58,47 @@ From `usr/src/sys/i386/conf`, `config LINK.i386` into
 136 objects, 0 compile or assembler errors, 423 warnings
 ```
 
-The link does not complete. Four symbols are undefined:
+**The kernel links.** As of `i386: genericconf carries no driver, and
+the kernel links`:
 
-| symbol | wanted by | where the model is |
-|---|---|---|
-| `chrtoblk` | `miscfs/specfs/spec_vnops.c:170`, `miscfs/kernfs/kernfs_vfsops.c:81` | hp300, luna68k, news3400 and pmax all carry a `chrtoblktbl` and the function in their own `conf.c`; `i386/i386/conf.c` has neither, so this one needs a table built for i386's device numbering |
-| `fuswintr`, `suswintr` | `kern/subr_prof.c:224` | `hp300/hp300/locore.s:1857`, `luna68k/luna68k/locore.s` |
-| `wddriver` | `i386/i386/swapgeneric.c` | see below -- a dead reference, not a missing routine |
+```
+vmunix: ELF 32-bit LSB executable, Intel 80386, statically linked
+text 454844   data 14404   bss 42376
+entry 0xfe000000, with `start' at that address
+```
 
-`wddriver` is named only by `genericconf[]`, and on i386 nothing
-reads that table: the whole body of `setconf()` is inside
-`#ifdef notdef`, lines 81 to 135, so `setconf()` is an empty
-function. hp300, luna68k, vax, news3400 and pmax all have a live
-`setconf()` that walks it. The same shape as the `rawintr` dispatch
-dropped in `icu.s: drop the dispatch to rawintr`, but with a
-difference worth weighing before doing the same thing: the table is
-the only statement anywhere in this port of which driver is meant to
-root it, and `rootdev` is hard-wired to `makedev(0,0)` behind the
-dead `setconf`. It is tangled with the `wd.c` question in
-`docs/provenance/missing.md`.
+So far as the CSRG history shows this is the first time: the `copyout`
+duplicate alone made it impossible, and that defect is present in
+4.4BSD-Lite and in Berkeley's own tree.
+
+The four symbols that stood in the way, and what each needed:
+
+| symbol | answer |
+|---|---|
+| `blkclr` | a second name on `bzero`, as FreeBSD 2.0.5's i386 `support.s` writes it |
+| `chrtoblk` | hp300's function unchanged, plus a `chrtoblktbl` read off this port's own two switch tables |
+| `fuswintr`, `suswintr` | both names on one body returning -1, as FreeBSD 2.0.5 does, with its reason: "Fail all the time for now - until the trap code is able to deal with this" |
+| `wddriver` | not a missing routine. `genericconf` named `extern struct driver wddriver` where `wd.c:163` defines `struct isa_driver wddriver` -- two types for one symbol. FreeBSD 2.0.5's table has no driver field at all, and its entries are guarded by the device counts `config` writes |
+
+### The image is linked for the wrong physical address
+
+`readelf -l vmunix` reports `VirtAddr 0xfe000000  PhysAddr 0xfe000000`
+for every LOAD segment. The kernel must be loaded at **physical 0**:
+`locore.s` reaches its variables as `symbol-SYSTEM` before paging is
+on, and `i386/stand/boot.c:148` masks the a.out entry with
+`& 0x000fffff` to turn `0xFE000000` into 0.
+
+With a.out this did not arise -- the format carries no physical
+address and the loader placed the text where it chose. ELF has one,
+and `-Ttext FE000000` sets it equal to the virtual address. **Any
+ELF-aware loader that follows the program headers will load this
+image 4 GB too high.**
+
+This is what `a50b8e5a` anticipated: "what the later releases do
+instead is a linker script... That would place the sections
+explicitly rather than leaning on ld's defaults." A linker script's
+`AT>` is how a kernel says "runs here, loads there". Until there is
+one, the image is correct only for a loader that ignores its headers.
 
 ### How the kernel is built
 
@@ -126,8 +148,8 @@ one was there, `copyout`, found only when the link was first run.
 
 ### How far it is from linking
 
-With `libkern.a` staged and the four symbols above stubbed, the link
-completes:
+Before the four symbols were supplied, the link was proved reachable
+by stubbing them:
 
 ```
 ELF 32-bit LSB executable, Intel 80386, entry 0xfe000000

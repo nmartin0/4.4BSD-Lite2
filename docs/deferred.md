@@ -120,8 +120,23 @@ Tier 0), and the two that agree establish the invariant as
 
 `64dc319e`, note in `i386/include/param.h`
 
-The busy loop uses `delaycount`, which `findcpuspeed()` calibrates to
-a **millisecond**, so microseconds are divided by a thousand.
+**The description below was wrong and is corrected here.** The note
+said sub-millisecond requests round to nothing; the multiplication
+precedes the division, so small delays were the ones that worked.
+Measured on a QEMU harness running this port's own calibration,
+`delaycount` comes out 271473 and `delaycount * n` overflows a signed
+int above about 7900 microseconds, where the count goes negative and
+the loop exits at once. Six of the eight call sites asked for more
+than that.
+
+Worse, nothing called `startrtclock()`, so `delaycount` was never
+written at all and every `DELAY` was a no-op for every argument. Both
+are fixed: `i386: call startrtclock, so the 8254 is programmed at all`
+and `i386: delay() reads the 8254, where DELAY counted a loop`.
+
+What the original note said, for the record: the busy loop uses
+`delaycount`, which `findcpuspeed()` calibrates to a millisecond, so
+microseconds are divided by a thousand.
 `isa/pccons.c` asks for `DELAY(4000000)`, `isa/wt.c` for
 `DELAY(1000)`. The commit names the answer outright:
 

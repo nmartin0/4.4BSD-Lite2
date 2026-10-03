@@ -21,12 +21,12 @@ compiling under a modern GCC. Measured against the tree as it stands:
 | kernel sources compiled | 136 | 853 |
 | kernel configurations that build | 1 | 2 (i386) |
 | ports whose kernel has ever been compiled | 1 | 8 |
-| kernels that link | 0 | — |
+| kernels that link | **1** | — |
 
 So the userland restoration is substantially done and the kernel one
 is not. What remains:
 
-**The kernel link.** Four undefined symbols — `chrtoblk`, `fuswintr`,
+**~~The kernel link.~~ Done.** The four symbols — `chrtoblk`, `fuswintr`,
 `suswintr`, `wddriver`, plus `memset` on a gcc 14 host. Models for
 each in `docs/status.md`. `libkern.a` is built by nothing.
 
@@ -89,7 +89,7 @@ timer, PS/2 keyboard — is hardware this kernel already almost
 recognises, which is what makes it the right target rather than a
 detour.
 
-1. **Close the link.** Tier 0's four symbols.
+1. ~~**Close the link.**~~ Done. `vmunix` links at 529984 bytes.
 2. **Build `libkern.a`.** Needs a decision on kernel-versus-userland
    include paths, since `bcmp.c` includes `<string.h>`.
 3. **Load the kernel.** `i386/stand/boot.c:122` reads `struct exec`
