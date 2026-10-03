@@ -53,6 +53,16 @@
 #include <sys/reboot.h>
 
 /*
+ * AI-ONLY NOTE: the device counts, which config writes into the
+ * build directory and -I. finds. This file is the last in i386 to
+ * need them and did not have them; isa/wd.c:43, isa/fd.c:39,
+ * isa/com.c:36 and i386/cons.c:56 all include theirs this way, the
+ * last of those from another directory, as here.
+ */
+#include "wd.h"
+#include "fd.h"
+
+/*
  * Generic configuration;  all in one
  */
 dev_t	rootdev = makedev(0,0);
@@ -65,14 +75,50 @@ struct	swdevt swdevt[] = {
 long	dumplo;
 int	dmmin, dmmax, dmtext;
 
-extern	struct driver wddriver;
-
+/*
+ * AI-ONLY NOTE: no gc_driver, and the entries guarded by the device
+ * counts config writes.
+ *
+ * This table named `extern struct driver wddriver' and was the only
+ * thing in the kernel that referred to the symbol, which is why the
+ * link wanted it: adb8a806 left wd.c out of LINK.i386 over its nine
+ * b_actf sites, so the definition is not compiled while the
+ * declaration is.
+ *
+ * The declaration was wrong as well as unreachable. `struct driver'
+ * is hp300's and luna68k's device framework and exists nowhere else
+ * in this tree; i386 uses `struct isa_driver', and wd.c:163 defines
+ * `struct isa_driver wddriver'. Two types for one symbol, in one
+ * port. It compiled only because C allows an object of incomplete
+ * type to be declared and its address taken, and nothing here ever
+ * dereferenced it -- the whole body of setconf() below is inside
+ * #ifdef notdef. Had wd.c been configured, the link would have
+ * resolved the symbol against the wrong declaration silently.
+ *
+ * FreeBSD 2.0.5's i386 swapgeneric.c has no driver field at all:
+ * its genericconf is a name and a root device, and each entry is
+ * wrapped in the count header config generates. NetBSD 1.0 keeps a
+ * `struct cfdriver *' and guards its entries the same way; OpenBSD
+ * 1996 likewise. All three guard; the one whose device framework is
+ * closest to this port's also shows the pointer is not needed --
+ * setconf matches a typed name against a dev_t and never looks at a
+ * driver structure.
+ *
+ * So the field goes and the guard comes in. There is no symbol left
+ * to get the type of wrong, and when wd.c is fixed and configured,
+ * NWD becomes 1 and the entry appears by itself with no further
+ * edit.
+ */
 struct	genericconf {
-	caddr_t	gc_driver;
 	char	*gc_name;
 	dev_t	gc_root;
 } genericconf[] = {
-	{ (caddr_t)&wddriver,	"wd",	makedev(0, 0),	},
+#if NWD > 0
+	{ "wd",	makedev(0, 0),	},
+#endif
+#if NFD > 0
+	{ "fd",	makedev(2, 0),	},
+#endif
 	{ 0 },
 };
 
