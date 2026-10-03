@@ -172,9 +172,8 @@
  * reach a link.
  */
 #ifdef KERNEL
-extern unsigned int delaycount;		/* calibrated in clock.c */
-#define	DELAY(n)	{ register int N = delaycount * (n) / 1000; \
-			  while (--N > 0); }
+void	delay __P((int));
+#define	DELAY(n)	delay(n)
 #else
 #define	DELAY(n)	{ register int N = (n); while (--N > 0); }
 #endif

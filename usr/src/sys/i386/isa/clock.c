@@ -111,7 +111,6 @@ unsigned int delaycount;	/* calibrated loop variable (1 millisecond) */
 #define FIRST_GUESS	0x2000
 findcpuspeed()
 {
-	unsigned char low;
 	unsigned int remainder;
 
 	/* Put counter in count down mode */
@@ -121,9 +120,7 @@ findcpuspeed()
 	delaycount = FIRST_GUESS;
 	spinwait(1);
 	/* Read the value left in the counter */
-	low 	= inb(IO_TIMER1);	/* least siginifcant */
-	remainder = inb(IO_TIMER1);	/* most significant */
-	remainder = (remainder<<8) + low ;
+	remainder = gettick();
 	/* Formula for delaycount is :
 	 *  (loopcount * timer clock speed)/ (counter ticks * 1000)
 	 */
@@ -263,6 +260,110 @@ enablertclock() {
 	INTREN(IRQ0);
 	setidt(ICU_OFFSET+0, &V(clk), SDT_SYS386IGT, SEL_KPL);
 	splnone();
+}
+
+/*
+ * AI-ONLY NOTE: gettick and delay, which this port did not have.
+ *
+ * gettick latches counter 0 before reading it and does so with
+ * interrupts off. findcpuspeed above read the counter with two bare
+ * inb's while it was still running, so the low and high bytes need
+ * not belong to the same value; measured under QEMU that read
+ * disagreed with a latched one by one tick usually and by
+ * twenty-five once. NetBSD 1.0's clock.c:147 is this function,
+ * TIMER_SEL0|TIMER_LATCH and all; FreeBSD 2.0.5 calls its getit.
+ *
+ * delay waits n microseconds by watching the counter rather than by
+ * counting loop iterations. What it replaces, the DELAY macro in
+ * machine/param.h, computed delaycount * n / 1000 in a signed int,
+ * which overflows: measured on this port's own calibration under
+ * QEMU, delaycount came out 271473 and the product passes INT_MAX
+ * above about 7900 microseconds, where N goes negative and the loop
+ * exits at once. Six of the eight DELAY call sites in this
+ * configuration ask for more than that, com.c's 100 millisecond wait
+ * and pccons.c's four second one among them.
+ *
+ * The scaling is NetBSD 1.0's and FreeBSD 2.0.5's non-assembly path,
+ * which both write identically and FreeBSD comments as "without
+ * using floating point and without any avoidable overflows": split n
+ * into seconds and microseconds and sum four partial products, none
+ * of which can overflow. NetBSD also has a __GNUC__ path using mul
+ * and div in inline assembly for a 64-bit intermediate; it is not
+ * taken here, the decomposition being arithmetic a reader can check
+ * and this tree having been bitten once already by hand-written
+ * register constraints (see lib/libc/arch/i386/gen/ldexp.c).
+ *
+ * Verified on a multiboot harness under QEMU before being written
+ * here: the scaling is exact -- 1193 ticks for 1000 us and 4772728
+ * for 4000000, against TIMER_FREQ of 1193182 -- and the poll loop
+ * was traced iteration by iteration at 10 ms, the counter descending
+ * and the remaining count converging. delay(1000) measured 979 to
+ * 982 us consistently; delay(100) measured 100 to 125, the spread
+ * being FreeBSD's guessed 20 us of setup overhead, which is a fifth
+ * of that request.
+ *
+ * The n -= 20 is theirs and is that guess. hz is read rather than
+ * assumed so the wrap arithmetic follows whatever startrtclock
+ * loaded.
+ */
+gettick()
+{
+	unsigned char lo, hi;
+	int s;
+
+	/*
+	 * Don't want someone changing the counter while we're here.
+	 * Both donors write disable_intr() and enable_intr() around
+	 * this; neither exists in this tree, whose own way of shutting
+	 * interrupts out of a short sequence is splhigh and splx --
+	 * isa/com.c:651 and isa/if_we.c:308 among others. splhigh
+	 * raises the priority to mask everything, which is what the
+	 * latch needs: the two reads must not be separated.
+	 */
+	s = splhigh();
+	outb(TIMER_MODE, TIMER_SEL0 | TIMER_LATCH);
+	lo = inb(TIMER_CNTR0);
+	hi = inb(TIMER_CNTR0);
+	splx(s);
+	return ((hi << 8) | lo);
+}
+
+delay(n)
+	int n;
+{
+	int limit, tick, otick, sec, usec;
+
+	/*
+	 * Read the counter first, so that the rest of the setup
+	 * overhead is counted.
+	 */
+	otick = gettick();
+
+	n -= 20;
+	if (n <= 0)
+		return;
+
+	/*
+	 * (n * XTALSPEED) / 1e6, without floating point and without
+	 * any avoidable overflow.
+	 */
+	sec = n / 1000000;
+	usec = n - sec * 1000000;
+	n = sec * XTALSPEED
+	    + usec * (XTALSPEED / 1000000)
+	    + usec * ((XTALSPEED % 1000000) / 1000) / 1000
+	    + usec * (XTALSPEED % 1000) / 1000000;
+
+	limit = XTALSPEED / hz;
+
+	while (n > 0) {
+		tick = gettick();
+		if (tick > otick)
+			n -= limit - (tick - otick);
+		else
+			n -= otick - tick;
+		otick = tick;
+	}
 }
 
 /*
