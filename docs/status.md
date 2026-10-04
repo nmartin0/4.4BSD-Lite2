@@ -80,25 +80,38 @@ The four symbols that stood in the way, and what each needed:
 | `fuswintr`, `suswintr` | both names on one body returning -1, as FreeBSD 2.0.5 does, with its reason: "Fail all the time for now - until the trap code is able to deal with this" |
 | `wddriver` | not a missing routine. `genericconf` named `extern struct driver wddriver` where `wd.c:163` defines `struct isa_driver wddriver` -- two types for one symbol. FreeBSD 2.0.5's table has no driver field at all, and its entries are guarded by the device counts `config` writes |
 
-### The image is linked for the wrong physical address
+### Where the kernel loads, and who knows it
 
 `readelf -l vmunix` reports `VirtAddr 0xfe000000  PhysAddr 0xfe000000`
-for every LOAD segment. The kernel must be loaded at **physical 0**:
-`locore.s` reaches its variables as `symbol-SYSTEM` before paging is
-on, and `i386/stand/boot.c:148` masks the a.out entry with
+for every LOAD segment, while the kernel must be loaded at **physical
+0**: `locore.s` reaches its variables as `symbol-SYSTEM` before paging
+is on, and `i386/stand/boot.c:148` masks the a.out entry with
 `& 0x000fffff` to turn `0xFE000000` into 0.
 
-With a.out this did not arise -- the format carries no physical
-address and the loader placed the text where it chose. ELF has one,
-and `-Ttext FE000000` sets it equal to the virtual address. **Any
-ELF-aware loader that follows the program headers will load this
-image 4 GB too high.**
+**This is normal and is not a defect.** An earlier version of this
+section called the image "linked for the wrong physical address" and
+said any ELF-aware loader would place it 4 GB too high. That was
+wrong, and the check that disproved it is NetBSD 1.6, the earliest
+BSD with an i386 kernel linker script: it links at `TEXTADDR =
+c0100000`, its `kern.ldscript` carries no physical address at all,
+and so its program headers say the same thing ours do. Its loader
+subtracts `KERNBASE` and places the image at `0x100000`.
 
-This is what `a50b8e5a` anticipated: "what the later releases do
-instead is a linker script... That would place the sections
-explicitly rather than leaning on ld's defaults." A linker script's
-`AT>` is how a kernel says "runs here, loads there". Until there is
-one, the image is correct only for a loader that ignores its headers.
+**The offset is the loader's convention in every BSD, a.out and ELF
+alike**, and this tree's own bootstrap implements it with that mask.
+A linker script would not change the `PhysAddr` field and would not
+have fixed anything.
+
+What a kernel linker script is actually for, in NetBSD's own words at
+the head of `kern.ldscript`: "This script is based on elf_i386.x, but
+puts `_etext` after all of the read-only sections." Section placement
+and symbol boundaries -- which matter for `dumpsys` and the symbol
+table, neither exercised here yet.
+
+It first appears in **NetBSD 1.6 (2001)**, `kern.ldscript` rev 1.1 by
+Jason Thorpe; 1.0, 1.2 and 1.4 have none. So `a50b8e5a`'s "no BSD of
+this period has one to copy" is exact -- the earliest is six years
+after Lite2.
 
 ### How the kernel is built
 
