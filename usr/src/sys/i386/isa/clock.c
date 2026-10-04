@@ -84,8 +84,25 @@
 startrtclock() {
 	int s;
 
-	findcpuspeed();		/* use the clock (while it's free)
-					to find the cpu speed */
+	/*
+	 * AI-ONLY NOTE: findcpuspeed(), spinwait() and delaycount are
+	 * gone from this file, and the call that stood here with them.
+	 *
+	 * They existed for one reader: the DELAY macro in
+	 * machine/param.h computed delaycount * n / 1000 and spun that
+	 * many times. The macro now calls delay(), which watches the
+	 * counter, so delaycount had no reader and this call spent a
+	 * millisecond of every boot computing a number nothing used.
+	 * Nothing else in this tree touched any of the three.
+	 *
+	 * FreeBSD 2.0.5's clock.c has none of them: it removed them
+	 * when it wrote its DELAY against the counter. NetBSD 1.0 and
+	 * OpenBSD 1996 both kept theirs after adding delay(), and in
+	 * both the only caller of spinwait is findcpuspeed and the
+	 * only reader of delaycount is spinwait -- their fd.c, wd.c,
+	 * pccons.c and machdep.c touch neither. They left it standing;
+	 * FreeBSD did not, and this follows FreeBSD.
+	 */
 	/* initialize 8253 clock */
 	outb(TIMER_MODE, TIMER_SEL0|TIMER_RATEGEN|TIMER_16BIT);
 
@@ -106,26 +123,6 @@ startrtclock() {
 	outb (IO_RTC+1, 0);
 }
 
-unsigned int delaycount;	/* calibrated loop variable (1 millisecond) */
-
-#define FIRST_GUESS	0x2000
-findcpuspeed()
-{
-	unsigned int remainder;
-
-	/* Put counter in count down mode */
-	outb(IO_TIMER1+3, 0x34);
-	outb(IO_TIMER1, 0xff);
-	outb(IO_TIMER1, 0xff);
-	delaycount = FIRST_GUESS;
-	spinwait(1);
-	/* Read the value left in the counter */
-	remainder = gettick();
-	/* Formula for delaycount is :
-	 *  (loopcount * timer clock speed)/ (counter ticks * 1000)
-	 */
-	delaycount = (FIRST_GUESS * (XTALSPEED/1000)) / (0xffff-remainder);
-}
 
 
 
@@ -410,13 +407,4 @@ setstatclockrate(newhz)
 
 
 
-spinwait(millisecs)
-int millisecs;		/* number of milliseconds to delay */
-{
-	int i, j;
-
-	for (i=0;i<millisecs;i++)
-		for (j=0;j<delaycount;j++)
-			;
-}
 
