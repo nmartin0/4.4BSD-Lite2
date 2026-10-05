@@ -82,6 +82,29 @@ controller	isa0
 # corrected form is not in this tree -- it is in the CSRG history.
 device		pc0	at isa? port "IO_KBD" tty irq 1 vector pcrint
 device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
+# AI-ONLY NOTE: COMCONSOLE, so the console is com0 and not the VGA
+# display. cninit in i386/i386/cons.c:74 probes every entry in
+# constab and keeps the highest priority; i386/i386/cons.h gives
+# CN_DEAD 0, CN_NORMAL 1, CN_INTERNAL 2, CN_REMOTE 3. pccnprobe sets
+# CN_INTERNAL unconditionally, and comcnprobe sets CN_NORMAL unless
+# COMCONSOLE is defined, in which case CN_REMOTE and the serial port
+# wins. The mechanism and the comment -- "Force a serial port
+# console" -- are Berkeley's; nothing in the sources changes.
+#
+# Needed because everything we can observe of this kernel arrives
+# over the serial line: build/shim runs QEMU with -nographic, which
+# wires COM1 to stdout, and the VGA text buffer goes nowhere. Without
+# this the kernel has a console and we cannot see it.
+#
+# It costs nothing to try. comcnprobe already sets com_addr[CONUNIT]
+# to CONADDR, which isa/comreg.h:112 gives as 0x3f8 -- COM1, the port
+# the shim writes its own output to. comcninit calls cominit, which
+# is outb to the UART registers and nothing else, so it needs no
+# interrupt, no device attach and no autoconfiguration; and
+# comcnputc polls LSR_TXRDY with a timeout rather than waiting on an
+# interrupt. cninit runs at the top of init386, before
+# isa_defaultirq, and none of that path depends on either.
+options		COMCONSOLE
 device		com0	at isa? port "IO_COM1" tty irq 4 vector comintr
 device		ne0	at isa? port 0x320 net irq 9 vector neintr
 device we0 at isa? port 0x280 net irq 3 iomem 0xd0000 iosiz 8192 vector weintr
