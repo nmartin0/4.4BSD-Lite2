@@ -122,6 +122,17 @@ done
 	die "  sudo apt install $pkgs"
 }
 [ -x "$TOOLS/config" ] || die "no config in $TOOLS -- run build/sysroot.sh first"
+
+# AI-ONLY NOTE: $TOOLS first, as make.sh:240 already does. config is
+# called by full path below, but everything make invokes by name is
+# not -- mkdep above all, which the kernel Makefile runs to work out
+# what to rebuild when a header changes. Without this the host's is
+# used, and on a Linux host that is OpenBSD's mkdep.gcc.sh, which
+# does not produce the program dependency `assym.s: genassym' needs.
+# assym.s then goes stale and locore.s assembles against constants
+# the C half no longer uses.
+PATH="$TOOLS:$PATH"
+export PATH
 [ -d "$ROOT/usr/include" ] || die "no headers in $ROOT -- run build/sysroot.sh first"
 
 S=$SRC/usr/src/sys

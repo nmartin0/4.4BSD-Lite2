@@ -169,6 +169,29 @@ printf '%s\n' "sysroot.sh: host tools -> $TOOLS"
 mkdir -p "$TOOLS"
 install -m 755 "$SRC/usr.bin/lorder/lorder.sh" "$TOOLS/lorder"
 
+# mkdep, from this tree, for the same reason as lorder: the host's is
+# not this tree's. On a Linux host /usr/bin/mkdep is OpenBSD's
+# mkdep.gcc.sh, which accepts -p and emits prog.o rather than prog,
+# and the tree's own had the same fault until `mkdep: -p has not
+# worked since cc stopped writing `prog.o : ''.
+#
+# It matters because mkdep decides what gets rebuilt when a header
+# changes. sys/i386/conf/Makefile.i386 has `assym.s: genassym' and
+# generates genassym's dependencies with `mkdep -a -p', so that
+# changing machine/pmap.h regenerates assym.s and locore.s assembles
+# against the same constants the C half uses. With the wrong mkdep
+# that rule names genassym.o, assym.s goes stale, and the kernel
+# builds cleanly with its assembly and its C disagreeing -- measured,
+# while moving KERNBASE: locore.s kept the old address and the kernel
+# faulted on the jump to high memory.
+#
+# NetBSD builds its own for cross-building and calls it nbmkdep:
+# tools/mkdep/Makefile, `HOSTPROGNAME=${_TOOL_PREFIX}mkdep' with
+# `HOST_SRCDIR=usr.bin/mkdep'. Same reasoning -- when you are not
+# self-hosting, every tool that shapes the output comes from the tree
+# rather than the machine underneath.
+install -m 755 "$SRC/usr.bin/mkdep/mkdep.sh" "$TOOLS/mkdep"
+
 # yacc, built from this tree with the host compiler. The packaged byacc
 # reads these grammars, but what it writes declares `extern int
 # yylex(void);', which this tree's own yacc does not, and the kernel's
