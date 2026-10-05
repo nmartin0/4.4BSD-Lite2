@@ -310,12 +310,38 @@ start:	movw	$0x1234,%ax
  * N.B. don't bother with making kernel text RO, as 386
  * ignores R/W AND U/S bits on kernel access (only v works) !
  *
+ * AI-ONLY NOTE: PG_KW is now set here, and Berkeley's note above is
+ * the reason it was not. It is a true statement about the 80386,
+ * which has no CR0_WP bit, so a kernel write goes through a page
+ * marked read-only. Every page of kernel text, data and bss was
+ * mapped PG_V alone on the strength of it.
+ *
+ * `i386: detect the processor, and enable write protection on a 486'
+ * turned CR0_WP on, so the processor honours PG_RW against kernel
+ * writes and the sentence no longer holds. Measured under
+ * build/shim: the first kernel global written after the stack began
+ * working faulted -- page fault, error 0x0003, CR2 0xfe070c8c, which
+ * is `consintr' in .data, reached through printf.
+ *
+ * This is the third mapping in this file to need the write bit and
+ * the root of the other two: the proc 0 stack ptes said PG_URKW,
+ * which machine/pte.h defines as the same value as PG_URKR, and the
+ * pde above them said PG_V alone. All three rest on this one
+ * sentence, and so did the copyout that trap.c carried.
+ *
+ * NetBSD 1.0's locore.s:408 is `movl $(PG_V|PG_KW),%eax' under the
+ * comment "First, map the kernel text, data, and BSS", with no note
+ * about the 386 -- they set CR0_WP and had to. The text is left
+ * writable rather than made read-only separately, which is what
+ * Berkeley's note says they did not bother to do; making it RO is a
+ * further change and is not this one.
+ *
  * First step - build page tables
  */
 	movl	%esi,%ecx		# this much memory,
 	shrl	$ PGSHIFT,%ecx		# for this many pte s
 	addl	$ UPAGES+4,%ecx		# including our early context
-	movl	$ PG_V,%eax		#  having these bits set,
+	movl	$ PG_V|PG_KW,%eax	#  having these bits set,
 	lea	(4*NBPG)(%esi),%ebx	#   physical address of KPT in proc 0,
 	movl	%ebx,_C_LABEL(KPTphys)-SYSTEM	#    in the kernel page table,
 	fillkpt
@@ -333,7 +359,33 @@ start:	movw	$0x1234,%ax
 	lea	(1*NBPG)(%esi),%eax	# physical address in proc 0
 	lea	(SYSTEM)(%eax),%edx
 	movl	%edx,_C_LABEL(proc0paddr)-SYSTEM  # remember VA for 0th process init
-	orl	$ PG_V|PG_URKW,%eax	#  having these bits set,
+/*
+ * AI-ONLY NOTE: PG_KW, where this said PG_URKW.
+ *
+ * machine/pte.h defines PG_URKR and PG_URKW as the same value, 0x4:
+ * PG_u set and PG_RW clear. The name says kernel write; the bits say
+ * read-only. It worked because a 386 has no CR0_WP and lets the
+ * kernel write through a read-only page -- the same hardware fact
+ * copyout was written around.
+ *
+ * This is proc 0's kernel stack. `i386: detect the processor, and
+ * enable write protection on a 486' turned CR0_WP on, so the
+ * processor now honours PG_RW against kernel writes, and the first
+ * push past identifycpu() faulted: page fault, error 0x0003 --
+ * present and not writable -- at CR2 0xfdbfff04 with ESP 0xfdbfff08,
+ * measured under build/shim.
+ *
+ * Not a regression: nothing had run before, and CR0_WP is doing what
+ * it is for. The mapping was always wrong and the 386 hid it.
+ *
+ * PG_KW is 0x2, PG_RW set and PG_u clear -- kernel only, writable,
+ * honoured whatever CR0_WP says. NetBSD 1.0's locore.s:424 and
+ * FreeBSD 2.0.5's locore.s:563 both write `PG_V|PG_KW' at this exact
+ * site, FreeBSD commenting it "valid, kernel read/write". Both had
+ * to: both set CR0_WP. OpenBSD 1996 restructured this part of
+ * locore.s and has no line to compare.
+ */
+	orl	$ PG_V|PG_KW,%eax	#  having these bits set,
 	lea	(3*NBPG)(%esi),%ebx	# physical address of stack pt in proc 0
 	addl	$(PPTEOFF*4),%ebx
 	fillkpt
@@ -359,7 +411,29 @@ start:	movw	$0x1234,%ax
 
 	/* install a pde to map kernel stack for proc 0 */
 	lea	(3*NBPG)(%esi),%eax	# physical address of pt in proc 0
-	orl	$ PG_V,%eax		# pde entry is valid
+/*
+ * AI-ONLY NOTE: PG_KW here too, where this said PG_V alone.
+ *
+ * This is the page directory entry above the kernel stack's page
+ * table, and a pde's permissions override the pte's: PG_V by itself
+ * is valid, not writable, not user, so the whole four megabytes is
+ * read-only no matter what the ptes say. Changing the ptes to PG_KW
+ * a few lines above was necessary and not sufficient -- measured,
+ * the same fault persisted.
+ *
+ * Both donors write both halves, with the comment on this line word
+ * for word the same as ours. NetBSD 1.0 locore.s:449 `orl
+ * $(PG_V|PG_KW),%eax' before `movl %eax,(UPTDI*4)(%esi) # which is
+ * where kernel stack maps!'; FreeBSD 2.0.5 locore.s:588 the same
+ * before `movl %eax,KSTKPTDI*PDESIZE(%esi)'. They are the same line
+ * of code in three trees, differing only in the permission bits.
+ *
+ * Lite2's own block is inconsistent with itself: the two pdes above
+ * this one get PG_V|PG_UW and each carries `XXX 06 Aug 92', someone
+ * unsure about these bits at the time. This one got neither the
+ * write bit nor the marker.
+ */
+	orl	$ PG_V|PG_KW,%eax	# pde entry is valid
 	movl	%eax,PPDROFF*4(%esi)	# which is where kernel stack maps!
 
 	/* load base of page directory, and enable mapping */
