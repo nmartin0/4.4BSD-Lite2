@@ -22,6 +22,7 @@ compiling under a modern GCC. Measured against the tree as it stands:
 | kernel configurations that build | 1 | 2 (i386) |
 | ports whose kernel has ever been compiled | 1 | 8 |
 | kernels that link | **1** | — |
+| kernels that run | **1** | — |
 
 So the userland restoration is substantially done and the kernel one
 is not. What remains:
@@ -82,46 +83,38 @@ on `yylex` was dropped only to satisfy byacc.
 
 ## Tier 1 — boot on QEMU's legacy machine
 
-The first tier where anything runs, and the one every later tier
-depends on: nothing in Tier 2 is testable until a kernel boots
-somewhere. QEMU's legacy PC — PIIX3, IDE, NE2000, 8259 PIC, 8254
-timer, PS/2 keyboard — is hardware this kernel already almost
-recognises, which is what makes it the right target rather than a
-detour.
+**Substantially done.** The kernel loads, runs, prints over a serial
+console and panics in the VM. `docs/status.md` has the output and
+what had to be fixed to get there. What this tier predicted would be
+the hard part -- the loader -- was sidestepped by `build/shim`, which
+is scratch tooling and says what deletes it.
 
-1. ~~**Close the link.**~~ Done. `vmunix` links at 529984 bytes.
-2. **Build `libkern.a`.** Needs a decision on kernel-versus-userland
-   include paths, since `bcmp.c` includes `<string.h>`.
-3. **Load the kernel.** `i386/stand/boot.c:122` reads `struct exec`
-   and accepts only `a_magic` 0407/0410/0413; the kernel links ELF.
-   The kernel loads at **physical 0** — `boot.c:148` masks the entry
-   with `& 0x000fffff` and `locore.s` reaches its variables as
-   `symbol-SYSTEM` with `SYSTEM` = `0xFE000000` — and `start:` writes
-   to `0x472` then `.space 0x500` to skip the BIOS data area it
-   overlays. Entry contract: `(*entry)(howto, opendev, 0, cyloffset)`
-   on the stack. Options in `docs/status.md`; the cheapest first
-   experiment is gdb driving QEMU with no loader at all, which
-   commits to nothing and answers whether `start` executes.
-4. **`DELAY()`.** Before changing it, measure every call site in the
-   configured kernel and whether `findcpuspeed()` calibrates sanely
-   under emulation. If nothing asks for under a millisecond,
-   Berkeley's loop stays. If something does, the answer the record
-   already names is the 8254 read, `n * TIMER_FREQ / 1e6` with a
-   64-bit intermediate, about thirty lines, four trees agreeing.
-5. **The console.** `pccons.c` compiles for the first time in this
-   tree's history and has never run. Serial via `com.c` is the more
-   debuggable first console.
-6. **The settlement bodies.** 34 of the 35 emptied functions are in
-   this configuration. Nothing mounts a filesystem without
-   `vfs_bio.c`'s fourteen; nothing runs a program without `execve`;
-   no tty works without `tty_subr.c`'s ten. Restoration, not
-   modernization — removed by a lawsuit rather than a design
-   decision. Donor to be chosen by measuring which tree's bodies are
-   lineal continuations rather than clean-room rewrites.
-7. **`wd.c` for the IDE disk**, which QEMU's PIIX3 presents in
-   compatibility mode. FreeBSD 2.0.5 is the donor.
-8. **`if_ne` for the NE2000**, which QEMU emulates.
-9. **Root filesystem, `init`, single user.**
+What remains of it, in order:
+
+1. ~~**Close the link.**~~ Done.
+2. ~~**Build `libkern.a`.**~~ Done, by `build/kernel.sh`.
+3. ~~**Load the kernel.**~~ Done, by `build/shim`, provisionally.
+4. ~~**`DELAY()`.**~~ Done. It was worse than recorded: nothing called
+   `startrtclock()`, so the 8254 was never programmed and every
+   `DELAY` was a no-op for every argument. `delay()` now reads the
+   counter.
+5. ~~**The console.**~~ Done, and it is serial rather than `pccons`:
+   one line, `options COMCONSOLE`, using Berkeley's own priority
+   mechanism.
+6. **`kmem_suballoc` returns `KERN_NO_SPACE`.** The first thing the
+   running kernel cannot do. Candidate cause is the kernel virtual
+   address space: `KERNBASE` is `0xFE000000`, leaving 32 MB, where
+   NetBSD 1.0 uses `0xf8000000`, OpenBSD 1996 `0xf0000000` and
+   FreeBSD 2.0.5 `F0100000`. If that is it, the `KERNBASE` move
+   stops being the thing that deletes the shim and becomes the thing
+   the VM needs.
+7. **A root device.** `vfs_busy` takes a null mount pointer because
+   `rootdev` is `makedev(0,0)` and `setconf()` is inside `#ifdef
+   notdef`. Needs `wd.c`'s nine `b_actf` sites first -- FreeBSD 2.0.5
+   is the only donor.
+8. **The settlement bodies.** 34 of the 35 emptied functions are in
+   `LINK.i386`, including the whole buffer cache and `execve`. The
+   kernel cannot do anything with a disk until they are filled.
 
 ## Tier 2 — modern hardware
 

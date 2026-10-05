@@ -1,12 +1,69 @@
 # Where the work stands
 
-What has been built, measured, and left open. Provenance questions --
-what may be copied from where, and what this tree does and does not
-contain -- live in `docs/provenance/`; this file is only state.
+**The kernel runs.** As of `i386: COMCONSOLE, so the kernel can be
+heard', a kernel built from this tree loads, executes, and prints:
 
-Every number here is from a run recorded in the commit that changed
-it, on the host named below. A figure with no run behind it does not
-belong in this file.
+```
+bios 640K+65535K. maxmem 40ff000, physmem 40a0000
+ps 100000 pe 40ff000 Copyright (c) 1982, 1986, 1989, 1991, 1993
+	The Regents of the University of California.  All rights reserved.
+
+CPU: Pentium (586-class CPU)
+real mem  = 67764224
+kmem_suballoc: bad status return of 3.
+panic: kmem_suballoc
+syncing disks... trap type 12 code = 0 eip = fe017bf1 cs = 8
+  eflags = 282 cr2 fe0f1000 cpl ffffffff
+panic: trap
+dumping to dev 1, offset 0
+dump device bad
+```
+
+So far as the CSRG history shows, neither Lite release's i386 kernel
+had linked before this week, let alone run: the `copyout` duplicate
+alone made linking impossible and that defect is in Berkeley's own
+tree.
+
+Run it with `sh build/kernel.sh && sh build/shim/run.sh`. QEMU and
+the shim are described in `build/shim/shim.c`; the shim exists
+because this kernel loads at physical 0 and no multiboot loader will
+place an image below 1 MB.
+
+## Where it stops
+
+**`kmem_suballoc` returns 3**, `KERN_NO_SPACE`, during `kmeminit`.
+The kernel asks the VM for a submap and is told there is no room.
+That is the first thing to look at, and a candidate cause is the
+kernel virtual address space itself: `KERNBASE` is `0xFE000000`,
+leaving 32 MB, where NetBSD 1.0 uses `0xf8000000`, OpenBSD 1996
+`0xf0000000` and FreeBSD 2.0.5 `F0100000`.
+
+Then **`vfs_busy` dereferences a null mount pointer**, `trap type 12`
+at `fe017bf1`, because there is no root device: `rootdev` is
+`makedev(0,0)` and `setconf()` is entirely inside `#ifdef notdef`.
+That needs `wd.c`'s nine `b_actf` sites first.
+
+## What had to be fixed to get here
+
+Each was a defect in Berkeley's own code that could not surface while
+the kernel did not link.
+
+| | |
+|---|---|
+| `copyout` | two definitions of the symbol, one in C and one in assembly, since 4.4BSD-Lite. The C one is Pace Willisson's 386 write-protection workaround |
+| `wddriver` | `genericconf` declared `extern struct driver`, `wd.c:163` defines `struct isa_driver` -- two types for one symbol |
+| `lgdt`, `lidt` | called with two arguments; `locore.s` takes one pointer. `r_gdt` and `r_idt` sat correct and unreferenced |
+| `region_descriptor` | `rd_base` a pointer, so `lgdt` read the base from the padding |
+| `segment_descriptor` | twelve bytes where the processor reads eight, so `gdt[]` strided wrong and the entries interleaved |
+| the clock | `startrtclock()` was called from nowhere, so the 8254 was never programmed and every `DELAY` was a no-op |
+| three page mappings | kernel text/data/bss, the proc 0 stack's PTEs and its PDE, all mapped without the write bit |
+
+That last row is one defect in three places, and `locore.s` states
+its premise: "don't bother with making kernel text RO, as 386 ignores
+R/W AND U/S bits on kernel access (only v works) !" True of the
+80386, which has no `CR0_WP`. Enabling write protection made every
+assumption resting on it surface in turn, and `copyout` was the same
+sentence expressed in C.
 
 ## The host these numbers come from
 

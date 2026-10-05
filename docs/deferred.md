@@ -116,7 +116,7 @@ Tier 0), and the two that agree establish the invariant as
 
 ## 2. Performance and correctness sacrificed
 
-### `DELAY()` rounds anything under a millisecond to nothing
+### ~~`DELAY()` rounds anything under a millisecond to nothing~~ FIXED
 
 `64dc319e`, note in `i386/include/param.h`
 
@@ -191,7 +191,13 @@ replacing it.
 **This is the single biggest blocker to modern hardware.** Nothing
 probed, hot-pluggable or PCI can work under a build-time vector table.
 
-### `cpu_model` is empty; nothing detects the processor
+### ~~`cpu_model` is empty; nothing detects the processor~~ FIXED
+
+**Done.** `i386: detect the processor, and enable write protection on
+a 486' enabled the detection sequence that had sat under `#ifdef
+cgd_notdef` since the June 1993 merge, and added `identifycpu()`.
+A running kernel now prints `CPU: Pentium (586-class CPU)`.
+
 
 `c12b5995`
 
