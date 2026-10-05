@@ -101,10 +101,42 @@ where they are, being at the top of the directory: `APDRPDROFF` at
 **Kernel virtual space: 24 MB to 248 MB.** At 64 MB of RAM the buffer
 map wants 26; at 512 MB about 200.
 
-Six places hardcode `0xfe000000` rather than using the macro and
-should become `KERNBASE` while they are being touched:
-`pmap.c:269`, `:367`, `:1703`, `trap.c:202`, `vm_machdep.c:305` and
-`:306`.
+**That table is the C half and it is not enough.** Attempted, and the
+kernel faulted at its own entry with `CR2` equal to `EIP` the moment
+paging came on, then later in `cpu_startup` with `CR2 0xd`. A full
+sweep of `sys/i386` for constants in this range finds **twenty-one
+sites in three independent copies of the same map**, with nothing
+connecting them:
+
+	pmap.h      UPTDI 0x3f6, PTDPTDI 0x3f7, KPTDI_FIRST 0x3f8,
+	            KPTDI_LAST 0x3fA
+	vmparam.h   the eight addresses in the table above
+	locore.s    SYSPDROFF 0x3F8, PDRPDROFF 0x3F7, PPDROFF 0x3F6,
+	            and PTmap 0xFDC00000, PTD 0xFDFF7000,
+	            Sysmap 0xFDFF8000, PTDpde and APTDpde built from
+	            0xFDFF7000 -- the assembler cannot read pmap.h, so
+	            this file writes the whole map out again under
+	            different names
+	literals    pmap.c:269, :367, :1703; trap.c:202;
+	            vm_machdep.c:305, :306 -- all `0xfe000000'
+	            pccons.c:79 MONO_BUF 0xfe0B0000 and :81 CGA_BUF
+	            0xfe0B8000, which are KERNBASE + 0xB0000
+	            locore.s:454 `subl $0xfe0a0000,%eax'
+	loop        pmap.c:1278 `for(x=0x3f6; x < 0x3fA; x++)' --
+	            UPTDI through KPTDI_LAST, written out
+
+`UPTDI 0x3f6` was missed from the first table entirely, and
+`pmap.c:1278`'s loop is almost certainly the `CR2 0xd` fault: after
+the move those four slots are empty and the real entries are at
+0x3be to 0x3c2.
+
+`machdep.c:1019` is the one site that already writes `KERNBASE +
+0xa0000` rather than a literal, and is correct as it stands.
+
+The move is therefore a sweep of all twenty-one, not an edit of
+twelve, and the literals should become `KERNBASE`-relative while they
+are being touched so the next person moving it has one place to look.
+Measure against `sh build/shim/run.sh -m 16`.
 
 The structure is the donors' and the move is a shift, not a redesign.
 NetBSD 1.0 has `PTDPTDI 0x3df`, `KPTDI 0x3e0`, `APTDPTDI 0x3ff` --
