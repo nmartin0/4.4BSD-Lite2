@@ -152,6 +152,50 @@ turned out to be the thing that works:
 **Ask why they would have written that.** It has paid better than
 reasoning about what ought to work.
 
+### Read the donor before designing anything
+
+The rule above is about details. This one is about whole approaches,
+and it has been broken more often than any other rule in this file.
+
+Moving `KERNBASE` is the clearest case. The constant is written out
+in twenty-one places across `sys/i386`, in three unconnected copies,
+and the question was how to reduce them to one. Three approaches were
+designed and argued for in turn: derive everything from `KERNBASE` in
+the headers; include `machine/param.h` from `locore.s` so the
+assembler can see the macro; and only then, on the third pass, read
+what NetBSD 1.0's `locore.s` actually does.
+
+It computes every address from the page directory slots:
+
+	.set	_PTmap,(PTDPTDI << PDSHIFT)
+	.set	_PTD,(_PTmap + PTDPTDI * NBPG)
+	.set	_Sysmap,(_PTmap + KPTDI * NBPG)
+
+and gets the slots through `assym.s`, which `genassym.c` writes from
+`machine/pmap.h`. One source, no second copy, and `KERNBASE` falls
+out as `KPTDI << PDSHIFT` rather than being the thing everything else
+derives from. The machinery is already in this tree -- `genassym.c`
+exports `UPAGES`, `NBPG` and `CLSIZE` by the same mechanism and
+simply does not include `pmap.h`.
+
+A single careful reading of that file at the start would have given
+the answer and saved all three designs. The same mistake, in the same
+shape, produced the `copyout` error: five trees were counted as
+agreeing without reading why.
+
+**So: before designing an approach, read the donor's version of the
+same file end to end.** Not grep for the symbol -- read the file. The
+answer is usually there, and it is usually smaller than whatever was
+about to be designed.
+
+What the failed attempts are good for is diagnosis rather than cure.
+Breaking the kernel by moving twelve of the twenty-one constants is
+what found `UPTDI`, found `pmap.c:1278`'s hardcoded `for(x=0x3f6; x <
+0x3fA; x++)`, and showed that `locore.s` holds a second copy of the
+whole map. None of that would have come from reading headers. So
+attempt things -- but attempt them after reading the donor, not
+instead of it.
+
 ### What the markers settle
 
 `docs/provenance/missing.md` and the marker test in `b8596dbf`: every
