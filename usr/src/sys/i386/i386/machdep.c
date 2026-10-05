@@ -959,13 +959,24 @@ struct soft_segment_descriptor ldt_segs[] = {
 	1  			/* limit granularity (byte/page units)*/ } };
 
 /* table descriptors - used to load tables by microp */
-struct region_descriptor r_gdt = {
-	sizeof(gdt)-1,(char *)gdt
-};
-
-struct region_descriptor r_idt = {
-	sizeof(idt)-1,(char *)idt
-};
+/*
+ * AI-ONLY NOTE: no initialisers here, and the descriptors are filled
+ * in init386 instead. rd_base is a packed 32-bit bitfield in
+ * machine/segments.h, because that is the six-byte shape lgdt and
+ * lidt read, and a bitfield cannot be initialised from an address:
+ * gcc says "invalid initial value for member 'rd_base'" whether the
+ * value is written `(char *)gdt' or `(unsigned)gdt', since an
+ * address is not an integer constant expression.
+ *
+ * That is why both donors declare these as locals in init386 and
+ * assign at run time -- NetBSD 1.0 machdep.c:1071 and FreeBSD 2.0.5
+ * machdep.c:1249 both have `struct region_descriptor r_gdt, r_idt;'
+ * inside the function. Their structure is forced by the bitfield,
+ * not chosen. They stay at file scope here, where Berkeley put them,
+ * and are filled before the lgdt and lidt calls.
+ */
+struct region_descriptor r_gdt;
+struct region_descriptor r_idt;
 
 setidt(idx, func, typ, dpl) char *func; {
 	struct gate_descriptor *ip = idt + idx;
@@ -1055,8 +1066,46 @@ init386(first) { extern ssdtosd(), lgdt(), lidt(), lldt(), etext;
 	isa_defaultirq();
 #endif
 
-	lgdt(gdt, sizeof(gdt)-1);
-	lidt(idt, sizeof(idt)-1);
+	/*
+	 * AI-ONLY NOTE: &r_gdt and &r_idt, where this passed the table
+	 * and its limit as two arguments.
+	 *
+	 * locore.s takes one pointer: `void lgdt(struct
+	 * region_descriptor *rdp)' at line 995, and the body is `movl
+	 * 4(%esp),%eax; lgdt (%eax)'. Passing the table made it read
+	 * the first six bytes of gdt -- which is in bss, so zero -- as
+	 * limit and base, load a null descriptor, and fault on the
+	 * `movl $0x10,%ax; movl %eax,%ds' two instructions later.
+	 * Measured under build/shim: a general protection fault at
+	 * EIP 0xfe0009de with error code 0x0010, the kernel data
+	 * selector, followed by a double fault.
+	 *
+	 * The descriptors this now passes are Berkeley's own, declared
+	 * at lines 962 and 966 of this file and until now referenced
+	 * by nothing. They say what the intent was: someone changed
+	 * the calling convention from (table, limit) to (descriptor
+	 * *), updated locore.s and added these two structures, and did
+	 * not update the two calls. Nothing could reveal it because
+	 * this kernel has never linked.
+	 *
+	 * Every descendant passes one pointer. NetBSD 1.0
+	 * machdep.c:1131 and FreeBSD 2.0.5 machdep.c:1332 both write
+	 * lgdt(&r_gdt) and lidt(&r_idt), declaring the descriptors as
+	 * locals in init386 rather than at file scope; OpenBSD 1996
+	 * writes lgdt(&region) and lidt(&region) at machdep.c:1163 and
+	 * 1165. None of them passes two arguments.
+	 *
+	 * lldt below is already right and is left alone: locore.s
+	 * writes `lldt 4(%esp)', which takes a selector directly, and
+	 * GSEL(GLDT_SEL, SEL_KPL) is this tree's spelling of what the
+	 * donors call _default_ldt.
+	 */
+	r_gdt.rd_limit = sizeof(gdt) - 1;
+	r_gdt.rd_base = (int) gdt;
+	lgdt(&r_gdt);
+	r_idt.rd_limit = sizeof(idt) - 1;
+	r_idt.rd_base = (int) idt;
+	lidt(&r_idt);
 	lldt(GSEL(GLDT_SEL, SEL_KPL));
 
 	/*

@@ -174,9 +174,50 @@ extern sdtossd() ;	/* to encode a sd */
 /*
  * region descriptors, used to load gdt/idt tables before segments yet exist
  */
+/*
+ * AI-ONLY NOTE: rd_base is a 32-bit bitfield, where it was a char *.
+ *
+ * lgdt and lidt read six bytes: a 16-bit limit at offset 0 and a
+ * 32-bit base at offset 2, adjacent. A pointer member is aligned to
+ * four bytes, so the compiler puts two bytes of padding after the
+ * limit and the base lands at offset 4; the instruction then reads
+ * bytes 2 through 5, which is the padding and the low half of the
+ * pointer. Measured under build/shim with gdt at 0xfe07cf40: the
+ * base came out 0xcf400000 and the kernel took a page fault at
+ * CR2 0xcf400010, that base plus the kernel data selector.
+ *
+ * A bitfield continues in the storage unit it starts in rather than
+ * beginning a new aligned one, so limit and base sit adjacent and
+ * the structure is the six bytes the instruction wants.
+ *
+ * Both descendants write it as a bitfield and neither writes a
+ * pointer, but only one of the two works here. NetBSD 1.0's
+ * machine/segments.h:179 is `unsigned rd_base:32;' alone: a 32-bit
+ * bitfield will not fit in what remains of the storage unit the
+ * 16-bit one started, so gcc 13 begins a new one and the padding
+ * comes back. Measured, writing limit 0x53 and base 0xfe07cf40:
+ *
+ *	want                     53 00 40 cf 07 fe
+ *	NetBSD bitfield          53 00 00 00 40 cf 07 fe
+ *	FreeBSD packed member    53 00 40 cf 07 fe 00 00
+ *
+ * So this takes FreeBSD 2.0.5's machine/segments.h:180, which is the
+ * same bitfield with `__attribute__ ((packed))' on it. The attribute
+ * is not belt and braces: it is what moves rd_base to offset 2. The
+ * structure is still eight bytes either way -- sizeof is not the
+ * test -- and what matters is that the first six are what lgdt
+ * reads. Someone meeting a compiler that did not pack is the likely
+ * reason FreeBSD's carries the attribute at all.
+ *
+ * This is the other half of the defect `lgdt(gdt, sizeof(gdt)-1)'
+ * was: someone changed the calling convention to take a descriptor,
+ * wrote locore.s and declared r_gdt and r_idt, and finished neither
+ * the call sites nor this structure. Nothing could reveal it while
+ * the kernel did not link.
+ */
 struct region_descriptor {
 	unsigned rd_limit:16 ;		/* segment extent */
-	char *rd_base;			/* base address  */
+	unsigned rd_base:32 __attribute__ ((packed));	/* base address  */
 };
 
 /*
