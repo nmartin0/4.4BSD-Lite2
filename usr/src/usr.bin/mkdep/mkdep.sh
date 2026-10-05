@@ -54,8 +54,33 @@ while :
 
 		# the -p flag produces "program: program.c" style dependencies
 		# so .o's don't get produced
+		#
+		# AI-ONLY NOTE: `\.o *: ' where this was `\.o '. The
+		# substitution turns cc -M's `prog.o: prog.c ...' into
+		# `prog: prog.c ...', and the old pattern needed a space
+		# after the .o -- which the cc of the day gave, writing
+		# `prog.o : prog.c'. gcc writes `prog.o:' with no space,
+		# so the substitution stopped firing and -p silently
+		# produced .o dependencies instead of program ones.
+		#
+		# What that cost: sys/i386/conf/Makefile.i386 has
+		# `assym.s: genassym' and generates genassym's own
+		# dependencies with `mkdep -a -p'. With -p broken the
+		# rule says genassym.o, which nothing refers to, so
+		# assym.s was never regenerated when a header it reads
+		# changed. Measured: moving KERNBASE in machine/pmap.h
+		# left assym.s holding the old page directory slots, so
+		# locore.s assembled with SYSTEM at the old address while
+		# the C half and the linker used the new one. The kernel
+		# faulted on the jump to high memory, and the registers
+		# showed tmpstk-SYSTEM wrapping past zero.
+		#
+		# NetBSD 1.0's usr.bin/mkdep/mkdep.sh:58 is this pattern,
+		# dated three months before this release. FreeBSD 2.0.5's
+		# is identical to Berkeley's and has the same fault. It
+		# matches both forms: `prog.o: ' and `prog.o : ' alike.
 		-p)
-			SED='s;\.o ; ;'
+			SED='s;\.o *: ; : ;'
 			shift ;;
 		*)
 			break ;;
