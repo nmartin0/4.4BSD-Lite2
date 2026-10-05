@@ -58,9 +58,41 @@
 /*
  * Memory and System segment descriptors
  */
+/*
+ * AI-ONLY NOTE: sd_lobase is packed, where it was a bare bitfield.
+ *
+ * This describes the eight bytes the processor reads from the GDT.
+ * sd_lobase:24 will not fit the sixteen bits left in the unit
+ * sd_lolimit:16 started, so gcc 13 opens a new one and the structure
+ * becomes twelve bytes. gdt[] is an array of these, so `gdt+x' in
+ * init386 strides by twelve while ssdtosd writes eight, and every
+ * entry after the first lands four bytes out of place.
+ *
+ * Measured under build/shim, with gdt_segs[2] holding base 0, limit
+ * 0xfffff and flags 0xc093, which is correct: gdt[1] came out
+ * 00000000 0000e050 and gdt[2] 00cf9b00 00000000 -- the high dword
+ * of one entry sitting in the low position of the next. The kernel
+ * then took a general protection fault loading the kernel data
+ * selector, error code 0x0010, against a GDT whose base and limit
+ * were right.
+ *
+ * FreeBSD 2.0.5's machine/segments.h is the only contemporary that
+ * packs this, and on exactly this member. NetBSD 1.0's is identical
+ * to Lite2's, character for character, and has the same twelve
+ * bytes here; the assumption held on the compilers of the time.
+ * FreeBSD today writes `__packed' on the whole structure, which is
+ * the same decision made more robustly, and is worth taking if a
+ * compiler is ever found that lays out the rest differently.
+ *
+ * This is the second structure in this file to need it, after
+ * region_descriptor. Where a structure in sys/i386 describes a
+ * hardware format, check FreeBSD before NetBSD: someone there met a
+ * compiler that stopped packing and fixed it.
+ */
 struct	segment_descriptor	{
 	unsigned sd_lolimit:16 ;	/* segment extent (lsb) */
-	unsigned sd_lobase:24 ;		/* segment base address (lsb) */
+	unsigned sd_lobase:24 __attribute__ ((packed));
+					/* segment base address (lsb) */
 	unsigned sd_type:5 ;		/* segment type */
 	unsigned sd_dpl:2 ;		/* segment descriptor priority level */
 	unsigned sd_p:1 ;		/* segment descriptor present */
