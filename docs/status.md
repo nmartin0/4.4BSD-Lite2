@@ -29,14 +29,76 @@ the shim are described in `build/shim/shim.c`; the shim exists
 because this kernel loads at physical 0 and no multiboot loader will
 place an image below 1 MB.
 
-## Where it stops
+## Where it stops, and it depends on how much memory it is given
 
-**`kmem_suballoc` returns 3**, `KERN_NO_SPACE`, during `kmeminit`.
-The kernel asks the VM for a submap and is told there is no room.
-That is the first thing to look at, and a candidate cause is the
-kernel virtual address space itself: `KERNBASE` is `0xFE000000`,
-leaving 32 MB, where NetBSD 1.0 uses `0xf8000000`, OpenBSD 1996
-`0xf0000000` and FreeBSD 2.0.5 `F0100000`.
+**`kmem_suballoc` returns 3**, `KERN_NO_SPACE`. Not in `kmeminit`, as
+first recorded, but in `cpu_startup` -- the output reaches `real mem`
+and never `avail mem`, and the failing call is `machdep.c:266`, the
+buffer map.
+
+Measured, rather than reasoned:
+
+	-m 16   past cpu_startup, into pmap_enter
+	-m 32   kmem_suballoc: bad status return of 3
+	-m 64   kmem_suballoc: bad status return of 3
+
+The arithmetic is `cpu_startup`'s own. `bufpages` is derived from
+`physmem`, `nbuf` is half of it, and the buffer map is
+`MAXBSIZE * nbuf` -- 64 KB of **virtual** space per buffer, as the
+comment above it says: "they usually occupy more virtual memory than
+physical". At 64 MB that is 426 buffers wanting 26 MB, and
+`VM_MIN_KERNEL_ADDRESS` to `VM_MAX_KERNEL_ADDRESS` is 0xFDFF7000 to
+0xFF7FF000 -- **24 MB in total**.
+
+So this is not a defect. It is Berkeley's sizing meeting a machine
+four times larger than its address space was laid out for, and the
+panic is honest.
+
+**It is also the measured reason to move `KERNBASE`.** Lite2's
+`0xFE000000` gives the smallest kernel virtual space any tree in the
+lineage used, by a factor of four, and every descendant moved it
+down:
+
+	4.4BSD-Lite2    0xFE000000     24 MB
+	NetBSD 1.0-1.2  0xf8000000    128 MB
+	OpenBSD 1996    0xf0000000    256 MB
+	FreeBSD 2.0.5   F0100000      256 MB
+	NetBSD 1.3      0xf0000000    256 MB
+	NetBSD 1.4-now  0xc0000000      1 GB
+
+NetBSD moving down twice is this same pressure: machines grew, `nbuf`
+grew with them, and the kernel map had to hold the buffers.
+`0xf0000000` is the value two contemporaries and a third tree reached
+independently.
+
+### With 16 MB it goes further, and stops at a debugger
+
+	CPU: Pentium (586-class CPU)
+	real mem  = 16384000
+	ptdi 7e067
+
+and waits. That is `i386/i386/pmap.c:883`, inside `pmap_enter`:
+
+```c
+	/*
+	 * Page Directory table entry not valid, we need a new PT page
+	 */
+	if (!pmap_pde_v(pmap_pde(pmap, va))) {
+		pg("ptdi %x", pmap->pm_pdir[PTDPTDI]);
+	}
+	pte = pmap_pte(pmap, va);
+```
+
+`pg()` is `isa/pccons.c:823` -- `printf` followed by `getchar()`, a
+debug pager someone left in. The kernel is not hung; it is waiting
+for a keystroke at a serial console nobody is typing at. QEMU takes
+stdin, so pressing a key continues it.
+
+The code beneath is unfinished in the way the comment admits: it
+detects a missing page table, prints, and falls into `pmap_pte` with
+an invalid page directory entry regardless. A seventh instance of the
+pattern in `sys/i386` -- the thing that should happen is written down
+and not done.
 
 Then **`vfs_busy` dereferences a null mount pointer**, `trap type 12`
 at `fe017bf1`, because there is no root device: `rootdev` is
