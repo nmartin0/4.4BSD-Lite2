@@ -54,6 +54,20 @@ static char sccsid[] = "@(#)genassym.c	8.2 (Berkeley) 9/23/93";
 #include <machine/reg.h>
 #include <sys/syscall.h>
 #include <vm/vm.h>
+/*
+ * AI-ONLY NOTE: machine/pmap.h, for the page directory slots.
+ * locore.s wrote its own copies of them -- SYSPDROFF, PDRPDROFF,
+ * PPDROFF -- and its own copies of the five addresses derived from
+ * them, because the assembler cannot read a C header. Exporting the
+ * slots through assym.s, which config already generates and which
+ * already carries UPAGES, NBPG and CLSIZE this way, means there is
+ * one definition rather than two.
+ *
+ * NetBSD 1.0's genassym.c:50 includes this header and :75-85 export
+ * UPTDI, PTDPTDI, KPTDI, APTDPTDI and PDSHIFT for the same reason;
+ * its locore.s:124-136 then computes every address from them.
+ */
+#include <machine/pmap.h>
 #include <sys/user.h>
 
 main()
@@ -93,6 +107,11 @@ main()
 	printf("#define\tHIGHPAGES %d\n", HIGHPAGES);
 	printf("#define\tCLSIZE %d\n", CLSIZE);
 	printf("#define\tNBPG %d\n", NBPG);
+	printf("#define\tUPTDI 0x%x\n", UPTDI);
+	printf("#define\tPTDPTDI 0x%x\n", PTDPTDI);
+	printf("#define\tKPTDI_FIRST 0x%x\n", KPTDI_FIRST);
+	printf("#define\tKPTDI_LAST 0x%x\n", KPTDI_LAST);
+	printf("#define\tPD_SHIFT %d\n", PD_SHIFT);
 	printf("#define\tNPTEPG %d\n", NPTEPG);
 	printf("#define\tPGSHIFT %d\n", PGSHIFT);
 	printf("#define\tPDRSHIFT %d\n", PDRSHIFT);

@@ -99,9 +99,39 @@
  */
 
 	.set	IDXSHIFT,10
-	.set	SYSTEM,0xFE000000	# virtual address of system start
+	.set	SYSTEM,(KPTDI_FIRST << PD_SHIFT)  # virtual address of system start
 	/*note: gas copys sign bit (e.g. arithmetic >>), can't do SYSTEM>>22! */
-	.set	SYSPDROFF,0x3F8		# Page dir index of System Base
+/*
+ * AI-ONLY NOTE: these come from machine/pmap.h now, through assym.s,
+ * instead of being written out again here.
+ *
+ * The assembler cannot read a C header, so this file carried its own
+ * copies of the page directory slots -- SYSPDROFF, PDRPDROFF,
+ * PPDROFF -- and of the five addresses derived from them, as
+ * literals. Nothing connected the two sets: moving KERNBASE in one
+ * and not the other builds page tables for one address and links the
+ * code for another, which was measured, the kernel faulting at its
+ * own entry with CR2 equal to EIP the moment paging came on.
+ *
+ * NetBSD 1.0 does not have the problem. Its genassym.c:50 includes
+ * machine/pmap.h and exports the slots, and its locore.s:124-136
+ * computes every address from them:
+ *
+ *	.set	_PTmap,(PTDPTDI << PDSHIFT)
+ *	.set	_PTD,(_PTmap + PTDPTDI * NBPG)
+ *	.set	_Sysmap,(_PTmap + KPTDI * NBPG)
+ *
+ * That is what is done here. The machinery was already present:
+ * config generates assym.s and it already carried UPAGES, NBPG and
+ * CLSIZE by the same mechanism. Every value below was checked
+ * against the literal it replaces before the change -- all seven
+ * agree exactly -- and the kernel binary is byte for byte what it
+ * was.
+ *
+ * SYSTEM stays, being what this file calls KERNBASE, and is now
+ * computed rather than written: KPTDI_FIRST << PD_SHIFT.
+ */
+	.set	SYSPDROFF,KPTDI_FIRST	# Page dir index of System Base
 
 #define	NOP	inb $0x84, %al ; inb $0x84, %al 
 #define	ALIGN32	.align 2	/* 2^2  = 4 */
@@ -110,12 +140,12 @@
  * PTmap is recursive pagemap at top of virtual address space.
  * Within PTmap, the page directory can be found (third indirection).
  */
-	.set	PDRPDROFF,0x3F7		# Page dir index of Page dir
+	.set	PDRPDROFF,PTDPTDI	# Page dir index of Page dir
 	.globl	_C_LABEL(PTmap), _C_LABEL(PTD), _C_LABEL(PTDpde), _C_LABEL(Sysmap)
-	.set	_C_LABEL(PTmap),0xFDC00000
-	.set	_C_LABEL(PTD),0xFDFF7000
-	.set	_C_LABEL(Sysmap),0xFDFF8000
-	.set	_C_LABEL(PTDpde),0xFDFF7000+4*PDRPDROFF
+	.set	_C_LABEL(PTmap),(PTDPTDI << PD_SHIFT)
+	.set	_C_LABEL(PTD),(_C_LABEL(PTmap) + PTDPTDI * NBPG)
+	.set	_C_LABEL(Sysmap),(_C_LABEL(PTmap) + KPTDI_FIRST * NBPG)
+	.set	_C_LABEL(PTDpde),(_C_LABEL(PTD) + 4*PDRPDROFF)
 
 /*
  * APTmap, APTD is the alternate recursive pagemap.
@@ -123,9 +153,9 @@
  */
 	.set	APDRPDROFF,0x3FE		# Page dir index of Page dir
 	.globl	_C_LABEL(APTmap), _C_LABEL(APTD), _C_LABEL(APTDpde)
-	.set	_C_LABEL(APTmap),0xFF800000
-	.set	_C_LABEL(APTD),0xFFBFE000
-	.set	_C_LABEL(APTDpde),0xFDFF7000+4*APDRPDROFF
+	.set	_C_LABEL(APTmap),(APDRPDROFF << PD_SHIFT)
+	.set	_C_LABEL(APTD),(_C_LABEL(APTmap) + APDRPDROFF * NBPG)
+	.set	_C_LABEL(APTDpde),(_C_LABEL(PTD) + 4*APDRPDROFF)
 
 /*
  * Access to each processes kernel stack is via a region of
@@ -134,7 +164,7 @@
  */
 	.set	_C_LABEL(kstack), USRSTACK
 	.globl	_C_LABEL(kstack)
-	.set	PPDROFF,0x3F6
+	.set	PPDROFF,UPTDI
 	.set	PPTEOFF,0x400-UPAGES	# 0x3FE
 
 #define	ENTRY(name) \
