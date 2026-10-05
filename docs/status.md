@@ -71,6 +71,51 @@ grew with them, and the kernel map had to hold the buffers.
 `0xf0000000` is the value two contemporaries and a third tree reached
 independently.
 
+### Moving KERNBASE: the map, computed
+
+The whole address map is interlocked, so this is a coordinated shift
+of twelve constants rather than one `#define`. `0xf0000000` is the
+target: `KPTDI_FIRST` becomes `0x3c0`, which is `0xf0000000 >> 22`,
+the slot OpenBSD 1996 and FreeBSD 2.0.5 both use, and NetBSD reached
+at 1.3.
+
+	constant                   now          after
+	PTDPTDI (pmap.h)           0x3f7        0x3bf
+	KPTDI_FIRST (pmap.h)       0x3f8        0x3c0
+	KPTDI_LAST (pmap.h)        0x3fa        0x3c2
+	USRSTACK                   0xFDBFE000   0xEFBFE000
+	VM_MAXUSER_ADDRESS         0xFDBFD000   0xEFBFD000
+	UPT_MIN_ADDRESS            0xFDC00000   0xEFC00000
+	UPT_MAX_ADDRESS            0xFDFF7000   0xEFFF7000
+	VM_MIN_KERNEL_ADDRESS      0xFDFF7000   0xEFFF7000
+	KPT_MIN_ADDRESS            0xFDFF8000   0xEFFF8000
+	KPT_MAX_ADDRESS            0xFDFFF000   0xEFFFF000
+	KERNBASE (param.h)         0xFE000000   0xF0000000
+	SYSTEM (locore.s)          0xFE000000   0xF0000000
+
+A uniform shift of 56 page-directory slots, 224 MB. Two things stay
+where they are, being at the top of the directory: `APDRPDROFF` at
+`0x3fe`, the alternate page directory, and `VM_MAX_KERNEL_ADDRESS` at
+`0xFF7FF000`.
+
+**Kernel virtual space: 24 MB to 248 MB.** At 64 MB of RAM the buffer
+map wants 26; at 512 MB about 200.
+
+Six places hardcode `0xfe000000` rather than using the macro and
+should become `KERNBASE` while they are being touched:
+`pmap.c:269`, `:367`, `:1703`, `trap.c:202`, `vm_machdep.c:305` and
+`:306`.
+
+The structure is the donors' and the move is a shift, not a redesign.
+NetBSD 1.0 has `PTDPTDI 0x3df`, `KPTDI 0x3e0`, `APTDPTDI 0x3ff` --
+the same three roles in the same order, 96 MB further down. Its
+`vmparam.h` writes each address as a literal with the formula above
+it in a comment, which is worth copying: these headers are read by
+the assembler as well as the compiler.
+
+Measure against `-m 16`, which is the only size that currently gets
+past `cpu_startup`.
+
 ### With 16 MB it goes further, and stops at a debugger
 
 	CPU: Pentium (586-class CPU)
