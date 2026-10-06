@@ -130,6 +130,27 @@ struct	disk {
 	struct disklabel dk_dd;	/* device configuration data */
 	long	dk_bc;		/* byte count left */
 	short	dk_skip;	/* blocks already transferred */
+	/*
+	 * AI-ONLY NOTE: dk_alive, which this driver had no equivalent
+	 * of. wdopen() tested only `unit >= NWD' and then set
+	 * dk_state and issued a read, so opening a drive the probe
+	 * never found faulted -- measured, with wd0 configured and no
+	 * disk attached to QEMU: a write through an unset pointer in
+	 * wdopen, `mov %eax,0x38(%ebx)' with %ebx at 6 and CR2 0x3e.
+	 *
+	 * hp300's sd.c is this tree's own answer. Its sdattach sets
+	 * `sc->sc_flags |= SDF_ALIVE' at :286 and its sdopen refuses
+	 * at :502 with `if (unit >= NSD || (sc->sc_flags & SDF_ALIVE)
+	 * == 0) return(ENXIO);'. One bit, set where the drive
+	 * attaches, tested where it opens.
+	 *
+	 * The i386's autoconfiguration already knows: isa/isa.c:106
+	 * stores the probe's result in id_alive and calls attach only
+	 * when it is non-zero, so wdattach runs for exactly the drives
+	 * that answered. It simply never wrote that fact anywhere
+	 * wdopen could see it.
+	 */
+	char	dk_alive;	/* probe found this drive */
 	char	dk_unit;	/* physical unit number */
 	char	dk_state;	/* control state */
 	u_char	dk_status;	/* copy of status reg. */
@@ -227,6 +248,14 @@ wdattach(dvp)
 	struct isa_device *dvp;
 {
 	int unit = dvp->id_unit;
+
+	/*
+	 * AI-ONLY NOTE: record that this drive answered, for wdopen to
+	 * test. isa/isa.c:107 calls this only when the probe returned
+	 * non-zero, so reaching here is the fact being recorded.
+	 * hp300/dev/sd.c:286 does the same with SDF_ALIVE.
+	 */
+	wddrives[unit].dk_alive = 1;
 
 	outb(wdc+wd_ctlr,12);
 	DELAY(1000);
@@ -668,7 +697,14 @@ wdopen(dev, flags, fmt)
 	int i, error = 0;
 
 	unit = wdunit(dev);
-	if (unit >= NWD) return (ENXIO) ;
+	/*
+	 * AI-ONLY NOTE: dk_alive, as hp300/dev/sd.c:502 tests
+	 * SDF_ALIVE. Without it this opened drives the probe never
+	 * found, set dk_state and issued a read through an unset
+	 * pointer.
+	 */
+	if (unit >= NWD || wddrives[unit].dk_alive == 0)
+		return (ENXIO);
 	du = &wddrives[unit];
 #ifdef notdef
 	if (du->dk_open){

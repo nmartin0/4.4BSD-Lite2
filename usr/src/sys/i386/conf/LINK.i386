@@ -105,6 +105,13 @@ device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
 # interrupt. cninit runs at the top of init386, before
 # isa_defaultirq, and none of that path depends on either.
 options		COMCONSOLE
+# AI-ONLY NOTE: wd0 and dk0, which this configuration left out while
+# isa/wd.c could not compile. It compiles now, and wdopen refuses a
+# drive the probe did not find, so a kernel built without a disk
+# attached reports rather than faults. The two lines are
+# GENERIC.i386's :17 and :18 verbatim.
+controller	wd0	at isa? port "IO_WD1" bio irq 14 vector wdintr
+disk		dk0	at wd0 drive 0
 device		com0	at isa? port "IO_COM1" tty irq 4 vector comintr
 device		ne0	at isa? port 0x320 net irq 9 vector neintr
 device we0 at isa? port 0x280 net irq 3 iomem 0xd0000 iosiz 8192 vector weintr
