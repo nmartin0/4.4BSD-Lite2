@@ -83,6 +83,7 @@ trap(frame)
 {
 	register int i;
 	register struct proc *p = curproc;
+	struct pcb *pcb;
 	u_quad_t sticks;
 	int ucode, type, code, eva;
 	extern int cold;
@@ -90,16 +91,62 @@ trap(frame)
 if(cold) goto we_re_toast;
 	frame.tf_eflags &= ~PSL_NT;	/* clear nested trap XXX */
 	type = frame.tf_trapno;
-	
-	if (curpcb && curpcb->pcb_onfault && frame.tf_trapno != 0xc) {
-copyfault:	frame.tf_eip = (int)curpcb->pcb_onfault;
+
+	/*
+	 * AI-ONLY NOTE: pcb, derived from the process, where this used
+	 * curpcb throughout.
+	 *
+	 * curpcb is set in exactly one place, the context switch at
+	 * i386/locore.s:1689, so it is null until the scheduler first
+	 * runs. initclocks() enables interrupts before that, at
+	 * kern/init_main.c:214, and any trap or interrupt taken in
+	 * between entered this function with curpcb null. Four of the
+	 * five dereferences below were unguarded -- only the one on
+	 * this line tested it -- so trap() faulted, re-entered itself,
+	 * and recursed until the stack was gone.
+	 *
+	 * Measured under build/shim: 64 page faults at the same
+	 * instruction with CR2 0x000000f8, which is pcb_flags' offset
+	 * read from a null pointer, then a fault on the stack itself
+	 * at CR2 0xefbfdffc, then a double fault. The clock interrupt
+	 * had fired exactly once before it.
+	 *
+	 * NetBSD 1.0's trap.c:183-189 is this, and says why:
+	 *
+	 *	if ((p = curproc) == 0)
+	 *		p = &proc0;
+	 *	/* can't use curpcb, as it might be NULL; and we have
+	 *	   p in a register anyway *\/
+	 *	pcb = &p->p_addr->u_pcb;
+	 *
+	 * curpcb appears once in their whole file, in that comment.
+	 * OpenBSD 1996 reaches the same arrangement independently,
+	 * trap.c:184 and :230. FreeBSD 2.0.5 kept curpcb and guarded
+	 * each use instead -- and missed one, at its trap.c:426, which
+	 * is this same bug in their tree.
+	 *
+	 * Taking the structural fix rather than more guards: guarding
+	 * means remembering at five sites, and both trees that did it
+	 * that way have missed one.
+	 *
+	 * proc0.p_addr is set in init386 at machdep.c:1013, which runs
+	 * from locore.s:503 before main(), and that function
+	 * dereferences proc0.p_addr->u_pcb itself at :1132 and :1155 --
+	 * so the fallback is valid long before interrupts are enabled.
+	 */
+	if (p == 0)
+		p = &proc0;
+	pcb = &p->p_addr->u_pcb;
+
+	if (pcb && pcb->pcb_onfault && frame.tf_trapno != 0xc) {
+copyfault:	frame.tf_eip = (int)pcb->pcb_onfault;
 		return;
 	}
 
 	if (ISPL(frame.tf_cs) == SEL_UPL) {
 		type |= T_USER;
 		p->p_md.md_regs = (int *)&frame;
-		curpcb->pcb_flags |= FM_TRAP;	/* used by sendsig */
+		pcb->pcb_flags |= FM_TRAP;	/* used by sendsig */
 		sticks = p->p_sticks;
 	}
 
@@ -217,7 +264,7 @@ copyfault:	frame.tf_eip = (int)curpcb->pcb_onfault;
 		}
 
 		if (type == T_PAGEFLT) {
-			if (curpcb->pcb_onfault)
+			if (pcb->pcb_onfault)
 				goto copyfault;
 			printf("vm_fault(%x, %x, %x, 0) -> %x\n",
 			       map, va, ftype, rv);
@@ -291,7 +338,7 @@ out:
 		}
 	}
 	curpriority = p->p_priority;
-	curpcb->pcb_flags &= ~FM_TRAP;	/* used by sendsig */
+	pcb->pcb_flags &= ~FM_TRAP;	/* used by sendsig */
 }
 
 /*
@@ -322,6 +369,14 @@ syscall(frame)
 
 	code = frame.sf_eax;
 	p->p_md.md_regs = (int *)&frame;
+	/*
+	 * AI-ONLY NOTE: still curpcb here, unlike trap() above. A
+	 * system call can only arrive from user mode -- the panic two
+	 * lines up enforces it -- so a process is current and curpcb
+	 * is set. NetBSD 1.0's syscall() uses curpcb likewise; its
+	 * comment about curpcb being possibly null is in trap(), which
+	 * is reached before the first context switch, and this is not.
+	 */
 	curpcb->pcb_flags &= ~FM_TRAP;	/* used by sendsig */
 	params = (caddr_t)frame.sf_esp + sizeof (int) ;
 
