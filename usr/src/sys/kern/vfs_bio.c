@@ -273,14 +273,74 @@ allocbuf(a1, a2)
 }
 
 struct buf *
-getnewbuf(a1, a2)
-	int a1, a2;
+/*
+ * AI-ONLY NOTE: written, not restored; see count_lock_queue.
+ *
+ * The queue scan is Berkeley's, from BQ_AGE downward and stopping
+ * before BQ_LOCKED, which is `for (dp = &bufqueues[BQ_AGE]; dp >
+ * bufqueues; dp--)' in the encumbered file. NetBSD writes the same
+ * two queues out by name. Berkeley's loop is kept because this
+ * file's BQUEUES ordering is what gives it meaning: BQ_LOCKED 0,
+ * BQ_LRU 1, BQ_AGE 2, BQ_EMPTY 3, declared just above.
+ *
+ * The trace() call is restored. <sys/trace.h>:46 defines TR_BRELSE
+ * and this file calls trace() nowhere, because the bodies that called
+ * it were deleted; kern/vfs_cluster.c, ufs/ffs/ffs_inode.c and
+ * ufs/ufs/ufs_bmap.c still do, so it is live idiom and the constant
+ * exists for this call. NetBSD dropped it. Restoring it is this
+ * tree's own intent, as B_EINTR was in biowait.
+ *
+ * Not taken from NetBSD: they also clear b_dev to NODEV and zero
+ * b_blkno, b_lblkno and b_iodone here. Berkeley does not, and the
+ * callers -- getblk and geteblk -- set those themselves before the
+ * buffer is used. Adding the clearing would be an improvement of
+ * theirs, not a restoration of this file.
+ */
+getnewbuf(slpflag, slptimeo)
+	int slpflag, slptimeo;
 {
+	register struct buf *bp;
+	register struct bqueues *dp;
+	register struct ucred *cred;
+	int s;
 
-	/*
-	 * Body deleted.
-	 */
-	return ((struct buf *)0);
+loop:
+	s = splbio();
+	for (dp = &bufqueues[BQ_AGE]; dp > bufqueues; dp--)
+		if (dp->tqh_first)
+			break;
+	if (dp == bufqueues) {		/* no free blocks */
+		needbuffer = 1;
+		(void) tsleep((caddr_t)&needbuffer, slpflag | (PRIBIO + 1),
+			"getnewbuf", slptimeo);
+		splx(s);
+		return (NULL);
+	}
+	bp = dp->tqh_first;
+	bremfree(bp);
+	bp->b_flags |= B_BUSY;
+	splx(s);
+	if (bp->b_flags & B_DELWRI) {
+		(void) bawrite(bp);
+		goto loop;
+	}
+	trace(TR_BRELSE, pack(bp->b_vp, bp->b_bufsize), bp->b_lblkno);
+	if (bp->b_vp)
+		brelvp(bp);
+	if (bp->b_rcred != NOCRED) {
+		cred = bp->b_rcred;
+		bp->b_rcred = NOCRED;
+		crfree(cred);
+	}
+	if (bp->b_wcred != NOCRED) {
+		cred = bp->b_wcred;
+		bp->b_wcred = NOCRED;
+		crfree(cred);
+	}
+	bp->b_flags = B_BUSY;
+	bp->b_dirtyoff = bp->b_dirtyend = 0;
+	bp->b_validoff = bp->b_validend = 0;
+	return (bp);
 }
 
 /*
@@ -302,7 +362,7 @@ biowait(bp)
 
 	s = splbio();
 	while ((bp->b_flags & B_DONE) == 0)
-		tsleep(bp, PRIBIO + 1, "biowait", 0);
+		tsleep((caddr_t)bp, PRIBIO + 1, "biowait", 0);
 	splx(s);
 
 	/* Check for interruption first, then for errors. */
@@ -361,11 +421,18 @@ int
  * `register' is used on the buffer and index locals, as bufinit()
  * and vfs_bufstats() do -- the two intact functions that walk
  * buffers. A null buffer pointer is `NULL', as bremfree writes it
- * twice. And tsleep is called without a cast: <sys/proc.h>:278
- * declares it `tsleep __P((void *chan, ...))', where the encumbered
- * file's older `sleep' took a caddr_t and was written
- * `sleep((caddr_t)bp, PRIBIO)'. Carrying that cast forward would be
- * a vestige of an interface this tree no longer has.
+ * twice. And tsleep's channel is cast to caddr_t.
+ *
+ * That last one was got wrong once and is worth the space.
+ * <sys/proc.h>:278 declares `tsleep __P((void *chan, ...))', so the
+ * cast is unnecessary and a revision of this file dropped it on that
+ * ground. But the encumbered vfs_bio.c casts in both of its sleeping
+ * calls -- `tsleep((caddr_t)&needbuffer, ...)' at its :606 and
+ * `sleep((caddr_t)bp, PRIBIO)' at :652 -- and kern/ casts at
+ * seventeen call sites against seven that do not. NetBSD writes
+ * `tsleep(bp, ...)' with no cast at their :537, :698 and :755.
+ * Dropping it was taking NetBSD's spelling while claiming to follow
+ * this tree's, which is the one thing these notes exist to prevent.
  */
 count_lock_queue()
 {
