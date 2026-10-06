@@ -188,6 +188,13 @@ same file end to end.** Not grep for the symbol -- read the file. The
 answer is usually there, and it is usually smaller than whatever was
 about to be designed.
 
+The second case was `trap()` dereferencing a null `curpcb`. Reading
+NetBSD 1.0's `trap.c` gave not only the fix but a comment explaining
+it -- "can't use curpcb, as it might be NULL; and we have p in a
+register anyway" -- and `curpcb` appears exactly once in their whole
+file, in that comment. Grep for `curpcb` would have found the five
+sites in ours; reading theirs found the reason there are none.
+
 What the failed attempts are good for is diagnosis rather than cure.
 Breaking the kernel by moving twelve of the twenty-one constants is
 what found `UPTDI`, found `pmap.c:1278`'s hardcoded `for(x=0x3f6; x <
@@ -195,6 +202,27 @@ what found `UPTDI`, found `pmap.c:1278`'s hardcoded `for(x=0x3f6; x <
 whole map. None of that would have come from reading headers. So
 attempt things -- but attempt them after reading the donor, not
 instead of it.
+
+### When a donor guards repeatedly, check whether they missed one
+
+A fault can be fixed structurally, so it cannot recur, or by guarding
+each place it shows up. Where the donors split on that, the ones who
+guarded are worth counting rather than reading.
+
+`curpcb` in `trap()` is the case. It is null until the first context
+switch, and `initclocks()` enables interrupts before that. NetBSD 1.0
+and OpenBSD 1996 both stopped using it in `trap()` and derived the
+pcb from the process. FreeBSD 2.0.5 kept it and guarded each use --
+`if (curpcb && curpcb->pcb_onfault)` at its `trap.c:321`, `:496` and
+`:606` -- **and missed one, at `:426`**. 4.4BSD-Lite2 guarded one of
+five.
+
+So two trees guarded and both have a bare dereference left. That is
+evidence about the approach, not a view about style: guarding means
+remembering at every site, and the record says nobody does.
+
+**Count the guards in the donor that guards.** If the count is short,
+the structural fix is the one with the argument behind it.
 
 ### What the markers settle
 
