@@ -111,7 +111,22 @@ if(cold) goto we_re_toast;
 	 * at CR2 0xefbfdffc, then a double fault. The clock interrupt
 	 * had fired exactly once before it.
 	 *
-	 * NetBSD 1.0's trap.c:183-189 is this, and says why:
+	 * Berkeley's own ports already do the deriving half. hp300's
+	 * trap.c has no curpcb in it at all -- it writes `p = curproc'
+	 * at :226 and then `p->p_addr->u_pcb.pcb_onfault' at :245 and
+	 * :256 -- and pmax and luna68k likewise mention curpcb zero
+	 * times. That is the source for this; the donors confirm it.
+	 *
+	 * What is NOT Berkeley's is the fallback two lines below.
+	 * hp300 does not guard p, because on that port nothing reaches
+	 * trap() before the first context switch. Here the clock does:
+	 * initclocks() enables interrupts at kern/init_main.c:214 and
+	 * the scheduler has not run. So `if (p == 0) p = &proc0;' is
+	 * taken from NetBSD, and it is the one piece of this function
+	 * that is a donor's rather than this tree's.
+	 *
+	 * NetBSD 1.0's trap.c:183-189 is both halves together, and says
+	 * why:
 	 *
 	 *	if ((p = curproc) == 0)
 	 *		p = &proc0;
