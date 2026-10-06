@@ -228,13 +228,13 @@ incore(vp, blkno)
 	struct vnode *vp;
 	daddr_t blkno;
 {
-	struct buf *bp;
+	register struct buf *bp;
 
 	for (bp = BUFHASH(vp, blkno)->lh_first; bp; bp = bp->b_hash.le_next)
 		if (bp->b_lblkno == blkno && bp->b_vp == vp &&
 		    (bp->b_flags & B_INVAL) == 0)
 			return (bp);
-	return ((struct buf *)0);
+	return (NULL);
 }
 
 struct buf *
@@ -296,13 +296,13 @@ getnewbuf(a1, a2)
  * own intent rather than importing NetBSD's.
  */
 biowait(bp)
-	struct buf *bp;
+	register struct buf *bp;
 {
 	int s;
 
 	s = splbio();
 	while ((bp->b_flags & B_DONE) == 0)
-		tsleep((caddr_t)bp, PRIBIO + 1, "biowait", 0);
+		tsleep(bp, PRIBIO + 1, "biowait", 0);
 	splx(s);
 
 	/* Check for interruption first, then for errors. */
@@ -355,11 +355,22 @@ int
  * it predates this tree's own conversion to <sys/queue.h>: it walks
  * `bufqueues[BQ_LOCKED].qe_next' where this file declares
  * TAILQ_HEAD and its intact bremfree uses tqe_next and TAILQ_REMOVE.
+ *
+ * Three smaller points of this file's style, settled by its own
+ * intact functions and to be followed by the bodies still to come.
+ * `register' is used on the buffer and index locals, as bufinit()
+ * and vfs_bufstats() do -- the two intact functions that walk
+ * buffers. A null buffer pointer is `NULL', as bremfree writes it
+ * twice. And tsleep is called without a cast: <sys/proc.h>:278
+ * declares it `tsleep __P((void *chan, ...))', where the encumbered
+ * file's older `sleep' took a caddr_t and was written
+ * `sleep((caddr_t)bp, PRIBIO)'. Carrying that cast forward would be
+ * a vestige of an interface this tree no longer has.
  */
 count_lock_queue()
 {
-	struct buf *bp;
-	int n;
+	register struct buf *bp;
+	register int n;
 
 	for (n = 0, bp = bufqueues[BQ_LOCKED].tqh_first; bp;
 	    bp = bp->b_freelist.tqe_next)
