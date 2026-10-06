@@ -47,6 +47,7 @@
 #include <sys/time.h>
 #include <sys/kernel.h>
 #include <machine/segments.h>
+#include <machine/cpu.h>		/* struct clockframe, for clkintr */
 #include <i386/isa/icu.h>
 #include <i386/isa/isa.h>
 #include <i386/isa/rtc.h>
@@ -257,6 +258,61 @@ enablertclock() {
 	INTREN(IRQ0);
 	setidt(ICU_OFFSET+0, &V(clk), SDT_SYS386IGT, SEL_KPL);
 	splnone();
+}
+
+/*
+ * AI-ONLY NOTE: clkintr, which this port did not have, and which the
+ * generated interrupt vector now calls in place of hardclock.
+ *
+ * The vector builds a complete struct intrframe on the stack: the
+ * pushes in INTR_HEAD and INTR_TAIL, i386/isa/icu.h:66 and :72,
+ * match machine/frame.h:71 field for field -- `pushl $unit' is
+ * if_vec, then cpl as if_ppl, %es, %ds and pushal's registers, with
+ * INTR_HEAD's $T_ASTFLT and $offst as the trapno and err
+ * placeholders. What it does not do is pass the frame's ADDRESS. The
+ * call lands with that first word as its argument, so hardclock,
+ * declared taking a `struct clockframe *', received if_vec's value:
+ * zero.
+ *
+ * Measured under build/shim: hardclock faulted at its first use of
+ * the frame, `movl 0x3c(%esi),%eax' with %esi zero and CR2 0x3c.
+ *
+ * FreeBSD 2.0.5 has the same vector and the same problem and solves
+ * it here. Its isa/clock.c:124, in an #if 0 beside the variant it
+ * ships, is exactly
+ *
+ *	void
+ *	clkintr(struct clockframe frame)
+ *	{
+ *		hardclock(&frame);
+ *		setdelayed();
+ *	}
+ *
+ * taking the frame BY VALUE, which is what is on the stack, and
+ * handing hardclock its address. setdelayed belongs to timer
+ * machinery this port does not have and is left out.
+ *
+ * NetBSD 1.0 and OpenBSD 1996 solve it the other way, pushing %esp
+ * explicitly -- `movl %esp,%eax / * 0 means frame pointer * /' at
+ * their vector.s:230 -- and tossing it with `addl $4,%esp' after the
+ * call. Not taken, for an architectural reason rather than a count.
+ * Their vectors walk a chain of struct intrhand per IRQ, where a
+ * registered argument of zero is the signal to substitute the frame
+ * pointer; this port has no such chain, config generates one
+ * hardcoded handler per vector, and INTREXIT1 jumps to doreti
+ * without popping an argument. Taking their fix would mean importing
+ * their interrupt dispatch. Their two versions are one witness, not
+ * two: OpenBSD forked from NetBSD in 1995 and the text is identical.
+ *
+ * FreeBSD's vector.s says `from: vector.s, 386BSD 0.1 unknown
+ * origin', which is this port's ancestor too. NetBSD rewrote theirs.
+ */
+void
+clkintr(frame)
+	struct clockframe frame;
+{
+
+	hardclock(&frame);
 }
 
 /*

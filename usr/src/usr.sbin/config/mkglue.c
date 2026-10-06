@@ -356,10 +356,10 @@ vector() {
 #define	VEC(name)	.align 4; .globl _C_LABEL(V/**/name); _C_LABEL(V/**/name):\n\n");
 
 	fprintf(fp,"\
-	.globl	_C_LABEL(hardclock)\n\
+	.globl	_C_LABEL(clkintr)\n\
 VEC(clk)\n\
 	INTR1(0, _C_LABEL(highmask), 0)\n\
-	call	_C_LABEL(hardclock) \n\
+	call	_C_LABEL(clkintr) \n\
 	INTREXIT1\n\n\n");
 
 	count=0;

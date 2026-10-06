@@ -97,7 +97,25 @@ struct clockframe {
  */
 #define	CLKF_INTR(framep)	(0)	/* XXX */
 
-#define	resettodr()	/* no todr to set */
+/*
+ * AI-ONLY NOTE: no `#define resettodr()' here, where this file said
+ * `/ * no todr to set * /'. This port has one: isa/clock.c:247
+ * implements resettodr() and :180 inittodr(), both reading the
+ * MC146818 through rtcin(). The macro defined away a function thirty
+ * lines from the file that provides it, so any source including both
+ * turned the definition into `{}' -- which is what happens the
+ * moment isa/clock.c needs this header for struct clockframe.
+ *
+ * No donor has the macro. NetBSD 1.0, FreeBSD 2.0.5 and OpenBSD 1996
+ * all leave resettodr to the port's clock.c, and both of the first
+ * two implement it exactly as this tree does. FreeBSD's cpu.h
+ * mentions it only in two sysctl names, CPU_ADJKERNTZ and
+ * CPU_DISRTCSET.
+ *
+ * So this is Berkeley's own code made consistent with Berkeley's own
+ * code, not an import: of the two halves, the macro is the one
+ * contradicted by the tree.
+ */
 
 /*
  * Preempt the current process if in interrupt from user mode,

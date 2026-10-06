@@ -38,6 +38,21 @@
  */
 
 /*
+ * AI-ONLY NOTE: a multiple-inclusion guard, which this file did not
+ * have. machine/cpu.h includes it, so a source including both --
+ * isa/clock.c now does, for struct clockframe -- gets `redefinition
+ * of struct segment_descriptor' and two more like it.
+ *
+ * FreeBSD 2.0.5's machine/segments.h:41 is _MACHINE_SEGMENTS_H_,
+ * taken here, and OpenBSD 1996 guards it too; NetBSD 1.0 does not.
+ * Eight headers in this port already carry one -- ansi.h, endian.h,
+ * npx.h, param.h, pmap.h, stdarg.h, types.h and varargs.h -- so it
+ * is this tree's convention as much as a donor's.
+ */
+#ifndef _MACHINE_SEGMENTS_H_
+#define	_MACHINE_SEGMENTS_H_
+
+/*
  * 386 Segmentation Data Structures and definitions
  *	William F. Jolitz (william@ernie.berkeley.edu) 6/20/1989
  */
@@ -261,3 +276,5 @@ struct region_descriptor {
 #define	SEGEX_TI	0x04	/* local descriptor table */
 				/* other bits are affected descriptor index */
 #define SEGEX_IDX(s)	((s)>>3)&0x1fff)
+
+#endif /* !_MACHINE_SEGMENTS_H_ */
