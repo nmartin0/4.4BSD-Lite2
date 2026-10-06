@@ -408,6 +408,47 @@ Nothing can run until these exist. They are not to be taken from XNU
 or Rhapsody, which keep the UNIX System Laboratories notice on the
 same files (see precedent.md); NetBSD 1.0 is the BSD-licensed donor.
 
+### Why not 386BSD 0.1, which is closer
+
+The obvious objection, and it has to be answered here because every
+other rule in `precedent.md` points the other way: 386BSD 0.1 is
+Net/2-derived, so its `kern/vfs_bio.c` carries **Berkeley's actual
+pre-settlement bodies** -- the very code that was removed, not a
+reimplementation of it. By the usual test, earliest and closest to
+Berkeley, it wins outright.
+
+**It is disqualified by exactly that.** The settlement removed those
+bodies because USL claimed them. Net/2 predates the settlement and
+therefore still contains what was claimed. Taking them back from
+386BSD would reintroduce precisely what Berkeley was required to
+remove, into a tree whose premise is that its provenance is clean.
+
+So this is the one place in the project where the earliest donor is
+disqualified *by* its earliness, and the correct source is the first
+post-settlement rewrite. NetBSD 1.0's `vfs_bio.c` is BSD-licensed
+code written after the judgment, by people who were bound by it.
+
+The same reasoning rules out 4.4BSD encumbered, which the Unix
+History Repo carries as `BSD-4_4` and which has every one of the 35
+bodies intact. It is readable there, and it is readable for the same
+reason XNU is readable: to understand what the shape was. Not to copy.
+
+### What this means for reading the stubs
+
+The settlement is a copyright event, not a technical one. The function
+signatures, the call sites, the structures they operate on and the
+comments around them are all still here, because only the bodies went.
+So the task is not to design a buffer cache: it is to write bodies
+that satisfy an interface this tree fully specifies, with a
+BSD-licensed implementation of the same interface available to check
+against.
+
+`kern/vfs_bio.c`'s fourteen are the first to be reached by running
+code. `i386: wd refuses a drive the probe did not find, and is
+configured` records the moment: with a disk attached, `wd0` probes,
+attaches, unmasks IRQ 14, and `wdopen` then calls `geteblk(512)`,
+which returns null because its body is one of these.
+
 ## What is not being done
 
 None of the above is being restored. This fork is 4.4BSD-Lite2 as
