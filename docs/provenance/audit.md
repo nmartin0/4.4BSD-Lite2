@@ -475,14 +475,49 @@ the 386 and left unfinished -- which is why the tests match and only
 the bodies differ. `docs/provenance/precedent.md` now carries what
 follows from that for the whole VM subsystem.
 
-So the next piece of work starts at hp300 and Mach 2.5 for the
-*shape* -- allocate a page, zero it, install it in the directory,
-account for it -- and at the i386's own self-mapping for the
-*mechanism*, because the m68k's global `pt_map` has no counterpart
-here. The descendants' Mach-era i386 pmaps are the right corroboration
-for the second half, being the same codebase facing the same problem,
-and OpenBSD 1996's comment is the clearest statement of what the
-problem is.
+**And the second correction follows immediately: there is no function
+to write.** NetBSD 1.0's i386 `pmap.c` -- a Mach-era pmap of the same
+lineage -- has the identical comment at its line 1070 and does this:
+
+	pte = pmap_pte(pmap, va);
+	if (!pte)
+		panic("ptdi %x", pmap->pm_pdir[PTDPTDI]);
+
+and its `pmap_pte` at :1269 returns `NULL` when the directory entry is
+absent. FreeBSD panics too. **No i386 pmap in the Mach lineage
+allocates a page table in `pmap_enter`.**
+
+`pmap_pte`'s body says why:
+
+	ptp = PTmap;                    /* the self-mapped region */
+	return ptp + i386_btop(va);
+
+The page tables live in the self-mapped window. Touching an absent one
+takes a page fault, and `vm_fault` resolves it against the object
+backing `UPT_MIN_ADDRESS`. **The VM system allocates them; the pmap
+never does.** That is the whole reason the m68k's explicit `pt_map`
+has no counterpart here, and why hp300's `pmap_enter_ptpage` has no
+i386 equivalent in any tree.
+
+So `pmap_enter` reaching an invalid directory entry is not a missing
+function. It is a symptom: something upstream failed to fault the page
+table in, and the donors panic there because on a working i386 it
+cannot happen.
+
+### The question, restated
+
+Not *"write `pmap_enter_ptpage` for the i386"* -- no BSD has one and
+the architecture does not want one. But **"why is `pmap_enter` called
+for an address whose page table was never faulted in?"**, which points
+at `pmap_pinit`, at the object backing the `UPT` region, or at the
+caller.
+
+This entry has now been wrong twice in opposite directions -- first
+that the answer was outside this tree, then that it was sitting in
+hp300 ready to transplant. Both were settled by reading further: the
+donor's full sentence the first time, the donor's actual code the
+second. Recorded in that shape deliberately, because the sequence is
+more instructive than the conclusion.
 
 ### Formerly: where the code should be revisited
 

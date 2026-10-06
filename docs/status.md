@@ -184,11 +184,24 @@ debug pager someone left in. The kernel is not hung; it is waiting
 for a keystroke at a serial console nobody is typing at. QEMU takes
 stdin, so pressing a key continues it.
 
-The code beneath is unfinished in the way the comment admits: it
-detects a missing page table, prints, and falls into `pmap_pte` with
-an invalid page directory entry regardless. A seventh instance of the
-pattern in `sys/i386` -- the thing that should happen is written down
-and not done.
+The code beneath looks unfinished -- it detects a missing page table,
+prints, and falls into `pmap_pte` with an invalid page directory entry
+regardless -- but `docs/provenance/audit.md` establishes that it is
+not a missing function.
+
+No i386 pmap in the Mach lineage allocates a page table here. NetBSD
+1.0's has the same comment at its `pmap.c:1070` and panics; FreeBSD
+2.0.5 panics; and `pmap_pte` returns `NULL` because the page tables
+live in the self-mapped window at `UPT_MIN_ADDRESS`, where touching an
+absent one takes a fault that `vm_fault` resolves. **The VM system
+allocates them; the pmap never does.**
+
+So reaching this line is a symptom rather than a gap: something
+upstream failed to fault the page table in. The question is why
+`pmap_enter` is called for an address whose table was never faulted,
+which points at `pmap_pinit`, at the object backing the `UPT` region,
+or at the caller -- not at writing hp300's `pmap_enter_ptpage` for the
+i386, which no BSD has and the architecture does not want.
 
 Then **`vfs_busy` dereferences a null mount pointer**, `trap type 12`
 at `fe017bf1`, because there is no root device: `rootdev` is
