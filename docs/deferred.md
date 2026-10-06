@@ -229,8 +229,52 @@ sites, seven in `wd.c` and two in `fd.c`. `wt.c` is out for a
 different reason: a static declaration of `cmds` following a
 non-static one.
 
-**Donor checked, not assumed: FreeBSD 2.0.5 alone.** NetBSD 1.0
-rewrote `wd.c` around a softc and TAILQ; OpenBSD 1996 ships none.
+**That description is right about the symptom and wrong about the
+remedy.** Traced across six trees, the whole picture is:
+
+	386BSD 0.1   b_actf and b_actl are MACROS over av_forw and
+	             av_back, and b_forw/b_back exist as the hash
+	             chain. wd.c keeps both queue levels in struct buf
+	             and every field it needs is there.
+	4.4BSD       struct buf becomes b_actf, **b_actb as real
+	             fields; av_forw, av_back, b_forw and b_back are
+	             deleted. wd.c arrives from 386BSD unchanged --
+	             seven old-name uses, already broken.
+	Lite1        identical, seven.
+	Lite2        identical, seven.
+
+So nothing regressed between the Lite releases and there is no
+earlier permissively licensed version that does it differently: the
+driver was broken on arrival in the encumbered release, when the
+structure changed underneath it. It is also not an i386 oddity --
+`vax/bi/kdb.c`, `vax/uba/uda.c`, `vax/uba/np.c`, `vax/uba/tmscp.c`,
+`vax/vax/mscp.c`, `tahoe/vba/ik.c` and `tahoe/vba/cy.c` have the same
+break, and all of them are out of their configurations too.
+
+**The fix is not a rename.** Seven of the nine sites are, but
+`wd.c:313-318` keeps a second queue -- the controller's list of
+*drives*, chained through `b_forw`, while `dp->b_actf` is already the
+head of that drive's *buffer* queue. One field cannot be both.
+
+**And the answer is in this tree, not a donor.** Berkeley's own
+working disk drivers already separate the two: hp300's `sd.c` uses
+`struct buf`'s `b_actf` for the per-drive buffer queue via
+`disksort()`, and keeps the controller's queue of devices in its own
+`struct devqueue sc_dq` (`hp300/dev/scsivar.h:41`), chained by
+`dq_forw`/`dq_back` inside the softc. Two levels, two structures,
+neither borrowing the other's fields.
+
+That is exactly what NetBSD 1.0 later did with a `TAILQ` of
+`wd_softc`. FreeBSD 2.0 and 2.0.5 instead flatten to one level,
+chaining buffers directly in `wdtab[ctrlr]`, which discards the
+controller-level queue `wd.c` was written around and hp300 still
+uses.
+
+So: **per-drive buffer queue stays in `struct buf` through
+`disksort()` and `b_actf`; the controller's drive list moves into
+`wd_softc`**, as hp300 does, using the `sys/queue.h` macros `struct
+buf` itself already uses for `b_hash` and `b_freelist`. NetBSD is
+confirmation; hp300 is the source.
 
 ### `GENERIC.i386` is left broken on purpose
 
