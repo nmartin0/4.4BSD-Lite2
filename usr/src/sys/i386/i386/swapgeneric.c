@@ -63,6 +63,19 @@
 #include "fd.h"
 
 /*
+ * AI-ONLY NOTE: isa_driver, not driver. isa/wd.c:163 and isa/fd.c
+ * define these as `struct isa_driver'; the former declaration here
+ * said `struct driver', which is hp300's and luna68k's framework and
+ * not this port's.
+ */
+#if NWD > 0
+extern struct isa_driver wddriver;
+#endif
+#if NFD > 0
+extern struct isa_driver fddriver;
+#endif
+
+/*
  * Generic configuration;  all in one
  */
 dev_t	rootdev = makedev(0,0);
@@ -109,15 +122,48 @@ int	dmmin, dmmax, dmtext;
  * NWD becomes 1 and the entry appears by itself with no further
  * edit.
  */
+/*
+ * AI-ONLY NOTE: gc_driver is back, as caddr_t, which is what it has
+ * always been in this tree.
+ *
+ * `i386: genericconf carries no driver, and the kernel links'
+ * removed this field, reporting that `extern struct driver wddriver'
+ * here collided with the `struct isa_driver wddriver' that isa/wd.c
+ * defines at line 163, and took FreeBSD 2.0.5's two-field table
+ * instead. The collision was real and the link did close, but the
+ * diagnosis was wrong and so was the remedy.
+ *
+ * There is no collision in Berkeley's design. Every port of this tree
+ * that has a working setconf declares the field caddr_t -- an opaque
+ * pointer -- and casts its own driver structure in:
+ *
+ *	hp300     { (caddr_t)&rddriver, "rd", makedev(2, 0) }
+ *	pmax      { (caddr_t)&rzdriver, "rz", makedev(0, 0) }
+ *	vax       { (caddr_t)&hpdriver, "hp", makedev(0, 0) }
+ *
+ * and luna68k and news3400 likewise, five ports with the identical
+ * three fields. The type is generic precisely so each port can put
+ * its own kind of driver there. What was wrong in this file was the
+ * extern: it named `struct driver', which is hp300's and luna68k's
+ * framework, where this port has isa_driver. Declaring it correctly
+ * and casting is all that was ever needed.
+ *
+ * NetBSD 1.0's i386 keeps the same three fields, with a
+ * `struct cfdriver *' for its own framework. FreeBSD 2.0.5 dropped
+ * the field and walks a kern_devconf database instead, which does not
+ * exist here; that was the wrong donor for this file and the earlier
+ * commit followed it.
+ */
 struct	genericconf {
+	caddr_t	gc_driver;
 	char	*gc_name;
 	dev_t	gc_root;
 } genericconf[] = {
 #if NWD > 0
-	{ "wd",	makedev(0, 0),	},
+	{ (caddr_t)&wddriver,	"wd",	makedev(0, 0),	},
 #endif
 #if NFD > 0
-	{ "fd",	makedev(2, 0),	},
+	{ (caddr_t)&fddriver,	"fd",	makedev(2, 0),	},
 #endif
 	{ 0 },
 };
