@@ -211,33 +211,182 @@ import is listed where none was needed, and the next person reading
 `imports.md` sees a dependency on NetBSD that this tree does not
 have.
 
-### Still to read in this batch
+#### `i386 kernel assembly: name C symbols through _C_LABEL` — a
+#### citation that launders a donor through my own earlier commit
 
-	Import NetBSD 1.6's i386 ELF startup code, verbatim
-	crtbegin.c: drop NetBSD's binary identification note
-	libkvm: a cast is not an lvalue
-	libc/i386: name C symbols through _C_LABEL, for ELF
-	libc/i386: ldexp's inline asm, in the form that still compiles
-	Revision: makelist's sed line was not NetBSD 1.1's after all
-	libedit/makelist: build the include guard from the file's name
-	Revision: drop a trailing space from two ENTRY definitions
-	Kerberos is optional, as it is in every BSD of the period
-	librpc: declare cache_get and cache_set at file scope
-	libc: resolve sys_nerr the way this tree's own files do
-	lib/libl: add a Makefile for the lex run-time library
-	libutil: drop -I/sys from the compile flags
-	lib/csu/i386_elf: a Makefile in Lite2's own idiom
-	libc: install libc.tags under DESTDIR
-	libc: declare four static helpers at file scope
-	libc: depend on the target root's syscall.h
+A third kind, not in the original list and worth adding to it.
+
+That commit says the macro is *"already in this tree's
+`lib/libc/i386/DEFS.h` and `SYS.h`, put there for the same reason when
+libc was made to link as ELF."* True on 25 September. But `DEFS.h` had
+**zero** occurrences of `_C_LABEL` before 23 September, when
+`libc/i386: name C symbols through _C_LABEL, for ELF` put seven there
+— and that commit says plainly where they came from: *"The block here
+is NetBSD 1.5's `<machine/asm.h>`."*
+
+So the kernel change cited an import of this branch's own making as
+though it were Berkeley's. Nothing about the code is wrong — this tree
+has no i386 `<machine/asm.h>` at all, so there was no inward
+alternative — but the citation points at `lib/libc` when it should
+point at NetBSD 1.5.
+
+**"This tree already has it" has to mean Berkeley has it, not that an
+earlier commit of this branch put it there.** Every other `this tree`
+citation in the sweep was checked against that test and passes:
+`NKPDE`'s `APDRPDROFF`, `delay()`'s reference to `ldexp.c`, the `LINK`
+configuration's `config`, `sys_nerr`'s `gen/errlst.c` and `stdio.h`'s
+are all Berkeley's files.
+
+### Clean
+
+| commit | why |
+|---|---|
+| `Import NetBSD 1.6's i386 ELF startup code, verbatim` | question 3 of the three questions ends it: Lite2's `crt0.c` reads `kfp` uninitialised, clobbers `%ebx` where GCC keeps the GOT pointer, and reads `%ebp` where `-O2` emits no frame pointer. Splicing onto unsound code is the wrong trade, and the commit says so |
+| `libkvm: a cast is not an lvalue` | forced; the construct is invalid C and no tree accepts it |
+| `librpc: declare cache_get and cache_set at file scope` | forced; `static` inside a function body |
+| `libc: declare four static helpers at file scope` | forced; same |
+| `libc: resolve sys_nerr the way this tree's own files do` | sourced inward, to `gen/errlst.c`, which is Berkeley's |
+| `lib/csu/i386_elf: a Makefile in Lite2's own idiom` | the title says it |
+| `Revision: makelist's sed line was not NetBSD 1.1's after all` | already a correction of a citation |
+| `libc/i386: ldexp's inline asm` | already corrected in `REDO.md`: donor was NetBSD 1.0, not OpenBSD |
+
+**Batch 3 result: two findings in eighteen commits** — the `regex.c`
+import that was a shim over code already here, and the `_C_LABEL`
+citation that points inward at an outward import.
 
 ---
 
-## Batches not yet started
+---
 
-	4.  usr.bin/, usr.sbin/, bin/, sbin/
-	5.  build/ and the bootstrap tooling
-	6.  share/mk and the Makefiles
+## Batch 4 — userland (39 commits)
+
+### No findings, and one worth recording anyway
+
+#### `Import zopen.c from NetBSD 1.0 for sbin/savecore` — clean, but
+#### the tree does hold a compressor
+
+`savecore` writes compressed dumps through `zopen()`, and its Makefile
+names `zopen.c` with a `.PATH` into `usr.bin/compress` -- a directory
+Berkeley removed from the Lite releases for the LZW patent while
+leaving the `SUBDIR` entry behind.
+
+The sweep's question is whether this tree could have supplied it.
+There *is* a compressor here:
+
+	contrib/mh-6.8.3a/miscellany/compress-4.0/compress.c   1407 lines
+
+It is the standalone Thomas and Orost utility with a `main()`, and it
+has **zero** `zopen`, `zread` or `zwrite` symbols -- no library
+interface at all. Building one over it would be this project's own
+invention, where Berkeley's `zopen.c` is Berkeley's own file that the
+Lite releases dropped for a patent that expired in 2003. The import is
+right.
+
+Recorded because the next person grepping for a compressor will find
+`contrib/` and wonder, and the commit does not mention it.
+
+### The rest
+
+The remaining 38 are compiler-conformance fixes forced by GCC, and no
+tree's version differs because no version can:
+
+- `static` declared inside a function body -- `librpc`, `tip`,
+  `window`, `routed`, `XNSrouted`, four files in `libc`
+- a cast used as an lvalue -- `libkvm`
+- adjacent string literals and unclosed strings -- `ps`, `w`, `more`
+- headers found in the source directory rather than `/sys` --
+  `ftpd`, `mklocale`, `kdump`, `lfs_cleanerd`, `bad144`
+- Makefile variables naming libraries that exist -- `bsd.prog.mk`'s
+  `${LIBTERM}` and `${LIBRPC}`
+- Kerberos made optional, which is a configuration decision this tree
+  records in `docs/deferred.md` rather than a donor's code
+
+Where a donor is named in these it is as corroboration -- *"every BSD
+of the period does this"* -- not as a source. Two are already
+corrections of their own citations: `Revision: date the lorder
+citation, which pointed at the wrong decade` and `Revision: Kerberos
+can be built; we chose not to, and why`.
+
+**Batch 4 result: no findings in thirty-nine commits.**
+
+---
+
+---
+
+## Batches 5 and 6 — `build/`, `share/mk` (8 commits)
+
+**No findings, and none possible.** These are cross-build
+accommodations, and 4.4BSD-Lite2 does not cross-build: it assumes the
+compiler, the libraries and the headers of the machine it is running
+on.
+
+| commit | why this tree cannot supply it |
+|---|---|
+| `bsd.prog.mk: find libraries under DESTDIR, as NetBSD 1.0 does` | Lite2 has no `DESTDIR`; every library variable names an absolute path on the running system |
+| `share/mk: add HOSTCC, for programs the build runs itself` | `sys.mk` has no variable for a program compiled and then run during the build, because Lite2 never needs one |
+| `bsd.lib.mk: archive with ar cq, not cTq` | GNU `ar`'s `T` means a thin archive where 4.4BSD's meant truncate names; a host-tool difference |
+| `share/mk: end a SUBDIR entry when its cd fails` | a host-shell behaviour, not a donor's code |
+| `bsd.prog.mk: ${LIBTERM}`, `${LIBRPC}` | naming libraries that exist in this tree — sourced inward |
+
+---
+
+## Result
+
+	batch            commits   findings
+	1  i386 kernel        25      3
+	2  sys/ elsewhere      4      0
+	3  lib/               18      2
+	4  userland           39      0
+	5  build, share/mk     8      0
+	                     ---    ---
+	                      94      5
+
+Ninety-four readings over eighty-seven commits — several touch more
+than one area and were read in each.
+
+**Five findings, none of them a code defect.** In every case the code
+is right, because the donors and this tree agree about what the code
+should be. What is wrong in five places is where the note sends the
+next reader.
+
+Four kinds, of which the first three were anticipated and the fourth
+was not:
+
+1. **Cited outward, available inward** — the clockframe, `-Ttext`,
+   `DELAY`. Three.
+2. **Taken wholesale where a splice would serve** — `regex.c`. One.
+3. **Guard imported without checking the condition** — `trap()`'s
+   `proc0` fallback. Already corrected before the sweep.
+4. **Cited inward at an outward import** — `_C_LABEL`. One. The
+   kernel change cited `lib/libc`, which had the macro only because
+   an earlier commit of this branch took it from NetBSD 1.5.
+
+### Where the code should be revisited, not just the note
+
+One: **sparc's `delay()`**. It is not merely present but closer to
+what this port needs than the spin loops in hp300, pmax, luna68k and
+news3400 — a macro over a function that reads a hardware counter.
+This port's `delay()` now does the same thing against the 8254, which
+is the right answer, but it was reached from the donors rather than
+from sparc, and the arithmetic differs. Worth a reading of sparc's
+loop against ours before the file is next touched.
+
+The other four are citations to correct and nothing more.
+
+### What the sweep says about the method
+
+The failures cluster in one place. All three batch-1 findings and the
+`_C_LABEL` one are i386 kernel work, where the pull toward NetBSD and
+FreeBSD is strongest because they are the only trees with an i386
+port — and that is exactly where this tree's *other* ports still have
+the machine-independent half of the answer. `hardclock` takes a
+`clockframe` on every port; `DELAY` is defined on every port; a kernel
+is linked at an address on every port.
+
+The rule that would have caught all five, stated as narrowly as it
+can be: **before citing a donor for anything in `sys/i386`, grep the
+other six ports for the same identifier.** Four of the five findings
+are one `grep -r` away.
 
 ---
 

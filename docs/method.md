@@ -248,6 +248,27 @@ against it.** A donor's extra line is evidence that the condition
 occurs in *their* tree. Whether it occurs here is a separate question
 with an answer in the source.
 
+**Third, from the sweep those two produced.**
+`docs/provenance/audit.md` read all eighty-seven commits that cite a
+donor without naming a port of this tree, and found five. Four are
+i386 kernel work, which is where the pull toward NetBSD and FreeBSD is
+strongest, because they are the only trees with an i386 port -- and
+exactly where this tree's *other* ports still hold the
+machine-independent half of the answer. `hardclock` takes a
+`clockframe` on every port. `DELAY` is defined on every port. A kernel
+is linked at an address on every port.
+
+So, narrowly: **before citing a donor for anything in `sys/i386`,
+`grep -r` the other six ports for the same identifier.** Four of the
+five findings are one such grep away.
+
+And one more test, which the sweep turned up and none of the rules
+had: **"this tree already has it" must mean Berkeley has it.** The
+kernel's `_C_LABEL` change cited `lib/libc/i386/DEFS.h` as this tree's
+own precedent; `DEFS.h` had the macro only because a commit of this
+branch two days earlier had taken it from NetBSD 1.5. Check the file's
+history before citing it as inward.
+
 ### When a donor guards repeatedly, check whether they missed one
 
 A fault can be fixed structurally, so it cannot recur, or by guarding
