@@ -433,16 +433,27 @@ int
  * `tsleep(bp, ...)' with no cast at their :537, :698 and :755.
  * Dropping it was taking NetBSD's spelling while claiming to follow
  * this tree's, which is the one thing these notes exist to prevent.
+ *
+ * One more distinction, learned from checking these four against both
+ * sources character by character. Matching *Berkeley's version of a
+ * function* is not the same as matching *this file's idiom*, and
+ * where they differ the file wins. The encumbered count_lock_queue
+ * writes `return(ret)' and `++ret', and both are outliers in its own
+ * file: 18 `return (' against 1 `return(', and 15 `x++' against 1
+ * `++x'. So the spacing and the post-increment here follow the file
+ * rather than that one function. The variable keeps Berkeley's name,
+ * ret, where NetBSD calls it n -- that part is a free choice and
+ * there is no reason to take theirs.
  */
 count_lock_queue()
 {
 	register struct buf *bp;
-	register int n;
+	register int ret;
 
-	for (n = 0, bp = bufqueues[BQ_LOCKED].tqh_first; bp;
+	for (ret = 0, bp = bufqueues[BQ_LOCKED].tqh_first; bp;
 	    bp = bp->b_freelist.tqe_next)
-		n++;
-	return (n);
+		ret++;
+	return (ret);
 }
 
 #ifdef DIAGNOSTIC
