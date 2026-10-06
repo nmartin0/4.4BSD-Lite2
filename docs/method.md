@@ -203,6 +203,51 @@ whole map. None of that would have come from reading headers. So
 attempt things -- but attempt them after reading the donor, not
 instead of it.
 
+### Source from this tree first, and check the guard is needed
+
+Two rules, and they failed together often enough to belong together.
+
+**First.** `docs/provenance/precedent.md` puts this tree's own ports
+at the head of the search order. In one stretch of work that order was
+skipped three times running, and each time hp300 already had the
+answer:
+
+- `genericconf`'s driver field was removed as a type collision,
+  following FreeBSD. It is `caddr_t` in hp300, pmax, vax, luna68k and
+  news3400, and each casts its own driver in. There was no collision;
+  one word of the `extern` was wrong.
+- `wd.c`'s controller queue was going to be flattened, following
+  FreeBSD. hp300's `sd.c` keeps the per-drive buffer queue in `struct
+  buf` and the controller's device queue in its own `struct devqueue`
+  in the softc -- two levels, two structures, which is what this
+  driver needed.
+- `trap()`'s pcb was derived from the process, credited to NetBSD.
+  hp300's `trap.c` has no `curpcb` in it at all, and pmax and luna68k
+  likewise.
+
+In all three the donors agreed, so the code was right and only the
+reasoning was wrong -- which is the dangerous case, because nothing
+fails and the next person inherits a citation pointing at the wrong
+tree.
+
+**Second, and it is how the third was caught.** A donor's version
+often carries a guard or a fallback the tree's own version lacks.
+Before taking it, check whether the condition it guards can occur
+here.
+
+`trap()` was given NetBSD's `if (p == 0) p = &proc0;` on the reasoning
+that `curproc` is null before the first context switch. It is not:
+`kern/init_main.c:84` is `struct proc *curproc = &proc0;`, a static
+initialiser. What was null was `curpcb`, which is a different variable
+set in a different place. One `grep` for `curproc =` would have shown
+it, and removing the line changed nothing -- the kernel reaches the
+same place.
+
+**So: grep this tree for the condition before importing the guard
+against it.** A donor's extra line is evidence that the condition
+occurs in *their* tree. Whether it occurs here is a separate question
+with an answer in the source.
+
 ### When a donor guards repeatedly, check whether they missed one
 
 A fault can be fixed structurally, so it cannot recur, or by guarding
