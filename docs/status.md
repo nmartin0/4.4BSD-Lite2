@@ -125,10 +125,23 @@ connecting them:
 	loop        pmap.c:1278 `for(x=0x3f6; x < 0x3fA; x++)' --
 	            UPTDI through KPTDI_LAST, written out
 
-`UPTDI 0x3f6` was missed from the first table entirely, and
-`pmap.c:1278`'s loop is almost certainly the `CR2 0xd` fault: after
-the move those four slots are empty and the real entries are at
-0x3be to 0x3c2.
+`UPTDI 0x3f6` was missed from the first table entirely.
+
+**And the attribution here was wrong.** This said `pmap.c:1278`'s
+loop was "almost certainly the `CR2 0xd` fault". It was not. Every
+failed attempt failed for one reason: `assym.s` was not regenerated
+when `machine/pmap.h` changed, so `locore.s` assembled with `SYSTEM`
+at the old address while the C half and the linker used the new one.
+`mkdep -p` has not produced a program dependency since `cc` stopped
+writing `prog.o : `, so the `assym.s: genassym` rule in
+`Makefile.i386` never fired. Fixed in `mkdep: -p has not worked...`
+and `build: take mkdep from this tree...`, after which the move built
+correctly on the first attempt.
+
+The loop was a real find and had to be fixed -- it walks `UPTDI`
+through `KPTDI_LAST` with both bounds written out -- but it was not
+what caused that fault, and guessing that it was sent the next two
+attempts after the wrong thing.
 
 `machdep.c:1019` is the one site that already writes `KERNBASE +
 0xa0000` rather than a literal, and is correct as it stands.
