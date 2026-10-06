@@ -53,8 +53,8 @@
  * kernal address space.
  */
 #define	USRTEXT		0
-#define	USRSTACK	0xFDBFE000
-#define	BTOPUSRSTACK	(0xFDC00-(UPAGES))	/* btop(USRSTACK) */
+#define	USRSTACK	0xEFBFE000
+#define	BTOPUSRSTACK	(0xEFC00-(UPAGES))	/* btop(USRSTACK) */
 #define	LOWPAGES	0
 #define HIGHPAGES	UPAGES
 
@@ -197,14 +197,35 @@
 
 /* user/kernel map constants */
 #define VM_MIN_ADDRESS		((vm_offset_t)0)
-#define VM_MAXUSER_ADDRESS	((vm_offset_t)0xFDBFD000)
-#define UPT_MIN_ADDRESS		((vm_offset_t)0xFDC00000)
-#define UPT_MAX_ADDRESS		((vm_offset_t)0xFDFF7000)
+/*
+ * AI-ONLY NOTE: these moved with KERNBASE; machine/pmap.h explains
+ * why. VM_MAX_KERNEL_ADDRESS below does not move, being at the top of
+ * the page directory rather than relative to the kernel, so kernel
+ * virtual space goes from 24 MB to 248.
+ *
+ * Literals with the formula above each, which is NetBSD 1.0's and
+ * OpenBSD 1996's form -- both write `/* KPTDI<<PDSHIFT *\/' over the
+ * number rather than computing it, in a block all three trees head
+ * `Mach derived constants'. FreeBSD 2.0.5 computes them from
+ * KERNBASE, and modern OpenBSD from the slots; that is where the
+ * lineage ended up rather than where it was. Deriving would make a
+ * future move one line instead of eight, which is convenience and not
+ * correctness, and this block is edited as a block.
+ */
+/* PTDPTDI<<PD_SHIFT - (UPAGES+1)*NBPG */
+#define VM_MAXUSER_ADDRESS	((vm_offset_t)0xEFBFD000)
+/* PTDPTDI<<PD_SHIFT */
+#define UPT_MIN_ADDRESS		((vm_offset_t)0xEFC00000)
+/* PTDPTDI<<PD_SHIFT + PTDPTDI<<PGSHIFT */
+#define UPT_MAX_ADDRESS		((vm_offset_t)0xEFFF7000)
 #define VM_MAX_ADDRESS		UPT_MAX_ADDRESS
-#define VM_MIN_KERNEL_ADDRESS	((vm_offset_t)0xFDFF7000)
+/* = UPT_MAX_ADDRESS: this port puts the page tables below the
+   kernel, where OpenBSD 1996 has this equal to KPTDI<<PDSHIFT */
+#define VM_MIN_KERNEL_ADDRESS	((vm_offset_t)0xEFFF7000)
 #define UPDT			VM_MIN_KERNEL_ADDRESS
-#define KPT_MIN_ADDRESS		((vm_offset_t)0xFDFF8000)
-#define KPT_MAX_ADDRESS		((vm_offset_t)0xFDFFF000)
+/* PTDPTDI<<PD_SHIFT + KPTDI_FIRST<<PGSHIFT */
+#define KPT_MIN_ADDRESS		((vm_offset_t)0xEFFF8000)
+#define KPT_MAX_ADDRESS		((vm_offset_t)0xEFFFF000)
 #define VM_MAX_KERNEL_ADDRESS	((vm_offset_t)0xFF7FF000)
 
 /* virtual sizes (bytes) for various kernel submaps */

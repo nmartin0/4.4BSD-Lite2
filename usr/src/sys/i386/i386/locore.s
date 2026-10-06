@@ -481,7 +481,7 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
 
 	.globl _C_LABEL(Crtat)
 	movl	_C_LABEL(Crtat),%eax
-	subl	$0xfe0a0000,%eax
+	subl	$(SYSTEM + 0xa0000),%eax
 	movl	_C_LABEL(atdevphys),%edx	# get pte PA
 	subl	_C_LABEL(KPTphys),%edx	# remove base of ptes, now have phys offset
 	shll	$ PGSHIFT-2,%edx  # corresponding to virt offset

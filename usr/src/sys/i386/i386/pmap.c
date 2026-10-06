@@ -266,7 +266,7 @@ printf("ps %x pe %x ", firstaddr, maxmem <<PG_SHIFT);
 		*(int *)pde = firstaddr + x*NBPG | PG_V | PG_KW;
 	}
 #else
-	kernel_pmap->pm_pdir = (pd_entry_t *)(0xfe000000 + IdlePTD);
+	kernel_pmap->pm_pdir = (pd_entry_t *)(KERNBASE + IdlePTD);
 #endif
 
 
@@ -364,7 +364,7 @@ pmap_init(phys_start, phys_end)
 	(void) vm_map_find(kernel_map, NULL, (vm_offset_t) 0,
 			   &addr, (0x100000-0xa0000), FALSE);
 
-	addr = (vm_offset_t) 0xfe000000+KPTphys/* *NBPG */;
+	addr = (vm_offset_t) KERNBASE+KPTphys/* *NBPG */;
 	vm_object_reference(kernel_object);
 	(void) vm_map_find(kernel_map, kernel_object, addr,
 			   &addr, 2*NBPG, FALSE);
@@ -1275,7 +1275,7 @@ int x;
 #endif
 	PMAP_ACTIVATE(pmap, pcbp);
 /*printf("pde ");
-for(x=0x3f6; x < 0x3fA; x++)
+for(x=UPTDI; x <= KPTDI_LAST; x++)
 	printf("%x ", pmap->pm_pdir[x]);*/
 /*pads(pmap);*/
 /*pg(" pcb_cr3 %x", pcbp->pcb_cr3);*/
@@ -1700,7 +1700,7 @@ pads(pm) pmap_t pm; {
 		if(pm->pm_pdir[i].pd_v)
 			for (j = 0; j < 1024 ; j++) {
 				va = (i<<22)+(j<<12);
-				if (pm == kernel_pmap && va < 0xfe000000)
+				if (pm == kernel_pmap && va < KERNBASE)
 						continue;
 				if (pm != kernel_pmap && va > UPT_MAX_ADDRESS)
 						continue;

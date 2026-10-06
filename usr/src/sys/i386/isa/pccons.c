@@ -76,9 +76,9 @@ struct	isa_driver pcdriver = {
 #define	ROW		25
 #define	CHR		2
 #define MONO_BASE	0x3B4
-#define MONO_BUF	0xfe0B0000
+#define MONO_BUF	(KERNBASE + 0xB0000)
 #define CGA_BASE	0x3D4
-#define CGA_BUF		0xfe0B8000
+#define CGA_BUF		(KERNBASE + 0xB8000)
 #define IOPHYSMEM	0xA0000
 
 u_char	color = 0xe ;

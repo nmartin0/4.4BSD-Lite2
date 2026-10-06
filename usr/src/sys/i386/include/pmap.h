@@ -130,10 +130,33 @@ typedef struct pte	pt_entry_t;	/* Mach page table entry */
 #define I386_KPDES	8 /* KPT page directory size */
 #define I386_UPDES	NBPDR/sizeof(struct pde)-8 /* UPT page directory size */
 
-#define	UPTDI		0x3f6		/* ptd entry for u./kernel&user stack */
-#define	PTDPTDI		0x3f7		/* ptd entry that points to ptd! */
-#define	KPTDI_FIRST	0x3f8		/* start of kernel virtual pde's */
-#define	KPTDI_LAST	0x3fA		/* last of kernel virtual pde's */
+/*
+ * AI-ONLY NOTE: these four moved down 56 slots, 224 MB, putting the
+ * kernel at 0xF0000000 rather than 0xFE000000. They are the single
+ * source: locore.s takes them through assym.s and machine/param.h's
+ * KERNBASE is KPTDI_FIRST << PD_SHIFT.
+ *
+ * Why, measured. cpu_startup sizes the buffer map as MAXBSIZE * nbuf
+ * and nbuf follows physmem, so a 64 MB machine wants 26 MB of kernel
+ * virtual space while this port had 24 -- VM_MIN_KERNEL_ADDRESS to
+ * VM_MAX_KERNEL_ADDRESS. It panicked in kmem_suballoc with
+ * KERN_NO_SPACE at any memory size above about 24 MB and ran only
+ * with 16.
+ *
+ * 0x3c0 is 0xF0000000>>22 and 0x3bf is the slot below it, which is
+ * exactly what OpenBSD 1996 has at machine/pmap.h:69-70. FreeBSD
+ * 2.0.5 links at F0100000 and NetBSD reached 0xf0000000 by 1.3;
+ * NetBSD 1.0 and 1.1 were at 0xf8000000 and NetBSD 1.4 went to
+ * 0xc0000000. Every descendant moved down from Berkeley's value and
+ * none moved up. This takes the one two contemporaries chose.
+ *
+ * APDRPDROFF stays at the top of the directory, so kernel virtual
+ * space goes from 24 MB to 248.
+ */
+#define	UPTDI		0x3be		/* ptd entry for u./kernel&user stack */
+#define	PTDPTDI		0x3bf		/* ptd entry that points to ptd! */
+#define	KPTDI_FIRST	0x3c0		/* start of kernel virtual pde's */
+#define	KPTDI_LAST	0x3c2		/* last of kernel virtual pde's */
 
 /*
  * Address of current and alternate address space page table maps

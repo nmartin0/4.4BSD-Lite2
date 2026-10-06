@@ -36,7 +36,7 @@
  * anything below KERNBASE is skipped.
  */
 
-#define KERNBASE	0xFE000000
+#define KERNBASE	0xF0000000
 
 typedef unsigned long u32;
 typedef unsigned short u16;

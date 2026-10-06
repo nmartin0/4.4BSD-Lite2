@@ -302,8 +302,8 @@ kernacc(addr, count, rw)
 	for (pde += ix; cnt; cnt--, pde++)
 		if (pde->pd_v == 0)
 			return(0);
-	ix = btop(addr-0xfe000000);
-	cnt = btop(addr-0xfe000000+count+NBPG-1);
+	ix = btop(addr-KERNBASE);
+	cnt = btop(addr-KERNBASE+count+NBPG-1);
 	if (cnt > (int)&Syssize)
 		return(0);
 	cnt -= ix;

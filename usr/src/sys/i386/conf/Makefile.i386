@@ -126,7 +126,7 @@ LDFORMAT=
 LDFORMAT=-n
 .endif
 SYSTEM_LD=	@strip=-x; [ X${DEBUG} = X-g ] && strip=-X; \
-		${LD} $$strip ${LDFORMAT} -Ttext FE000000 -o $@ ${SYSTEM_OBJ} \
+		${LD} $$strip ${LDFORMAT} -Ttext F0000000 -o $@ ${SYSTEM_OBJ} \
 		vers.o libkern.a
 #SYSTEM_LD_TAIL= @echo rearranging symbols;\
 #		symorder symbols.sort $@;\

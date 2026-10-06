@@ -60,7 +60,13 @@
 #define	PDROFSET	(NBPDR-1)	/* byte offset into page dir */
 #define	PDRSHIFT	22		/* LOG2(NBPDR) */
 
-#define	KERNBASE	0xFE000000	/* start of kernel virtual */
+/*
+ * AI-ONLY NOTE: 0xF0000000, and it is KPTDI_FIRST << PD_SHIFT in
+ * machine/pmap.h, which is where the move is explained. The two must
+ * agree and nothing enforces it; so must -Ttext in
+ * i386/conf/Makefile.i386 and KERNBASE in build/shim/shim.c.
+ */
+#define	KERNBASE	0xF0000000	/* start of kernel virtual */
 #define	BTOPKERNBASE	((u_long)KERNBASE >> PGSHIFT)
 
 #define	DEV_BSIZE	512

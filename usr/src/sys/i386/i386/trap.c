@@ -199,7 +199,7 @@ copyfault:	frame.tf_eip = (int)curpcb->pcb_onfault;
 		 * The last can occur during an exec() copyin where the
 		 * argument space is lazy-allocated.
 		 */
-		if (type == T_PAGEFLT && va >= 0xfe000000)
+		if (type == T_PAGEFLT && va >= KERNBASE)
 			map = kernel_map;
 		else
 			map = &vm->vm_map;
