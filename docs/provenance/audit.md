@@ -411,9 +411,35 @@ pmap's this is easy since all PT pages live in one global vm_map
 (pt_map)"* -- turn out to be **describing hp300's solution**, which is
 in this tree. It was read as "nobody solved this".
 
+**And this entry over-claimed when it was written.** It said OpenBSD's
+comment "turns out to be describing hp300's solution, which is in this
+tree", read as though the answer transfers. It does not, and the
+comment says so in the same breath: *"in the m68k pmap's this is easy
+since all PT pages live in one global vm_map (pt_map) and we have a
+lot of virtual space we can use for the pt_map (since the kernel
+doesn't have to share its 4GB address space with processes). but in
+the i386 port..."*
+
+hp300's `pt_map` is a region of **kernel** virtual space, sized
+`min(HP_PTMAXSIZE, maxproc * HP_MAX_PTSIZE)` and based at
+`HP_PTBASE`, holding every process's page tables. The i386's page
+tables are not in kernel space at all: they are self-mapped through
+the recursive page directory entry at `UPT_MIN_ADDRESS`, inside each
+process's own address space. There is no global map to allocate from
+and no spare kernel virtual space to make one in.
+
+So OpenBSD was not failing to notice hp300. They were explaining why
+the m68k answer cannot be lifted, and this audit entry turned that
+into its opposite.
+
+What stands: hp300 has the function and i386 does not; the two files
+share Utah's Mach lineage; CSRG's history shows the i386 port stopping
+before it was written. What falls: the idea that it is a transplant.
+
 Not copyable as it stands: hp300's is 243 lines built on m68k's
-two-level segment tables, `st_map`, `pmap_ste` and `pmap_ste2`. But
-the machinery it rests on is partly here already, and inconsistently:
+two-level segment tables, `st_map`, `pmap_ste` and `pmap_ste2`, and on
+a `pt_map` the i386 has nowhere to put. The machinery it rests on is
+partly here already, and inconsistently:
 
 	hp300/hp300/pmap.c:265   vm_map_t  st_map, pt_map;
 	hp300/hp300/pmap.c:466   pt_map = vm_map_create(...)
@@ -449,8 +475,14 @@ the 386 and left unfinished -- which is why the tests match and only
 the bodies differ. `docs/provenance/precedent.md` now carries what
 follows from that for the whole VM subsystem.
 
-So the next piece of work starts at hp300, at Mach 2.5 behind it, and
-at this port's own unfinished references -- not at a donor.
+So the next piece of work starts at hp300 and Mach 2.5 for the
+*shape* -- allocate a page, zero it, install it in the directory,
+account for it -- and at the i386's own self-mapping for the
+*mechanism*, because the m68k's global `pt_map` has no counterpart
+here. The descendants' Mach-era i386 pmaps are the right corroboration
+for the second half, being the same codebase facing the same problem,
+and OpenBSD 1996's comment is the clearest statement of what the
+problem is.
 
 ### Formerly: where the code should be revisited
 
