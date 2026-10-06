@@ -111,6 +111,7 @@ main()
 	printf("#define\tPTDPTDI 0x%x\n", PTDPTDI);
 	printf("#define\tKPTDI_FIRST 0x%x\n", KPTDI_FIRST);
 	printf("#define\tKPTDI_LAST 0x%x\n", KPTDI_LAST);
+	printf("#define\tNKPDE %d\n", NKPDE);
 	printf("#define\tPD_SHIFT %d\n", PD_SHIFT);
 	printf("#define\tNPTEPG %d\n", NPTEPG);
 	printf("#define\tPGSHIFT %d\n", PGSHIFT);

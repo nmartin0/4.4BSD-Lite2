@@ -156,7 +156,45 @@ typedef struct pte	pt_entry_t;	/* Mach page table entry */
 #define	UPTDI		0x3be		/* ptd entry for u./kernel&user stack */
 #define	PTDPTDI		0x3bf		/* ptd entry that points to ptd! */
 #define	KPTDI_FIRST	0x3c0		/* start of kernel virtual pde's */
-#define	KPTDI_LAST	0x3c2		/* last of kernel virtual pde's */
+#define	KPTDI_LAST	(KPTDI_FIRST+NKPDE-1)	/* last of them */
+
+/*
+ * AI-ONLY NOTE: NKPDE, the number of page directory slots the kernel
+ * reserves and fills. This port had no name for it: locore.s wrote
+ * `movl $ 3,%ecx' and encoded the same 3 implicitly in two more
+ * places as UPAGES+4 and (UPAGES+5)*NBPG, and KPTDI_LAST said it a
+ * fourth way as a literal. Four unlinked copies of one number.
+ *
+ * Three slots is 12 MB of kernel page tables. `i386: the kernel
+ * moves to 0xF0000000' gave the kernel 248 MB of address space and
+ * left the tables covering the first 12 of it, so cpu_startup wired
+ * buffer pages past the end and pmap_enter was asked to map a
+ * virtual address whose page directory slot was empty. Measured
+ * under build/shim: the call reached pg() from pmap_enter through
+ * vm_fault, vm_fault_wire and vm_map_pageable out of cpu_startup,
+ * with the slot in %edx at 0x3c3 -- one past KPTDI_LAST.
+ *
+ * Both walls were always there. The old 24 MB address space made
+ * kmem_suballoc fail first, so this one was never reached.
+ *
+ * 62 is what fits: slots KPTDI_FIRST through APDRPDROFF-1, 0x3c0 to
+ * 0x3fd, which is 248 MB and the whole of the kernel's address
+ * space. OpenBSD 1996's machine/pmap.h:71 is NKPDE 63 with the same
+ * KPTDI 0x3c0, one more because its alternate page directory is at
+ * 0x3ff where this tree's APDRPDROFF is 0x3fe. NetBSD 1.0's is 11,
+ * which suits its smaller 0xf8000000 kernel.
+ *
+ * All three donors have this constant and use it everywhere locore.s
+ * needs it. FreeBSD 2.0.5 goes further and splits it in two -- NKPDE
+ * 63 reserved, NKPT 26 built at boot, the rest grown on demand -- but
+ * that needs pmap_growkernel, fifty-two lines at its pmap.c:549,
+ * which neither NetBSD 1.0, OpenBSD 1996 nor this tree has. Taking
+ * the split without it would reserve slots nothing ever fills, which
+ * is the bug being fixed here. The price of not splitting is 62
+ * pages of physical memory, 248 KB, built at boot whatever the
+ * machine; that is what both other contemporaries pay.
+ */
+#define	NKPDE		62		/* kernel pde's: KPTDI_FIRST..APDRPDROFF-1 */
 
 /*
  * Address of current and alternate address space page table maps

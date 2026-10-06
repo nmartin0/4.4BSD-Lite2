@@ -314,7 +314,7 @@ start:	movw	$0x1234,%ax
 /* clear bss and memory for bootstrap pagetables. */
 	movl	$_C_LABEL(edata)-SYSTEM,%edi
 	subl	%edi,%ecx
-	addl	$(UPAGES+5)*NBPG,%ecx
+	addl	$(UPAGES+2+NKPDE)*NBPG,%ecx	# ptd, stack, usr stk map, kpts
 /*
  * Virtual address space of kernel:
  *
@@ -370,7 +370,7 @@ start:	movw	$0x1234,%ax
  */
 	movl	%esi,%ecx		# this much memory,
 	shrl	$ PGSHIFT,%ecx		# for this many pte s
-	addl	$ UPAGES+4,%ecx		# including our early context
+	addl	$ UPAGES+1+NKPDE,%ecx	# including our early context
 	movl	$ PG_V|PG_KW,%eax	#  having these bits set,
 	lea	(4*NBPG)(%esi),%ebx	#   physical address of KPT in proc 0,
 	movl	%ebx,_C_LABEL(KPTphys)-SYSTEM	#    in the kernel page table,
@@ -430,7 +430,7 @@ start:	movw	$0x1234,%ax
 	movl	%eax,(%esi)		# which is where temp maps!
 
 	/* kernel pde's */
-	movl	$ 3,%ecx		# for this many pde s,
+	movl	$ NKPDE,%ecx		# for this many pde s,
 	lea	(SYSPDROFF*4)(%esi), %ebx	# offset of pde for kernel
 	fillkpt
 
