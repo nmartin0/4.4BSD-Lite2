@@ -205,11 +205,19 @@ in the same library directory. The shim could have been written
 against our own `regexp.h` and `docs/provenance/imports.md` would
 carry one fewer import.
 
-Fairly stated: the outcome is the same. The file is Berkeley's, and a
-correct shim would look like it. What differs is the record -- an
-import is listed where none was needed, and the next person reading
-`imports.md` sees a dependency on NetBSD that this tree does not
-have.
+**And `imports.md` already knew.** Its entry E says the file *"is a
+shim that implements re_comp and re_exec in terms of regcomp and
+regexec, over the engine already in this tree."* So the record is not
+wrong about what the file does; it simply never draws the conclusion
+that a shim over our own engine could have been written here instead
+of imported.
+
+So this finding is weaker than the other four and is recorded as such.
+The outcome is identical -- the file is Berkeley's own copyright and a
+correct shim would look like it -- and the only thing missing is the
+sentence saying the import was avoidable. Added to `imports.md`
+rather than acted on: rewriting a correct 93-line file to avoid an
+entry in a list would be churn.
 
 #### `i386 kernel assembly: name C symbols through _C_LABEL` — a
 #### citation that launders a donor through my own earlier commit

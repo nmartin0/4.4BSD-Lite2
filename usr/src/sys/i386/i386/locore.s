@@ -78,6 +78,15 @@
  * NetBSD has carried this macro in <machine/asm.h> since 1.0 and
  * converted its i386 assembly to use it at 1.4, where locore.s went
  * from 198 bare _name references to 222 _C_LABEL uses. The same
+ * A correction to this note, from docs/provenance/audit.md: it said
+ * the macro was already in this tree, which is true only because a
+ * commit of this branch two days earlier put it there. lib/libc's
+ * copy is NetBSD 1.5's <machine/asm.h>, taken by `libc/i386: name C
+ * symbols through _C_LABEL, for ELF'. There was no inward
+ * alternative -- this tree has no i386 <machine/asm.h> at all -- so
+ * the code is right and only the attribution was laundered. The
+ * source is NetBSD 1.5, reached through libc.
+ *
  * macro is already in this tree's lib/libc/i386/DEFS.h and SYS.h,
  * put there for the same reason. It is defined here rather than in a
  * machine/asm.h because this tree has no such header, and because

@@ -218,6 +218,18 @@ implements re_comp and re_exec in terms of regcomp and regexec, over
 the engine already in this tree. NetBSD wrote it because Berkeley's
 could not be redistributed.
 
+**Which means this import was avoidable**, and
+`docs/provenance/audit.md` records it as such. Both sides of the shim
+are here: `lib/libcompat/regexp/regexp.c` is the engine and
+`lib/libcompat/regexp/regexp.h` the header the file includes, in the
+same library directory. Ninety-three lines could have been written
+against them rather than taken.
+
+Not acted on. The file is Berkeley's own copyright, a correct shim
+would look like it, and rewriting correct code to shorten a list is
+churn. Recorded so that the next file considered for import is asked
+the question first: does this tree already have both sides of it?
+
 ## F -- Berkeley's own file, restored
 
 	sbin/savecore/zopen.c	741 lines	NetBSD 1.0

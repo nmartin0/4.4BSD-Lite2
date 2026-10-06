@@ -75,6 +75,12 @@ SYSTEM_LD_HEAD=	@echo loading $@; rm -f $@
 # for a file called FE000000 and stops. -Ttext says what the old -T
 # said. OpenBSD 1996 already writes it that way here --
 # `-z -Ttext F0100000 -e start' -- with its own address; NetBSD 1.0
+# Both spellings are in this tree and neither was looked at when this
+# was written: pmax/conf/Makefile.pmax writes `-Ttext 80030000' and
+# sparc/conf/Makefile.sparc writes `-T f8004000', so a port of
+# Berkeley's own uses each, and which to take could have been settled
+# here rather than from the donors.
+#
 # and FreeBSD 2.0.5 keep -T with theirs. The address is unchanged and
 # is this tree's own: KERNBASE is 0xFE000000 in i386/include/param.h,
 # as it is in 4.4BSD-Lite.

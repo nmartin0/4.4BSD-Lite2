@@ -277,6 +277,17 @@ enablertclock() {
  * Measured under build/shim: hardclock faulted at its first use of
  * the frame, `movl 0x3c(%esi),%eax' with %esi zero and CR2 0x3c.
  *
+ * Two of this tree's own ports already do this and were not looked at
+ * when the change was written: pmax/pmax/trap.c:832-841 declares a
+ * `struct clockframe cf', fills cf.pc and cf.sr and calls
+ * hardclock(&cf), and news3400/news3400/trap.c:790 is the same three
+ * lines. They build the frame as a local rather than relying on the
+ * stack layout, which is arguably the better shape; it is not taken
+ * because this port's interrupt stack really is a struct intrframe,
+ * so declaring the parameter by value and handing on its address is
+ * correct and costs nothing. But the arrangement was Berkeley's
+ * before it was FreeBSD's.
+ *
  * FreeBSD 2.0.5 has the same vector and the same problem and solves
  * it here. Its isa/clock.c:124, in an #if 0 beside the variant it
  * ships, is exactly
@@ -335,6 +346,21 @@ clkintr(frame)
  * exits at once. Six of the eight DELAY call sites in this
  * configuration ask for more than that, com.c's 100 millisecond wait
  * and pccons.c's four second one among them.
+ *
+ * The shape is sparc's, and it was not looked at when this was
+ * written. sparc/include/param.h:138 is `#define DELAY(n) delay(n)'
+ * and sparc/sparc/clock.c:213 is a delay() that reads the timer's
+ * counter register -- `c = TIMERREG->t_c10.t_counter' and then waits
+ * for it to change, n times. A macro over a function, and the
+ * function reading a counter rather than spinning a calibrated loop,
+ * which is the whole principle of this change, in Berkeley's own code
+ * since 4.4BSD. hp300, pmax, luna68k and news3400 all spin
+ * `cpuspeed * n', so sparc is the one port that had solved it.
+ *
+ * Its loop cannot be copied literally -- a different timer, counting
+ * differently -- and what follows is genuinely the donors': the
+ * overflow-safe decomposition of microseconds into counter ticks,
+ * which sparc does not need because it counts whole ticks.
  *
  * The scaling is NetBSD 1.0's and FreeBSD 2.0.5's non-assembly path,
  * which both write identically and FreeBSD comments as "without
