@@ -369,15 +369,69 @@ was not:
    kernel change cited `lib/libc`, which had the macro only because
    an earlier commit of this branch took it from NetBSD 1.5.
 
-### Where the code should be revisited, not just the note
+### Sparc's `delay()` — read, and the answer is no change
 
-One: **sparc's `delay()`**. It is not merely present but closer to
-what this port needs than the spin loops in hp300, pmax, luna68k and
-news3400 — a macro over a function that reads a hardware counter.
-This port's `delay()` now does the same thing against the 8254, which
-is the right answer, but it was reached from the donors rather than
-from sparc, and the arithmetic differs. Worth a reading of sparc's
-loop against ours before the file is next touched.
+The one item flagged for code rather than notes. Read, and sparc's own
+comment settles it: *"This is easy to do on the SparcStation since we
+have freerunning microsecond timers -- no need to guess at cpu speed
+factors... if we calculated a limit, we might overshoot, and precision
+is irrelevant here---we want less object code."*
+
+Sparc's timer ticks once per microsecond, so waiting n ticks is
+waiting n microseconds. The 8254 ticks at 1193182 Hz, 1.193 per
+microsecond, so the conversion is forced by the hardware; and it
+cannot be one multiply, because `n * 1193182` overflows a signed int
+above about 1800 microseconds where this port's call sites ask for
+four seconds. **Sparc's simplicity is a property of its timer, not of
+its design.** The note now says so; the code stands.
+
+### A sixth finding, and the largest — `pmap_enter`
+
+Found while scanning the other ports for anything else this tree
+already had. It is not a citation error but a piece of work about to
+be started from the wrong place.
+
+`i386/i386/pmap.c` has, where a page directory entry is invalid:
+
+	if (!pmap_pde_v(pmap_pde(pmap, va))) {
+		pg("ptdi %x", pmap->pm_pdir[PTDPTDI]);
+	}
+	pte = pmap_pte(pmap, va);
+
+It prints and walks into `pmap_pte` with an invalid entry. hp300 has
+the same test in the same position in the same function:
+
+	if (!pmap_ste_v(pmap, va))
+		pmap_enter_ptpage(pmap, va);
+	pte = pmap_pte(pmap, va);
+
+`pmap_enter_ptpage()` is the missing piece, and OpenBSD 1996's twenty
+lines of comment about how hard this is on the i386 -- *"in the m68k
+pmap's this is easy since all PT pages live in one global vm_map
+(pt_map)"* -- turn out to be **describing hp300's solution**, which is
+in this tree. It was read as "nobody solved this".
+
+Not copyable as it stands: hp300's is 243 lines built on m68k's
+two-level segment tables, `st_map`, `pmap_ste` and `pmap_ste2`. But
+the machinery it rests on is partly here already, and inconsistently:
+
+	hp300/hp300/pmap.c:265   vm_map_t  st_map, pt_map;
+	hp300/hp300/pmap.c:466   pt_map = vm_map_create(...)
+	i386/i386/pmap.c:1679    vm_map_lookup_entry(pt_map, va, &entry)
+
+**i386 uses `pt_map` and never creates one.** Another thing inherited
+from a port that does, like `setconf`'s tahoe body and `crt0.c`'s vax
+register name.
+
+So the next piece of work starts at hp300 and at this port's own
+unfinished references, not at a donor.
+
+### Formerly: where the code should be revisited
+
+This section listed sparc's `delay()` as the one item needing code
+rather than a note. It has been read, and the answer is above: no
+change, because sparc's timer counts microseconds and the 8254 does
+not.
 
 The other four are citations to correct and nothing more.
 

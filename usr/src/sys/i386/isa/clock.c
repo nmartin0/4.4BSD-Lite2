@@ -357,10 +357,22 @@ clkintr(frame)
  * since 4.4BSD. hp300, pmax, luna68k and news3400 all spin
  * `cpuspeed * n', so sparc is the one port that had solved it.
  *
- * Its loop cannot be copied literally -- a different timer, counting
- * differently -- and what follows is genuinely the donors': the
- * overflow-safe decomposition of microseconds into counter ticks,
- * which sparc does not need because it counts whole ticks.
+ * Its loop cannot be copied, and sparc says why in its own comment:
+ * "This is easy to do on the SparcStation since we have freerunning
+ * microsecond timers -- no need to guess at cpu speed factors. We
+ * just wait for it to change n times (if we calculated a limit, we
+ * might overshoot, and precision is irrelevant here---we want less
+ * object code)."
+ *
+ * Its timer ticks once per microsecond, so waiting n ticks is waiting
+ * n microseconds and no arithmetic is needed. The 8254 ticks at
+ * XTALSPEED, 1193182 Hz, which is 1.193 ticks per microsecond, so the
+ * conversion here is forced by the hardware rather than chosen. And
+ * it cannot be a single multiply: n * 1193182 overflows a signed int
+ * above about 1800 microseconds, where this port's call sites ask for
+ * up to four seconds. So the overflow-safe decomposition that follows
+ * is genuinely the donors' and genuinely needed; sparc's simplicity
+ * is a property of its timer, not of its design.
  *
  * The scaling is NetBSD 1.0's and FreeBSD 2.0.5's non-assembly path,
  * which both write identically and FreeBSD comments as "without
