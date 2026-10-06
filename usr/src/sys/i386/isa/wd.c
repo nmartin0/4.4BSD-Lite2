@@ -1229,7 +1229,24 @@ if(cylin < 40 || cylin > 79)pg("oops");
 		if (inb(wdc+wd_status) & WDCS_ERR) return(EIO) ;
 
 		outsw (wdc+wd_data, CADDR1+((int)addr&(NBPG-1)), 256);
-		(int) addr += 512;
+		/*
+		 * AI-ONLY NOTE: no cast. `(int) addr += 512' used a
+		 * cast as the left operand of an assignment, which gcc
+		 * accepted until 3.x and rejects now -- "lvalue
+		 * required as left operand of assignment". The same
+		 * idiom appears in lib/libkvm and is recorded in
+		 * docs/method.md as one of this tree's dependencies on
+		 * the compilers of the day.
+		 *
+		 * The cast never did anything: addr is `char *' twenty
+		 * lines up, so the arithmetic is byte-wise with or
+		 * without it. 386BSD 0.1's wd.c:1272 is the same line,
+		 * this driver having come from there. FreeBSD 2.0.5's
+		 * :1793 is `addr += DEV_BSIZE;' -- cast dropped and the
+		 * literal named, DEV_BSIZE being 512 in
+		 * sys/param.h. Taken.
+		 */
+		addr += DEV_BSIZE;
 
 		if (inb(wdc+wd_status) & WDCS_ERR) return(EIO) ;
 		/* Check data request (should be done).         */
