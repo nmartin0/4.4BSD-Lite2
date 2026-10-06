@@ -216,15 +216,25 @@ brelse(a1)
 }
 
 struct buf *
-incore(a1, a2)
-	struct vnode *a1;
-	daddr_t a2;
+/*
+ * AI-ONLY NOTE: written, not restored; see the note on
+ * count_lock_queue below for the sources and the rule.
+ *
+ * The parameters are named here. The settlement left them a1 and a2,
+ * which is how the stubs were generated; <sys/buf.h>'s prototype and
+ * both donors call them vp and blkno.
+ */
+incore(vp, blkno)
+	struct vnode *vp;
+	daddr_t blkno;
 {
+	struct buf *bp;
 
-	/*
-	 * Body deleted.
-	 */
-	return (0);
+	for (bp = BUFHASH(vp, blkno)->lh_first; bp; bp = bp->b_hash.le_next)
+		if (bp->b_lblkno == blkno && bp->b_vp == vp &&
+		    (bp->b_flags & B_INVAL) == 0)
+			return (bp);
+	return ((struct buf *)0);
 }
 
 struct buf *
@@ -273,14 +283,36 @@ getnewbuf(a1, a2)
 	return ((struct buf *)0);
 }
 
-biowait(a1)
-	struct buf *a1;
+/*
+ * AI-ONLY NOTE: written, not restored; see count_lock_queue.
+ *
+ * Two choices are settled by this tree rather than by the donors. It
+ * sleeps with tsleep, which kern/kern_synch.c:281 defines and which
+ * this directory uses twenty-five times against sleep's three;
+ * 4.4BSD's own vfs_bio.c used the bare sleep, the older form. And it
+ * honours B_EINTR, which <sys/buf.h>:101 defines as "I/O was
+ * interrupted" -- Berkeley added the flag and the code reading it
+ * went out with the settlement, so handling it restores this tree's
+ * own intent rather than importing NetBSD's.
+ */
+biowait(bp)
+	struct buf *bp;
 {
+	int s;
 
-	/*
-	 * Body deleted.
-	 */
-	return (EIO);
+	s = splbio();
+	while ((bp->b_flags & B_DONE) == 0)
+		tsleep((caddr_t)bp, PRIBIO + 1, "biowait", 0);
+	splx(s);
+
+	/* Check for interruption first, then for errors. */
+	if (bp->b_flags & B_EINTR) {
+		bp->b_flags &= ~B_EINTR;
+		return (EINTR);
+	}
+	if (bp->b_flags & B_ERROR)
+		return (bp->b_error ? bp->b_error : EIO);
+	return (0);
 }
 
 void
@@ -295,13 +327,44 @@ biodone(a1)
 }
 
 int
+/*
+ * AI-ONLY NOTE: the body below is written, not restored. The AT&T
+ * settlement removed it from both Lite releases -- see
+ * docs/provenance/missing.md -- leaving the signature, the call
+ * sites, the structures and the surrounding comments in place, so
+ * what follows satisfies an interface this tree fully specifies.
+ *
+ * Algorithm from NetBSD 1.0's kern/vfs_bio.c, which is the only
+ * descendant that kept this design: its header reads `@(#)vfs_bio.c
+ * 8.6 (Berkeley) 1/11/94' with a 1994 Demetriou copyright on the new
+ * bodies, and it keeps BQ_LOCKED, BQ_LRU, BQ_AGE and BQ_EMPTY with
+ * the same four queues and the same hash. FreeBSD 2.0.5 replaced the
+ * buffer cache outright and has no BQ_LRU at all. OpenBSD 1996 is
+ * NetBSD's with two more years on it. 386BSD 0.1 and anything else
+ * predating 4.4BSD-Lite is Net/2-derived and carries the bodies the
+ * settlement removed, so it is disqualified by its earliness.
+ *
+ * Spelling from this file. NetBSD rewrote theirs around SET, CLR and
+ * ISSET macros, fifty-one uses; 4.4BSD's own vfs_bio.c uses plain
+ * `|=' and `&= ~' twenty-six times and this file's intact functions
+ * do the same, so plain operators are used here. struct buf is
+ * identical in the two trees, field for field, twenty-six each.
+ *
+ * 4.4BSD encumbered is read for the shape only, as XNU is -- never
+ * copied. Where it differs from what is written here it is because
+ * it predates this tree's own conversion to <sys/queue.h>: it walks
+ * `bufqueues[BQ_LOCKED].qe_next' where this file declares
+ * TAILQ_HEAD and its intact bremfree uses tqe_next and TAILQ_REMOVE.
+ */
 count_lock_queue()
 {
+	struct buf *bp;
+	int n;
 
-	/*
-	 * Body deleted.
-	 */
-	return (0);
+	for (n = 0, bp = bufqueues[BQ_LOCKED].tqh_first; bp;
+	    bp = bp->b_freelist.tqe_next)
+		n++;
+	return (n);
 }
 
 #ifdef DIAGNOSTIC
