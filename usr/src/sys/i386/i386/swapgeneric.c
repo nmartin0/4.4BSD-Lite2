@@ -61,6 +61,7 @@
  */
 #include "wd.h"
 #include "fd.h"
+#include <i386/isa/isa_device.h>	/* isa_devtab_bio, for setconf */
 
 /*
  * AI-ONLY NOTE: isa_driver, not driver. isa/wd.c:163 and isa/fd.c
@@ -78,7 +79,31 @@ extern struct isa_driver fddriver;
 /*
  * Generic configuration;  all in one
  */
-dev_t	rootdev = makedev(0,0);
+/*
+ * AI-ONLY NOTE: argdev, which this file used at the doswap line
+ * without declaring. Four of Berkeley's ports declare it in their own
+ * swapgeneric.c beside rootdev and dumpdev -- hp300:48, luna68k:52,
+ * and vax and news3400 likewise -- and all four write the same
+ * `swdevt[0].sw_dev = argdev = dumpdev = ...'. This port had the use
+ * and not the declaration, the body having come from tahoe.
+ */
+dev_t	argdev = NODEV;
+/*
+ * AI-ONLY NOTE: NODEV, where this said makedev(0,0).
+ *
+ * setconf() begins `if (rootdev != NODEV) goto doswap;'. NODEV is
+ * (dev_t)-1 and makedev(0,0) is 0, so this port's setconf concluded a
+ * root device had already been chosen and skipped the search every
+ * time -- which is why vfs_mountroot was reached with major 0 minor 0
+ * and returned ENXIO. The body being inside #ifdef notdef was not the
+ * only reason it never ran: enabled, it would have returned at the
+ * first line.
+ *
+ * Every other port in this tree writes NODEV -- hp300, luna68k,
+ * news3400, pmax and vax -- and so do NetBSD 1.0 and FreeBSD 2.0.5.
+ * This port is alone.
+ */
+dev_t	rootdev = NODEV;
 dev_t	dumpdev = makedev(0,1);
 int	nswap;
 struct	swdevt swdevt[] = {
@@ -170,8 +195,8 @@ struct	genericconf {
 
 setconf()
 {
-#ifdef notdef
 	register struct genericconf *gc;
+	register struct isa_device *id;
 	int unit, swaponroot = 0;
 
 	if (rootdev != NODEV)
@@ -202,19 +227,19 @@ bad:
 	}
 	unit = 0;
 	for (gc = genericconf; gc->gc_driver; gc++) {
-		for (ui = vbdinit; ui->ui_driver; ui++) {
-			if (ui->ui_alive == 0)
+		for (id = isa_devtab_bio; id->id_driver; id++) {
+			if (id->id_alive == 0)
 				continue;
-			if (ui->ui_unit == 0 && ui->ui_driver ==
-			    (struct vba_driver *)gc->gc_driver) {
+			if (id->id_unit == 0 && id->id_driver ==
+			    (struct isa_driver *)gc->gc_driver) {
 				printf("root on %s0\n",
-				    ui->ui_driver->ud_dname);
+				    id->id_driver->name);
 				goto found;
 			}
 		}
 	}
 	printf("no suitable root\n");
-	asm("halt");
+	panic("setconf");
 found:
 	gc->gc_root = makedev(major(gc->gc_root), unit*8);
 	rootdev = gc->gc_root;
@@ -224,7 +249,6 @@ doswap:
 	/* swap size and dumplo set during autoconfigure */
 	if (swaponroot)
 		rootdev = dumpdev;
-#endif
 }
 
 gets(cp)
