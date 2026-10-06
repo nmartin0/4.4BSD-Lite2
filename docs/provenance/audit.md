@@ -423,8 +423,34 @@ the machinery it rests on is partly here already, and inconsistently:
 from a port that does, like `setconf`'s tahoe body and `crt0.c`'s vax
 register name.
 
-So the next piece of work starts at hp300 and at this port's own
-unfinished references, not at a donor.
+CSRG's own history settles it. The Unix History Repo dates hp300's
+`pmap_enter_ptpage` to **6 December 1990**, Kirk McKusick, *"adopted
+from Mach 2.5"*. The i386 pmap's VM work begins eleven months later --
+*"1991-11-14 William Nesheim: changes to fix new vm on i386"* -- and
+its last substantive commit is `1993-06-11`, Bostic's 8.1 snapshot.
+Nothing after that but release tags.
+
+And in between, this:
+
+	1992-05-11 Keith Bostic: disable pageing in basemem until
+	someone understands what's going on; loop variable error;
+	from Pace Willison
+
+CSRG saying out loud what this project keeps finding. The i386 pmap
+was work in progress that stopped, and the `pg("ptdi")` line is not a
+decision -- it is a debugging print standing where the function should
+be, in a file nobody touched again.
+
+**And the lineage is closer than "another port".** Both files say
+*"contributed to Berkeley by the Systems Programming Group of the
+University of Utah"*, the i386's adding *"and William Jolitz of UUNET
+Technologies Inc."* The i386 pmap is hp300's Utah/Mach code forked for
+the 386 and left unfinished -- which is why the tests match and only
+the bodies differ. `docs/provenance/precedent.md` now carries what
+follows from that for the whole VM subsystem.
+
+So the next piece of work starts at hp300, at Mach 2.5 behind it, and
+at this port's own unfinished references -- not at a donor.
 
 ### Formerly: where the code should be revisited
 

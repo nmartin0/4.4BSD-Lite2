@@ -20,6 +20,50 @@ committed. Facts, not legal advice.
 5. **XNU and Rhapsody: read-only.** See below.
 6. **Our own code, last**, and only where the four above have nothing.
 
+## The VM system is Mach's, and that changes the order for it
+
+The search order above is for Berkeley's own code. `sys/vm` is not
+Berkeley's own code: it is Mach's, and every one of the seventeen
+files in that directory carries a Carnegie Mellon notice. So do the
+`pmap.c` of each port, by way of Utah:
+
+	hp300/hp300/pmap.c   "contributed to Berkeley by the Systems
+	                      Programming Group of the University of
+	                      Utah Computer Science Department"
+	i386/i386/pmap.c     the same, "and William Jolitz of UUNET
+	                      Technologies Inc."
+
+The i386 pmap is therefore not a separate design that resembles
+hp300's. It is hp300's lineage -- Utah's Mach work, which McKusick's
+commit of 6 December 1990 describes as "adopted from Mach 2.5" --
+forked by Jolitz for the 386 and left unfinished. That is why the two
+have the same tests in the same positions with different bodies.
+
+Three consequences for anything under `sys/vm` or in a `pmap.c`.
+
+**The other ports are closer kin than usual.** hp300's pmap is Utah's
+own, complete, and predates the i386 port's VM work by eleven months.
+It is the first place to look and often the last.
+
+**Mach itself is a legitimate source, not a foreign tree.** Where this
+tree and the descendants all derive from Mach 2.5, Mach is the common
+ancestor rather than an outside system, and reading it settles
+questions that reading the forks only muddies.
+
+**And the descendants are kin here too, for longer than elsewhere.**
+NetBSD and OpenBSD kept the Mach VM until they moved to UVM around
+1999; FreeBSD keeps it still. So a NetBSD 1.0 or FreeBSD 2.0.5
+`pmap.c` is the same Mach codebase under different maintenance, not a
+rewrite -- which makes it better corroboration for VM work than it
+would be for, say, a device driver, where those trees really did start
+again.
+
+This was got wrong before it was written down. `docs/provenance/
+audit.md` records citing NetBSD and FreeBSD for VM-adjacent work as
+though they were outside trees, and reading OpenBSD's comment about
+`pt_map` as "nobody solved this" when it was describing hp300's
+solution in this tree.
+
 ## XNU and Rhapsody are read-only, and never for the stubs
 
 `github.com/apple-oss-distributions/xnu` (28 branches, `rel/xnu-124`
