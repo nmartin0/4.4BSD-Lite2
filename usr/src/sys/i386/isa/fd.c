@@ -513,7 +513,16 @@ printf("DONE %d|", bp->b_blkno);
 			/* ALL DONE */
 			fd_skip = 0;
 			bp->b_resid = 0;
-			dp->b_actf = bp->av_forw;
+			/*
+			 * AI-ONLY NOTE: b_actf, where this said
+			 * av_forw. disksort() at fd.c:191 links this
+			 * queue with b_actf; av_forw was its name in
+			 * 386BSD 0.1, where b_actf was a macro over
+			 * it, and 4.4BSD deleted it when b_actf became
+			 * a real field. This driver keeps only the one
+			 * queue, so unlike wd.c it needs nothing else.
+			 */
+			dp->b_actf = bp->b_actf;
 			biodone(bp);
 			nextstate(dp);
 
@@ -615,7 +624,7 @@ struct buf *dp,*bp;
 	bp->b_flags |= B_ERROR;
 	bp->b_error = EIO;
 	bp->b_resid = bp->b_bcount - fd_skip;
-	dp->b_actf = bp->av_forw;
+	dp->b_actf = bp->b_actf;
 	fd_skip = 0;
 	biodone(bp);
 	nextstate(dp);

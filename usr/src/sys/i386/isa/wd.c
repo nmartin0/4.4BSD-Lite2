@@ -98,6 +98,35 @@
  * The structure of a disk drive.
  */
 struct	disk {
+	/*
+	 * AI-ONLY NOTE: dk_dchain, the controller's list of drives.
+	 *
+	 * This driver kept two queues in struct buf: wdutab[unit] holds
+	 * a drive's buffer queue in b_actf, which disksort() fills, and
+	 * wdtab chained those wdutab entries together through b_forw to
+	 * make the controller's list of drives. 4.4BSD deleted b_forw
+	 * when it made b_actf and b_actb real fields -- 386BSD 0.1 had
+	 * them as macros over av_forw and av_back, with b_forw and
+	 * b_back present as the hash chain, and this driver came across
+	 * from there unchanged. docs/deferred.md has the trace.
+	 *
+	 * One field cannot be both: dp->b_actf is already the head of
+	 * that drive's buffer queue.
+	 *
+	 * hp300's sd.c is this tree's own answer and it predates the
+	 * problem: struct buf carries the per-drive buffer queue, and
+	 * the controller's queue of devices lives in the driver's own
+	 * structure -- `struct devqueue sc_dq' at hp300/dev/scsivar.h:41,
+	 * chained by dq_forw and dq_back inside the softc. Two levels,
+	 * two structures. NetBSD 1.0 reached the same arrangement with a
+	 * TAILQ of wd_softc. FreeBSD 2.0 and 2.0.5 flatten to one level,
+	 * chaining buffers directly in wdtab[ctrlr], which gives up the
+	 * controller queue this driver is written around.
+	 *
+	 * So the link goes here, in the per-drive structure, which is
+	 * where hp300 puts it.
+	 */
+	struct	disk *dk_dchain;	/* next drive on the controller */
 	struct disklabel dk_dd;	/* device configuration data */
 	long	dk_bc;		/* byte count left */
 	short	dk_skip;	/* blocks already transferred */
@@ -154,6 +183,13 @@ struct disklabel dflt_sizes = {
 
 static	struct	dkbad	dkbad[NWD];
 struct	disk	wddrives[NWD] = {0};	/* table of units */
+/*
+ * AI-ONLY NOTE: wdustart and wdstart chain drives through dk_dchain
+ * now, so the controller's head and tail are struct disk * rather
+ * than fields borrowed from this struct buf. wdtab keeps b_active and
+ * b_errcnt, which are its own.
+ */
+struct	disk	*wdqhead, **wdqtail = &wdqhead;
 struct	buf	wdtab = {0};
 struct	buf	wdutab[NWD] = {0};	/* head of queue per drive */
 struct	buf	rwdbuf[NWD] = {0};	/* buffers for raw IO */
@@ -310,12 +346,9 @@ wdustart(du)
 	bp = dp->b_actf;
 	if (bp == NULL)
 		return;	
-	dp->b_forw = NULL;
-	if (wdtab.b_actf  == NULL)		/* link unit into active list */
-		wdtab.b_actf = dp;
-	else
-		wdtab.b_actl->b_forw = dp;
-	wdtab.b_actl = dp;
+	du->dk_dchain = NULL;		/* link unit into active list */
+	*wdqtail = du;
+	wdqtail = &du->dk_dchain;
 	dp->b_active = 1;		/* mark the drive as busy */
 }
 
@@ -340,19 +373,28 @@ wdstart()
 	int	unit, s;
 
 loop:
-	dp = wdtab.b_actf;
-	if (dp == NULL)
+	/*
+	 * AI-ONLY NOTE: the controller's drive list is wdqhead now, a
+	 * chain of struct disk through dk_dchain, where it was wdtab's
+	 * b_actf chained through each wdutab entry's b_forw. See the
+	 * note on dk_dchain above. dp is still the drive's struct buf,
+	 * which still holds that drive's buffer queue.
+	 */
+	du = wdqhead;
+	if (du == NULL)
 		return;
+	dp = &wdutab[du->dk_unit];
 	bp = dp->b_actf;
 	if (bp == NULL) {
-		wdtab.b_actf = dp->b_forw;
+		if ((wdqhead = du->dk_dchain) == NULL)
+			wdqtail = &wdqhead;
 		goto loop;
 	}
 	unit = wdunit(bp->b_dev);
 	du = &wddrives[unit];
 	if (DISKSTATE(du->dk_state) <= RDLABEL) {
 		if (wdcontrol(bp)) {
-			dp->b_actf = bp->av_forw;
+			dp->b_actf = bp->b_actf;
 			goto loop;	/* done */
 		}
 		return;
@@ -495,7 +537,7 @@ wdintr(unit)
 #ifdef	WDDEBUG
 	dprintf(DDSK,"I ");
 #endif
-	dp = wdtab.b_actf;
+	dp = wdqhead ? &wdutab[wdqhead->dk_unit] : NULL;
 	bp = dp->b_actf;
 	du = &wddrives[wdunit(bp->b_dev)];
 	partch = wdpart(bp->b_dev) + 'a';
@@ -593,11 +635,12 @@ outt:
 done:
 		wd_sebyse = 0;
 		/* done with this transfer, with or without error */
-		wdtab.b_actf = dp->b_forw;
+		if ((wdqhead = wdqhead->dk_dchain) == NULL)
+			wdqtail = &wdqhead;
 		wdtab.b_errcnt = 0;
 		du->dk_skip = 0;
 		dp->b_active = 0;
-		dp->b_actf = bp->av_forw;
+		dp->b_actf = bp->b_actf;
 		dp->b_errcnt = 0;
 		bp->b_resid = 0;
 		biodone(bp);
@@ -605,7 +648,7 @@ done:
 	wdtab.b_active = 0;
 	if (dp->b_actf)
 		wdustart(du);		/* requeue disk if more io to do */
-	if (wdtab.b_actf)
+	if (wdqhead)
 		wdstart();		/* start IO on next drive */
 }
 
