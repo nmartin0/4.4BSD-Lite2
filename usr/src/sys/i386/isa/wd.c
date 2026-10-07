@@ -774,11 +774,20 @@ wdopen(dev, flags, fmt)
 		 * retry sector by sector. dkbad[] is static and so all
 		 * zeros, and the walk ends on bt_cyl of -1, which zero
 		 * is not -- it would run off the end of the 126 entries.
-		 * The reading path above assigns the whole structure for
+		 * The reading path below assigns the whole structure for
 		 * the same reason.
+		 *
+		 * The line is this port's own, from i386/stand/wd.c --
+		 * the same driver written for the bootstrap, which
+		 * terminates the table on every path that does not read
+		 * one: at its :379 when the label is bad, at :419 when
+		 * the table is malformed, and at :397 unconditionally
+		 * before the read is even attempted. Only bt_cyl is
+		 * written, there and in usr.sbin/bad144/bad144.c:262,
+		 * because the walk ends on it and bt_trksec is read only
+		 * inside the loop body at :467.
 		 */
 		dkbad[unit].bt_bad[0].bt_cyl = -1;
-		dkbad[unit].bt_bad[0].bt_trksec = -1;
 		du->dk_state = OPEN;
 		goto done;
 	}
