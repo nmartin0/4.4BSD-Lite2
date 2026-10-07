@@ -357,10 +357,39 @@ again:
 	entry = eh.e_entry;
 
 	/*
-	 * The stack.
+	 * The stack, as 4.4BSD's getxfile allocates it.
+	 *
+	 * AI-ONLY NOTE: the `- NBPG' is Berkeley's and is not slack.
+	 * His getxfile has
+	 *
+	 *	size = round_page(MAXSSIZ);
+	 *	#ifdef	i386
+	 *	addr = trunc_page(USRSTACK - size) - NBPG;	/ * XXX * /
+	 *	#else
+	 *	addr = trunc_page(USRSTACK - size);
+	 *	#endif
+	 *
+	 * because on this port USRSTACK is 0xEFBFE000 and
+	 * VM_MAXUSER_ADDRESS, which is where the vmspace's map ends, is
+	 * 0xEFBFD000 -- one page lower. A region running up to USRSTACK
+	 * ends one page past the map and vm_allocate refuses it. An
+	 * earlier version of this body dropped the i386 arm, and every
+	 * exec failed there: all four of init's PT_LOAD segments
+	 * mapped, then the stack allocation failed, and exec_abort
+	 * killed the process with SIGABRT -- which is the `init died
+	 * (signal 6, exit 0)' this kernel was printing.
+	 *
+	 * The vm_map_protect below is his too. Everything above the
+	 * current stack limit is VM_PROT_NONE, so the stack grows by
+	 * faulting into it rather than being wired at MAXSSIZ.
 	 */
-	addr = (u_long)trunc_page(USRSTACK - MAXSSIZ);
-	if (error = vm_allocate(&vm->vm_map, &addr, MAXSSIZ, FALSE))
+	size = round_page(MAXSSIZ);
+	addr = (u_long)trunc_page(USRSTACK - size) - NBPG;
+	if (error = vm_allocate(&vm->vm_map, &addr, size, FALSE))
+		goto exec_abort;
+	size -= round_page(p->p_rlimit[RLIMIT_STACK].rlim_cur);
+	if (error = vm_map_protect(&vm->vm_map, addr, addr + size,
+	    VM_PROT_NONE, FALSE))
 		goto exec_abort;
 	vm->vm_maxsaddr = (caddr_t)addr;
 	vm->vm_ssize = 0;
