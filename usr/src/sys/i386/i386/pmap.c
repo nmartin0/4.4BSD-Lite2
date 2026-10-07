@@ -487,9 +487,35 @@ pmap_pinit(pmap)
 	bcopy(PTD+KPTDI_FIRST, pmap->pm_pdir+KPTDI_FIRST,
 		(KPTDI_LAST-KPTDI_FIRST+1)*4);
 
-	/* install self-referential address mapping entry */
+	/*
+	 * install self-referential address mapping entry
+	 *
+	 * AI-ONLY NOTE: PG_KW, where this said PG_URKW -- the same
+	 * correction as i386/locore.s:402, in the one place that
+	 * sweep missed.
+	 *
+	 * machine/pte.h:115 defines PG_URKW as 0x4: PG_u set, PG_RW
+	 * clear. The name says kernel write; the bits say read-only.
+	 * It worked because a 386 has no CR0_WP and lets the kernel
+	 * write through a read-only page. `i386: detect the processor,
+	 * and enable write protection on a 486' set CR0_WP at
+	 * machdep.c:757, so the processor honours PG_RW against kernel
+	 * writes now.
+	 *
+	 * This entry is the directory's self-map, and pmap_pte reads
+	 * it into APTDpde to reach a pmap that is not current. So with
+	 * it read-only, the first write through APTmap faults -- which
+	 * is what the first fork did, mapping the child's kernel stack
+	 * from cpu_fork at i386/vm_machdep.c. Measured: APTDpde held
+	 * 0x008a7025, flags PG_V|PG_u|accessed and no PG_RW, against
+	 * 0x00082067 for the kernel's own self-map, which has it.
+	 *
+	 * NetBSD 1.0's pmap_pinit, at its pmap.c:637, writes
+	 * `| PG_V | PG_KW' here. PG_KW is 0x2, the PG_RW bit itself,
+	 * which is right whether or not CR0_WP is set.
+	 */
 	*(int *)(pmap->pm_pdir+PTDPTDI) =
-		(int)pmap_extract(kernel_pmap, (vm_offset_t)pmap->pm_pdir) | PG_V | PG_URKW;
+		(int)pmap_extract(kernel_pmap, (vm_offset_t)pmap->pm_pdir) | PG_V | PG_KW;
 
 	pmap->pm_count = 1;
 	simple_lock_init(&pmap->pm_lock);
