@@ -74,7 +74,29 @@ configure()
 	isa_configure();
 #endif
 
-#if GENERICxxx
+/*
+ * AI-ONLY NOTE: GENERIC, where this said GENERICxxx.
+ *
+ * GENERICxxx is defined nowhere in this tree, so the #else arm was
+ * always taken and setconf() was never called -- which is why the
+ * work on it had no effect, and why nobody had noticed that its body
+ * in i386/i386/swapgeneric.c was still the tahoe's.
+ *
+ * It is a typo, not a decision. Every other port writes the same
+ * three lines guarded by the real option: hp300/hp300/autoconf.c:127
+ * and luna68k, news3400, pmax and vax likewise, all `GENERIC' or
+ * `ifdef GENERIC'. NetBSD 1.0's i386 autoconf.c:78 is this same file
+ * -- same isa_configure() above it, same three lines inside --
+ * spelled GENERIC. And the Makefile config generates for this
+ * directory carries `# the following is necessary because autoconf.o
+ * depends on #if GENERIC', so the build system was already tracking
+ * an option the source misspelled.
+ *
+ * LINK.i386 defines GENERIC, because this kernel has to find its own
+ * root: setroot() decodes a bootdev from the loader, and build/shim
+ * passes none.
+ */
+#if GENERIC
 	if ((boothowto & RB_ASKNAME) == 0)
 		setroot();
 	setconf();

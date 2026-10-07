@@ -104,6 +104,12 @@ device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
 # comcnputc polls LSR_TXRDY with a timeout rather than waiting on an
 # interrupt. cninit runs at the top of init386, before
 # isa_defaultirq, and none of that path depends on either.
+# AI-ONLY NOTE: GENERIC, so that i386/i386/autoconf.c calls setconf()
+# and the kernel searches for its own root device. setroot(), the
+# alternative, decodes a bootdev the loader passes, and build/shim
+# passes none. hp300's and pmax's GENERIC configurations define it for
+# the same reason.
+options		GENERIC
 options		COMCONSOLE
 # AI-ONLY NOTE: wd0 and dk0, which this configuration left out while
 # isa/wd.c could not compile. It compiles now, and wdopen refuses a
