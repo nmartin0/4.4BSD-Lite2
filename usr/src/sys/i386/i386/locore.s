@@ -512,6 +512,38 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
 	call	_C_LABEL(init386)		# wire 386 chip for unix operation
 	
 	movl	$0,_C_LABEL(PTD)
+/*
+ * AI-ONLY NOTE: main's argument, which this file did not pass.
+ *
+ * `call main' followed the `pushl %esi' that init386 takes, with
+ * nothing between to drop it, so main(framep) received %esi -- the
+ * boot-time page pointer, `lea 7*NBPG(%esi),%esi' above, which is a
+ * physical address around 0x8a000.
+ *
+ * framep is meant to be a trap frame. kern/init_main.c:278 hands it
+ * to start_init, which does cpu_set_init_frame(p, framep), and
+ * machine/cpu.h:73 defines that as `(p)->p_md.md_regs = fp'. So proc
+ * 1's md_regs held a low physical address, and execve's cpu_setstack
+ * -- `(p)->p_md.md_regs[SP] = ap' -- wrote through it and faulted at
+ * CR2 0x8a02c, offset 44 being sESP.
+ *
+ * The frame area is already reserved: the bootstrap stack is set to
+ * `kstack + UPAGES*NBPG - 4*12' a dozen lines above, leaving
+ * forty-eight bytes at the top for exactly this. Berkeley reserved it
+ * and never passed its address.
+ *
+ * NetBSD 1.0's i386 locore.s:572 is
+ *
+ *	movl	%esp,%eax		# push pointer to frame
+ *	pushl	%eax
+ *	call 	_main
+ *
+ * which is what follows, after dropping init386's argument so that
+ * the two calls do not share one.
+ */
+	addl	$4,%esp			# drop init386's argument
+	movl	%esp,%eax		# push pointer to frame
+	pushl	%eax
 	call 	_C_LABEL(main)
 	popl	%esi
 
