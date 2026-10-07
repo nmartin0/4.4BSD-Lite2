@@ -251,25 +251,115 @@ getblk(a1, a2, a3, a4, a5)
 }
 
 struct buf *
-geteblk(a1)
-	int a1;
+/*
+ * AI-ONLY NOTE: written, not restored; see count_lock_queue. This one
+ * is 4.4BSD's text with nothing changed at all -- it touches neither
+ * queue head directly, so there is no <sys/queue.h> conversion to
+ * make.
+ *
+ * NetBSD's drops the MAXBSIZE panic and moves allocbuf above the
+ * three zeroings. Neither is taken: the panic is Berkeley's guard on
+ * a caller passing nonsense, and the order is his.
+ */
+geteblk(size)
+	int size;
 {
+	register struct buf *bp;
 
-	/*
-	 * Body deleted.
-	 */
-	return ((struct buf *)0);
+	if (size > MAXBSIZE)
+		panic("geteblk: size too big");
+	while ((bp = getnewbuf(0, 0)) == NULL)
+		/* void */;
+	bp->b_flags |= B_INVAL;
+	bremhash(bp);
+	binshash(bp, &invalhash);
+	bp->b_bcount = 0;
+	bp->b_error = 0;
+	bp->b_resid = 0;
+	allocbuf(bp, size);
+	return (bp);
 }
 
-allocbuf(a1, a2)
-	struct buf *a1;
-	int a2;
+/*
+ * AI-ONLY NOTE: written, not restored; see count_lock_queue for the
+ * rule and the sources. 4.4BSD's text, with the two <sys/queue.h>
+ * field names this tree converted: `bufqueues[BQ_EMPTY].qe_next'
+ * becomes `.tqh_first'.
+ *
+ * The parameter is tp, not bp, which is Berkeley's naming here and
+ * reads oddly beside the other bodies -- the buffer being grown is
+ * `tp' and the ones robbed of space are `bp'. NetBSD renamed it bp
+ * and lost the distinction. Kept.
+ *
+ * pagemove() is machine-dependent and this port has it complete:
+ * i386/i386/vm_machdep.c, walking the page tables with kvtopte. It is
+ * not one of the settlement stubs.
+ */
+allocbuf(tp, size)
+	register struct buf *tp;
+	int size;
 {
+	register struct buf *bp, *ep;
+	int sizealloc, take, s;
 
+	sizealloc = roundup(size, CLBYTES);
 	/*
-	 * Body deleted.
+	 * Buffer size does not change
 	 */
-	return (0);
+	if (sizealloc == tp->b_bufsize)
+		goto out;
+	/*
+	 * Buffer size is shrinking.
+	 * Place excess space in a buffer header taken from the
+	 * BQ_EMPTY buffer list and placed on the "most free" list.
+	 * If no extra buffer headers are available, leave the
+	 * extra space in the present buffer.
+	 */
+	if (sizealloc < tp->b_bufsize) {
+		if ((ep = bufqueues[BQ_EMPTY].tqh_first) == NULL)
+			goto out;
+		s = splbio();
+		bremfree(ep);
+		ep->b_flags |= B_BUSY;
+		splx(s);
+		pagemove(tp->b_un.b_addr + sizealloc, ep->b_un.b_addr,
+		    (int)tp->b_bufsize - sizealloc);
+		ep->b_bufsize = tp->b_bufsize - sizealloc;
+		tp->b_bufsize = sizealloc;
+		ep->b_flags |= B_INVAL;
+		ep->b_bcount = 0;
+		brelse(ep);
+		goto out;
+	}
+	/*
+	 * More buffer space is needed. Get it out of buffers on
+	 * the "most free" list, placing the empty headers on the
+	 * BQ_EMPTY buffer header list.
+	 */
+	while (tp->b_bufsize < sizealloc) {
+		take = sizealloc - tp->b_bufsize;
+		while ((bp = getnewbuf(0, 0)) == NULL)
+			/* void */;
+		if (take >= bp->b_bufsize)
+			take = bp->b_bufsize;
+		pagemove(&bp->b_un.b_addr[bp->b_bufsize - take],
+		    &tp->b_un.b_addr[tp->b_bufsize], take);
+		tp->b_bufsize += take;
+		bp->b_bufsize = bp->b_bufsize - take;
+		if (bp->b_bcount > bp->b_bufsize)
+			bp->b_bcount = bp->b_bufsize;
+		if (bp->b_bufsize <= 0) {
+			bremhash(bp);
+			binshash(bp, &invalhash);
+			bp->b_dev = NODEV;
+			bp->b_error = 0;
+			bp->b_flags |= B_INVAL;
+		}
+		brelse(bp);
+	}
+out:
+	tp->b_bcount = size;
+	return (1);
 }
 
 struct buf *
