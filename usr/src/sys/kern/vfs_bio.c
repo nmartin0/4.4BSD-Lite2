@@ -373,7 +373,7 @@ biowait(bp)
 
 	s = splbio();
 	while ((bp->b_flags & B_DONE) == 0)
-		tsleep((caddr_t)bp, PRIBIO + 1, "biowait", 0);
+		sleep((caddr_t)bp, PRIBIO);
 	splx(s);
 	if ((bp->b_flags & B_ERROR) == 0)
 		return (0);
@@ -423,44 +423,42 @@ int
  * `bufqueues[BQ_LOCKED].qe_next' where this file declares
  * TAILQ_HEAD and its intact bremfree uses tqe_next and TAILQ_REMOVE.
  *
- * Three smaller points of this file's style, settled by its own
- * intact functions and to be followed by the bodies still to come.
- * `register' is used on the buffer and index locals, as bufinit()
- * and vfs_bufstats() do -- the two intact functions that walk
- * buffers. A null buffer pointer is `NULL', as bremfree writes it
- * twice. And tsleep's channel is cast to caddr_t.
+ * The rule, arrived at after three revisions of getting it wrong.
+ * **Lite2 is 4.4BSD minus the bodies.** So the faithful
+ * reconstruction of a body is 4.4BSD's exact text, changed only where
+ * this tree demonstrably changed something -- and the only such
+ * change in this file is the conversion from <sys/queue.h>'s
+ * predecessors: `bufqueues[BQ_LOCKED].qe_next' with its cast becomes
+ * `.tqh_first', `b_freelist.qe_next' becomes `.tqe_next',
+ * `BUFHASH(..)->le_next' becomes `->lh_first', `b_hash.qe_next'
+ * becomes `.le_next'. Lite2's intact bremfree proves that conversion;
+ * nothing else here is proven.
  *
- * That last one was got wrong once and is worth the space.
- * <sys/proc.h>:278 declares `tsleep __P((void *chan, ...))', so the
- * cast is unnecessary and a revision of this file dropped it on that
- * ground. But the encumbered vfs_bio.c casts in both of its sleeping
- * calls -- `tsleep((caddr_t)&needbuffer, ...)' at its :606 and
- * `sleep((caddr_t)bp, PRIBIO)' at :652 -- and kern/ casts at
- * seventeen call sites against seven that do not. NetBSD writes
- * `tsleep(bp, ...)' with no cast at their :537, :698 and :755.
- * Dropping it was taking NetBSD's spelling while claiming to follow
- * this tree's, which is the one thing these notes exist to prevent.
+ * Everything else stays Berkeley's, including what looks like an
+ * inconsistency. count_lock_queue writes `++ret' and `return(ret)'
+ * where the rest of the file writes `x++' and `return ('. Earlier
+ * revisions of this work changed them to the majority, on a rule that
+ * "the file wins" -- which was invented to justify spellings already
+ * taken from NetBSD, and is the opposite of fidelity. Berkeley wrote
+ * that function that way; it is written that way.
  *
- * One more distinction, learned from checking these four against both
- * sources character by character. Matching *Berkeley's version of a
- * function* is not the same as matching *this file's idiom*, and
- * where they differ the file wins. The encumbered count_lock_queue
- * writes `return(ret)' and `++ret', and both are outliers in its own
- * file: 18 `return (' against 1 `return(', and 15 `x++' against 1
- * `++x'. So the spacing and the post-increment here follow the file
- * rather than that one function. The variable keeps Berkeley's name,
- * ret, where NetBSD calls it n -- that part is a free choice and
- * there is no reason to take theirs.
+ * The same disposes of sleep. biowait sleeps with `sleep((caddr_t)bp,
+ * PRIBIO)', which is Berkeley's line. An earlier revision made it
+ * tsleep because this directory uses tsleep twenty-five times against
+ * sleep's three -- the same invented rule. sleep is defined at
+ * kern/kern_synch.c:411, prototyped at <sys/proc.h>:277 and called by
+ * kern/vfs_subr.c:130 among others, so there is no reason to prefer
+ * tsleep except that NetBSD does.
  */
 count_lock_queue()
 {
 	register struct buf *bp;
 	register int ret;
 
-	for (ret = 0, bp = bufqueues[BQ_LOCKED].tqh_first; bp;
-	    bp = bp->b_freelist.tqe_next)
-		ret++;
-	return (ret);
+	for (ret = 0, bp = bufqueues[BQ_LOCKED].tqh_first;
+	    bp; bp = bp->b_freelist.tqe_next)
+		++ret;
+	return(ret);
 }
 
 #ifdef DIAGNOSTIC
