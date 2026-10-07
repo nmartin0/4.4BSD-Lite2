@@ -745,6 +745,32 @@ wdopen(dev, flags, fmt)
 		goto done;
 	}
 	/*
+	 * AI-ONLY NOTE: the D_BADSECT test, which this driver did not
+	 * have. It read the bad-sector table on every open and failed
+	 * with ENXIO when there was none -- `wd%d: format error in
+	 * bad-sector file' -- so a disk without a bad144(8) table
+	 * could not be opened at all, whatever its label said.
+	 *
+	 * <sys/disklabel.h>:258 defines D_BADSECT, "supports bad
+	 * sector forw.", in d_flags at :144. This file referenced it
+	 * zero times. FreeBSD 2.0.5's wd.c, the same driver from the
+	 * same 386BSD source, guards the read with it at its :1120:
+	 *
+	 *	if (msg == NULL && du->dk_dd.d_flags & D_BADSECT)
+	 *
+	 * so the flag is read by the one descendant that kept this
+	 * driver, and it is this tree's own flag being honoured rather
+	 * than anything imported.
+	 *
+	 * Measured: without this, an image with a good label and a
+	 * good FFS filesystem still failed ufs_mountroot with ENXIO
+	 * until a table was written onto its last track by hand.
+	 */
+	if ((du->dk_dd.d_flags & D_BADSECT) == 0) {
+		du->dk_state = OPEN;
+		goto done;
+	}
+	/*
 	 * Read bad sector table into memory.
 	 */
 	i = 0;
