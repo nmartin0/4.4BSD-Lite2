@@ -41,8 +41,24 @@ no system calls, and no clock interrupts, of which the whole boot
 produces only six.
 
 That is the question: after a correctly handled page fault returns to
-user mode, nothing further executes. Either the return to user does
-not complete, or init spins somewhere the log cannot see.
+user mode, nothing further executes.
+
+And the measurement that probably explains it: **the clock stops, and
+the disk does not.** Over a whole boot the log carries six interrupts
+on vector 0x20, which is IRQ 0, the 8254. The last is well before the
+user fault. Over the same stretch it carries eighty-three on vector
+0x2e, IRQ 14, the disk, and seventeen page faults. Running the machine
+for sixty seconds instead of thirty adds one entry to the log.
+
+So IRQ 0 stops being delivered while IRQ 14 keeps working. The two
+differ only in the mask: `biomask 4000' is bit 14 alone, so splbio
+masks the disk and not the clock, and whatever is holding the clock
+off is not splbio. With no clock there is no preemption, no timeout
+and no wakeup, which is a sufficient explanation for a machine that
+stops without a fault.
+
+That is where to look next, and it is a different place from the exec
+path this section used to point at.
 
 An earlier revision of this file recorded that user_page_fault never
 returns for the bss page. That was a bad measurement -- a conditional
