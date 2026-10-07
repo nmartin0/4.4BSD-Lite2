@@ -1,5 +1,52 @@
 # Where the work stands
 
+**The kernel execs a program and enters user mode.** With a disk image
+carrying a label, an FFS filesystem and `/sbin/init`, all built by the
+host tools in `build/`:
+
+```
+CPU: Pentium (586-class CPU)
+wd0 at 0x1f0 irq 14 on isa
+root on wd0
+WARNING: no swap space found
+```
+
+and then QEMU's exception log shows
+
+```
+cpl=3 IP=001f:08049394 pc=08049394 SP=0027:efbfdfbc CR2=08075188
+```
+
+`cs` is 0x1f, the user code selector, and 0x08049394 is forty bytes
+into init's text, whose ELF entry point is 0x0804936c. That is a user
+instruction, executed by a program this kernel loaded from a disk it
+mounted.
+
+**Where it stops: a demand-zero page never faults in.** init's first
+write to its bss faults at 0x08075188 and the kernel never recovers.
+What is established, by measurement rather than reading:
+
+```
+elf_load_psection       all four PT_LOAD segments return 0
+user_page_fault(0x8048000)   a text page   -> KERN_SUCCESS, returns
+user_page_fault(0x8075000)   the bss page  -> entered, never returns
+IDT vector 14                              -> IDTVEC(page), correct
+```
+
+The two addresses share a page directory index -- both are 32 -- so
+`pde_v(va)` is true for the bss and `user_page_fault` goes straight to
+`vm_fault(map, va, ftype, FALSE)` without the page-table path. The
+hang is inside vm_fault.
+
+The difference between the two is not how they were allocated. Both
+ranges come from vm_allocate in kern/exec_elf.c's elf_load_psection,
+at its :196 and :213. The text range is then written by vn_rdwr, which
+touches every page, so those pages are faulted in during the exec, in
+kernel context, with the process current. The bss is never touched, so
+its first fault comes from user mode. That is the only difference, and
+it is where to look.
+
+
 **The kernel runs.** As of `i386: COMCONSOLE, so the kernel can be
 heard', a kernel built from this tree loads, executes, and prints:
 
