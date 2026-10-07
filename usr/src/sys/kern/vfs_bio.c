@@ -346,14 +346,25 @@ loop:
 /*
  * AI-ONLY NOTE: written, not restored; see count_lock_queue.
  *
- * Two choices are settled by this tree rather than by the donors. It
+ * One choice is settled by this tree rather than by the donors: it
  * sleeps with tsleep, which kern/kern_synch.c:281 defines and which
- * this directory uses twenty-five times against sleep's three;
- * 4.4BSD's own vfs_bio.c used the bare sleep, the older form. And it
- * honours B_EINTR, which <sys/buf.h>:101 defines as "I/O was
- * interrupted" -- Berkeley added the flag and the code reading it
- * went out with the settlement, so handling it restores this tree's
- * own intent rather than importing NetBSD's.
+ * this directory uses twenty-five times against sleep's three.
+ * 4.4BSD's own used the bare sleep, the older form, and NetBSD moved
+ * to tsleep for the same reason.
+ *
+ * It does NOT check B_EINTR, and an earlier revision of this body did
+ * -- taking NetBSD's shape and calling it a restoration because
+ * <sys/buf.h>:101 defines the flag. The flag is defined for bwrite,
+ * not for this function. 4.4BSD encumbered's biowait reports B_ERROR
+ * and nothing else, and its bwrite checks B_EINTR after calling
+ * biowait, clearing it and overriding error with EINTR. Clearing it
+ * here would take the flag away before the one function that reads
+ * it, and bwrite is still a stub, so the two would have disagreed
+ * silently once it was written.
+ *
+ * NetBSD moved the check inward and clears it here instead. That is
+ * coherent in their tree because their bwrite was changed to match.
+ * Half of it is not coherent in this one.
  */
 biowait(bp)
 	register struct buf *bp;
@@ -364,15 +375,11 @@ biowait(bp)
 	while ((bp->b_flags & B_DONE) == 0)
 		tsleep((caddr_t)bp, PRIBIO + 1, "biowait", 0);
 	splx(s);
-
-	/* Check for interruption first, then for errors. */
-	if (bp->b_flags & B_EINTR) {
-		bp->b_flags &= ~B_EINTR;
-		return (EINTR);
-	}
-	if (bp->b_flags & B_ERROR)
-		return (bp->b_error ? bp->b_error : EIO);
-	return (0);
+	if ((bp->b_flags & B_ERROR) == 0)
+		return (0);
+	if (bp->b_error)
+		return (bp->b_error);
+	return (EIO);
 }
 
 void
