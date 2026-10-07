@@ -66,6 +66,10 @@
 #include <sys/vnode.h>
 #include <sys/exec_elf.h>
 
+#include <vm/vm.h>
+
+#define ELF_ALIGN(a, b) ((a) & ~((b) - 1))
+
 int
 elf_check_header(eh, type)
 	Elf32_Ehdr *eh;
@@ -117,4 +121,101 @@ elf_read_from(p, vp, off, buf, size)
 	if (resid != 0)
 		return error;
 	return 0;
+}
+
+/*
+ * AI-ONLY NOTE: elf_load_psection, adapted rather than taken. NetBSD
+ * 1.1's is at their exec_elf.c:212 and is 48 lines, of which four
+ * touch their exec framework: the vcset parameter and its
+ * declaration, and two NEW_VMCMD calls. The other 44 -- the alignment
+ * arithmetic, the protection bits and the memsz/filesz difference --
+ * are taken unchanged.
+ *
+ * The two NEW_VMCMD calls become the work those commands do. From
+ * their exec_subr.c:155 and :183:
+ *
+ *	vmcmd_map_readvn   vm_allocate, then vn_rdwr, then vm_map_protect
+ *	vmcmd_map_zero     vm_allocate, then vm_map_protect
+ *
+ * so the calls below are those sequences written out, with this
+ * tree's own vm_allocate at vm/vm_user.c, vn_rdwr at
+ * kern/vfs_vnops.c and vm_map_protect at vm/vm_map.c.
+ *
+ * What the framework buys, and why not having it is sound here. A
+ * vmcmd set is a deferred-action list: an activator plans the new
+ * address space, and the list runs only once the kernel has committed
+ * to the exec, so a header that fails to parse cannot have already
+ * destroyed the process. Acting immediately is correct only if
+ * validation has finished first -- which is exactly how 4.4BSD's
+ * execve is built, reading and checking the whole header before it
+ * calls vm_deallocate on the old address space. The caller must
+ * preserve that order, and the one written for this tree does.
+ *
+ * The signature therefore loses vcset and gains the proc, because the
+ * vm calls need p->p_vmspace where the commands carried it.
+ */
+int
+elf_load_psection(p, vp, ph, addr, size, prot)
+	struct proc *p;
+	struct vnode *vp;
+	Elf32_Phdr *ph;
+	u_long *addr;
+	u_long *size;
+	int *prot;
+{
+	u_long uaddr, msize, rm, rf;
+	long diff, offset;
+	int error;
+
+	/*
+	 * If the user specified an address, then we load there.
+	 */
+	if (*addr != ELF32_NO_ADDR) {
+		if (ph->p_align > 1) {
+			*addr = ELF_ALIGN(*addr + ph->p_align, ph->p_align);
+			uaddr = ELF_ALIGN(ph->p_vaddr, ph->p_align);
+		} else
+			uaddr = ph->p_vaddr;
+		diff = ph->p_vaddr - uaddr;
+	} else {
+		*addr = uaddr = ph->p_vaddr;
+		if (ph->p_align > 1)
+			*addr = ELF_ALIGN(uaddr, ph->p_align);
+		diff = uaddr - *addr;
+	}
+
+	*prot |= (ph->p_flags & Elf32_pf_r) ? VM_PROT_READ : 0;
+	*prot |= (ph->p_flags & Elf32_pf_w) ? VM_PROT_WRITE : 0;
+	*prot |= (ph->p_flags & Elf32_pf_x) ? VM_PROT_EXECUTE : 0;
+
+	offset = ph->p_offset - diff;
+	*size = ph->p_filesz + diff;
+	msize = ph->p_memsz + diff;
+
+	/* NEW_VMCMD(vcset, vmcmd_map_readvn, *size, *addr, vp, offset, *prot) */
+	if (error = vm_allocate(&p->p_vmspace->vm_map, addr, *size, 0))
+		return (error);
+	if (error = vn_rdwr(UIO_READ, vp, (caddr_t)*addr, *size, offset,
+	    UIO_USERSPACE, IO_UNIT|IO_NODELOCKED, p->p_ucred, (int *)0, p))
+		return (error);
+	if (error = vm_map_protect(&p->p_vmspace->vm_map, trunc_page(*addr),
+	    round_page(*addr + *size), *prot, FALSE))
+		return (error);
+
+	/*
+	 * Check if we need to extend the size of the segment
+	 */
+	rm = round_page(*addr + msize);
+	rf = round_page(*addr + *size);
+
+	if (rm != rf) {
+		/* NEW_VMCMD(vcset, vmcmd_map_zero, rm - rf, rf, NULLVP, 0, *prot) */
+		if (error = vm_allocate(&p->p_vmspace->vm_map, &rf, rm - rf, 0))
+			return (error);
+		if (error = vm_map_protect(&p->p_vmspace->vm_map,
+		    trunc_page(rf), round_page(rm), *prot, FALSE))
+			return (error);
+		*size = msize;
+	}
+	return (0);
 }

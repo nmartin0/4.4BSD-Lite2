@@ -159,7 +159,15 @@ enum AuxID {
 #define	ELF_HDR_SIZE	(sizeof(Elf32_Ehdr))
 
 
-#ifdef _KERNEL
+/*
+ * AI-ONLY NOTE: KERNEL, where NetBSD 1.1 wrote _KERNEL. This tree
+ * compiles the kernel with -DKERNEL, as compile/LINK.i386/Makefile
+ * shows, and its own headers test the unprefixed name -- sys/buf.h
+ * and sys/proc.h each have one `#ifdef KERNEL' and no `_KERNEL'.
+ * NetBSD had moved to the underscored form by 1.1; 4.4BSD-Lite2 had
+ * not.
+ */
+#ifdef KERNEL
 
 #define ELF32_NO_ADDR	((u_long) ~0)
 
@@ -171,6 +179,6 @@ struct elf_args {
         u_long  arg_phnum;      /* Number of program headers */
 };
 
-#endif /* _KERNEL */
+#endif /* KERNEL */
 
 #endif /* !_SYS_EXEC_ELF_H_ */
