@@ -635,15 +635,37 @@ biowait(bp)
 	return (EIO);
 }
 
+/*
+ * AI-ONLY NOTE: written, not restored; see count_lock_queue. 4.4BSD's
+ * text, unchanged -- it touches no queue head, so there is no
+ * <sys/queue.h> conversion to make.
+ *
+ * This is what a driver calls to say a transfer has finished. The
+ * i386's wdintr reaches it through biodone at isa/wd.c, and until now
+ * that call returned without setting B_DONE, so biowait's `while
+ * ((bp->b_flags & B_DONE) == 0)' could never terminate.
+ */
 void
-biodone(a1)
-	struct buf *a1;
+biodone(bp)
+	register struct buf *bp;
 {
 
-	/*
-	 * Body deleted.
-	 */
-	return;
+	if (bp->b_flags & B_DONE)
+		panic("dup biodone");
+	bp->b_flags |= B_DONE;
+	if ((bp->b_flags & B_READ) == 0)
+		vwakeup(bp);
+	if (bp->b_flags & B_CALL) {
+		bp->b_flags &= ~B_CALL;
+		(*bp->b_iodone)(bp);
+		return;
+	}
+	if (bp->b_flags & B_ASYNC)
+		brelse(bp);
+	else {
+		bp->b_flags &= ~B_WANTED;
+		wakeup((caddr_t)bp);
+	}
 }
 
 int
