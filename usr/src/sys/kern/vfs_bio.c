@@ -139,18 +139,44 @@ bufinit()
 	}
 }
 
-bread(a1, a2, a3, a4, a5)
-	struct vnode *a1;
-	daddr_t a2;
-	int a3;
-	struct ucred *a4;
-	struct buf **a5;
+/*
+ * AI-ONLY NOTE: written, not restored; see count_lock_queue. This is
+ * 4.4BSD's text with nothing changed but the parameter names, which
+ * the settlement left as a1 to a5.
+ *
+ * TR_BREADHIT and TR_BREADMISS are at <sys/trace.h>:44 and :45 and
+ * are used nowhere else in this tree, because this is the only
+ * function that used them and its body was deleted -- the same shape
+ * as TR_BRELSE in getnewbuf and brelse.
+ */
+bread(vp, blkno, size, cred, bpp)
+	struct vnode *vp;
+	daddr_t blkno;
+	int size;
+	struct ucred *cred;
+	struct buf **bpp;
 {
+	struct proc *p = curproc;		/* XXX */
+	register struct buf *bp;
 
-	/*
-	 * Body deleted.
-	 */
-	return (EIO);
+	if (size == 0)
+		panic("bread: size 0");
+	*bpp = bp = getblk(vp, blkno, size, 0, 0);
+	if (bp->b_flags & (B_DONE | B_DELWRI)) {
+		trace(TR_BREADHIT, pack(vp, size), blkno);
+		return (0);
+	}
+	bp->b_flags |= B_READ;
+	if (bp->b_bcount > bp->b_bufsize)
+		panic("bread");
+	if (bp->b_rcred == NOCRED && cred != NOCRED) {
+		crhold(cred);
+		bp->b_rcred = cred;
+	}
+	VOP_STRATEGY(bp);
+	trace(TR_BREADMISS, pack(vp, size), blkno);
+	p->p_stats->p_ru.ru_inblock++;		/* pay for read */
+	return (biowait(bp));
 }
 
 breadn(a1, a2, a3, a4, a5, a6, a7, a8)
@@ -205,14 +231,73 @@ bawrite(a1)
 	return;
 }
 
-brelse(a1)
-	struct buf *a1;
+/*
+ * AI-ONLY NOTE: written, not restored; see count_lock_queue. 4.4BSD's
+ * text with one <sys/queue.h> conversion, `struct queue_entry *flist'
+ * becoming `struct bqueues *flist' -- the type of the thing
+ * bufqueues[] is an array of, which this file declares at :75.
+ *
+ * binsheadfree and binstailfree need no change: this file defines
+ * them at :81 and :82 over TAILQ_INSERT_HEAD and TAILQ_INSERT_TAIL,
+ * and brelvp, bremhash and binshash likewise. The conversion was done
+ * for the macros when the settlement left them behind; only the local
+ * declaration was in a deleted body.
+ */
+brelse(bp)
+	register struct buf *bp;
 {
+	register struct bqueues *flist;
+	int s;
 
+	trace(TR_BRELSE, pack(bp->b_vp, bp->b_bufsize), bp->b_lblkno);
 	/*
-	 * Body deleted.
+	 * If a process is waiting for the buffer, or
+	 * is waiting for a free buffer, awaken it.
 	 */
-	return;
+	if (bp->b_flags & B_WANTED)
+		wakeup((caddr_t)bp);
+	if (needbuffer) {
+		needbuffer = 0;
+		wakeup((caddr_t)&needbuffer);
+	}
+	/*
+	 * Retry I/O for locked buffers rather than invalidating them.
+	 */
+	s = splbio();
+	if ((bp->b_flags & B_ERROR) && (bp->b_flags & B_LOCKED))
+		bp->b_flags &= ~B_ERROR;
+	/*
+	 * Disassociate buffers that are no longer valid.
+	 */
+	if (bp->b_flags & (B_NOCACHE | B_ERROR))
+		bp->b_flags |= B_INVAL;
+	if ((bp->b_bufsize <= 0) || (bp->b_flags & (B_ERROR | B_INVAL))) {
+		if (bp->b_vp)
+			brelvp(bp);
+		bp->b_flags &= ~B_DELWRI;
+	}
+	/*
+	 * Stick the buffer back on a free list.
+	 */
+	if (bp->b_bufsize <= 0) {
+		/* block has no buffer ... put at front of unused buffer list */
+		flist = &bufqueues[BQ_EMPTY];
+		binsheadfree(bp, flist);
+	} else if (bp->b_flags & (B_ERROR | B_INVAL)) {
+		/* block has no info ... put at front of most free list */
+		flist = &bufqueues[BQ_AGE];
+		binsheadfree(bp, flist);
+	} else {
+		if (bp->b_flags & B_LOCKED)
+			flist = &bufqueues[BQ_LOCKED];
+		else if (bp->b_flags & B_AGE)
+			flist = &bufqueues[BQ_AGE];
+		else
+			flist = &bufqueues[BQ_LRU];
+		binstailfree(bp, flist);
+	}
+	bp->b_flags &= ~(B_WANTED | B_BUSY | B_ASYNC | B_AGE | B_NOCACHE);
+	splx(s);
 }
 
 struct buf *
@@ -238,16 +323,94 @@ incore(vp, blkno)
 }
 
 struct buf *
-getblk(a1, a2, a3, a4, a5)
-	struct vnode *a1;
-	daddr_t a2;
-	int a3, a4, a5;
+/*
+ * AI-ONLY NOTE: written, not restored; see count_lock_queue. 4.4BSD's
+ * text with two <sys/queue.h> conversions: `struct list_entry *dp'
+ * becomes `struct bufhashhdr *dp', which is what BUFHASH() returns
+ * given this file's LIST_HEAD at :56, and the hash walk's `dp->le_next
+ * ... b_hash.qe_next' becomes `dp->lh_first ... b_hash.le_next'.
+ *
+ * The parameters are named, as in incore: the settlement left them
+ * a1 to a5.
+ *
+ * tsleep here is Berkeley's own, not a substitution -- the encumbered
+ * file calls tsleep in getblk and getnewbuf and the older sleep only
+ * in biowait, and all three are kept as he wrote them.
+ */
+getblk(vp, blkno, size, slpflag, slptimeo)
+	register struct vnode *vp;
+	daddr_t blkno;
+	int size, slpflag, slptimeo;
 {
+	register struct buf *bp;
+	struct bufhashhdr *dp;
+	int s, error;
 
+	if (size > MAXBSIZE)
+		panic("getblk: size too big");
 	/*
-	 * Body deleted.
+	 * Search the cache for the block. If the buffer is found,
+	 * but it is currently locked, the we must wait for it to
+	 * become available.
 	 */
-	return ((struct buf *)0);
+	dp = BUFHASH(vp, blkno);
+loop:
+	for (bp = dp->lh_first; bp; bp = bp->b_hash.le_next) {
+		if (bp->b_lblkno != blkno || bp->b_vp != vp)
+			continue;
+		s = splbio();
+		if (bp->b_flags & B_BUSY) {
+			bp->b_flags |= B_WANTED;
+			error = tsleep((caddr_t)bp, slpflag | (PRIBIO + 1),
+				"getblk", slptimeo);
+			splx(s);
+			if (error)
+				return (NULL);
+			goto loop;
+		}
+		/*
+		 * The test for B_INVAL is moved down here, since there
+		 * are cases where B_INVAL is set before VOP_BWRITE() is
+		 * called and for NFS, the process cannot be allowed to
+		 * allocate a new buffer for the same block until the write
+		 * back to the server has been completed. (ie. B_BUSY clears)
+		 */
+		if (bp->b_flags & B_INVAL) {
+			splx(s);
+			continue;
+		}
+		bremfree(bp);
+		bp->b_flags |= B_BUSY;
+		splx(s);
+		if (bp->b_bcount != size) {
+			printf("getblk: stray size");
+			bp->b_flags |= B_INVAL;
+			VOP_BWRITE(bp);
+			goto loop;
+		}
+		bp->b_flags |= B_CACHE;
+		return (bp);
+	}
+	/*
+	 * The loop back to the top when getnewbuf() fails is because
+	 * stateless filesystems like NFS have no node locks. Thus,
+	 * there is a slight chance that more than one process will
+	 * try and getnewbuf() for the same block concurrently when
+	 * the first sleeps in getnewbuf(). So after a sleep, go back
+	 * up to the top to check the hash lists again.
+	 */
+	if ((bp = getnewbuf(slpflag, slptimeo)) == 0)
+		goto loop;
+	bremhash(bp);
+	bgetvp(vp, bp);
+	bp->b_bcount = 0;
+	bp->b_lblkno = blkno;
+	bp->b_blkno = blkno;
+	bp->b_error = 0;
+	bp->b_resid = 0;
+	binshash(bp, dp);
+	allocbuf(bp, size);
+	return (bp);
 }
 
 struct buf *
