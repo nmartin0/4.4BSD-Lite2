@@ -57,6 +57,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <libgen.h>
 
 #define	say(...)	do { printf(__VA_ARGS__); fflush(stdout); } while (0)
 
@@ -105,8 +106,7 @@ rewritelabel(char *s, int fd, struct disklabel *lp)
  * filesystem is seconds old, nothing else has written to it, and this
  * tool adds exactly two inodes.
  */
-#define	SBININO		((ino_t)3)
-#define	INITINO		((ino_t)4)
+static ino_t nextino = 3;	/* ROOTINO is 2; see above */
 
 int
 main(int argc, char **argv)
@@ -118,7 +118,10 @@ main(int argc, char **argv)
 	char sec[512], tmp[1024], *data, *cp;
 	off_t partoff;
 	ufs_daddr_t *indir, blkno;
-	int fd, pfd, n, i, nblk, bsz;
+	char *dirname, *filepath;
+	ino_t dirino, fileino;
+	int arg;
+	int fd, pfd, ifd, n, i, nblk, bsz;
 	time_t utime;
 
 	if (sizeof(struct fs) != 1380) {
@@ -126,8 +129,11 @@ main(int argc, char **argv)
 		    "want 1380; build with -m32\n", (int)sizeof(struct fs));
 		return (1);
 	}
-	if (argc != 3) {
-		fprintf(stderr, "usage: addfile-host image file\n");
+	if (argc < 4 || (argc & 1) != 0) {	/* program + image + pairs */
+		fprintf(stderr, "usage: addfile-host image dir file "
+		    "[dir file ...]\n");
+		fprintf(stderr, "  e.g. addfile-host disk.img "
+		    "sbin .../init bin .../sh\n");
 		return (1);
 	}
 	time(&utime);
@@ -150,22 +156,6 @@ main(int argc, char **argv)
 	pp = &l.d_partitions[0];
 	sectorsize = l.d_secsize;
 	partoff = (off_t)pp->p_offset * sectorsize;
-
-	/* The file to add, read whole; init is small. */
-	if (stat(argv[2], &st) < 0) {
-		perror(argv[2]);
-		return (1);
-	}
-	if ((data = malloc((size_t)st.st_size)) == NULL) {
-		perror("malloc");
-		return (1);
-	}
-	if ((pfd = open(argv[2], O_RDONLY)) < 0 ||
-	    read(pfd, data, (size_t)st.st_size) != st.st_size) {
-		perror(argv[2]);
-		return (1);
-	}
-	close(pfd);
 
 	/* Copy the partition out, so wtfs's offsets are right. */
 	snprintf(tmp, sizeof tmp, "%s.part", argv[1]);
@@ -203,11 +193,50 @@ main(int argc, char **argv)
 	    argv[1], sblock.fs_magic, bsz);
 
 	/*
-	 * The sbin directory: one block holding `.', `..' and `init'.
+	 * AI-ONLY NOTE: one pass per `dir file' pair on the command
+	 * line. Each makes a directory under the root and puts one
+	 * file in it, taking the next two free inodes. There is no
+	 * allocator because none is needed -- see the note on nextino
+	 * above -- and no attempt to reuse a directory that already
+	 * exists, because this tool populates an empty filesystem and
+	 * nothing else writes to it.
+	 */
+	for (arg = 2; arg < argc; arg += 2) {
+	dirname = argv[arg];
+	filepath = argv[arg + 1];
+	dirino = nextino++;
+	fileino = nextino++;
+
+	/* The file to add, read whole; init is small. */
+	if (stat(filepath, &st) < 0) {
+		perror(filepath);
+		return (1);
+	}
+	if ((data = malloc((size_t)st.st_size)) == NULL) {
+		perror("malloc");
+		return (1);
+	}
+	/*
+	 * AI-ONLY NOTE: ifd, not pfd. pfd is the partition this tool
+	 * writes through, opened once above and used by mkfs.c's wtfs
+	 * for the whole run; reading the input file through it and
+	 * closing it took the filesystem away after the first pair,
+	 * and the writes that followed went nowhere.
+	 */
+	if ((ifd = open(filepath, O_RDONLY)) < 0 ||
+	    read(ifd, data, (size_t)st.st_size) != st.st_size) {
+		perror(filepath);
+		return (1);
+	}
+	close(ifd);
+
+
+	/*
+	 * The directory: one block holding `.', `..' and the file.
 	 */
 	memset(buf, 0, (size_t)bsz);
 	dp = (struct direct *)buf;
-	dp->d_ino = SBININO;
+	dp->d_ino = dirino;
 	dp->d_type = DT_DIR;
 	dp->d_namlen = 1;
 	strcpy(dp->d_name, ".");
@@ -221,10 +250,10 @@ main(int argc, char **argv)
 	dp->d_reclen = DIRSIZ(0, dp);
 	cp = (char *)dp + dp->d_reclen;
 	dp = (struct direct *)cp;
-	dp->d_ino = INITINO;
+	dp->d_ino = fileino;
 	dp->d_type = DT_REG;
-	dp->d_namlen = 4;
-	strcpy(dp->d_name, "init");
+	dp->d_namlen = strlen(basename(filepath));
+	strcpy(dp->d_name, basename(filepath));
 	dp->d_reclen = bsz - (cp - buf);
 
 	memset((char *)&node, 0, sizeof node);
@@ -235,9 +264,9 @@ main(int argc, char **argv)
 	node.di_db[0] = alloc(bsz, node.di_mode);
 	node.di_blocks = btodb(fragroundup(&sblock, bsz));
 	wtfs(fsbtodb(&sblock, node.di_db[0]), bsz, buf);
-	iput(&node, SBININO);
-	say("addfile-host: /sbin, inode %d, block %d\n",
-	    SBININO, node.di_db[0]);
+	iput(&node, dirino);
+	say("addfile-host: /%s, inode %d, block %d\n",
+	    dirname, (int)dirino, node.di_db[0]);
 
 	/*
 	 * The file. Twelve direct blocks and one single indirect, which
@@ -252,7 +281,7 @@ main(int argc, char **argv)
 	nblk = howmany(st.st_size, bsz);
 	if (nblk > NDADDR + NINDIR(&sblock)) {
 		fprintf(stderr, "addfile-host: %s needs %d blocks, and this "
-		    "writes at most %d\n", argv[2], nblk,
+		    "writes at most %d\n", filepath, nblk,
 		    NDADDR + NINDIR(&sblock));
 		return (1);
 	}
@@ -287,9 +316,9 @@ main(int argc, char **argv)
 		wtfs(fsbtodb(&sblock, node.di_ib[0]), bsz, (char *)indir);
 		free((char *)indir);
 	}
-	iput(&node, INITINO);
-	say("addfile-host: /sbin/init, inode %d, %d blocks\n",
-	    INITINO, nblk);
+	iput(&node, fileino);
+	say("addfile-host: /%s/%s, inode %d, %d blocks\n",
+	    dirname, basename(filepath), (int)fileino, nblk);
 
 	/*
 	 * Add `sbin' to the root directory. mkfs wrote it as one block
@@ -347,14 +376,16 @@ main(int argc, char **argv)
 		n = dp->d_reclen - i;
 		dp->d_reclen = i;
 		dp = (struct direct *)((char *)dp + i);
-		dp->d_ino = SBININO;
+		dp->d_ino = dirino;
 		dp->d_type = DT_DIR;
-		dp->d_namlen = 4;
-		strcpy(dp->d_name, "sbin");
+		dp->d_namlen = strlen(dirname);
+		strcpy(dp->d_name, dirname);
 		dp->d_reclen = n;
 		wtfs(fsbtodb(&sblock, rootblk), bsz, buf);
-		node.di_nlink++;		/* for sbin's `..' */
+		node.di_nlink++;		/* for the new directory's `..' */
 		iput(&node, ROOTINO);
+	}
+	free(data);
 	}
 
 	/* Write the summary back, as mkfs does at its end. */
