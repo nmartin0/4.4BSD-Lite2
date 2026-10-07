@@ -767,6 +767,18 @@ wdopen(dev, flags, fmt)
 	 * until a table was written onto its last track by hand.
 	 */
 	if ((du->dk_dd.d_flags & D_BADSECT) == 0) {
+		/*
+		 * The table must still be terminated. wdstrategy walks
+		 * it at :461 whenever wd_sebyse is set, and that is not
+		 * dead: wdintr sets it at :658 after a read error, to
+		 * retry sector by sector. dkbad[] is static and so all
+		 * zeros, and the walk ends on bt_cyl of -1, which zero
+		 * is not -- it would run off the end of the 126 entries.
+		 * The reading path above assigns the whole structure for
+		 * the same reason.
+		 */
+		dkbad[unit].bt_bad[0].bt_cyl = -1;
+		dkbad[unit].bt_bad[0].bt_trksec = -1;
 		du->dk_state = OPEN;
 		goto done;
 	}
