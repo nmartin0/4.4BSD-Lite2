@@ -84,6 +84,21 @@ main()
 	register unsigned i;
 
 	printf("#define\tI386_CR3PAT %d\n", I386_CR3PAT);
+	/*
+	 * AI-ONLY NOTE: MD_EIP and MD_ESP, the byte offsets of
+	 * md_regs[sEIP] and md_regs[sESP].
+	 *
+	 * i386/locore.s builds the frame it lrets to user with and
+	 * needs both out of it. It named them 11*4 and 9*4, which are
+	 * the only raw structure offsets in that file: everything else
+	 * goes through this program, PCB_ONFAULT and PCB_CR3 among
+	 * them. <machine/reg.h> is already included above, so the
+	 * indices are in scope and the arithmetic belongs here rather
+	 * than in the assembly, where a change to reg.h would not reach
+	 * it.
+	 */
+	printf("#define\tMD_EIP %d\n", sEIP * sizeof(int));
+	printf("#define\tMD_ESP %d\n", sESP * sizeof(int));
 	printf("#define\tUDOT_SZ %d\n", sizeof(struct user));
 	printf("#define\tP_FORW %d\n", &p->p_forw);
 	printf("#define\tP_BACK %d\n", &p->p_back);

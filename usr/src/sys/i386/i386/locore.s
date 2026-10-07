@@ -557,9 +557,12 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
  *
  * execve writes both: cpu_setstack is `(p)->p_md.md_regs[SP] = ap' at
  * machine/cpu.h:72, and setregs at i386/machdep.c:773 sets
- * md_regs[sEIP] to the ELF entry point. sESP is 11 and sEIP is 9 at
- * machine/reg.h, so they are at 44 and 36 bytes into the frame, inside
- * the forty-eight the bootstrap stack reserves.
+ * md_regs[sEIP] to the ELF entry point. MD_ESP and MD_EIP are their
+ * byte offsets, 44 and 36, which i386/genassym.c computes from
+ * <machine/reg.h>'s sESP and sEIP -- the same route PCB_ONFAULT and
+ * PCB_CR3 take in this file, so that a change to reg.h reaches here.
+ * Both are inside the forty-eight bytes the bootstrap stack
+ * reserves.
  *
  * Pushing constants threw both away. The process reached this lret
  * with an instruction pointer of zero and a stack pointer that was not
@@ -581,9 +584,9 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
  * pointer that was pushed for main.
  */
 	pushl	%ecx		# user ss
-	pushl	11*4(%esi)	# user esp, md_regs[sESP], from cpu_setstack
+	pushl	MD_ESP(%esi)	# user esp, md_regs[sESP], from cpu_setstack
 	pushl	%eax		# user cs
-	pushl	9*4(%esi)	# user ip, md_regs[sEIP], from setregs
+	pushl	MD_EIP(%esi)	# user ip, md_regs[sEIP], from setregs
 	movw	%cx,%ds
 	movw	%cx,%es
 	movw	%ax,%fs		# double map cs to fs
