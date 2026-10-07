@@ -391,6 +391,56 @@ only because `locore.o` is first and `start` is its first symbol.
 
 ## 6. Things established that change how the rest reads
 
+
+### 4.4BSD shipped a new driver framework and converted one port
+
+`sys/device.h` declares `struct cfdriver` and `kern/subr_autoconf.c`
+implements `config_search`, `config_found` and `config_attach` -- 488
+lines of machine-independent autoconfiguration. **Exactly one port
+uses it:** sparc, in thirteen files. The other six are each on
+something older and local:
+
+	sys/device.h + subr_autoconf.c   sparc
+	struct driver                    hp300, luna68k, news3400, pmax
+	struct uba_driver                vax
+	struct vba_driver                tahoe
+	struct isa_driver                i386 -- 386BSD's, outside all of it
+
+So Berkeley wrote a new framework, moved one port to it, and stopped.
+The same shape as `setconf`, the i386 pmap and `crt0.c`: begun, not
+finished.
+
+**The contemporaries split on it, and the split still holds today.**
+
+	NetBSD 1.0     ships it at 359 lines, and their i386 wd.c uses
+	               cfdriver -- they adopted it and converted the ports
+	FreeBSD 2.0.5  ships it at 342 lines and their i386 wd.c uses it
+	               zero times -- they kept isa_driver, as this tree does
+
+	NetBSD today   sys/device.h, struct cfdriver -- still there
+	OpenBSD today  sys/device.h, struct cfdriver -- still there
+	FreeBSD today  no sys/device.h; sys/bus.h with device_t and
+	               driver_t, the "newbus" replacement
+
+Two of the three surviving BSDs still run on 4.4BSD's framework in
+recognisably the same form, thirty-two years on. FreeBSD discarded it
+around 3.0.
+
+**What this changes about a decision already made.** `i386: wd and fd
+queue buffers the way this struct buf does` declined NetBSD 1.0's
+`TAILQ_ENTRY(wd_softc) sc_drivechain` on the ground that it belonged
+to "NetBSD's framework". It does not: it is 4.4BSD's framework, in
+this tree, unused by six ports. Declining it was still right, and for
+FreeBSD's reason rather than the one given -- this port is
+`isa_driver`-based and converting is a separate piece of work, not a
+queue fix.
+
+**Not deferred lightly.** Converting the i386 to `cfdriver` would be
+adopting this tree's own newer framework rather than importing
+anything, and it is the design two surviving BSDs chose. It is
+thirteen-odd files per port, and this kernel cannot mount a disk yet.
+When it can, this is the first architectural question waiting.
+
 `5a0ade80` is the finding with the widest consequences:
 
 > 4.4BSD-Lite2 is therefore not a pure CSRG artefact. It is Berkeley's
