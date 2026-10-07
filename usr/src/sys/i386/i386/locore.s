@@ -551,10 +551,39 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
 	movzwl	_C_LABEL(_ucodesel),%eax
 	movzwl	_C_LABEL(_udatasel),%ecx
 	# build outer stack frame
+/*
+ * AI-ONLY NOTE: the user esp and ip come from the frame now, where
+ * this pushed $USRSTACK and $0.
+ *
+ * execve writes both: cpu_setstack is `(p)->p_md.md_regs[SP] = ap' at
+ * machine/cpu.h:72, and setregs at i386/machdep.c:773 sets
+ * md_regs[sEIP] to the ELF entry point. sESP is 11 and sEIP is 9 at
+ * machine/reg.h, so they are at 44 and 36 bytes into the frame, inside
+ * the forty-eight the bootstrap stack reserves.
+ *
+ * Pushing constants threw both away. The process reached this lret
+ * with an instruction pointer of zero and a stack pointer that was not
+ * the one execve had built the argument vector on, so proc 1 never ran
+ * a user instruction: QEMU's exception log showed exactly one entry at
+ * cpl=3 for a whole boot.
+ *
+ * hp300 does the reading half and this port did not. Its locore.s:1126
+ * reserves the space and passes its address the same way --
+ * `lea sp@(-64),sp' then `pea sp@' then `jbsr _main' -- and at :1136
+ * it takes the frame back apart before returning to user:
+ *
+ *	movl	sp@(60),a0		| grab and load
+ *	movl	a0,usp			|   user SP
+ *	moveml	sp@+,#0x7FFF		| load most registers
+ *	rte
+ *
+ * %esi holds the frame here because the `popl %esi' above pops the
+ * pointer that was pushed for main.
+ */
 	pushl	%ecx		# user ss
-	pushl	$ USRSTACK	# user esp
+	pushl	11*4(%esi)	# user esp, md_regs[sESP], from cpu_setstack
 	pushl	%eax		# user cs
-	pushl	$0		# user ip
+	pushl	9*4(%esi)	# user ip, md_regs[sEIP], from setregs
 	movw	%cx,%ds
 	movw	%cx,%es
 	movw	%ax,%fs		# double map cs to fs
