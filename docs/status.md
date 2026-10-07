@@ -22,29 +22,32 @@ into init's text, whose ELF entry point is 0x0804936c. That is a user
 instruction, executed by a program this kernel loaded from a disk it
 mounted.
 
-**Where it stops: a demand-zero page never faults in.** init's first
-write to its bss faults at 0x08075188 and the kernel never recovers.
-What is established, by measurement rather than reading:
+**Where it stops: not in the fault path.** init's first write to its
+bss faults at 0x08075188, and that fault is handled correctly. Every
+step returns KERN_SUCCESS, measured under gdb:
 
 ```
-elf_load_psection       all four PT_LOAD segments return 0
-user_page_fault(0x8048000)   a text page   -> KERN_SUCCESS, returns
-user_page_fault(0x8075000)   the bss page  -> entered, never returns
-IDT vector 14                              -> IDTVEC(page), correct
+elf_load_psection            all four PT_LOAD segments     -> 0
+user_page_fault(0x8048000)   a text page                   -> 0
+user_page_fault(0x8075000)   the bss page                  -> 0
+vm_fault(0x8075000)                                        -> 0
+vm_map_pageable(0xefc20000)  the self-mapped page table    -> 0
 ```
 
-The two addresses share a page directory index -- both are 32 -- so
-`pde_v(va)` is true for the bss and `user_page_fault` goes straight to
-`vm_fault(map, va, ftype, FALSE)` without the page-table path. The
-hang is inside vm_fault.
+So the page is mapped and init resumes. What happens instead is that
+the machine then produces no exceptions at all. In QEMU's log the
+user fault is entry 459 and the log ends there -- no further faults,
+no system calls, and no clock interrupts, of which the whole boot
+produces only six.
 
-The difference between the two is not how they were allocated. Both
-ranges come from vm_allocate in kern/exec_elf.c's elf_load_psection,
-at its :196 and :213. The text range is then written by vn_rdwr, which
-touches every page, so those pages are faulted in during the exec, in
-kernel context, with the process current. The bss is never touched, so
-its first fault comes from user mode. That is the only difference, and
-it is where to look.
+That is the question: after a correctly handled page fault returns to
+user mode, nothing further executes. Either the return to user does
+not complete, or init spins somewhere the log cannot see.
+
+An earlier revision of this file recorded that user_page_fault never
+returns for the bss page. That was a bad measurement -- a conditional
+breakpoint left armed, so `finish' re-entered it rather than
+completing -- and it is wrong.
 
 
 **The kernel runs.** As of `i386: COMCONSOLE, so the kernel can be
