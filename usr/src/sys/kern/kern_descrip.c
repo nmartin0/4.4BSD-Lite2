@@ -850,6 +850,42 @@ fdopen(dev, mode, type, p)
 }
 
 /*
+ * AI-ONLY NOTE: fdcloseexec, which this tree does not have and
+ * kern/kern_exec.c's execve needs. 4.4BSD does the same work inline
+ * in execve, which is why there is no such function here; writing it
+ * out keeps the descriptor handling in the file that owns it, as
+ * 386BSD 0.1 does at its kern/kern_descrip.c and NetBSD 1.1 at
+ * theirs.
+ *
+ * Everything it uses is this tree's: UF_EXCLOSE and UF_MAPPED from
+ * <sys/filedesc.h>, munmapfd below, and closef.
+ */
+void
+fdcloseexec(p)
+	struct proc *p;
+{
+	struct filedesc *fdp = p->p_fd;
+	struct file **fpp;
+	char *fdfp;
+	register int i;
+
+	fpp = fdp->fd_ofiles;
+	fdfp = fdp->fd_ofileflags;
+	for (i = 0; i <= fdp->fd_lastfile; i++, fpp++, fdfp++)
+		if (*fpp != NULL && (*fdfp & UF_EXCLOSE)) {
+			if (*fdfp & UF_MAPPED)
+				(void) munmapfd(p, i);
+			(void) closef(*fpp, p);
+			*fpp = NULL;
+			*fdfp = 0;
+			if (i < fdp->fd_freefile)
+				fdp->fd_freefile = i;
+		}
+	while (fdp->fd_lastfile > 0 && fdp->fd_ofiles[fdp->fd_lastfile] == NULL)
+		fdp->fd_lastfile--;
+}
+
+/*
  * Duplicate the specified descriptor to a free descriptor.
  */
 int

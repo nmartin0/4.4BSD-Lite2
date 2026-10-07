@@ -343,7 +343,30 @@ start_init(p, framep)
 	/*
 	 * Need just enough stack to hold the faked-up "execve()" arguments.
 	 */
-	addr = trunc_page(VM_MAX_ADDRESS - PAGE_SIZE);
+	/*
+	 * AI-ONLY NOTE: USRSTACK, where this said VM_MAX_ADDRESS.
+	 *
+	 * This page holds the faked-up execve arguments, so it has to
+	 * be inside the process's address space, and vmspace_alloc
+	 * gives that space VM_MIN_ADDRESS to VM_MAXUSER_ADDRESS.
+	 *
+	 * On hp300 and pmax VM_MAX_ADDRESS and VM_MAXUSER_ADDRESS are
+	 * the same value, so the old line fell inside the map and
+	 * worked. On the i386 they differ by four megabytes --
+	 * VM_MAXUSER_ADDRESS is 0xEFBFD000 and VM_MAX_ADDRESS is
+	 * UPT_MAX_ADDRESS, 0xEFFF7000, which is the top of the page
+	 * table window above user space -- so the allocation fell
+	 * outside the map and vm_allocate failed, panicking with
+	 * `init: couldn't allocate argument space'.
+	 *
+	 * The constants are not the defect: NetBSD 1.0's i386 has the
+	 * same inequality, 0xf7bfe000 against 0xf7fdf000, and so does
+	 * FreeBSD 2.0.5, whose VM_MAX_ADDRESS is also UPT_MAX_ADDRESS.
+	 * They changed the allocation instead. NetBSD 1.0's
+	 * init_main.c:347 is `addr = USRSTACK - PAGE_SIZE;', which is
+	 * the top of the user stack and inside the map on every port.
+	 */
+	addr = trunc_page(USRSTACK - PAGE_SIZE);
 	if (vm_allocate(&p->p_vmspace->vm_map, &addr, PAGE_SIZE, FALSE) != 0)
 		panic("init: couldn't allocate argument space");
 	p->p_vmspace->vm_maxsaddr = (caddr_t)addr;

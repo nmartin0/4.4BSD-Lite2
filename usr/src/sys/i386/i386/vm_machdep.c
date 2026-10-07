@@ -91,10 +91,33 @@ cpu_fork(p1, p2)
 	 */
         addr = trunc_page((u_int)vtopte(kstack));
 	(void)vm_map_pageable(&p2->p_vmspace->vm_map, addr, addr+NBPG, FALSE);
+	/*
+	 * AI-ONLY NOTE: VM_PROT_READ|VM_PROT_WRITE, where this said
+	 * VM_PROT_READ alone.
+	 *
+	 * This maps the child's u-area, which holds its kernel stack,
+	 * into the child's address space. cpu_switch writes to that
+	 * stack on the instruction after it loads the child's page
+	 * directory -- i386/locore.s, `movl PCB_EIP(%edx),%eax' then
+	 * `movl %eax,(%esp)' -- so it must be writable.
+	 *
+	 * Read-only worked because a 386 has no CR0_WP and lets the
+	 * kernel write through a read-only page. `i386: detect the
+	 * processor, and enable write protection on a 486' set CR0_WP
+	 * at machdep.c:757, so it does not now. This is the third site
+	 * that enable has exposed, after proc 0's stack PTEs at
+	 * locore.s:402 and the pmap self-map at i386/pmap.c:492, and
+	 * the only one reached by a running kernel rather than by
+	 * inspection: the first fork faulted in cpu_switch with CR2
+	 * equal to ESP, then double-faulted.
+	 *
+	 * NetBSD 1.0's cpu_fork passes `VM_PROT_READ | VM_PROT_WRITE'
+	 * here.
+	 */
 	for (i=0; i < UPAGES; i++)
 		pmap_enter(&p2->p_vmspace->vm_pmap, (vm_offset_t)kstack+i*NBPG,
 			pmap_extract(kernel_pmap, ((int)p2->p_addr)+i*NBPG),
-			VM_PROT_READ, 1);
+			VM_PROT_READ | VM_PROT_WRITE, 1);
 	pmap_activate(&p2->p_vmspace->vm_pmap, &up->u_pcb);
 
 	/*
