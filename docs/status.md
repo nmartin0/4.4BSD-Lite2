@@ -22,7 +22,46 @@ into init's text, whose ELF entry point is 0x0804936c. That is a user
 instruction, executed by a program this kernel loaded from a disk it
 mounted.
 
-**init runs, forks, and wants a console.** With the pv unlink guarded
+**The kernel runs a shell, and the shell cannot be heard.** With a
+/dev/console node on the image -- character 0/0, which
+etc/etc.i386/MAKEDEV's `std' case and conf.c's cdevsw agree on --
+init opens the console, forks, and the child execs /bin/sh. gdb shows
+execve entered twice where it was entered once, and the shell runs:
+getpid, open, sysctl, three sbrk calls growing its heap, then a write
+to file descriptor 2 of
+
+	"/etc/rc: Can't open /etc/rc\n"
+
+which is sh parsing, failing to find its startup file, and saying so
+on a filesystem that has no /etc.
+
+Nothing of that reaches the serial port, and the reason is not the
+console routing. comcnprobe sets `cp->cn_dev = makedev(commajor,
+unit)' and, under COMCONSOLE, `cn_pri = CN_REMOTE', so cn_tab is the
+com entry and cnwrite dispatches to comwrite correctly. The path dies
+one layer further in:
+
+	sh writes fd 2
+	  -> cnwrite -> comwrite -> ttwrite
+	      ttwrite:   i = b_to_q(cp, ce, &tp->t_outq);
+	  -> ttstart -> comstart
+	      comstart:  c = getc(&tp->t_outq);
+
+Both `b_to_q' and `getc' are in kern/tty_subr.c, and both are `Body
+deleted'. All ten of that file's clist routines are -- getc, q_to_b,
+ndqb, ndflush, putc, b_to_q, nextc, unputc, catq and clist_init --
+and they are the queue the whole terminal driver runs on. Nothing a
+user process writes can reach a port until they exist.
+
+So the next thing is a settlement body, roadmap item 8, and it is the
+one standing between here and a shell prompt.
+docs/provenance/lites.md records the one candidate found so far: CMU's
+complete clist in Lites 1.1.u3, under the Mach licence this tree
+already carries throughout sys/vm, as a transplant rather than a
+restoration. The contemporaries have not yet been read for this file.
+
+**Earlier: init runs, forks, and wants a console.** With the pv unlink
+guarded
 the kernel no longer panics. init goes through its whole startup,
 which the system calls it makes show directly -- read at the
 `syscall' entry under gdb, since this port's syscalls go through a
