@@ -390,3 +390,60 @@ Nineteen of the twenty-three have a donor that builds. The four that
 do not are raw device I/O and `ptrace`, and both want a field or a
 hook that reaches outside the file -- the same obstacle de Raadt's
 `struct clist` presents, and the same answer: write them.
+
+## The earlier trees, and 386BSD in particular
+
+The surveys above stopped at the contemporaries. Going earlier changes
+two of the six answers and confirms the method for a third.
+
+**386BSD 0.1 renames what Jolitz rewrote**, with a doubled underscore,
+and keeps CSRG's text under the original name where he did not. So the
+licence sorts the files for you:
+
+| file | copyright | usable |
+|---|---|---|
+| `kern_acct.c` | Regents 1982, 1986, 1989 | no -- Net/2 text, encumbered |
+| `sys_process.c` | Regents 1982, 1986, 1989 | no -- the same |
+| `kern__physio.c` | William F. Jolitz 1989-1992 | clean |
+| `vfs__bio.c` | William F. Jolitz 1989-1992 | clean |
+| `subr_rlist.c` | William F. Jolitz 1992 | clean |
+| `tty_ring.c` | William F. Jolitz 1989-1992 | clean |
+
+The clean ones are all replacements rather than implementations of
+what this tree declares. `kern__physio.c` has `rawread` and `rawwrite`
+and no `physio` or `minphys` at all; `subr_rlist.c` is resource lists,
+not resource maps; `tty_ring.c` is a ring, not a clist. Jolitz
+rewrote the interface each time, so none of them fits a tree built on
+the 4.4BSD one -- which is the same reason his `kern_execve.c` could
+not be used for `execve`.
+
+**And `kern_physio.c` has an answer after all, in this tree.** 4.4BSD's
+own `physio` holds the process with a flag --
+
+	p->p_flag |= SPHYSIO;
+	vslock(a = bp->b_un.b_addr, requested);
+	vmapbuf(bp);
+
+-- and this tree has that flag, renamed: `sys/proc.h:203` is
+`#define P_PHYSIO 0x10000 /* Doing physical I/O. */`. NetBSD replaced
+it with a counter, `p_holdcnt`, which is why their file will not
+compile here; FreeBSD replaced the buffer allocation with a pbuf pool,
+which is why theirs will not link. Both changed the mechanism; this
+tree still has 4.4BSD's.
+
+The buffer pool is here too, and by the same pattern as the clist:
+
+	clist   i386/machdep.c valloc(cfree, struct cblock, nclist)
+	physio  i386/machdep.c valloc(swbuf, struct buf, nswbuf)
+
+4.4BSD's `getswbuf` and `freeswbuf` are static helpers inside its own
+`kern_physio.c`, removed with the bodies, which is why they are absent
+here rather than being somewhere else. And `rawread` and `rawwrite`
+already have bodies in this tree: only `physio` and `minphys` were
+cut.
+
+So `kern_physio.c` is the `vfs_bio.c` case, not the `tty_subr.c` case.
+The machinery is all present -- the flag, the pool, `vslock`,
+`vmapbuf`, which the i386 does have -- and only the code driving it
+was removed. It is written, not imported, with the contemporaries
+readable for algorithm and neither usable for text.
