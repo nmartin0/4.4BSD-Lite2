@@ -498,3 +498,58 @@ So the four stubs without a donor -- `physio`, `minphys`, `ptrace`,
 of machinery they need, under Lite's names, and the contemporaries
 cannot supply them because each replaced the mechanism rather than
 renaming it.
+
+## Did the other BSDs adopt Lite2's interfaces later?
+
+Every survey above stopped at releases that **predate Lite2**. NetBSD
+1.0 is October 1994 and FreeBSD 2.0 November 1994; Lite2 is June 1995.
+So the obvious question is whether the later releases merged it.
+
+The ancestry first. Net/2 of 1991 is the common root: 386BSD 0.1 came
+from it in 1992, NetBSD and FreeBSD from 386BSD in 1993, and OpenBSD
+from NetBSD in October 1995. 4.4BSD-Lite of 1994 and Lite2 of 1995 are
+a separate CSRG line that each of the others merged from, at its own
+pace.
+
+**They did adopt the names.** `trace_req` is Lite2's rename of
+4.4BSD's `procxmt`, and it appears in every later release of both
+lines:
+
+| release | `trace_req` | `procxmt` |
+|---|---|---|
+| NetBSD 1.0 | no | no -- its own naming |
+| NetBSD 1.1, 1.2, 1.3, 1.4 | yes | no |
+| FreeBSD 2.0 | no | no |
+| FreeBSD 2.1, 2.2 | yes | no |
+| OpenBSD 1996 | yes | no |
+
+**They did not adopt the mechanism.** Compiled against this tree's
+headers, the later releases do not get closer; they get further, apart
+from one:
+
+| release | compile errors | what stops it |
+|---|---|---|
+| NetBSD 1.0 | 0 | links: `process_sstep`, `process_set_pc` |
+| NetBSD 1.1, 1.2, 1.3 | 19, 19, 20 | `struct sys_ptrace_args`, `SCARG` |
+| OpenBSD 1996 | 19 | the same, inherited |
+| FreeBSD 2.0 | 6 | `p_tptr` in `struct proc` |
+| FreeBSD 2.1 | 6 | the same |
+| **FreeBSD 2.2** | **0** | links: `PHOLD`, `PRELE`, `ptrace_set_pc`, `ptrace_single_step` |
+
+FreeBSD 2.2.0 is the closest any of them comes. It has exactly our two
+functions, `ptrace` and `trace_req`, it dropped the `p_tptr` that
+blocked 2.0, and with two FreeBSD-only headers removed --
+`<sys/sysproto.h>` and `<vm/lock.h>` -- it compiles against this tree
+with no errors at all. Then it fails to link, on `PHOLD` and `PRELE`,
+which are FreeBSD's process-hold macros, and on `ptrace_set_pc` and
+`ptrace_single_step`, which are their machine-dependent hooks.
+
+So the convergence is real and partial: the interface name crossed
+over, the implementation did not. Each line kept the
+machine-dependent layer it had built -- NetBSD's `process_*`,
+FreeBSD's `ptrace_*` -- and 4.4BSD has neither, because its `procxmt`
+does the register work itself through `fuword` and `suword`.
+
+That is the canonical answer, and it is the same one for
+`kern_physio.c`: the names travelled, the mechanisms did not, and this
+tree still has 4.4BSD's.
