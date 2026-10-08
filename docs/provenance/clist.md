@@ -166,11 +166,43 @@ What the name does show is that FreeBSD started from a Lite rather
 than from Net/2, which is what matters: it is on this tree's side of
 the settlement.
 
+## FreeBSD 2.0, not 2.0.5
+
+Checking the releases *before* Lite2 as well as after changes which
+version to follow. FreeBSD 2.0 of November 1994 has the same
+implementation with far less of the accounting on top:
+
+| | lines | accounting touches | untouched functions |
+|---|---|---|---|
+| FreeBSD 2.0 | 280 | 10 | `nextc`, `catq` |
+| FreeBSD 2.0.5 | 298 | 38 | `nextc` |
+
+Its `getc` is 2.0.5's to the character except at the end:
+
+	2.0.5    cblock_free(cblockp);
+	         if (--clistp->c_cbcount >= clistp->c_cbreserved)
+	                 ++cslushcount;
+	2.0      cblock_free(cblockp);
+
+and 2.0 has no `clist_alloc_cblocks`, `clist_free_cblocks` or `cbstat`
+at all. The reservation protocol arrived between the two. So 2.0 is
+the version to follow and 2.0.5 is the same file with more to strip.
+
+## And the NetBSD line never had it to lose
+
+NetBSD 0.9 of October 1993 -- before 4.4BSD-Lite1 shipped -- already
+carries de Raadt's rewrite: 520 lines, zero cblock references, twelve
+`TTY_QUOTE`, "Copyright (c) 1993 Theo". So there is no earlier NetBSD
+with CSRG's clist in it. The rewrite predates the settlement rather
+than responding to it, which also means it is not encumbered; it is
+simply built on a different structure.
+
 ## How much of it transfers, counted
 
-Not a verbatim import. Of 298 lines across the nine functions this
-tree needs, 38 touch the reservation accounting, and eight of the nine
-have at least one:
+Not a verbatim import, even from 2.0. Of its 280 lines across the nine
+functions this tree needs, 10 touch the cblock helpers, and seven of
+the nine have at least one. The 2.0.5 figures, for comparison, are 298
+lines and 38 touches:
 
 | function | lines | touching the accounting |
 |---|---|---|
