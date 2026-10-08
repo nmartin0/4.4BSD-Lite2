@@ -86,10 +86,29 @@ The range is measured, not inferred. The failing call is
 
 so there is a map entry beginning exactly at the self-map page and
 running to UPT_MAX_ADDRESS -- page-directory slots 0x3BF through
-0x3F6, which is PTDPTDI plus the kernel slots from KPTDI_FIRST. A
-breakpoint on vm_map_insert with that start never fires, so the entry
-was not created with those bounds; it is what vm_map_delete is handed
-after clipping, or what an earlier split left.
+0x3F6, which is PTDPTDI plus the kernel slots from KPTDI_FIRST.
+
+The entry is deliberate, and vm_fork creates it. Its i386 block, after
+vmspace_fork has run, is
+
+	{ u_int addr = UPT_MIN_ADDRESS - UPAGES*NBPG; struct vm_map *vp;
+	vp = &p2->p_vmspace->vm_map;
+	(void)vm_deallocate(vp, addr, UPT_MAX_ADDRESS - addr);
+	(void)vm_allocate(vp, &addr, UPT_MAX_ADDRESS - addr, FALSE);
+	(void)vm_map_inherit(vp, addr, UPT_MAX_ADDRESS, VM_INHERIT_NONE);
+	}
+
+so the child's u-area and whole page-table region are thrown away and
+re-allocated as one anonymous entry over [0xEFBFE000, 0xEFFF7000),
+then marked non-inheritable. Confirmed from the running kernel: the
+first vm_map_delete of the boot is
+`vm_map_delete(map, 0xefbfe000, 0xefff7000)', with vm_deallocate,
+vm_fork and fork1 above it on the stack.
+
+Page tables are then faulted into that entry as the child runs, each
+through vm_fault and pmap_enter, each with a pv entry. The one page
+inside it that arrives any other way is 0xEFFBF000, whose PTE is the
+self-map pmap_pinit assigned by hand.
 
 And the arrangement itself is not the defect, which was checked.
 Putting page tables in the process's own address space is how this
