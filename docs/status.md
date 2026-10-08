@@ -22,7 +22,50 @@ into init's text, whose ELF entry point is 0x0804936c. That is a user
 instruction, executed by a program this kernel loaded from a disk it
 mounted.
 
-**Where it stops: not in the fault path.** init's first write to its
+**Where it stops now: pmap_remove on the self-map.** The kernel runs
+init, which forks; when the child is reaped the kernel panics with a
+null dereference in pmap_remove:
+
+```
+vm_fault(f063a400, 0, 1, 0) -> 1
+trap type 12 code = 0 eip = f004a878 cr2 0
+```
+
+The path is wait4 -> wait1 -> cpu_wait -> vmspace_free ->
+vm_map_delete -> pmap_remove, and the virtual address it fails on,
+read out of the registers at the faulting instruction, is 0xEFFBF000.
+
+That is PTmap + PTDPTDI*NBPG: the page directory's own address in the
+recursive self-map. i386/pmap.c's pmap_pinit installs that entry by
+hand --
+
+	*(int *)(pmap->pm_pdir+PTDPTDI) =
+		pmap_extract(kernel_pmap, pmap->pm_pdir) | PG_V | PG_KW
+
+-- so it never went through pmap_enter and has no pv entry. When
+vm_map_delete hands pmap_remove a range covering it, the search loop
+runs off the end of the pv list:
+
+	for (npv = pv->pv_next; npv; npv = npv->pv_next) { ... }
+	#ifdef DEBUG
+		if (npv == NULL)
+			panic("pmap_remove: PA not in pv_tab");
+	#endif
+	pv->pv_next = npv->pv_next;	<- npv is NULL
+
+The guard is inside `#ifdef DEBUG', which is not defined, so instead
+of the panic Berkeley wrote there is a null dereference. hp300's
+pmap.c has the identical shape at its own pmap_remove, so the #ifdef
+is Berkeley's across the tree and not an i386 defect: "PA not in
+pv_tab" is written as a can't-happen.
+
+Ruled out by measurement: nothing faults on 0xEFFBF000, so no map
+entry is created there by faulting -- vm_map_delete passes
+pmap_remove a range and pmap_remove walks into it. And this port's
+pmap_release does free the directory, `kmem_free(kernel_map,
+pmap->pm_pdir, NBPG)', the same as FreeBSD 2.0.5's.
+
+**Earlier: not in the fault path.** init's first write to its
 bss faults at 0x08075188, and that fault is handled correctly. Every
 step returns KERN_SUCCESS, measured under gdb:
 
