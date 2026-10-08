@@ -1,4 +1,37 @@
+/*	$NetBSD: vfs_bio.c,v 1.31.2.1 1994/08/29 01:47:34 mycroft Exp $	*/
+
+/*
+ * AI-ONLY NOTE: this file is NetBSD 1.0's, replacing ten bodies that
+ * should never have been written the way they were.
+ *
+ * Those ten -- count_lock_queue, incore, biowait, getnewbuf, allocbuf,
+ * geteblk, brelse, getblk, bread and biodone -- were reconstructed
+ * from 4.4BSD's encumbered kern/vfs_bio.c, on a policy this project
+ * stated in its own commit messages: "a reconstructed body is 4.4BSD's
+ * exact text, changed only where this tree demonstrably changed
+ * something". Measured afterwards, each was the same length as the
+ * original, four were byte-identical, and the rest differed only by
+ * the sys/queue.h conversion. That is transcription of the code the
+ * settlement removed, which is the one thing this tree exists not to
+ * contain. Reading the encumbered source for shape, which
+ * docs/provenance/precedent.md permits, was never a licence to
+ * reproduce it.
+ *
+ * What is here instead is Christopher Demetriou's, from NetBSD 1.0.
+ * It is Lite's file with the bodies written afresh rather than
+ * restored: his bwrite uses ISSET and CLR where 4.4BSD manipulates
+ * b_flags directly, and the structure differs throughout. The Regents
+ * notice below is Lite's own header, which this file already carried,
+ * under the same BSD terms.
+ *
+ * It is a transplant, kind D in docs/provenance/imports.md's terms,
+ * and it says so. It also supplies the four bodies still stubbed --
+ * bwrite, bdwrite, bawrite and breadn -- so nothing in this file is
+ * now either transcribed or missing.
+ */
+
 /*-
+ * Copyright (c) 1994 Christopher G. Demetriou
  * Copyright (c) 1982, 1986, 1989, 1993
  *	The Regents of the University of California.  All rights reserved.
  * (c) UNIX System Laboratories, Inc.
@@ -35,7 +68,14 @@
  * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
  * SUCH DAMAGE.
  *
- *	from: @(#)vfs_bio.c	8.6 (Berkeley) 1/11/94
+ *	@(#)vfs_bio.c	8.6 (Berkeley) 1/11/94
+ */
+
+/*
+ * Some references:
+ *	Bach: The Design of the UNIX Operating System (Prentice Hall, 1986)
+ *	Leffler, et al.: The Design and Implementation of the 4.3BSD
+ *		UNIX Operating System (Addison Welley, 1989)
  */
 
 #include <sys/param.h>
@@ -47,6 +87,11 @@
 #include <sys/trace.h>
 #include <sys/malloc.h>
 #include <sys/resourcevar.h>
+
+/* Macros to clear/set/test flags. */
+#define	SET(t, f)	(t) |= (f)
+#define	CLR(t, f)	(t) &= ~(f)
+#define	ISSET(t, f)	((t) & (f))
 
 /*
  * Definitions for the buffer hash lists.
@@ -140,14 +185,8 @@ bufinit()
 }
 
 /*
- * AI-ONLY NOTE: written, not restored; see count_lock_queue. This is
- * 4.4BSD's text with nothing changed but the parameter names, which
- * the settlement left as a1 to a5.
- *
- * TR_BREADHIT and TR_BREADMISS are at <sys/trace.h>:44 and :45 and
- * are used nowhere else in this tree, because this is the only
- * function that used them and its body was deleted -- the same shape
- * as TR_BRELSE in getnewbuf and brelse.
+ * Read a disk block.
+ * This algorithm described in Bach (p.54).
  */
 bread(vp, blkno, size, cred, bpp)
 	struct vnode *vp;
@@ -156,52 +195,188 @@ bread(vp, blkno, size, cred, bpp)
 	struct ucred *cred;
 	struct buf **bpp;
 {
-	struct proc *p = curproc;		/* XXX */
 	register struct buf *bp;
 
-	if (size == 0)
-		panic("bread: size 0");
-	*bpp = bp = getblk(vp, blkno, size, 0, 0);
-	if (bp->b_flags & (B_DONE | B_DELWRI)) {
-		trace(TR_BREADHIT, pack(vp, size), blkno);
+	/* Get buffer for block. */
+	bp = *bpp = getblk(vp, blkno, size, 0, 0);
+
+	/*
+	 * If buffer data valid, return it.
+	 * Note that if buffer is B_INVAL, getblk() won't return it.
+	 * Therefore, it's valid if it's I/O has completed or been delayed.
+	 */
+	if (ISSET(bp->b_flags, (B_DONE | B_DELWRI)))
 		return (0);
-	}
-	bp->b_flags |= B_READ;
-	if (bp->b_bcount > bp->b_bufsize)
-		panic("bread");
-	if (bp->b_rcred == NOCRED && cred != NOCRED) {
+
+	/* Start some I/O for the buffer (keeping credentials, if needed). */
+	SET(bp->b_flags, B_READ);
+	if (cred != NOCRED && bp->b_rcred == NOCRED) {
 		crhold(cred);
 		bp->b_rcred = cred;
 	}
 	VOP_STRATEGY(bp);
-	trace(TR_BREADMISS, pack(vp, size), blkno);
-	p->p_stats->p_ru.ru_inblock++;		/* pay for read */
+
+	/* Pay for the read. */
+	curproc->p_stats->p_ru.ru_inblock++;		/* XXX */
+
+	/* Wait for the read to complete, and return result. */
 	return (biowait(bp));
 }
 
-breadn(a1, a2, a3, a4, a5, a6, a7, a8)
-	struct vnode *a1;
-	daddr_t a2; int a3;
-	daddr_t a4[]; int a5[];
-	int a6;
-	struct ucred *a7;
-	struct buf **a8;
+/*
+ * Read-ahead multiple disk blocks. The first is sync, the rest async.
+ * Trivial modification to the breada algorithm presented in Bach (p.55).
+ */
+breadn(vp, blkno, size, rablks, rasizes, nrablks, cred, bpp)
+	struct vnode *vp;
+	daddr_t blkno; int size;
+	daddr_t rablks[]; int rasizes[];
+	int nrablks;
+	struct ucred *cred;
+	struct buf **bpp;
 {
+	struct buf *bp, *rabp;
+	int i;
+
+	bp = NULL;		/* We don't have a buffer yet. */
+
+	/* If first block not in cache, get buffer for it and read it in. */
+	if (!incore(vp, blkno)) {
+		bp = *bpp = getblk(vp, blkno, size, 0, 0);
+
+		/*
+	 	 * If buffer data not valid, we have to read it in.
+		 * If it is valid, just hold on to the buffer pointer.
+	 	 */
+		if (!ISSET(bp->b_flags, (B_DONE | B_DELWRI))) {
+			/* Start I/O for the buffer (keeping credentials). */
+			SET(bp->b_flags, B_READ);
+			if (cred != NOCRED && bp->b_rcred == NOCRED) {
+				crhold(cred);
+				bp->b_rcred = cred;
+			}
+			VOP_STRATEGY(bp);
+
+			/* Pay for the read. */
+			curproc->p_stats->p_ru.ru_inblock++;	/* XXX */
+		}
+	}
 
 	/*
-	 * Body deleted.
+	 * For each of the read-ahead blocks, start a read, if necessary.
 	 */
-	return (EIO);
+	for (i = 0; i < nrablks; i++) {
+		/* If it's in the cache, just go on to next one. */
+		if (incore(vp, rablks[i]))
+			continue;
+
+		/* Get a buffer for the read-ahead block */
+		rabp = getblk(vp, rablks[i], rasizes[i], 0, 0);
+
+		/*
+	 	 * If buffer data valid, just release the buffer back into
+		 * the cache.  If it's not valid, we have to read it in.
+	 	 */
+		if (ISSET(rabp->b_flags, (B_DONE | B_DELWRI)))
+			brelse(rabp);
+		else {
+			/* Start I/O for the buffer (keeping credentials). */
+			SET(rabp->b_flags, (B_READ | B_ASYNC));
+			if (cred != NOCRED && rabp->b_rcred == NOCRED) {
+				crhold(cred);
+				rabp->b_rcred = cred;
+			}
+			VOP_STRATEGY(rabp);
+
+			/* Pay for the read. */
+			curproc->p_stats->p_ru.ru_inblock++;	/* XXX */
+		}
+	}
+
+	/*
+	 * If first block was originally in the cache (i.e. we *still* don't
+	 * have buffer), use bread to get and return it.
+	 */
+	if (bp == NULL)
+		return (bread(vp, blkno, size, cred, bpp));
+
+	/* Otherwise, we had to start a read for it; wait until it's valid. */
+	return (biowait(bp));
 }
 
-bwrite(a1)
-	struct buf *a1;
+/*
+ * Read with single-block read-ahead.  Defined in Bach (p.55), but
+ * implemented as a call to breadn().
+ * XXX for compatibility with old file systems.
+ */
+breada(vp, blkno, size, rablkno, rabsize, cred, bpp)
+	struct vnode *vp;
+	daddr_t blkno; int size;
+	daddr_t rablkno; int rabsize;
+	struct ucred *cred;
+	struct buf **bpp;
 {
+	return (breadn(vp, blkno, size, &rablkno, &rabsize, 1, cred, bpp));	
+}
+
+/*
+ * Block write.  Described in Bach (p.56)
+ */
+bwrite(bp)
+	struct buf *bp;
+{
+	int rv, s, sync, wasdelayed;
+
+	rv = 0;
+
+	/* Remember buffer type, to switch on it later. */
+	sync = !ISSET(bp->b_flags, B_ASYNC);
+	wasdelayed = ISSET(bp->b_flags, B_DELWRI);
+	CLR(bp->b_flags, (B_READ | B_DONE | B_ERROR | B_DELWRI));
 
 	/*
-	 * Body deleted.
+	 * If not synchronous, pay for the I/O operation and make
+	 * sure the buf is on the correct vnode queue.  We have
+	 * to do this now, because if we don't, the vnode may not
+	 * be properly notified that it's i/o has completed.
 	 */
-	return (EIO);
+	if (!sync)
+		if (wasdelayed)
+			reassignbuf(bp, bp->b_vp);
+		else
+			curproc->p_stats->p_ru.ru_oublock++;
+
+	/* Initiate disk write.  Make sure the appropriate party is charged. */
+	SET(bp->b_flags, B_WRITEINPROG);
+	bp->b_vp->v_numoutput++;
+	VOP_STRATEGY(bp);
+
+	/*
+	 * If I/O was synchronous, wait for it to complete.
+	 */
+	if (sync)
+		rv = biowait(bp);
+
+	/*
+	 * Pay for the I/O operation, if it's not been paid for, and
+	 * make sure it's on the correct vnode queue. (async operatings
+	 * were payed for above.)
+	 */
+	if (sync)
+		if (wasdelayed)
+			reassignbuf(bp, bp->b_vp);
+		else
+			curproc->p_stats->p_ru.ru_oublock++;
+
+	/* Release the buffer, or, if async, make sure it gets reused ASAP. */
+	if (sync)
+		brelse(bp);
+	else if (wasdelayed) {
+		s = splbio();
+		SET(bp->b_flags, B_AGE);
+		splx(s);
+	}
+	return (rv);
 }
 
 int
@@ -211,529 +386,466 @@ vn_bwrite(ap)
 	return (bwrite(ap->a_bp));
 }
 
-bdwrite(a1)
-	struct buf *a1;
+/*
+ * Delayed write.
+ *
+ * The buffer is marked dirty, but is not queued for I/O.
+ * This routine should be used when the buffer is expected
+ * to be modified again soon, typically a small write that
+ * partially fills a buffer.
+ *
+ * NB: magnetic tapes cannot be delayed; they must be
+ * written in the order that the writes are requested.
+ *
+ * Described in Leffler, et al. (pp. 208-213).
+ */
+void
+bdwrite(bp)
+	struct buf *bp;
 {
 
 	/*
-	 * Body deleted.
+	 * If the block hasn't been seen before:
+	 *	(1) Mark it as having been seen,
+	 *	(2) Charge for the write.
+	 *	(3) Make sure it's on its vnode's correct block list,
 	 */
-	return;
-}
+	if (!ISSET(bp->b_flags, B_DELWRI)) {
+		SET(bp->b_flags, B_DELWRI);
+		curproc->p_stats->p_ru.ru_oublock++;	/* XXX */
+		reassignbuf(bp, bp->b_vp);
+	}
 
-bawrite(a1)
-	struct buf *a1;
-{
+	/* If this is a tape block, write it the block now. */
+	if (ISSET(bp->b_flags, B_TAPE)) {
+		bwrite(bp);
+		return;
+	}
 
-	/*
-	 * Body deleted.
-	 */
-	return;
+	/* Otherwise, the "write" is done, so mark and release the buffer. */
+	SET(bp->b_flags, B_DONE);
+	brelse(bp);
 }
 
 /*
- * AI-ONLY NOTE: written, not restored; see count_lock_queue. 4.4BSD's
- * text with one <sys/queue.h> conversion, `struct queue_entry *flist'
- * becoming `struct bqueues *flist' -- the type of the thing
- * bufqueues[] is an array of, which this file declares at :75.
- *
- * binsheadfree and binstailfree need no change: this file defines
- * them at :81 and :82 over TAILQ_INSERT_HEAD and TAILQ_INSERT_TAIL,
- * and brelvp, bremhash and binshash likewise. The conversion was done
- * for the macros when the settlement left them behind; only the local
- * declaration was in a deleted body.
+ * Asynchronous block write; just an asynchronous bwrite().
  */
-brelse(bp)
-	register struct buf *bp;
+void
+bawrite(bp)
+	struct buf *bp;
 {
-	register struct bqueues *flist;
+
+	SET(bp->b_flags, B_ASYNC);
+	VOP_BWRITE(bp);
+}
+
+/*
+ * Release a buffer on to the free lists.
+ * Described in Bach (p. 46).
+ */
+void
+brelse(bp)
+	struct buf *bp;
+{
+	struct bqueues *bufq;
 	int s;
 
-	trace(TR_BRELSE, pack(bp->b_vp, bp->b_bufsize), bp->b_lblkno);
-	/*
-	 * If a process is waiting for the buffer, or
-	 * is waiting for a free buffer, awaken it.
-	 */
-	if (bp->b_flags & B_WANTED)
-		wakeup((caddr_t)bp);
+	/* Wake up any processes waiting for any buffer to become free. */
 	if (needbuffer) {
 		needbuffer = 0;
-		wakeup((caddr_t)&needbuffer);
+		wakeup(&needbuffer);
 	}
-	/*
-	 * Retry I/O for locked buffers rather than invalidating them.
-	 */
+
+	/* Wake up any proceeses waiting for _this_ buffer to become free. */
+	if (ISSET(bp->b_flags, B_WANTED)) {
+		CLR(bp->b_flags, B_WANTED);
+		wakeup(bp);
+	}
+
+	/* Block disk interrupts. */
 	s = splbio();
-	if ((bp->b_flags & B_ERROR) && (bp->b_flags & B_LOCKED))
-		bp->b_flags &= ~B_ERROR;
+
 	/*
-	 * Disassociate buffers that are no longer valid.
+	 * Determine which queue the buffer should be on, then put it there.
 	 */
-	if (bp->b_flags & (B_NOCACHE | B_ERROR))
-		bp->b_flags |= B_INVAL;
-	if ((bp->b_bufsize <= 0) || (bp->b_flags & (B_ERROR | B_INVAL))) {
+
+	/* If it's locked, don't report an error; try again later. */
+	if (ISSET(bp->b_flags, (B_LOCKED|B_ERROR)) == (B_LOCKED|B_ERROR))
+		CLR(bp->b_flags, B_ERROR);
+
+	/* If it's not cacheable, or an error, mark it invalid. */
+	if (ISSET(bp->b_flags, (B_NOCACHE|B_ERROR)))
+		SET(bp->b_flags, B_INVAL);
+
+	if ((bp->b_bufsize <= 0) || ISSET(bp->b_flags, B_INVAL)) {
+		/*
+		 * If it's invalid or empty, dissociate it from its vnode
+		 * and put on the head of the appropriate queue.
+		 */
 		if (bp->b_vp)
 			brelvp(bp);
-		bp->b_flags &= ~B_DELWRI;
-	}
-	/*
-	 * Stick the buffer back on a free list.
-	 */
-	if (bp->b_bufsize <= 0) {
-		/* block has no buffer ... put at front of unused buffer list */
-		flist = &bufqueues[BQ_EMPTY];
-		binsheadfree(bp, flist);
-	} else if (bp->b_flags & (B_ERROR | B_INVAL)) {
-		/* block has no info ... put at front of most free list */
-		flist = &bufqueues[BQ_AGE];
-		binsheadfree(bp, flist);
-	} else {
-		if (bp->b_flags & B_LOCKED)
-			flist = &bufqueues[BQ_LOCKED];
-		else if (bp->b_flags & B_AGE)
-			flist = &bufqueues[BQ_AGE];
+		CLR(bp->b_flags, B_DELWRI);
+		if (bp->b_bufsize <= 0)
+			/* no data */
+			bufq = &bufqueues[BQ_EMPTY];
 		else
-			flist = &bufqueues[BQ_LRU];
-		binstailfree(bp, flist);
+			/* invalid data */
+			bufq = &bufqueues[BQ_AGE];
+		binsheadfree(bp, bufq);
+	} else {
+		/*
+		 * It has valid data.  Put it on the end of the appropriate
+		 * queue, so that it'll stick around for as long as possible.
+		 */
+		if (ISSET(bp->b_flags, B_LOCKED))
+			/* locked in core */
+			bufq = &bufqueues[BQ_LOCKED];
+		else if (ISSET(bp->b_flags, B_AGE))
+			/* stale but valid data */
+			bufq = &bufqueues[BQ_AGE];
+		else
+			/* valid data */
+			bufq = &bufqueues[BQ_LRU];
+		binstailfree(bp, bufq);
 	}
-	bp->b_flags &= ~(B_WANTED | B_BUSY | B_ASYNC | B_AGE | B_NOCACHE);
+
+	/* Unlock the buffer. */
+	CLR(bp->b_flags, (B_AGE | B_ASYNC | B_BUSY | B_NOCACHE));
+
+	/* Allow disk interrupts. */
 	splx(s);
 }
 
-struct buf *
 /*
- * AI-ONLY NOTE: written, not restored; see the note on
- * count_lock_queue below for the sources and the rule.
- *
- * The parameters are named here. The settlement left them a1 and a2,
- * which is how the stubs were generated; <sys/buf.h>'s prototype and
- * both donors call them vp and blkno.
+ * Determine if a block is in the cache.
+ * Just look on what would be its hash chain.  If it's there, return
+ * a pointer to it, unless it's marked invalid.  If it's marked invalid,
+ * we normally don't return the buffer, unless the caller explicitly
+ * wants us to.
  */
+struct buf *
 incore(vp, blkno)
 	struct vnode *vp;
 	daddr_t blkno;
 {
-	register struct buf *bp;
+	struct buf *bp;
 
-	for (bp = BUFHASH(vp, blkno)->lh_first; bp; bp = bp->b_hash.le_next)
+	bp = BUFHASH(vp, blkno)->lh_first;
+
+	/* Search hash chain */
+	for (; bp != NULL; bp = bp->b_hash.le_next) {
 		if (bp->b_lblkno == blkno && bp->b_vp == vp &&
-		    (bp->b_flags & B_INVAL) == 0)
-			return (bp);
-	return (NULL);
+		    !ISSET(bp->b_flags, B_INVAL))
+		return (bp);
+	}
+
+	return (0);
 }
 
-struct buf *
 /*
- * AI-ONLY NOTE: written, not restored; see count_lock_queue. 4.4BSD's
- * text with two <sys/queue.h> conversions: `struct list_entry *dp'
- * becomes `struct bufhashhdr *dp', which is what BUFHASH() returns
- * given this file's LIST_HEAD at :56, and the hash walk's `dp->le_next
- * ... b_hash.qe_next' becomes `dp->lh_first ... b_hash.le_next'.
- *
- * The parameters are named, as in incore: the settlement left them
- * a1 to a5.
- *
- * tsleep here is Berkeley's own, not a substitution -- the encumbered
- * file calls tsleep in getblk and getnewbuf and the older sleep only
- * in biowait, and all three are kept as he wrote them.
+ * Get a block of requested size that is associated with
+ * a given vnode and block offset. If it is found in the
+ * block cache, mark it as having been found, make it busy
+ * and return it. Otherwise, return an empty block of the
+ * correct size. It is up to the caller to insure that the
+ * cached blocks be of the correct size.
  */
+struct buf *
 getblk(vp, blkno, size, slpflag, slptimeo)
 	register struct vnode *vp;
 	daddr_t blkno;
 	int size, slpflag, slptimeo;
 {
-	register struct buf *bp;
-	struct bufhashhdr *dp;
-	int s, error;
+	struct buf *bp;
+	int s, err;
 
-	if (size > MAXBSIZE)
-		panic("getblk: size too big");
-	/*
-	 * Search the cache for the block. If the buffer is found,
-	 * but it is currently locked, the we must wait for it to
-	 * become available.
-	 */
-	dp = BUFHASH(vp, blkno);
-loop:
-	for (bp = dp->lh_first; bp; bp = bp->b_hash.le_next) {
-		if (bp->b_lblkno != blkno || bp->b_vp != vp)
-			continue;
-		s = splbio();
-		if (bp->b_flags & B_BUSY) {
-			bp->b_flags |= B_WANTED;
-			error = tsleep((caddr_t)bp, slpflag | (PRIBIO + 1),
-				"getblk", slptimeo);
+start:
+	s = splbio();
+	if (bp = incore(vp, blkno)) {	/* XXX NFS VOP_BWRITE foolishness */
+		if (ISSET(bp->b_flags, B_BUSY)) {
+			SET(bp->b_flags, B_WANTED);
+			err = tsleep(bp, slpflag | (PRIBIO + 1), "getblk",
+			    slptimeo);
 			splx(s);
-			if (error)
+			if (err)
 				return (NULL);
-			goto loop;
+			goto start;
 		}
-		/*
-		 * The test for B_INVAL is moved down here, since there
-		 * are cases where B_INVAL is set before VOP_BWRITE() is
-		 * called and for NFS, the process cannot be allowed to
-		 * allocate a new buffer for the same block until the write
-		 * back to the server has been completed. (ie. B_BUSY clears)
-		 */
-		if (bp->b_flags & B_INVAL) {
-			splx(s);
-			continue;
-		}
+		SET(bp->b_flags, (B_BUSY | B_CACHE));
 		bremfree(bp);
-		bp->b_flags |= B_BUSY;
 		splx(s);
-		if (bp->b_bcount != size) {
-			printf("getblk: stray size");
-			bp->b_flags |= B_INVAL;
-			VOP_BWRITE(bp);
-			goto loop;
-		}
-		bp->b_flags |= B_CACHE;
-		return (bp);
+		allocbuf(bp, size);
+	} else {
+		splx(s);
+		if ((bp = getnewbuf(slpflag, slptimeo)) == NULL)
+			goto start;
+		allocbuf(bp, size);
+		bp->b_blkno = bp->b_lblkno = blkno;
+		s = splbio();
+		bgetvp(vp, bp);
+		splx(s);
+		bremhash(bp);
+		binshash(bp, BUFHASH(vp, blkno));
 	}
-	/*
-	 * The loop back to the top when getnewbuf() fails is because
-	 * stateless filesystems like NFS have no node locks. Thus,
-	 * there is a slight chance that more than one process will
-	 * try and getnewbuf() for the same block concurrently when
-	 * the first sleeps in getnewbuf(). So after a sleep, go back
-	 * up to the top to check the hash lists again.
-	 */
-	if ((bp = getnewbuf(slpflag, slptimeo)) == 0)
-		goto loop;
-	bremhash(bp);
-	bgetvp(vp, bp);
-	bp->b_bcount = 0;
-	bp->b_lblkno = blkno;
-	bp->b_blkno = blkno;
-	bp->b_error = 0;
-	bp->b_resid = 0;
-	binshash(bp, dp);
-	allocbuf(bp, size);
 	return (bp);
 }
 
-struct buf *
 /*
- * AI-ONLY NOTE: written, not restored; see count_lock_queue. This one
- * is 4.4BSD's text with nothing changed at all -- it touches neither
- * queue head directly, so there is no <sys/queue.h> conversion to
- * make.
- *
- * NetBSD's drops the MAXBSIZE panic and moves allocbuf above the
- * three zeroings. Neither is taken: the panic is Berkeley's guard on
- * a caller passing nonsense, and the order is his.
+ * Get an empty, disassociated buffer of given size.
  */
+struct buf *
 geteblk(size)
 	int size;
 {
-	register struct buf *bp;
+	struct buf *bp; 
 
-	if (size > MAXBSIZE)
-		panic("geteblk: size too big");
-	while ((bp = getnewbuf(0, 0)) == NULL)
-		/* void */;
-	bp->b_flags |= B_INVAL;
+	while ((bp = getnewbuf(0, 0)) == 0)
+		;
+	SET(bp->b_flags, B_INVAL);
 	bremhash(bp);
 	binshash(bp, &invalhash);
+	allocbuf(bp, size);
 	bp->b_bcount = 0;
 	bp->b_error = 0;
 	bp->b_resid = 0;
-	allocbuf(bp, size);
+
 	return (bp);
 }
 
 /*
- * AI-ONLY NOTE: written, not restored; see count_lock_queue for the
- * rule and the sources. 4.4BSD's text, with the two <sys/queue.h>
- * field names this tree converted: `bufqueues[BQ_EMPTY].qe_next'
- * becomes `.tqh_first'.
+ * Expand or contract the actual memory allocated to a buffer.
  *
- * The parameter is tp, not bp, which is Berkeley's naming here and
- * reads oddly beside the other bodies -- the buffer being grown is
- * `tp' and the ones robbed of space are `bp'. NetBSD renamed it bp
- * and lost the distinction. Kept.
- *
- * pagemove() is machine-dependent and this port has it complete:
- * i386/i386/vm_machdep.c, walking the page tables with kvtopte. It is
- * not one of the settlement stubs.
+ * If the buffer shrinks, data is lost, so it's up to the
+ * caller to have written it out *first*; this routine will not
+ * start a write.  If the buffer grows, it's the callers
+ * responsibility to fill out the buffer's additional contents.
  */
-allocbuf(tp, size)
-	register struct buf *tp;
+allocbuf(bp, size)
+	struct buf *bp;
 	int size;
 {
-	register struct buf *bp, *ep;
-	int sizealloc, take, s;
+	struct buf      *nbp;
+	vm_size_t       desired_size;
+	int	     s;
 
-	sizealloc = roundup(size, CLBYTES);
-	/*
-	 * Buffer size does not change
-	 */
-	if (sizealloc == tp->b_bufsize)
+	desired_size = roundup(size, CLBYTES);
+	if (desired_size > MAXBSIZE)
+		panic("allocbuf: buffer larger than MAXBSIZE requested");
+
+	if (bp->b_bufsize == desired_size)
 		goto out;
+
 	/*
-	 * Buffer size is shrinking.
-	 * Place excess space in a buffer header taken from the
-	 * BQ_EMPTY buffer list and placed on the "most free" list.
-	 * If no extra buffer headers are available, leave the
-	 * extra space in the present buffer.
+	 * If the buffer is smaller than the desired size, we need to snarf
+	 * it from other buffers.  Get buffers (via getnewbuf()), and
+	 * steal their pages.
 	 */
-	if (sizealloc < tp->b_bufsize) {
-		if ((ep = bufqueues[BQ_EMPTY].tqh_first) == NULL)
-			goto out;
-		s = splbio();
-		bremfree(ep);
-		ep->b_flags |= B_BUSY;
-		splx(s);
-		pagemove(tp->b_un.b_addr + sizealloc, ep->b_un.b_addr,
-		    (int)tp->b_bufsize - sizealloc);
-		ep->b_bufsize = tp->b_bufsize - sizealloc;
-		tp->b_bufsize = sizealloc;
-		ep->b_flags |= B_INVAL;
-		ep->b_bcount = 0;
-		brelse(ep);
-		goto out;
-	}
-	/*
-	 * More buffer space is needed. Get it out of buffers on
-	 * the "most free" list, placing the empty headers on the
-	 * BQ_EMPTY buffer header list.
-	 */
-	while (tp->b_bufsize < sizealloc) {
-		take = sizealloc - tp->b_bufsize;
-		while ((bp = getnewbuf(0, 0)) == NULL)
-			/* void */;
-		if (take >= bp->b_bufsize)
-			take = bp->b_bufsize;
-		pagemove(&bp->b_un.b_addr[bp->b_bufsize - take],
-		    &tp->b_un.b_addr[tp->b_bufsize], take);
-		tp->b_bufsize += take;
-		bp->b_bufsize = bp->b_bufsize - take;
-		if (bp->b_bcount > bp->b_bufsize)
-			bp->b_bcount = bp->b_bufsize;
-		if (bp->b_bufsize <= 0) {
-			bremhash(bp);
-			binshash(bp, &invalhash);
-			bp->b_dev = NODEV;
-			bp->b_error = 0;
-			bp->b_flags |= B_INVAL;
+	while (bp->b_bufsize < desired_size) {
+		int amt;
+
+		/* find a buffer */
+		while ((nbp = getnewbuf(0, 0)) == NULL)
+			;
+
+		/* and steal its pages, up to the amount we need */
+		amt = min(nbp->b_bufsize, (desired_size - bp->b_bufsize));
+		pagemove((nbp->b_data + nbp->b_bufsize - amt),
+			bp->b_data + bp->b_bufsize, amt);
+		bp->b_bufsize += amt;
+		nbp->b_bufsize -= amt;
+
+		/* reduce transfer count if we stole some data */
+		if (nbp->b_bcount > nbp->b_bufsize)
+			nbp->b_bcount = nbp->b_bufsize;
+
+#ifdef DIAGNOSTIC
+		if (nbp->b_bufsize < 0)
+			panic("allocbuf: negative bufsize");
+#endif
+		if (nbp->b_bufsize == 0) {
+			bremhash(nbp);
+			binshash(nbp, &invalhash);
+			SET(nbp->b_flags, B_INVAL);
+			nbp->b_error = 0;
+			nbp->b_dev = NODEV;
 		}
-		brelse(bp);
+		brelse(nbp);
 	}
+
+	/*
+	 * If we want a buffer smaller than the current size,
+	 * shrink this buffer.  Grab a buf head from the EMPTY queue,
+	 * move a page onto it, and put it on front of the AGE queue.
+	 * If there are no free buffer headers, leave the buffer alone.
+	 */
+	if (bp->b_bufsize > desired_size) {
+		s = splbio();
+		if ((nbp = bufqueues[BQ_EMPTY].tqh_first) == NULL) {
+			/* No free buffer head */
+			splx(s);
+			goto out;
+		}
+		bremfree(nbp);
+		SET(nbp->b_flags, B_BUSY);
+		splx(s);
+
+		/* move the page to it and note this change */
+		pagemove(bp->b_data + desired_size,
+		    nbp->b_data, bp->b_bufsize - desired_size);
+		nbp->b_bufsize = bp->b_bufsize - desired_size;
+		bp->b_bufsize = desired_size;
+		nbp->b_bcount = 0;
+		SET(nbp->b_flags, B_INVAL);
+
+		/* release the newly-filled buffer and leave */
+		brelse(nbp);
+	}
+
 out:
-	tp->b_bcount = size;
-	return (1);
+	bp->b_bcount = size;
 }
 
-struct buf *
 /*
- * AI-ONLY NOTE: written, not restored; see count_lock_queue.
- *
- * The queue scan is Berkeley's, from BQ_AGE downward and stopping
- * before BQ_LOCKED, which is `for (dp = &bufqueues[BQ_AGE]; dp >
- * bufqueues; dp--)' in the encumbered file. NetBSD writes the same
- * two queues out by name. Berkeley's loop is kept because this
- * file's BQUEUES ordering is what gives it meaning: BQ_LOCKED 0,
- * BQ_LRU 1, BQ_AGE 2, BQ_EMPTY 3, declared just above.
- *
- * The trace() call is restored. <sys/trace.h>:46 defines TR_BRELSE
- * and this file calls trace() nowhere, because the bodies that called
- * it were deleted; kern/vfs_cluster.c, ufs/ffs/ffs_inode.c and
- * ufs/ufs/ufs_bmap.c still do, so it is live idiom and the constant
- * exists for this call. NetBSD dropped it. Restoring it is this
- * tree's own intent, as B_EINTR was in biowait.
- *
- * Not taken from NetBSD: they also clear b_dev to NODEV and zero
- * b_blkno, b_lblkno and b_iodone here. Berkeley does not, and the
- * callers -- getblk and geteblk -- set those themselves before the
- * buffer is used. Adding the clearing would be an improvement of
- * theirs, not a restoration of this file.
+ * Find a buffer which is available for use.
+ * Select something from a free list.
+ * Preference is to AGE list, then LRU list.    
  */
+struct buf *
 getnewbuf(slpflag, slptimeo)
 	int slpflag, slptimeo;
 {
 	register struct buf *bp;
-	register struct bqueues *dp;
-	register struct ucred *cred;
 	int s;
 
-loop:
+start:
 	s = splbio();
-	for (dp = &bufqueues[BQ_AGE]; dp > bufqueues; dp--)
-		if (dp->tqh_first)
-			break;
-	if (dp == bufqueues) {		/* no free blocks */
+	if ((bp = bufqueues[BQ_AGE].tqh_first) != NULL ||
+	    (bp = bufqueues[BQ_LRU].tqh_first) != NULL) {
+		bremfree(bp);
+	} else {
+		/* wait for a free buffer of any kind */
 		needbuffer = 1;
-		(void) tsleep((caddr_t)&needbuffer, slpflag | (PRIBIO + 1),
-			"getnewbuf", slptimeo);
+		tsleep(&needbuffer, slpflag|(PRIBIO+1), "getnewbuf", slptimeo);
 		splx(s);
-		return (NULL);
+		return (0);
 	}
-	bp = dp->tqh_first;
-	bremfree(bp);
-	bp->b_flags |= B_BUSY;
+
+	/* Buffer is no longer on free lists. */
+	SET(bp->b_flags, B_BUSY);
 	splx(s);
-	if (bp->b_flags & B_DELWRI) {
-		(void) bawrite(bp);
-		goto loop;
+
+	/* If buffer was a delayed write, start it, and go back to the top. */
+	if (ISSET(bp->b_flags, B_DELWRI)) {
+		bawrite (bp);
+		goto start;
 	}
-	trace(TR_BRELSE, pack(bp->b_vp, bp->b_bufsize), bp->b_lblkno);
+
+	/* disassociate us from our vnode, if we had one... */
+	s = splbio();
 	if (bp->b_vp)
 		brelvp(bp);
-	if (bp->b_rcred != NOCRED) {
-		cred = bp->b_rcred;
-		bp->b_rcred = NOCRED;
-		crfree(cred);
-	}
-	if (bp->b_wcred != NOCRED) {
-		cred = bp->b_wcred;
-		bp->b_wcred = NOCRED;
-		crfree(cred);
-	}
+	splx(s);
+
+	/* clear out various other fields */
 	bp->b_flags = B_BUSY;
+	bp->b_dev = NODEV;
+	bp->b_blkno = bp->b_lblkno = 0;
+	bp->b_iodone = 0;
+	bp->b_error = 0;
+	bp->b_resid = 0;
+	bp->b_bcount = 0;
 	bp->b_dirtyoff = bp->b_dirtyend = 0;
 	bp->b_validoff = bp->b_validend = 0;
-	return (bp);
+
+	/* nuke any credentials we were holding */
+	if (bp->b_rcred != NOCRED) {
+		crfree(bp->b_rcred);
+		bp->b_rcred = NOCRED; 
+	}
+	if (bp->b_wcred != NOCRED) {
+		crfree(bp->b_wcred);
+		bp->b_wcred = NOCRED;
+	}
+	
+	return (bp); 
 }
 
 /*
- * AI-ONLY NOTE: written, not restored; see count_lock_queue.
- *
- * One choice is settled by this tree rather than by the donors: it
- * sleeps with tsleep, which kern/kern_synch.c:281 defines and which
- * this directory uses twenty-five times against sleep's three.
- * 4.4BSD's own used the bare sleep, the older form, and NetBSD moved
- * to tsleep for the same reason.
- *
- * It does NOT check B_EINTR, and an earlier revision of this body did
- * -- taking NetBSD's shape and calling it a restoration because
- * <sys/buf.h>:101 defines the flag. The flag is defined for bwrite,
- * not for this function. 4.4BSD encumbered's biowait reports B_ERROR
- * and nothing else, and its bwrite checks B_EINTR after calling
- * biowait, clearing it and overriding error with EINTR. Clearing it
- * here would take the flag away before the one function that reads
- * it, and bwrite is still a stub, so the two would have disagreed
- * silently once it was written.
- *
- * NetBSD moved the check inward and clears it here instead. That is
- * coherent in their tree because their bwrite was changed to match.
- * Half of it is not coherent in this one.
+ * Wait for operations on the buffer to complete.
+ * When they do, extract and return the I/O's error value.
  */
+int
 biowait(bp)
-	register struct buf *bp;
+	struct buf *bp;
 {
 	int s;
 
 	s = splbio();
-	while ((bp->b_flags & B_DONE) == 0)
-		sleep((caddr_t)bp, PRIBIO);
+	while (!ISSET(bp->b_flags, B_DONE))
+		tsleep(bp, PRIBIO + 1, "biowait", 0);
 	splx(s);
-	if ((bp->b_flags & B_ERROR) == 0)
+
+	/* check for interruption of I/O (e.g. via NFS), then errors. */
+	if (ISSET(bp->b_flags, B_EINTR)) {
+		CLR(bp->b_flags, B_EINTR);
+		return (EINTR);
+	} else if (ISSET(bp->b_flags, B_ERROR))
+		return (bp->b_error ? bp->b_error : EIO);
+	else
 		return (0);
-	if (bp->b_error)
-		return (bp->b_error);
-	return (EIO);
 }
 
 /*
- * AI-ONLY NOTE: written, not restored; see count_lock_queue. 4.4BSD's
- * text, unchanged -- it touches no queue head, so there is no
- * <sys/queue.h> conversion to make.
+ * Mark I/O complete on a buffer.
  *
- * This is what a driver calls to say a transfer has finished. The
- * i386's wdintr reaches it through biodone at isa/wd.c, and until now
- * that call returned without setting B_DONE, so biowait's `while
- * ((bp->b_flags & B_DONE) == 0)' could never terminate.
+ * If a callback has been requested, e.g. the pageout
+ * daemon, do so. Otherwise, awaken waiting processes.
+ *
+ * [ Leffler, et al., says on p.247:
+ *	"This routine wakes up the blocked process, frees the buffer
+ *	for an asynchronous write, or, for a request by the pagedaemon
+ *	process, invokes a procedure specified in the buffer structure" ]
+ *
+ * In real life, the pagedaemon (or other system processes) wants
+ * to do async stuff to, and doesn't want the buffer brelse()'d.
+ * (for swap pager, that puts swap buffers on the free lists (!!!),
+ * for the vn device, that puts malloc'd buffers on the free lists!)
  */
 void
 biodone(bp)
-	register struct buf *bp;
+	struct buf *bp;
 {
+	if (ISSET(bp->b_flags, B_DONE))
+		panic("biodone already");
+	SET(bp->b_flags, B_DONE);		/* note that it's done */
 
-	if (bp->b_flags & B_DONE)
-		panic("dup biodone");
-	bp->b_flags |= B_DONE;
-	if ((bp->b_flags & B_READ) == 0)
+	if (!ISSET(bp->b_flags, B_READ))	/* wake up reader */
 		vwakeup(bp);
-	if (bp->b_flags & B_CALL) {
-		bp->b_flags &= ~B_CALL;
+
+	if (ISSET(bp->b_flags, B_CALL)) {	/* if necessary, call out */
+		CLR(bp->b_flags, B_CALL);	/* but note callout done */
 		(*bp->b_iodone)(bp);
-		return;
-	}
-	if (bp->b_flags & B_ASYNC)
+	} else if (ISSET(bp->b_flags, B_ASYNC))	/* if async, release it */
 		brelse(bp);
-	else {
-		bp->b_flags &= ~B_WANTED;
-		wakeup((caddr_t)bp);
+	else {					/* or just wakeup the buffer */
+		CLR(bp->b_flags, B_WANTED);
+		wakeup(bp);
 	}
 }
 
-int
 /*
- * AI-ONLY NOTE: the body below is written, not restored. The AT&T
- * settlement removed it from both Lite releases -- see
- * docs/provenance/missing.md -- leaving the signature, the call
- * sites, the structures and the surrounding comments in place, so
- * what follows satisfies an interface this tree fully specifies.
- *
- * Algorithm from NetBSD 1.0's kern/vfs_bio.c, which is the only
- * descendant that kept this design: its header reads `@(#)vfs_bio.c
- * 8.6 (Berkeley) 1/11/94' with a 1994 Demetriou copyright on the new
- * bodies, and it keeps BQ_LOCKED, BQ_LRU, BQ_AGE and BQ_EMPTY with
- * the same four queues and the same hash. FreeBSD 2.0.5 replaced the
- * buffer cache outright and has no BQ_LRU at all. OpenBSD 1996 is
- * NetBSD's with two more years on it. 386BSD 0.1 and anything else
- * predating 4.4BSD-Lite is Net/2-derived and carries the bodies the
- * settlement removed, so it is disqualified by its earliness.
- *
- * Spelling from this file. NetBSD rewrote theirs around SET, CLR and
- * ISSET macros, fifty-one uses; 4.4BSD's own vfs_bio.c uses plain
- * `|=' and `&= ~' twenty-six times and this file's intact functions
- * do the same, so plain operators are used here. struct buf is
- * identical in the two trees, field for field, twenty-six each.
- *
- * 4.4BSD encumbered is read for the shape only, as XNU is -- never
- * copied. Where it differs from what is written here it is because
- * it predates this tree's own conversion to <sys/queue.h>: it walks
- * `bufqueues[BQ_LOCKED].qe_next' where this file declares
- * TAILQ_HEAD and its intact bremfree uses tqe_next and TAILQ_REMOVE.
- *
- * The rule, arrived at after three revisions of getting it wrong.
- * **Lite2 is 4.4BSD minus the bodies.** So the faithful
- * reconstruction of a body is 4.4BSD's exact text, changed only where
- * this tree demonstrably changed something -- and the only such
- * change in this file is the conversion from <sys/queue.h>'s
- * predecessors: `bufqueues[BQ_LOCKED].qe_next' with its cast becomes
- * `.tqh_first', `b_freelist.qe_next' becomes `.tqe_next',
- * `BUFHASH(..)->le_next' becomes `->lh_first', `b_hash.qe_next'
- * becomes `.le_next'. Lite2's intact bremfree proves that conversion;
- * nothing else here is proven.
- *
- * Everything else stays Berkeley's, including what looks like an
- * inconsistency. count_lock_queue writes `++ret' and `return(ret)'
- * where the rest of the file writes `x++' and `return ('. Earlier
- * revisions of this work changed them to the majority, on a rule that
- * "the file wins" -- which was invented to justify spellings already
- * taken from NetBSD, and is the opposite of fidelity. Berkeley wrote
- * that function that way; it is written that way.
- *
- * The same disposes of sleep. biowait sleeps with `sleep((caddr_t)bp,
- * PRIBIO)', which is Berkeley's line. An earlier revision made it
- * tsleep because this directory uses tsleep twenty-five times against
- * sleep's three -- the same invented rule. sleep is defined at
- * kern/kern_synch.c:411, prototyped at <sys/proc.h>:277 and called by
- * kern/vfs_subr.c:130 among others, so there is no reason to prefer
- * tsleep except that NetBSD does.
+ * Return a count of buffers on the "locked" queue.
  */
+int
 count_lock_queue()
 {
 	register struct buf *bp;
-	register int ret;
+	register int n = 0;
 
-	for (ret = 0, bp = bufqueues[BQ_LOCKED].tqh_first;
-	    bp; bp = bp->b_freelist.tqe_next)
-		++ret;
-	return(ret);
+	for (bp = bufqueues[BQ_LOCKED].tqh_first; bp;
+	    bp = bp->b_freelist.tqe_next)
+		n++;
+	return (n);
 }
 
 #ifdef DIAGNOSTIC

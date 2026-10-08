@@ -134,19 +134,35 @@ cblock_free(cblockp)
 
 /*
  * Called from init_main.c
+ *
+ * AI-ONLY NOTE: written from <sys/clist.h> and the allocation this
+ * port already does, replacing a version transcribed from 4.4BSD's
+ * encumbered cinit. That one was identical to its original but for
+ * the function name and one space, which is not a reconstruction.
+ *
+ * Everything needed is declared: clist.h gives struct cblock with its
+ * c_next link, and cfree, cfreelist, cfreecount and nclist;
+ * i386/machdep.c:216 does valloc(cfree, struct cblock, nclist) and
+ * conf/param.c:83 sets nclist. So the array exists at boot and the
+ * only work is to put every element on the free list, counting the
+ * bytes each carries. CROUND aligns the start, because valloc hands
+ * back whatever address the running allocation reached.
  */
 void
 clist_init()
 {
-	register int ccp;
-	register struct cblock *cp;
+	struct cblock *cp, *limit;
 
-	ccp = (int) cfree;
-	ccp = (ccp + CROUND) & ~CROUND;
-	for (cp = (struct cblock *) ccp; cp < &cfree[nclist - 1]; cp++) {
+	cp = (struct cblock *)(((int)cfree + CROUND) & ~CROUND);
+	limit = cfree + nclist;
+
+	cfreelist = NULL;
+	cfreecount = 0;
+	while (cp < limit) {
 		cp->c_next = cfreelist;
 		cfreelist = cp;
 		cfreecount += CBSIZE;
+		cp++;
 	}
 }
 
@@ -250,41 +266,29 @@ q_to_b(clistp, dest, amount)
 }
 
 /*
- * Return the number of contiguous characters available from the head
- * of the clist, stopping at the end of the cblock or, when flag is
- * non-zero, at the first character having any of its bits set.
+ * AI-ONLY NOTE: stubbed again, deliberately.
+ *
+ * The body here was transcribed from 4.4BSD's encumbered ndqb --
+ * identical but for renaming q to clistp, dropping register, and
+ * merging two pairs of statements. FreeBSD 2.0 dropped this function,
+ * so there is no permissive donor for it, and writing one honestly
+ * means working from <sys/clist.h> and the callers rather than from
+ * the original.
+ *
+ * Nothing on this port calls it: only news3400/bm/bmcons.c and
+ * news3400/iop/rs.c do, and neither is in any i386 configuration. So
+ * it returns zero until it is written, which is what it did before
+ * the transcription and costs this port nothing.
  */
 ndqb(clistp, flag)
 	struct clist *clistp;
 	int flag;
 {
-	int cc, s;
 
-	s = spltty();
-	if (clistp->c_cc <= 0) {
-		cc = -clistp->c_cc;
-		goto out;
-	}
-	cc = ((int)clistp->c_cf + CBSIZE) & ~CROUND;
-	cc -= (int)clistp->c_cf;
-	if (clistp->c_cc < cc)
-		cc = clistp->c_cc;
-	if (flag) {
-		char *p, *end;
-
-		p = clistp->c_cf;
-		end = p + cc;
-		while (p < end) {
-			if (*p & flag) {
-				cc = (int)p - (int)clistp->c_cf;
-				break;
-			}
-			p++;
-		}
-	}
-out:
-	splx(s);
-	return (cc);
+	/*
+	 * Body deleted.
+	 */
+	return (0);
 }
 
 /*
