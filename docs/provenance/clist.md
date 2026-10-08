@@ -301,3 +301,48 @@ editing:
 Ten of the twelve, with `cinit` renamed `clist_init` and `getw`/`putw`
 dropped. Those two changes are Lite's, not a donor's, and the ten that
 remain keep their names, their arguments and their order.
+
+## The same survey, for the other settlement bodies
+
+Having found that FreeBSD 2.0 fits for the clist, the obvious question
+is whether it fits for the rest. Each of its files was compiled
+against this tree's headers and then linked into a kernel, which is
+the only way to tell. Results:
+
+| our file | stubs | FreeBSD 2.0 | what it would take |
+|---|---|---|---|
+| `kern/tty_subr.c` | 10 | Greenman 1994 | **works** -- builds, links, boots, and a user process's write reaches the console |
+| `kern/kern_acct.c` | 2 | C. G. Demetriou 1994 | **two lines** -- builds, links, boots |
+| `kern/kern_physio.c` | 2 | John S. Dyson 1994 | compiles clean, but will not link |
+| `kern/sys_process.c` | 2 | Sean Eric Fagan 1994 | needs a new `struct proc` field |
+| `kern/subr_rmap.c` | 3 | absent | FreeBSD dropped resource maps entirely |
+| `kern/vfs_bio.c` | 4 | John S. Dyson 1994 | a rewrite; NetBSD 1.0 is the donor there |
+
+None of the five that exist carries a Regents notice; they are all
+1994 work by named authors, like Greenman's.
+
+**`kern_acct.c` is two lines from working.** `VOP_UNLOCK(nd.ni_vp)`
+needs this tree's three-argument form, `VOP_UNLOCK(nd.ni_vp, 0, p)` --
+the VFS locking interface changed between the Lites -- and a
+`LEASE_CHECK(vp, p, p->p_ucred, LEASE_WRITE)` call must come out,
+NFS leasing being something FreeBSD added and this tree does not have.
+With those two the kernel builds and boots. Its function set is ours
+plus two helpers: `acct` and `acct_process`, with `encode_comp_t` and
+`acctwatch` alongside.
+
+**`kern_physio.c` compiles with no errors at all and then fails to
+link**, on `getpbuf` and `relpbuf`. Those are FreeBSD's physical
+buffer pool, from their VM, and this tree has nothing like them. A
+file that compiles clean is not a file that fits, which is worth
+recording: the compile was the encouraging result and the link was the
+true one.
+
+**`sys_process.c` has exactly our two functions**, `ptrace` and
+`trace_req`, and wants `p_tptr` in `struct proc` -- a trace-parent
+pointer FreeBSD added. That is the same kind of obstacle as de
+Raadt's seven-field `struct clist`: a structure change reaching
+outside the file.
+
+**`subr_rmap.c` has no counterpart at all.** FreeBSD removed resource
+maps. So for those three stubs the contemporaries offer nothing and
+the method is the written one.
