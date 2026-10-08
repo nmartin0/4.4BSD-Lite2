@@ -126,11 +126,32 @@ PTmap in their i386 pmap.h. hp300 and luna68k do not need it because
 pt_map serves the same purpose in kernel space, and pmax, news3400 and
 sparc have neither.
 
-So the question is which of two things is right, and it is open:
-pmap_pinit creates a mapping without recording a pv entry for it, or
-pmap_remove should not walk the self-map at all. The first is where
-the asymmetry is -- every other mapping of a managed page goes through
-pmap_enter, which records one.
+The teardown order is why it is reached at all. vm_map_delete walks
+the whole map before pmap_release frees the directory --
+vm/vm_map.c's vmspace_free is
+
+	vm_map_delete(&vm->vm_map, min_offset, max_offset);
+	pmap_release(&vm->vm_pmap);
+
+-- so the self-map PDE is still valid when pmap_remove descends
+through it, and pmap_remove reads PTmap[0x3BF], which through the
+recursion is that PDE itself, as though it were a user PTE.
+
+And Berkeley wrote the case as a can't-happen: "PA not in pv_tab" is a
+panic, not a recovery. So in the operation he intended, pmap_remove is
+never handed a range covering the self-map page at all, which argues
+the defect is upstream of pmap_remove rather than in it.
+
+So the question is which of three things is right, and it is open:
+pmap_pinit creates a mapping without recording a pv entry for it;
+pmap_remove should not treat the PTDPTDI slot as a user mapping; or
+vm_fork's vm_allocate should not cover the self-map page. The
+asymmetry is in the first -- every other mapping of a managed page
+goes through pmap_enter, which records one -- but Berkeley's
+can't-happen panic points at the third, and neither NetBSD 1.0 nor
+FreeBSD 2.0.5 can settle it, because both rewrote pmap_remove
+entirely. Any of the three would be this project's own code, which is
+reason to be slow.
 
 Ruled out by measurement: nothing faults on 0xEFFBF000, so no map
 entry is created there by faulting -- vm_map_delete passes
