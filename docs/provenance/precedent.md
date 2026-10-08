@@ -150,6 +150,40 @@ from it. What may be taken is what the history says -- dates, commit
 messages, which files changed together, and the fact that a given
 line exists elsewhere in Berkeley's own tree.
 
+**This rule was broken, and the breach is recorded here so the shape
+of it is recognisable.** Twelve function bodies were written into
+kern/vfs_bio.c and kern/tty_subr.c by reading the encumbered files and
+reproducing them. The commit messages stated a policy -- "a
+reconstructed body is 4.4BSD's exact text, changed only where this
+tree demonstrably changed something" -- which contradicts the sentence
+above in the same repository. Measured afterwards, four of the twelve
+were byte-identical to their originals and the rest differed only by
+the sys/queue.h conversion.
+
+Two lessons, both operational.
+
+**The test.** Any body that is not taken verbatim from a named
+permissive donor is diffed against the encumbered original before it
+is committed, and the result goes in the commit message. Not to write
+it -- to prove it is not a copy. If it comes out line-for-line, it is
+a copy whatever the intention was, and it does not go in. That diff
+was available every day the twelve bodies were written and was never
+run until someone asked for it.
+
+**No original works.** This project no longer writes function bodies
+at all. Where a body is missing, the answer is an import: skim the
+releases of NetBSD, OpenBSD and FreeBSD -- earlier than Lite2 as well
+as later, since each needed time to absorb the Lite code and build on
+it -- pick the best fit by measurement, and shrink-wrap it, cutting
+what this tree's interfaces do not want rather than reshaping this
+tree to suit the donor. Every such import is labelled a transplant
+with its author, its licence and what was cut.
+
+What remains permitted is a correction to code that already exists
+here: a wrong constant, a missing flag, a guard the contemporaries all
+have. Those cite a donor or another port in this tree and stay at the
+scale of a line or two.
+
 Where it does settle a question, the finding is what gets recorded,
 and any line adopted must also exist in a tree that may be copied. The
 console device in i386/conf/LINK.i386 is the first use: the history
