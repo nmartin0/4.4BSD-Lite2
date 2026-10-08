@@ -6,12 +6,12 @@
 #
 #	sh build/shim/run.sh            run it
 #	sh build/shim/run.sh -d int     and log exceptions to /tmp/qint.log
-#	HOWTO=s sh build/shim/run.sh    boot single user
+#	HOWTO=2 sh build/shim/run.sh    boot single user
 #
-# HOWTO is the boot flags in a BSD boot block's own spelling: s single
-# user, a ask for the root device, d enter the debugger.  They reach
-# the kernel's boothowto through the multiboot command line; shim.c
-# says how.
+# HOWTO is the boot flags as a number, which is how this port takes
+# them -- i386/stand/boot.c reads them with strtol.  See <sys/reboot.h>:
+# 1 ask for the root device, 2 single user, 0x40 the debugger.  They
+# reach boothowto through the multiboot command line; shim.c says how.
 set -e
 d=$(cd "$(dirname "$0")" && pwd)
 SRC=$(cd "$d/../.." && pwd)
@@ -25,5 +25,5 @@ gcc -m32 -ffreestanding -fno-pic -fno-stack-protector -fno-builtin -O1 -c shim.c
 gcc -m32 -ffreestanding -fno-pic -c shim.S -o shim_s.o
 ld -m elf_i386 -T shim.ld -o shim.elf shim_s.o shim_c.o 2>/dev/null
 exec qemu-system-i386 -kernel shim.elf -initrd "$K" \
-    ${HOWTO:+-append "-$HOWTO"} \
+    ${HOWTO:+-append "$HOWTO"} \
     -nographic -display none -no-reboot "$@"

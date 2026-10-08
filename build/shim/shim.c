@@ -86,31 +86,54 @@ shim_main(u32 magic, struct mbinfo *mb)
 		puts_("shim: no kernel module; pass it with -initrd\n"); return;
 	}
 
+	/*
+	 * AI-ONLY NOTE: the boot flags, which were hardwired to zero.
+	 *
+	 * locore.s:212 takes howto from 4(%esp) and stores it in
+	 * boothowto, and kern/init_main.c:381 turns RB_SINGLE into the
+	 * `-s' argument it hands /sbin/init, because init reads its mode
+	 * from argv and not from any register -- sbin/init/init.c says so
+	 * in as many words. With howto zero the kernel could only ever
+	 * boot multi-user.
+	 *
+	 * The number is read the way this port's own boot block reads it.
+	 * i386/stand/boot.c:91 is
+	 *
+	 *	howto = strtol (cp, 0, 0);
+	 *
+	 * so a number is the i386's convention; the flag letters are
+	 * other machines' idiom and appear nowhere in this tree. QEMU's
+	 * `-append 2' is single user, as `Boot: /vmunix 2' would be.
+	 * <sys/reboot.h> has the values: RB_ASKNAME 1, RB_SINGLE 2,
+	 * RB_HALT 8, RB_DFLTROOT 0x20, RB_KDB 0x40.
+	 *
+	 * A multiboot loader puts the kernel's own path at the front of
+	 * the command line, so the number is taken from the last word.
+	 * And this runs before the segment copy below, because loading
+	 * the kernel over low physical memory overwrites the multiboot
+	 * info struct the command line lives in.
+	 */
 	howto = 0;
 	if (mb->flags & (1<<2) && mb->cmdline) {
-		const char *cp = (const char *)mb->cmdline;
+		const char *cp = (const char *)mb->cmdline, *w = cp;
 
-		/*
-		 * Only a word beginning with `-' is flags. A multiboot
-		 * loader puts the kernel's own path at the front of the
-		 * command line, and QEMU is no exception, so reading
-		 * every character would take the `h' out of `shim.elf'
-		 * as RB_HALT -- which it did.
-		 */
-		while (*cp) {
-			if (*cp++ != '-')
-				continue;
-			while (*cp && *cp != ' ') {
-				switch (*cp++) {
-				case 'a': howto |= 0x001; break;
-				case 's': howto |= 0x002; break;
-				case 'h': howto |= 0x008; break;
-				case 'r': howto |= 0x020; break;
-				case 'd': howto |= 0x040; break;
-				default: break;
-				}
+		while (*cp)
+			if (*cp++ == ' ' && *cp)
+				w = cp;
+		if (w[0] == '0' && (w[1] == 'x' || w[1] == 'X')) {
+			for (cp = w + 2; ; cp++) {
+				if (*cp >= '0' && *cp <= '9')
+					howto = howto * 16 + (*cp - '0');
+				else if (*cp >= 'a' && *cp <= 'f')
+					howto = howto * 16 + (*cp - 'a' + 10);
+				else if (*cp >= 'A' && *cp <= 'F')
+					howto = howto * 16 + (*cp - 'A' + 10);
+				else
+					break;
 			}
-		}
+		} else
+			for (cp = w; *cp >= '0' && *cp <= '9'; cp++)
+				howto = howto * 10 + (*cp - '0');
 	}
 
 	mod = (struct module *)mb->modaddr;
@@ -141,28 +164,6 @@ shim_main(u32 magic, struct mbinfo *mb)
 			    ph->p_memsz - ph->p_filesz);
 	}
 
-	/*
-	 * AI-ONLY NOTE: the boot flags, which were hardwired to zero.
-	 *
-	 * locore.s:212 takes howto from 4(%esp) and stores it in
-	 * boothowto, and kern/init_main.c:381 turns RB_SINGLE into the
-	 * `-s' argument it hands /sbin/init, because init reads its mode
-	 * from argv and not from any register -- sbin/init/init.c says so
-	 * in as many words. With howto zero the kernel could only ever
-	 * boot multi-user.
-	 *
-	 * A multiboot loader passes a command line, and QEMU's -append
-	 * sets it: mbinfo.flags bit 2 says cmdline is valid. The flags
-	 * are read from it in the same spelling a BSD boot block uses, so
-	 * `-append -s' boots single user and `-append -as' asks for the
-	 * root device as well.
-	 *
-	 *	RB_ASKNAME 0x001   a   ask for the root device
-	 *	RB_SINGLE  0x002   s   single user
-	 *	RB_HALT    0x008   h   halt rather than reboot
-	 *	RB_DFLTROOT 0x020  r   use the compiled-in root
-	 *	RB_KDB     0x040   d   enter the debugger
-	 */
 
 	entry = eh->e_entry - KERNBASE;
 	puts_("shim: entering kernel at "); puthex(entry);
