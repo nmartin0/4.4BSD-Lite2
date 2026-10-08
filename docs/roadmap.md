@@ -18,7 +18,7 @@ compiling under a modern GCC. Measured against the tree as it stands:
 |---|---|---|
 | program directories that build | 302 | 320 |
 | libraries built by `sysroot.sh` | 11 | 13 |
-| kernel sources compiled | 136 | 853 |
+| kernel sources compiled | 138 | 853 |
 | kernel configurations that build | 1 | 2 (i386) |
 | ports whose kernel has ever been compiled | 1 | 8 |
 | kernels that link | **1** | — |
@@ -83,11 +83,13 @@ on `yylex` was dropped only to satisfy byacc.
 
 ## Tier 1 — boot on QEMU's legacy machine
 
-**Substantially done.** The kernel loads, runs, prints over a serial
-console and panics in the VM. `docs/status.md` has the output and
-what had to be fixed to get there. What this tier predicted would be
-the hard part -- the loader -- was sidestepped by `build/shim`, which
-is scratch tooling and says what deletes it.
+**The kernel reaches user mode and runs a program.** It loads, probes
+and attaches an IDE disk, mounts an FFS root filesystem, forks, execs
+an ELF binary and enters user mode at that binary's entry point. It
+panics when the first child is reaped. `docs/status.md` has the
+output and what had to be fixed to get there. What this tier
+predicted would be the hard part -- the loader -- was sidestepped by
+`build/shim`, which is scratch tooling and says what deletes it.
 
 What remains of it, in order:
 
@@ -101,20 +103,34 @@ What remains of it, in order:
 5. ~~**The console.**~~ Done, and it is serial rather than `pccons`:
    one line, `options COMCONSOLE`, using Berkeley's own priority
    mechanism.
-6. **`kmem_suballoc` returns `KERN_NO_SPACE`.** The first thing the
-   running kernel cannot do. Candidate cause is the kernel virtual
-   address space: `KERNBASE` is `0xFE000000`, leaving 32 MB, where
-   NetBSD 1.0 uses `0xf8000000`, OpenBSD 1996 `0xf0000000` and
-   FreeBSD 2.0.5 `F0100000`. If that is it, the `KERNBASE` move
-   stops being the thing that deletes the shim and becomes the thing
-   the VM needs.
-7. **A root device.** `vfs_busy` takes a null mount pointer because
-   `rootdev` is `makedev(0,0)` and `setconf()` is inside `#ifdef
-   notdef`. Needs `wd.c`'s nine `b_actf` sites first -- FreeBSD 2.0.5
-   is the only donor.
-8. **The settlement bodies.** 34 of the 35 emptied functions are in
-   `LINK.i386`, including the whole buffer cache and `execve`. The
-   kernel cannot do anything with a disk until they are filled.
+6. ~~**`kmem_suballoc` returns `KERN_NO_SPACE`.**~~ Done. `KERNBASE`
+   moved to `0xF0000000`.
+7. ~~**A root device.**~~ Done. `setconf()` is written for the i386,
+   `rootdev` is `NODEV` so `setconf` runs, and `wd.c`'s drive queue
+   uses `struct disk`'s `dk_dchain` rather than `b_actf`. The kernel
+   prints `root on wd0` and mounts an FFS filesystem.
+8. **The settlement bodies.** `execve` is written, and ten of the
+   buffer cache's fourteen with it. **23 of the 35 remain**, all but
+   one of them in `LINK.i386`:
+
+   | file | stubs | what they are |
+   |---|---|---|
+   | `kern/tty_subr.c` | 10 | the clist routines |
+   | `kern/vfs_bio.c` | 4 | `bwrite`, `bdwrite`, `bawrite`, `breadn` |
+   | `kern/subr_rmap.c` | 3 | resource maps |
+   | `kern/kern_acct.c` | 2 | process accounting |
+   | `kern/kern_physio.c` | 2 | raw device I/O |
+   | `kern/sys_process.c` | 2 | `ptrace` |
+   | `hp/dev/hil_subr.c` | 1 | not in this build |
+
+   `vfs_bio.c`'s four are the write path, and nothing reaches a disk
+   without them.
+9. **`pmap_remove` on the self-map.** The kernel panics when the
+   first child is reaped, on a null pv entry for `0xEFFBF000` -- the
+   page directory's own address in the recursive self-map, the one
+   mapping `pmap_pinit` installs by assignment rather than through
+   `pmap_enter`. `docs/status.md` carries the measurements and what
+   has been ruled out. This is what stops the kernel now.
 
 ## Tier 2 — modern hardware
 
