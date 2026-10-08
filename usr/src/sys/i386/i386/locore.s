@@ -1922,9 +1922,51 @@ _C_LABEL(proc0paddr):	.long	0
 LF:	.asciz "cpu_switch %x"
 
 .text
- # To be done:
+/*
+ * AI-ONLY NOTE: astoff clears astpending, where it was `ret' alone
+ * under Berkeley's own `# To be done:'.
+ *
+ * astpending is declared at i386/include/cpu.h:149, incremented by
+ * aston() at :147, and tested by doreti at isa/icu.s:114:
+ *
+ *	cmpl	$0,_C_LABEL(astpending)
+ *
+ * Nothing in this port ever cleared it. i386/trap.c:205 calls astoff()
+ * for T_ASTFLT and T_ASTFLT|T_USER, which is where the clearing
+ * belongs, and astoff did nothing.
+ *
+ * So once astpending became non-zero the kernel could not leave the
+ * loop: doreti saw it set and re-entered trap, trap called astoff and
+ * returned through locore.s's AST path, which re-tags the frame
+ * T_ASTFLT and jumps back to doreti. Measured with QEMU's execution
+ * log: twelve addresses, each executed exactly 331 times in the tail
+ * of one run, with interrupts disabled throughout -- so the clock sat
+ * pending and unmasked at the PIC, `pic0: irr=01 imr=e8 isr=00', and
+ * was never serviced. The machine stopped dead after init's first
+ * page fault returned.
+ *
+ * Every other port in this tree clears it in its trap():
+ *
+ *	hp300/hp300/trap.c:419      astpending = 0;
+ *	luna68k/luna68k/trap.c:369  astpending = 0;
+ *	news3400/news3400/trap.c:684, :877
+ *	pmax/pmax/trap.c:706, :1258
+ *
+ * none of which has an astoff at all. This port has one, called from
+ * the same place in the same case, so the clearing goes into it
+ * rather than into trap.c -- the structure Berkeley left, with the
+ * body he said was still to be done.
+ *
+ * FreeBSD 2.0.5 and NetBSD 1.0 both leave astoff empty, at their
+ * i386/include/cpu.h:99 and their equivalent, but neither is a
+ * precedent here: they replaced aston with setsoftast(), which sets a
+ * bit in the soft-interrupt word that doreti clears with btrl as part
+ * of dispatching it. This tree still has Berkeley's standalone int
+ * and a plain cmpl against it.
+ */
 	.globl _C_LABEL(astoff)
 _C_LABEL(astoff):
+	movl	$0,_C_LABEL(astpending)
 	ret
 
 /* AI-ONLY NOTE: through _C_LABEL, as ENTRY and ALTENTRY above are. */
