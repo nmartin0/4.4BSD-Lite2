@@ -80,6 +80,33 @@ with fifteen references each; pmax, news3400 and sparc have neither a
 pt_map nor a recursive map. The i386's seven references to PTDPTDI and
 PTmap are alone in the tree.
 
+The range is measured, not inferred. The failing call is
+
+	pmap_remove(pmap, sva=0xEFFBF000, eva=0xEFFF7000)
+
+so there is a map entry beginning exactly at the self-map page and
+running to UPT_MAX_ADDRESS -- page-directory slots 0x3BF through
+0x3F6, which is PTDPTDI plus the kernel slots from KPTDI_FIRST. A
+breakpoint on vm_map_insert with that start never fires, so the entry
+was not created with those bounds; it is what vm_map_delete is handed
+after clipping, or what an earlier split left.
+
+And the arrangement itself is not the defect, which was checked.
+Putting page tables in the process's own address space is how this
+port allocates them: i386/trap.c's user_page_fault faults on the
+table's own self-mapped address --
+
+	if (!pde_v(va)) {
+		v = trunc_page(vtopte(va));
+		vm_fault(map, v, ftype, FALSE);
+
+-- so the map has to cover PTmap, which is why VM_MAX_ADDRESS is
+UPT_MAX_ADDRESS and sits above VM_MAXUSER_ADDRESS. Every i386 BSD does
+this: NetBSD 1.0, FreeBSD 2.0.5 and OpenBSD 1996 all carry PTDPTDI and
+PTmap in their i386 pmap.h. hp300 and luna68k do not need it because
+pt_map serves the same purpose in kernel space, and pmax, news3400 and
+sparc have neither.
+
 So the question is which of two things is right, and it is open:
 pmap_pinit creates a mapping without recording a pv entry for it, or
 pmap_remove should not walk the self-map at all. The first is where
