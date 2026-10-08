@@ -1,33 +1,41 @@
 /*	$NetBSD: vfs_bio.c,v 1.31.2.1 1994/08/29 01:47:34 mycroft Exp $	*/
 
 /*
- * AI-ONLY NOTE: this file is NetBSD 1.0's, replacing ten bodies that
- * should never have been written the way they were.
+ * AI-ONLY NOTE: a transplant, and labelled one.
  *
- * Those ten -- count_lock_queue, incore, biowait, getnewbuf, allocbuf,
- * geteblk, brelse, getblk, bread and biodone -- were reconstructed
- * from 4.4BSD's encumbered kern/vfs_bio.c, on a policy this project
- * stated in its own commit messages: "a reconstructed body is 4.4BSD's
- * exact text, changed only where this tree demonstrably changed
- * something". Measured afterwards, each was the same length as the
- * original, four were byte-identical, and the rest differed only by
- * the sys/queue.h conversion. That is transcription of the code the
- * settlement removed, which is the one thing this tree exists not to
- * contain. Reading the encumbered source for shape, which
- * docs/provenance/precedent.md permits, was never a licence to
- * reproduce it.
+ * This file's fourteen bodies were removed by the AT&T settlement.
+ * Ten of them were at one point written here by reading 4.4BSD's
+ * encumbered kern/vfs_bio.c and reproducing it -- four came out
+ * byte-identical -- which broke the rule in
+ * docs/provenance/precedent.md that nothing is copied from the CSRG
+ * history. Those are gone, and this project no longer writes bodies
+ * at all; where one is missing, a permissively licensed donor is
+ * imported and cut down to what this tree's interfaces want.
  *
- * What is here instead is Christopher Demetriou's, from NetBSD 1.0.
- * It is Lite's file with the bodies written afresh rather than
- * restored: his bwrite uses ISSET and CLR where 4.4BSD manipulates
- * b_flags directly, and the structure differs throughout. The Regents
- * notice below is Lite's own header, which this file already carried,
- * under the same BSD terms.
+ * Donor: NetBSD 1.0, Christopher G. Demetriou, 1994, three-clause
+ * BSD. Chosen by measurement across every reachable release --
+ * NetBSD 0.9 through 1.3 and FreeBSD 1.1.5 through 2.2 -- compiled
+ * against this tree's own headers:
  *
- * It is a transplant, kind D in docs/provenance/imports.md's terms,
- * and it says so. It also supplies the four bodies still stubbed --
- * bwrite, bdwrite, bawrite and breadn -- so nothing in this file is
- * now either transcribed or missing.
+ *	NetBSD 1.0    0 errors, links      NetBSD 1.2    3 errors
+ *	NetBSD 1.1    0 errors, links      NetBSD 1.3    5 errors
+ *	FreeBSD 2.0  48 errors             FreeBSD 2.1 180 errors
+ *	FreeBSD 2.2   1 error (fatal include, masking the rest)
+ *
+ * NetBSD 1.0 and 1.1 both build and link here. 1.0 is the tighter
+ * fit: it covers all eighteen functions this file declares and adds
+ * one, where 1.1 adds two.
+ *
+ * It is a rewrite rather than a restoration, which is why it may be
+ * used: Demetriou's bwrite works through ISSET and CLR where 4.4BSD
+ * manipulates b_flags directly, and the structure differs throughout.
+ * The Regents notice below is Lite's own header, which this file
+ * already carried, under the same terms.
+ *
+ * Shrink-wrapped: breada, NetBSD's one addition, is cut. Nothing in
+ * this tree calls it and <sys/buf.h> does not declare it -- Lite2
+ * declares breadn, the n-block form, which is kept. Everything else
+ * is NetBSD 1.0's as it stands.
  */
 
 /*-
@@ -302,21 +310,6 @@ breadn(vp, blkno, size, rablks, rasizes, nrablks, cred, bpp)
 
 	/* Otherwise, we had to start a read for it; wait until it's valid. */
 	return (biowait(bp));
-}
-
-/*
- * Read with single-block read-ahead.  Defined in Bach (p.55), but
- * implemented as a call to breadn().
- * XXX for compatibility with old file systems.
- */
-breada(vp, blkno, size, rablkno, rabsize, cred, bpp)
-	struct vnode *vp;
-	daddr_t blkno; int size;
-	daddr_t rablkno; int rabsize;
-	struct ucred *cred;
-	struct buf **bpp;
-{
-	return (breadn(vp, blkno, size, &rablkno, &rabsize, 1, cred, bpp));	
 }
 
 /*
