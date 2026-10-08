@@ -447,3 +447,54 @@ The machinery is all present -- the flag, the pool, `vslock`,
 `vmapbuf`, which the i386 does have -- and only the code driving it
 was removed. It is written, not imported, with the contemporaries
 readable for algorithm and neither usable for text.
+
+## Examining this tree, file by file, to see what is actually needed
+
+A file that compiles and links can still be wrong, so each conclusion
+above was checked against what this tree declares and what calls it.
+
+**`subr_rmap.c` from NetBSD 1.0 is verified, not merely linking.** The
+signatures match ours exactly -- `rminit(mp, size, addr, name, nelem)`,
+`rmalloc(mp, size)`, `rmfree(mp, size, addr)` -- and `struct map` and
+`struct mapent` have identical fields. The one discrepancy is a
+comment: ours says `m_limit` is the "address of last slot in map",
+NetBSD's says "first slot beyond map". NetBSD is right and **4.4BSD's
+own comment is wrong**, because its `rminit` sets
+
+	mp->m_limit = (struct mapent *)&mp[mapsize];
+
+which is one past the end. NetBSD's writes `(struct mapent *)mp +
+nelem`, the same address, since `sizeof(struct map)` and `sizeof(struct
+mapent)` are both eight bytes here. And nothing else in this tree reads
+`m_limit` at all -- only the removed functions did -- so the convention
+is whatever the implementation sets, and the two agree.
+
+**`sys_process.c` is the written case, and this tree says so clearly.**
+Our two stubs are `ptrace` and `trace_req`; 4.4BSD's file has `ptrace`
+and `procxmt`. They are the same function, renamed by Lite, which the
+call site proves:
+
+	4.4BSD   } while (!procxmt(p) && p->p_flag & STRC);
+	Lite2    } while (!trace_req(p) && p->p_flag & P_TRACED);
+
+So this tree carries 4.4BSD's interface under Lite's names, and both
+contemporaries left it: NetBSD's wants `process_sstep` and
+`process_set_pc`, a machine-dependent register interface 4.4BSD does
+not have, and FreeBSD's wants `p_tptr` in `struct proc`. Neither is
+a rename; both are new mechanisms.
+
+Everything 4.4BSD's file needs is here, which was checked name by
+name. Of its callees only `setrun` is missing, and that is a third
+Lite rename -- `setrunnable`, at `kern/kern_synch.c:622`. `fuword`,
+`suword`, `fuiword`, `suiword`, `useracc`, `vm_map_protect`, `pfind`,
+`psignal` and `proc_reparent` are all present.
+
+`FIX_SSTEP` is not an obstacle either: `miscfs/procfs/procfs_ctl.c:56`
+already defines it empty when the port provides none, which is this
+tree's own convention for that hook.
+
+So the four stubs without a donor -- `physio`, `minphys`, `ptrace`,
+`trace_req` -- are all in the same position: this tree has every piece
+of machinery they need, under Lite's names, and the contemporaries
+cannot supply them because each replaced the mechanism rather than
+renaming it.
