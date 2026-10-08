@@ -553,3 +553,53 @@ does the register work itself through `fuword` and `suword`.
 That is the canonical answer, and it is the same one for
 `kern_physio.c`: the names travelled, the mechanisms did not, and this
 tree still has 4.4BSD's.
+
+## The conclusion: no BSD restored CSRG's code, so none is canonical
+
+Every donor examined in this document turns out to be an independent
+rewrite by a named author, not 4.4BSD's text with the bodies put back.
+Compared function by function against the encumbered original:
+
+| donor file | author | how it differs from 4.4BSD |
+|---|---|---|
+| FreeBSD 2.0 `tty_subr.c` | Greenman | adds cblock reservation accounting |
+| NetBSD 1.0 `subr_rmap.c` | Solfrank | **drops 4.4BSD's swap interleaving** |
+| NetBSD 1.0 `vfs_bio.c` | Demetriou | `ISSET`/`CLR` macros, restructured flags |
+| NetBSD, OpenBSD `tty_subr.c` | de Raadt | a flat buffer and a quote bitmap |
+| 386BSD `tty_ring.c`, `kern__physio.c` | Jolitz | different interfaces entirely |
+| FreeBSD 2.2 `sys_process.c` | -- | `PHOLD`, `ptrace_*` hooks |
+
+`subr_rmap.c` is the clearest case of why that matters. 4.4BSD's
+`rmalloc` special-cases the swap map --
+
+	if (size <= 0 || mp == swapmap && size > dmmax)
+		panic("rmalloc");
+	...
+		if (mp == swapmap && nswdev > 1 &&
+		    (first = dmmax - bp->m_addr%dmmax) < size) {
+
+-- interleaving allocations across swap devices. Solfrank's is a
+generic allocator with none of it. This tree has `dmmax`, declared in
+every port's `swapgeneric.c`, and `vm/vm_swap.c:414` calls
+`rminit(swapmap, ...)`. So importing NetBSD's would compile, link,
+boot, and silently stop interleaving swap. It is the exact shape of
+defect that "it links" hides.
+
+And 4.4BSD-Lite1 offers nothing: it stubs the same functions in the
+same six files, with identical counts. There is no earlier Lite with
+the bodies intact.
+
+So the canonical direction is the one this project has already taken
+twice, for `execve` and for ten of `vfs_bio.c`'s fourteen: **write the
+bodies as 4.4BSD's own text**, with the encumbered file read for shape
+as `precedent.md` allows, the tree's own renames applied, and the
+rewrites readable for algorithm where a question is genuinely open.
+That is kind E in `imports.md`'s terms, a reimplementation of what the
+Lite cut removed, and it is the only kind that leaves this a 4.4BSD.
+
+The imports remain available and remain honest options where speed
+matters more than lineage -- FreeBSD 2.0's clist is tested and works,
+and its ten functions would close the largest single gap in an
+afternoon -- but they are kind D, transplants, and should be recorded
+as such rather than as restorations. Nothing in this document supports
+calling any of them canonical to this tree.
