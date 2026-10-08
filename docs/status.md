@@ -59,6 +59,33 @@ pmap.c has the identical shape at its own pmap_remove, so the #ifdef
 is Berkeley's across the tree and not an i386 defect: "PA not in
 pv_tab" is written as a can't-happen.
 
+What the donors do, and a misreading to avoid. FreeBSD 2.0.5's
+pmap_remove has
+
+	if ((va < USRSTACK || va >= KERNBASE) ||
+	    (va >= USRSTACK && va < USRSTACK + (UPAGES * NBPG))) {
+
+which looks like a guard that skips the page-table region -- our
+failing address falls exactly in what it excludes. It is not. That
+test encloses only the dirty-bit accounting; the pv removal below it,
+`pv = pa_to_pvh(pa); pmap_remove_entry(pmap, pv, va);', runs
+unconditionally for any managed page. FreeBSD's pmap is substantially
+rewritten from Berkeley's -- pmap_remove_entry, pmap_unuse_pt,
+PHYS_TO_VM_PAGE -- and is not a line-for-line donor for this file.
+
+And rule 1 has no answer here, which was checked rather than assumed:
+no other port in this tree puts page tables in the process's own
+address space. hp300 and luna68k use `pt_map', a separate kernel map,
+with fifteen references each; pmax, news3400 and sparc have neither a
+pt_map nor a recursive map. The i386's seven references to PTDPTDI and
+PTmap are alone in the tree.
+
+So the question is which of two things is right, and it is open:
+pmap_pinit creates a mapping without recording a pv entry for it, or
+pmap_remove should not walk the self-map at all. The first is where
+the asymmetry is -- every other mapping of a managed page goes through
+pmap_enter, which records one.
+
 Ruled out by measurement: nothing faults on 0xEFFBF000, so no map
 entry is created there by faulting -- vm_map_delete passes
 pmap_remove a range and pmap_remove walks into it. And this port's
