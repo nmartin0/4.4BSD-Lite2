@@ -184,6 +184,36 @@ here: a wrong constant, a missing flag, a guard the contemporaries all
 have. Those cite a donor or another port in this tree and stay at the
 scale of a line or two.
 
+## Era-appropriate is not the same as correct
+
+The donor search in this file is written around the contemporaries,
+because that is where the licences are clean and the structures still
+match. That bias has a failure mode, and it has already bitten once.
+
+This project's aim is an ancient system that stays minimal and keeps
+its shape, built and run to **current** conventions: a modern C
+toolchain, current POSIX, and whatever the linker emits today. A donor
+from 1995 is era-appropriate and may still be wrong, because it
+encodes 1995's conventions.
+
+The worked example is the ELF loader. Every BSD of the era --
+NetBSD 1.1 through 1.6, OpenBSD 1996, and the rest -- caps a binary at
+two loadable segments, each carrying the same `XXX Can handle only 2
+sections' comment. Nothing then produced more. Modern `ld` does:
+binutils made `-z separate-code' the default in 2018, and this tree's
+own `/sbin/init', linked with binutils 2.42, has four `PT_LOAD'
+segments -- headers, text, rodata, data. Every era donor rejects it.
+
+So when a donor is needed, the question is not only which release fits
+this tree's structures, but which handles what this tree's toolchain
+actually emits. Sometimes no release satisfies both, and that is worth
+knowing before the import rather than after.
+
+The reverse also holds: a working-around is not a fix. Linking
+`/sbin/init' with `-z noseparate-code' would have made every era donor
+work, at the cost of pinning this system's output to 1995 link
+conventions for good. That was proposed here and was wrong.
+
 Where it does settle a question, the finding is what gets recorded,
 and any line adopted must also exist in a tree that may be copied. The
 console device in i386/conf/LINK.i386 is the first use: the history
