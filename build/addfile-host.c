@@ -118,7 +118,9 @@ main(int argc, char **argv)
 	char sec[512], tmp[1024], *data, *cp;
 	off_t partoff;
 	ufs_daddr_t *indir, blkno;
-	char *dirname, *filepath;
+	char *dirname, *filepath, *entname;
+	char devbuf[64];
+	int isdev, devmaj, devmin;
 	ino_t dirino, fileino;
 	int arg;
 	int fd, pfd, ifd, n, i, nblk, bsz;
@@ -132,8 +134,10 @@ main(int argc, char **argv)
 	if (argc < 4 || (argc & 1) != 0) {	/* program + image + pairs */
 		fprintf(stderr, "usage: addfile-host image dir file "
 		    "[dir file ...]\n");
-		fprintf(stderr, "  e.g. addfile-host disk.img "
-		    "sbin .../init bin .../sh\n");
+		fprintf(stderr, "  a file may be a path, or a character "
+		    "device written as name:c:major:minor\n");
+		fprintf(stderr, "  e.g. addfile-host disk.img sbin .../init "
+		    "bin .../sh dev console:c:0:0\n");
 		return (1);
 	}
 	time(&utime);
@@ -207,11 +211,65 @@ main(int argc, char **argv)
 	dirino = nextino++;
 	fileino = nextino++;
 
+	/*
+	 * AI-ONLY NOTE: a character device node, written
+	 * `name:c:major:minor' where a path would go.
+	 *
+	 * init's first act after forking is setctty(_PATH_CONSOLE),
+	 * which opens /dev/console and _exits if it cannot, so an image
+	 * with no /dev gets no shell however good the kernel is.
+	 *
+	 * The numbers are this tree's own. etc/etc.i386/MAKEDEV's `std'
+	 * case is
+	 *
+	 *	mknod console	c 0 0
+	 *	mknod tty	c 1 0	; chmod 666
+	 *	mknod mem	c 2 0	; chmod 640
+	 *	mknod kmem	c 2 1	; chmod 640
+	 *	mknod null	c 2 2	; chmod 666
+	 *	mknod zero	c 2 12	; chmod 666
+	 *	mknod drum	c 4 0	; chmod 640
+	 *
+	 * which agrees with i386/i386/conf.c's cdevsw, whose slot 0 is
+	 * cdev_cn_init(1,cn), the console.
+	 *
+	 * A device inode carries the device number where a regular one
+	 * carries its first block: <ufs/ufs/dinode.h>:102 is
+	 * `#define di_rdev di_db[0]', and <sys/types.h>:92 encodes it
+	 * as `((x) << 8) | (y)'. di_size and di_blocks stay zero and
+	 * nothing is allocated, so the only difference from a regular
+	 * file below is that the block loop does not run.
+	 */
+	isdev = 0;
+	if (strchr(filepath, ':') != NULL) {
+		char *q;
+
+		strncpy(devbuf, filepath, sizeof devbuf - 1);
+		devbuf[sizeof devbuf - 1] = '\0';
+		q = strchr(devbuf, ':');
+		*q++ = '\0';
+		if (*q != 'c' || q[1] != ':' ||
+		    (q = strchr(q + 2, ':')) == NULL) {
+			fprintf(stderr, "addfile-host: %s: want "
+			    "name:c:major:minor, character devices only\n",
+			    filepath);
+			return (1);
+		}
+		devmaj = atoi(strchr(devbuf, '\0') + 3);
+		devmin = atoi(q + 1);
+		isdev = 1;
+		entname = devbuf;
+		st.st_size = 0;
+	} else {
+		entname = basename(filepath);
+	}
+
 	/* The file to add, read whole; init is small. */
-	if (stat(filepath, &st) < 0) {
+	if (!isdev && stat(filepath, &st) < 0) {
 		perror(filepath);
 		return (1);
 	}
+	if (!isdev)
 	if ((data = malloc((size_t)st.st_size)) == NULL) {
 		perror("malloc");
 		return (1);
@@ -223,12 +281,14 @@ main(int argc, char **argv)
 	 * closing it took the filesystem away after the first pair,
 	 * and the writes that followed went nowhere.
 	 */
+	if (!isdev)
 	if ((ifd = open(filepath, O_RDONLY)) < 0 ||
 	    read(ifd, data, (size_t)st.st_size) != st.st_size) {
 		perror(filepath);
 		return (1);
 	}
-	close(ifd);
+	if (!isdev)
+		close(ifd);
 
 
 	/*
@@ -251,9 +311,9 @@ main(int argc, char **argv)
 	cp = (char *)dp + dp->d_reclen;
 	dp = (struct direct *)cp;
 	dp->d_ino = fileino;
-	dp->d_type = DT_REG;
-	dp->d_namlen = strlen(basename(filepath));
-	strcpy(dp->d_name, basename(filepath));
+	dp->d_type = isdev ? DT_CHR : DT_REG;
+	dp->d_namlen = strlen(entname);
+	strcpy(dp->d_name, entname);
 	dp->d_reclen = bsz - (cp - buf);
 
 	memset((char *)&node, 0, sizeof node);
@@ -287,10 +347,19 @@ main(int argc, char **argv)
 	}
 	memset((char *)&node, 0, sizeof node);
 	node.di_atime = node.di_mtime = node.di_ctime = utime;
-	node.di_mode = IFREG | 0755;
 	node.di_nlink = 1;
-	node.di_size = st.st_size;
 	node.di_blocks = 0;
+	if (isdev) {
+		node.di_mode = IFCHR | 0666;
+		node.di_size = 0;
+		node.di_rdev = (devmaj << 8) | devmin;
+		iput(&node, fileino);
+		say("addfile-host: /%s/%s, inode %d, char %d/%d\n",
+		    dirname, entname, (int)fileino, devmaj, devmin);
+		goto rootent;
+	}
+	node.di_mode = IFREG | 0755;
+	node.di_size = st.st_size;
 	indir = NULL;
 	if (nblk > NDADDR) {
 		if ((indir = (ufs_daddr_t *)calloc(1, (size_t)bsz)) == NULL) {
@@ -320,8 +389,9 @@ main(int argc, char **argv)
 	say("addfile-host: /%s/%s, inode %d, %d blocks\n",
 	    dirname, basename(filepath), (int)fileino, nblk);
 
+rootent:
 	/*
-	 * Add `sbin' to the root directory. mkfs wrote it as one block
+	 * Add the new directory to the root directory. mkfs wrote it as one block
 	 * whose last entry's d_reclen runs to the end, so the entry is
 	 * split the way ufs_direnter does.
 	 */
