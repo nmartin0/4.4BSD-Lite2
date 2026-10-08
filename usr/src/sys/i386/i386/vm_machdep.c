@@ -111,8 +111,18 @@ cpu_fork(p1, p2)
 	 * inspection: the first fork faulted in cpu_switch with CR2
 	 * equal to ESP, then double-faulted.
 	 *
-	 * NetBSD 1.0's cpu_fork passes `VM_PROT_READ | VM_PROT_WRITE'
-	 * here.
+	 * Every other port in this tree that maps the u-area here passes
+	 * both, each in its own arch/arch/vm_machdep.c:
+	 *
+	 *	hp300, luna68k, pmax, news3400, sparc
+	 *		VM_PROT_READ|VM_PROT_WRITE
+	 *
+	 * vax and tahoe have no pmap_enter in cpu_fork at all, so the
+	 * i386 was the only port of seven doing something different.
+	 * NetBSD 1.0's cpu_fork passes both as well, but it is not the
+	 * precedent here and was cited as one in the commit that made
+	 * this change -- see the correction in
+	 * docs/provenance/precedent.md.
 	 */
 	for (i=0; i < UPAGES; i++)
 		pmap_enter(&p2->p_vmspace->vm_pmap, (vm_offset_t)kstack+i*NBPG,

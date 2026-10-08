@@ -532,14 +532,26 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
  * forty-eight bytes at the top for exactly this. Berkeley reserved it
  * and never passed its address.
  *
- * NetBSD 1.0's i386 locore.s:572 is
+ * hp300 does the same thing in this tree, at its locore.s:1126. It
+ * reserves the frame and passes its address, in the two instructions
+ * before the call:
  *
- *	movl	%esp,%eax		# push pointer to frame
- *	pushl	%eax
- *	call 	_main
+ *	lea	sp@(-64),sp	| construct space for D0-D7/A0-A7
+ *	pea	sp@		| addr of space for D0
+ *	jbsr	_main		| main(firstaddr, r0)
  *
- * which is what follows, after dropping init386's argument so that
- * the two calls do not share one.
+ * and takes the frame back apart at :1136 before returning to user,
+ * which is what the lret below now does. The i386 needs two
+ * instructions rather than one because its arguments go on the stack
+ * where the 68020's go in a register.
+ *
+ * NetBSD 1.0's i386 locore.s:572 is the same pair --
+ * `movl %esp,%eax; pushl %eax; call _main' -- but it is not the
+ * precedent here and was cited as one in the commit that made this
+ * change; see the correction in docs/provenance/precedent.md.
+ *
+ * The `addl $4,%esp' drops init386's argument so the two calls do not
+ * share one.
  */
 	addl	$4,%esp			# drop init386's argument
 	movl	%esp,%eax		# push pointer to frame
