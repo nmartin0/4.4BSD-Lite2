@@ -12,9 +12,12 @@ committed. Facts, not legal advice.
    Lite2's in about one file in eight, so it also shows whether
    something is a Lite2 change or older.
 3. **The contemporaries**, all released within about eighteen months of
-   Lite2: NetBSD 1.0 and 1.1, FreeBSD 2.0.5, and OpenBSD from 1996.
-   OpenBSD forked from NetBSD in October 1995, four months after Lite2,
-   and keeps 4.4BSD structure longest of the three.
+   Lite2: NetBSD 1.0 and 1.1, FreeBSD 2.0.5, OpenBSD from 1996, and
+   Lites 1.1.u3 of March 1996. OpenBSD forked from NetBSD in October
+   1995, four months after Lite2, and keeps 4.4BSD structure longest
+   of the three. Lites is a 4.4BSD-Lite server for Mach that ran, so
+   it had to fill bodies the Lite cut emptied; what it has and what it
+   does not is in `lites.md`, and it has no pmap at all.
 4. **Later BSDs in historical order**, stopping at the earliest release
    that has the thing.
 5. **XNU and Rhapsody: read-only.** See below.
