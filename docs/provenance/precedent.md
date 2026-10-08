@@ -169,6 +169,42 @@ whether or not it found anything, is kept outside the tree with the
 maintainer's working copies; it is not part of building this system.
 
 ## Corrections to committed messages
+- **`i386: locore.s must pass main a frame pointer`**. The message
+  credits NetBSD 1.0's `locore.s:572` with the two instructions. That
+  is true, but **hp300 does the same thing in this tree** and should
+  have been cited first under rule 1. Its `locore.s:1126` reserves the
+  frame and passes its address before calling main:
+
+	lea	sp@(-64),sp	| construct space for D0-D7/A0-A7
+	pea	sp@		| addr of space for D0
+	jbsr	_main		| main(firstaddr, r0)
+
+  The change itself is unaffected -- the i386 needs `movl %esp,%eax;
+  pushl %eax` because its arguments go on the stack, not in a register
+  -- but a reader was sent outside the tree for something inside it.
+  The following commit, `i386: the return to user must use the frame`,
+  does cite hp300 for the reading half.
+- **`execve, written: the kernel execs`**, for its `cpu_fork` hunk. The
+  message credits NetBSD 1.0's `cpu_fork` with passing
+  `VM_PROT_READ | VM_PROT_WRITE` when mapping the child's u-area.
+  **Five ports in this tree pass exactly that**, and none was cited:
+
+	hp300, luna68k, pmax, news3400 and sparc, each in its own
+	arch/vm_machdep.c, all `VM_PROT_READ|VM_PROT_WRITE`
+
+  vax and tahoe have no `pmap_enter` in `cpu_fork` at all, so the
+  i386 was the only port of seven doing something different. The
+  change is unaffected; the attribution was six references to NetBSD
+  where one line of `grep` across this tree would have settled it.
+- **Checked and not misses**, recorded so the same ground is not
+  covered twice. `i386: wd reads the bad-sector table only when the
+  label says to` cites FreeBSD 2.0.5, and that is right: `isbad()` is
+  defined in `hp300/hp300/dkbad.c`, `vax/vax/dkbad.c` and
+  `i386/i386/dkbad.c` and called by nothing, so no in-tree driver
+  gates the read on `D_BADSECT` and there was no rule 1 answer.
+  `execve`'s `USRSTACK` hunk cites NetBSD 1.0's `init_main.c:347`,
+  which is right because `kern/init_main.c` is shared code with one
+  copy and no per-port variant to prefer.
 
 - **`routed, XNSrouted: declare iftraceinit at file scope`**
   (`e7c4c061`). The message says FreeBSD and OpenBSD "both replaced
