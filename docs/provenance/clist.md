@@ -41,7 +41,41 @@ This is not the `vfs_bio.c` situation, where NetBSD 1.0's file was
 Lite's own with the holes filled and could be used line for line. Here
 every descendant wrote a new one.
 
-## And each rewrite brings its own data structure
+## Lites fits the structure and still cannot be used
+
+CMU's is the one worth examining closely, because unlike the others it
+is written against **this tree's own three fields**:
+
+	CMU fields           c_cc c_cf c_cl
+	cblock references    24
+
+and its `clist.h` is byte for byte ours -- the same `struct cblock`
+with `c_next`, `c_quote[CBQSIZE]` and `c_info[CBSIZE]`, the same
+`cfree`, `cfreelist`, `cfreecount` and `nclist`. That follows: Lites
+is a 4.4BSD-Lite derivative and kept Lite's header. Its `getc` walks
+the chain the way ours must:
+
+	c = *(clp->c_cf++) & 0xff;
+	clp->c_cc--;
+	clcheck(clp);
+
+**But it never touches `c_quote`.** The whole file has zero references
+to quoting, so the array Lite's header reserves sits unused. 4.4BSD's
+`getc` is
+
+	if (isquote(p->c_cf))
+		c |= TTY_QUOTE;
+
+and `kern/tty.c` in this tree uses `TTY_QUOTE` five times -- for the
+literal-next character, and for parity marking in the canonical line
+discipline. Taking CMU's file would compile, link, and quietly lose
+the quote bit.
+
+So it is not a candidate after all. An earlier version of this file
+called it the one candidate found, on its licence and its function
+names, before its handling of quoting had been read.
+
+## And the other rewrites bring their own data structure
 
 That is what rules them out as donors rather than merely making them
 less convenient:
@@ -86,6 +120,20 @@ The same as the ten `vfs_bio.c` bodies: write them against this tree's
 own structure, with 4.4BSD's encumbered `kern/tty_subr.c` read for
 shape as `precedent.md` allows, and the rewrites readable for
 algorithm but not for structure.
+
+Each donor fails for its own reason, and they were each read rather
+than ruled out by their headers:
+
+| donor | structure | quoting | verdict |
+|---|---|---|---|
+| NetBSD, OpenBSD | seven fields, ring + bitmap | yes, its own way | needs a new `struct clist` |
+| FreeBSD 2.0.5 | ten fields, reservation | yes, `c_quote` field | needs a new `struct clist` |
+| Lites, CMU | **ours exactly** | **none at all** | would lose `TTY_QUOTE` |
+| 4.4BSD encumbered | ours | yes, `isquote` | read-only |
+
+The encumbered file is the only implementation that both fits the
+structure and quotes, and it is the one that may be read but not
+taken. That is precisely the settlement-body case.
 
 The function set confirms the shape is unchanged apart from Lite's own
 editing:

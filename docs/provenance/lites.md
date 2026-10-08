@@ -37,8 +37,20 @@ self-map question in `status.md` it has nothing, and cannot.
 
 ## What each of those means
 
-**`tty_subr.c` is a genuine candidate and a transplant, not a
-restoration.** CMU rewrote the clist routines rather than filling in
+**`tty_subr.c` looked like a candidate and is not.** It is written
+against this tree's own three-field `struct clist` -- `c_cc`, `c_cf`,
+`c_cl` -- and Lites' `sys/clist.h` is byte for byte Lite's, which no
+other donor's is. But CMU's implementation never touches `c_quote`:
+the whole file has zero references to quoting, where 4.4BSD's `getc`
+has `if (isquote(p->c_cf)) c |= TTY_QUOTE;` and this tree's
+`kern/tty.c` uses `TTY_QUOTE` five times. Taking it would compile,
+link, and quietly lose the quote bit.
+`docs/provenance/clist.md` has the full comparison.
+
+The paragraph that follows was written before that was read, and is
+kept because the licence finding in it still stands.
+
+**`tty_subr.c` as a transplant, not a restoration.** CMU rewrote the clist routines rather than filling in
 Berkeley's -- `clcheck`, `getc`, `q_to_b`, `ndqb`, `putc`, `b_to_q`,
 `nextc`, `unputc`, the same eight names this tree has stubbed, under
 CMU's own copyright and in CMU's own prose. Its licence is the Mach
