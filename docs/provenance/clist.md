@@ -346,3 +346,47 @@ outside the file.
 **`subr_rmap.c` has no counterpart at all.** FreeBSD removed resource
 maps. So for those three stubs the contemporaries offer nothing and
 the method is the written one.
+
+## NetBSD 1.0, surveyed the same way
+
+The FreeBSD survey above was done first and alone, which was a gap:
+NetBSD 1.0 has all five files FreeBSD does and one more, and two of
+them link into this kernel untouched.
+
+| our file | stubs | NetBSD 1.0 | compile | link |
+|---|---|---|---|---|
+| `kern/subr_rmap.c` | 3 | Wolfgang Solfrank 1992, 1994 | clean | **links** |
+| `kern/vfs_bio.c` | 4 | C. G. Demetriou 1994 | clean | **links** |
+| `kern/sys_process.c` | 2 | C. G. Demetriou 1994 | clean | `FIX_SSTEP`, `process_sstep`, `process_set_pc` |
+| `kern/kern_acct.c` | 2 | C. G. Demetriou 1994 | `VOP_UNLOCK` arity | -- |
+| `kern/kern_physio.c` | 2 | C. G. Demetriou 1994 | `p_holdcnt` in `struct proc` | -- |
+| `kern/tty_subr.c` | 10 | Theo de Raadt 1993, 1994 | needs a seven-field `struct clist` | -- |
+
+**`subr_rmap.c` is the one FreeBSD cannot supply at all**, having
+removed resource maps, and NetBSD's links with nothing changed.
+
+**`vfs_bio.c` links too**, which is consistent with what
+`missing.md` already records: NetBSD 1.0's is Lite's own file with the
+holes filled, which is why the ten bodies written into this tree so
+far followed it. The remaining four -- `bwrite`, `bdwrite`, `bawrite`,
+`breadn` -- can follow the same way, or the file can be taken whole;
+that is a decision, not a finding, and taking it whole would discard
+ten bodies already written and reviewed.
+
+## Where the two trees land together
+
+Taking the best of each, by file rather than by tree:
+
+| file | stubs | donor | state |
+|---|---|---|---|
+| `tty_subr.c` | 10 | FreeBSD 2.0 | fitted and tested; a user write reaches the console |
+| `vfs_bio.c` | 4 | NetBSD 1.0 | links untouched; ten bodies already written from it |
+| `subr_rmap.c` | 3 | NetBSD 1.0 | links untouched |
+| `kern_acct.c` | 2 | either | two lines, tested with FreeBSD's |
+| `kern_physio.c` | 2 | neither | FreeBSD wants `getpbuf`/`relpbuf`, NetBSD `p_holdcnt` |
+| `sys_process.c` | 2 | neither | FreeBSD wants `p_tptr`, NetBSD three MD hooks |
+
+Nineteen of the twenty-three have a donor that builds. The four that
+do not are raw device I/O and `ptrace`, and both want a field or a
+hook that reaches outside the file -- the same obstacle de Raadt's
+`struct clist` presents, and the same answer: write them.
