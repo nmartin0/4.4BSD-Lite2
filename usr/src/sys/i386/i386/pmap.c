@@ -714,8 +714,49 @@ reduce wiring count on page table pages as references drop
 			if (npv == NULL)
 				panic("pmap_remove: PA not in pv_tab");
 #endif
-			pv->pv_next = npv->pv_next;
-			free((caddr_t)npv, M_VMPVENT);
+			/*
+			 * AI-ONLY NOTE: the `if (npv)' around the unlink.
+			 *
+			 * The search above ends with npv NULL when the
+			 * mapping is not in the list, and the two lines
+			 * below then dereferenced it. The panic that would
+			 * have caught that is under `#ifdef DEBUG', which
+			 * no configuration here defines, so the kernel
+			 * died at CR2 zero instead.
+			 *
+			 * All three contemporaries guard it and do nothing
+			 * when there is nothing to unlink, none of them
+			 * panicking:
+			 *
+			 *	NetBSD 1.0    pmap_remove_pv
+			 *	FreeBSD 2.0.5 pmap_remove_entry
+			 *	OpenBSD 1996  i386/pmap.c:564
+			 *
+			 * FreeBSD's is the closest: its search loop is this
+			 * one character for character, `pv = npv;' in the
+			 * body where NetBSD and OpenBSD moved it into the
+			 * for increment, and its unlink is
+			 *
+			 *	if (npv) {
+			 *		pv->pv_next = npv->pv_next;
+			 *
+			 * The DEBUG panic is left where Lite put it, so it
+			 * still fires for anyone building with DEBUG, and
+			 * the deviation is the guard alone.
+			 *
+			 * 4.4BSD-Lite1 has this unguarded too, so it is the
+			 * settlement baseline rather than a Lite2 change,
+			 * and hp300 and luna68k have it unguarded as well.
+			 * They do not reach it: their page tables live in
+			 * pt_map, in kernel space, so a user pmap_remove
+			 * never walks them. The i386's live in the
+			 * process's own map, which is why this fires here
+			 * -- docs/status.md has that trace.
+			 */
+			if (npv) {
+				pv->pv_next = npv->pv_next;
+				free((caddr_t)npv, M_VMPVENT);
+			}
 			pv = pa_to_pvh(pa);
 		}
 
