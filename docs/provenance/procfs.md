@@ -90,3 +90,61 @@ specified by this tree and already implemented by two of its ports.
 Writing `i386/i386/procfs_machdep.c` is rule 1 work -- this tree's own
 ports first -- and it serves `procfs` directly and `ptrace` through
 it, which is the order 4.4BSD intended.
+
+## Audit: does this actually fill the hole? Not by itself
+
+The section above says adopting procfs serves "`ptrace` through it".
+Checked against the code, that is wrong, and the two stubs do not go
+away.
+
+`trace_req` is called from `kern/kern_sig.c:918`, in the loop a traced
+process sits in when it stops:
+
+	do {
+		stop(p);
+		mi_switch();
+	} while (!trace_req(p) && p->p_flag & P_TRACED);
+
+4.4BSD's `procxmt`, which `trace_req` renames, returns zero when there
+is no request pending for this process -- its first act is
+
+	if (ipc.ip_lock != p->p_pid)
+		return (0);
+
+-- so the loop stops the process again, which is right for `ptrace`:
+the process waits until the tracer issues a request, and the request
+is what makes `procxmt` return non-zero and break the loop.
+
+procfs resumes a traced process differently. The tail of
+`procfs_doctl` is
+
+	if (p->p_stat == SSTOP)
+		setrunnable(p);
+
+with no request set anywhere. So a process traced through procfs wakes
+from `mi_switch`, finds `trace_req` returning zero and `P_TRACED`
+still set, and stops again immediately. The stub does not merely fail
+to help procfs; its value makes procfs's resume ineffective.
+
+So procfs does not remove the need for `trace_req`, and `ptrace`
+remains in the syscall table at `kern/init_sysent.c:301` regardless.
+Both stubs still have to be written, and `trace_req` has to be written
+in a way that lets both paths work -- which is a question about how
+4.4BSD intended the two mechanisms to coexist, and is not answered
+anywhere in this document.
+
+## What the finding is actually worth
+
+Three things, none of which is "the hole is filled":
+
+- **procfs is complete and unadopted**, which was not known before, and
+  is worth having on its own: it is a working process interface this
+  port could configure.
+- **The machine-dependent hooks are 4.4BSD's own**, named by this tree
+  and implemented by hp300 and pmax. Writing
+  `i386/i386/procfs_machdep.c` is rule 1 work whenever it is wanted.
+- **It explains the contemporaries.** NetBSD's `process_sstep` and
+  FreeBSD's `ptrace_single_step` are renames of 4.4BSD's
+  `procfs_sstep`. Both routed `ptrace` through procfs's interface,
+  which is evidence about how the two were meant to fit together --
+  and the place to look when `trace_req` is written.
