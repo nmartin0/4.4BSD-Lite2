@@ -145,6 +145,27 @@ struct clockframe {
 #define	signotify(p)	aston()
 
 #define aston() (astpending++)
+/*
+ * AI-ONLY NOTE: astoff, which was a function in i386/locore.s with an
+ * empty body under Berkeley's `# To be done:'. `i386: astoff must
+ * clear astpending, which nothing did' gave it one; this moves it
+ * here and deletes the function.
+ *
+ * It belongs beside aston, which it undoes, and in the file that
+ * declares astpending below. tahoe/include/pcb.h:90 and :96 are the
+ * precedent in this tree: aston and astoff there are a matched pair
+ * of macros in one header, both setting and clearing the same
+ * PSL_SFE. The other five ports have no astoff at all and write
+ * `astpending = 0' inline in trap() -- hp300/trap.c:419,
+ * luna68k/trap.c:369, pmax/trap.c:706 and :1258,
+ * news3400/trap.c:684 and :877 -- and this port's cpu.h is hp300's
+ * line for line through this region, as the note above says.
+ *
+ * Nothing but i386/trap.c:205 called it, and nothing needed it to be
+ * assembly: locore.s holds what must be written in assembly, and an
+ * integer assignment is not that.
+ */
+#define astoff() (astpending = 0)
 
 int	astpending;		/* need to trap before returning to user mode */
 int	want_resched;		/* resched() was called */
