@@ -710,52 +710,10 @@ reduce wiring count on page table pages as references drop
 					break;
 				pv = npv;
 			}
-			/*
-			 * AI-ONLY NOTE: the panic is unconditional, where
-			 * it was inside `#ifdef DEBUG'. DEBUG is not
-			 * defined in any configuration here, so the line
-			 * below dereferenced npv without ever testing it,
-			 * and a mapping absent from the pv list crashed
-			 * the kernel at `pv->pv_next = npv->pv_next' with
-			 * CR2 at zero instead of saying what was wrong.
-			 *
-			 * Mach is the ancestor of this code -- this file
-			 * carries Carnegie Mellon's notice by way of Utah
-			 * -- and Mach tests it unconditionally, inside the
-			 * search loop rather than after it. Mach 4's
-			 * i386/kernel/intel/pmap.c:1210, in
-			 * pmap_remove_range:
-			 *
-			 *	do {
-			 *	    prev = cur;
-			 *	    if ((cur = prev->next) == PV_ENTRY_NULL) {
-			 *		panic("pmap-remove: mapping not in pv_list!");
-			 *	    }
-			 *	} while (cur->va != va || cur->pmap != pmap);
-			 *
-			 * so the guard is restored to the strength its
-			 * source gives it. docs/provenance/precedent.md
-			 * records that Mach is a legitimate source for a
-			 * pmap.c rather than a foreign tree, for exactly
-			 * this reason.
-			 *
-			 * What this does NOT do: it does not stop the
-			 * kernel reaching the condition. It is reached
-			 * today, when the first child is reaped, for the
-			 * page directory's own address in the recursive
-			 * self-map -- docs/status.md has the whole trace.
-			 * This turns a null dereference into the message
-			 * Mach would have printed, which is the change,
-			 * and the cause is a separate question.
-			 *
-			 * hp300/hp300/pmap.c has the same `#ifdef DEBUG'
-			 * at its own pmap_remove and is left alone: its
-			 * page tables live in pt_map, in kernel space,
-			 * so a user pmap_remove never walks them and the
-			 * condition does not arise there.
-			 */
+#ifdef DEBUG
 			if (npv == NULL)
-				panic("pmap_remove: mapping not in pv_list");
+				panic("pmap_remove: PA not in pv_tab");
+#endif
 			pv->pv_next = npv->pv_next;
 			free((caddr_t)npv, M_VMPVENT);
 			pv = pa_to_pvh(pa);
