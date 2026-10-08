@@ -73,7 +73,7 @@ shim_main(u32 magic, struct mbinfo *mb)
 	struct module *mod;
 	struct ehdr *eh;
 	struct phdr *ph;
-	u32 base, i, entry;
+	u32 base, i, entry, howto;
 
 	outb(0x3f9,0); outb(0x3fb,0x80); outb(0x3f8,1); outb(0x3f9,0);
 	outb(0x3fb,3); outb(0x3fc,3);
@@ -84,6 +84,33 @@ shim_main(u32 magic, struct mbinfo *mb)
 	}
 	if (!(mb->flags & (1<<3)) || mb->modcount < 1) {
 		puts_("shim: no kernel module; pass it with -initrd\n"); return;
+	}
+
+	howto = 0;
+	if (mb->flags & (1<<2) && mb->cmdline) {
+		const char *cp = (const char *)mb->cmdline;
+
+		/*
+		 * Only a word beginning with `-' is flags. A multiboot
+		 * loader puts the kernel's own path at the front of the
+		 * command line, and QEMU is no exception, so reading
+		 * every character would take the `h' out of `shim.elf'
+		 * as RB_HALT -- which it did.
+		 */
+		while (*cp) {
+			if (*cp++ != '-')
+				continue;
+			while (*cp && *cp != ' ') {
+				switch (*cp++) {
+				case 'a': howto |= 0x001; break;
+				case 's': howto |= 0x002; break;
+				case 'h': howto |= 0x008; break;
+				case 'r': howto |= 0x020; break;
+				case 'd': howto |= 0x040; break;
+				default: break;
+				}
+			}
+		}
 	}
 
 	mod = (struct module *)mb->modaddr;
@@ -114,8 +141,32 @@ shim_main(u32 magic, struct mbinfo *mb)
 			    ph->p_memsz - ph->p_filesz);
 	}
 
+	/*
+	 * AI-ONLY NOTE: the boot flags, which were hardwired to zero.
+	 *
+	 * locore.s:212 takes howto from 4(%esp) and stores it in
+	 * boothowto, and kern/init_main.c:381 turns RB_SINGLE into the
+	 * `-s' argument it hands /sbin/init, because init reads its mode
+	 * from argv and not from any register -- sbin/init/init.c says so
+	 * in as many words. With howto zero the kernel could only ever
+	 * boot multi-user.
+	 *
+	 * A multiboot loader passes a command line, and QEMU's -append
+	 * sets it: mbinfo.flags bit 2 says cmdline is valid. The flags
+	 * are read from it in the same spelling a BSD boot block uses, so
+	 * `-append -s' boots single user and `-append -as' asks for the
+	 * root device as well.
+	 *
+	 *	RB_ASKNAME 0x001   a   ask for the root device
+	 *	RB_SINGLE  0x002   s   single user
+	 *	RB_HALT    0x008   h   halt rather than reboot
+	 *	RB_DFLTROOT 0x020  r   use the compiled-in root
+	 *	RB_KDB     0x040   d   enter the debugger
+	 */
+
 	entry = eh->e_entry - KERNBASE;
-	puts_("shim: entering kernel at "); puthex(entry); puts_("\n\n");
-	jump_kernel(entry, 0, 0, 0);
+	puts_("shim: entering kernel at "); puthex(entry);
+	puts_(" howto "); puthex(howto); puts_("\n\n");
+	jump_kernel(entry, howto, 0, 0);
 	puts_("shim: kernel returned\n");
 }

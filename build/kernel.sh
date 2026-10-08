@@ -44,7 +44,7 @@
 #
 #   -m32, as --32, ld -m elf_i386   this is a 32-bit i386 kernel and
 #       the host compiler is not.
-#   -std=gnu89   as the userland carries it: GCC 14 makes an implicit
+#   -std=gnu89 -fno-zero-initialized-in-bss   as the userland carries it: GCC 14 makes an implicit
 #       function declaration an error rather than a warning.
 #   -fcommon   GCC has defaulted to -fno-common since 10, and this
 #       kernel declares variables in headers.
@@ -140,7 +140,7 @@ CONFDIR=$S/$MACHINE/conf
 [ -f "$CONFDIR/$config" ] || die "no such configuration: $CONFDIR/$config"
 COMPILE=$S/compile/$config
 
-KCC="gcc -m32 -std=gnu89 -fcommon -fno-stack-protector -fno-pic"
+KCC="gcc -m32 -std=gnu89 -fno-zero-initialized-in-bss -fcommon -fno-stack-protector -fno-pic"
 KCC="$KCC -ffreestanding -nostdinc"
 KCPP="cpp -m32 -traditional-cpp -nostdinc"
 
