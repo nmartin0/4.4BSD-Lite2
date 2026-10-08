@@ -152,10 +152,56 @@ struct fields this tree does not have and a protocol `tty.c` would
 have to call at open. Strip that and what remains is the cblock walk
 this tree's structure asks for.
 
-And it descends from Lite2 specifically. Its initialiser is
-`clist_init`, which is Lite2's own rename of CSRG's `cinit`; NetBSD
-kept `cinit`. So this is Lite2's file with the bodies written, which
-is the same relationship NetBSD 1.0's `vfs_bio.c` has to ours.
+It descends from Lite, and no finer than that. An earlier version of
+this file said "from Lite2 specifically", on the grounds that its
+initialiser is `clist_init` where NetBSD kept `cinit`. That does not
+follow. **Lite1 has `clist_init` too** -- both Lites carry the same
+file, the same ten stubs and the same `@(#)tty_subr.c 8.2 (Berkeley)
+9/5/93` -- and FreeBSD's is dated 1994, so it predates Lite2 and
+cannot descend from it. The two Lites are indistinguishable by
+anything in this file. The rename is CSRG's own, somewhere between
+4.4BSD and the Lite cut.
+
+What the name does show is that FreeBSD started from a Lite rather
+than from Net/2, which is what matters: it is on this tree's side of
+the settlement.
+
+## How much of it transfers, counted
+
+Not a verbatim import. Of 298 lines across the nine functions this
+tree needs, 38 touch the reservation accounting, and eight of the nine
+have at least one:
+
+| function | lines | touching the accounting |
+|---|---|---|
+| `clist_init` | 5 | 1 |
+| `getc` | 32 | 3 |
+| `q_to_b` | 36 | 3 |
+| `ndflush` | 31 | 3 |
+| `putc` | 41 | 9 |
+| `b_to_q` | 72 | 9 |
+| `nextc` | 18 | 0 |
+| `unputc` | 39 | 6 |
+| `catq` | 24 | 4 |
+
+So it is adapted rather than taken, which is kind B in `imports.md`'s
+terms and the same category as `elf_load_psection`. `nextc` is the
+only one that would transfer untouched.
+
+## The later releases, checked
+
+The two families stay divergent, so nothing later changes the answer:
+
+| tree | lines | cblock refs | `TTY_QUOTE` |
+|---|---|---|---|
+| FreeBSD 2.1 | 663 | 117 | 4 |
+| FreeBSD 2.2 | 695 | 120 | 4 |
+| NetBSD 1.2 | 554 | 0 | 14 |
+| NetBSD 1.3 | 550 | 0 | 14 |
+
+FreeBSD's line keeps Greenman's cblock implementation and NetBSD's
+keeps de Raadt's flat buffer. No release of either reverts to CSRG's,
+and no later BSD offers a third option.
 
 Nine of the ten map across. The tenth, `ndqb`, FreeBSD dropped. In
 this tree it is called only by news3400's `bm/bmcons.c` and
