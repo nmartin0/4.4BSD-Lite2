@@ -188,6 +188,41 @@ and 2.0 has no `clist_alloc_cblocks`, `clist_free_cblocks` or `cbstat`
 at all. The reservation protocol arrived between the two. So 2.0 is
 the version to follow and 2.0.5 is the same file with more to strip.
 
+## Is Greenman's file encumbered? No, and the reason is checkable
+
+Its header carries no Regents or AT&T notice at all, only his own:
+
+	Copyright (C) 1994, David Greenman. This software may be used,
+	modified, copied, distributed, and sold, in both source and
+	binary form provided that the above copyright and these terms
+	are retained.
+
+	$Id: tty_subr.c,v 1.7 1994/09/25 19:33:50 phk Exp $
+
+and it is written against the published interface -- it includes
+`<sys/clist.h>` and defines `cfreelist` and `cfreecount`, the globals
+that header declares.
+
+The stronger evidence is that **FreeBSD's own line had no `tty_subr.c`
+before 2.0 to derive one from.** `sys/kern/tty_subr.c` is absent from
+`release/1.0.0_cvs`, `release/1.1.0_cvs` and `release/1.1.5.1_cvs`.
+What those carry instead is `sys/kern/tty_ring.c`: Jolitz's ring
+buffer, 215 lines under his TeleMuse copyright, 79 lines evolved from
+386BSD 0.1's. Their `sys/clist.h` is there with the same `struct
+cblock` and goes unused.
+
+So the Net/2-derived FreeBSD releases used Jolitz's ring, and
+Greenman's clist first appears in the 2.0 line, after the rebase onto
+4.4BSD-Lite. There is no earlier FreeBSD file for it to be a
+derivative of.
+
+## And no earlier FreeBSD fits better
+
+2.0 is the earliest release in that line with a cblock clist at all,
+so it is both the cleanest and the first. 1.x is not a candidate on
+its merits either: `tty_ring.c` has no `struct clist`, no `q_to_b`,
+`b_to_q`, `ndqb` or `ndflush`, and no quoting.
+
 ## And the NetBSD line never had it to lose
 
 NetBSD 0.9 of October 1993 -- before 4.4BSD-Lite1 shipped -- already
