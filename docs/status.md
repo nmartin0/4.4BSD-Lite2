@@ -22,142 +22,38 @@ into init's text, whose ELF entry point is 0x0804936c. That is a user
 instruction, executed by a program this kernel loaded from a disk it
 mounted.
 
-**Where it stops now: pmap_remove on the self-map.** The kernel runs
-init, which forks; when the child is reaped the kernel panics with a
-null dereference in pmap_remove:
+**init runs, forks, and wants a console.** With the pv unlink guarded
+the kernel no longer panics. init goes through its whole startup,
+which the system calls it makes show directly -- read at the
+`syscall' entry under gdb, since this port's syscalls go through a
+call gate (`gd_type = SDT_SYS386CGT') and so never appear in QEMU's
+interrupt log:
 
 ```
-vm_fault(f063a400, 0, 1, 0) -> 1
-trap type 12 code = 0 eip = f004a878 cr2 0
+24 getuid   20 getpid   147 setsid   50 setlogin
+46 sigaction x many -- installing its handlers
+6  close x 3 -- the standard descriptors
+2  fork     7 wait4     56 revoke    83 setitimer
 ```
 
-The path is wait4 -> wait1 -> cpu_wait -> vmspace_free ->
-vm_map_delete -> pmap_remove, and the virtual address it fails on,
-read out of the registers at the faulting instruction, is 0xEFFBF000.
+That is init entering single user: identify itself, set the session,
+install handlers, close the descriptors, fork and wait. The child
+calls `setctty(_PATH_CONSOLE)` at sbin/init/init.c, whose first act is
+the `revoke' above, and then
 
-That is PTmap + PTDPTDI*NBPG: the page directory's own address in the
-recursive self-map. i386/pmap.c's pmap_pinit installs that entry by
-hand --
-
-	*(int *)(pmap->pm_pdir+PTDPTDI) =
-		pmap_extract(kernel_pmap, pmap->pm_pdir) | PG_V | PG_KW
-
--- so it never went through pmap_enter and has no pv entry. When
-vm_map_delete hands pmap_remove a range covering it, the search loop
-runs off the end of the pv list:
-
-	for (npv = pv->pv_next; npv; npv = npv->pv_next) { ... }
-	#ifdef DEBUG
-		if (npv == NULL)
-			panic("pmap_remove: PA not in pv_tab");
-	#endif
-	pv->pv_next = npv->pv_next;	<- npv is NULL
-
-The guard is inside `#ifdef DEBUG', which is not defined, so instead
-of the panic Berkeley wrote there is a null dereference. hp300's
-pmap.c has the identical shape at its own pmap_remove, so the #ifdef
-is Berkeley's across the tree and not an i386 defect: "PA not in
-pv_tab" is written as a can't-happen.
-
-What the donors do, and a misreading to avoid. FreeBSD 2.0.5's
-pmap_remove has
-
-	if ((va < USRSTACK || va >= KERNBASE) ||
-	    (va >= USRSTACK && va < USRSTACK + (UPAGES * NBPG))) {
-
-which looks like a guard that skips the page-table region -- our
-failing address falls exactly in what it excludes. It is not. That
-test encloses only the dirty-bit accounting; the pv removal below it,
-`pv = pa_to_pvh(pa); pmap_remove_entry(pmap, pv, va);', runs
-unconditionally for any managed page. FreeBSD's pmap is substantially
-rewritten from Berkeley's -- pmap_remove_entry, pmap_unuse_pt,
-PHYS_TO_VM_PAGE -- and is not a line-for-line donor for this file.
-
-And rule 1 has no answer here, which was checked rather than assumed:
-no other port in this tree puts page tables in the process's own
-address space. hp300 and luna68k use `pt_map', a separate kernel map,
-with fifteen references each; pmax, news3400 and sparc have neither a
-pt_map nor a recursive map. The i386's seven references to PTDPTDI and
-PTmap are alone in the tree.
-
-The range is measured, not inferred. The failing call is
-
-	pmap_remove(pmap, sva=0xEFFBF000, eva=0xEFFF7000)
-
-so there is a map entry beginning exactly at the self-map page and
-running to UPT_MAX_ADDRESS -- page-directory slots 0x3BF through
-0x3F6, which is PTDPTDI plus the kernel slots from KPTDI_FIRST.
-
-The entry is deliberate, and vm_fork creates it. Its i386 block, after
-vmspace_fork has run, is
-
-	{ u_int addr = UPT_MIN_ADDRESS - UPAGES*NBPG; struct vm_map *vp;
-	vp = &p2->p_vmspace->vm_map;
-	(void)vm_deallocate(vp, addr, UPT_MAX_ADDRESS - addr);
-	(void)vm_allocate(vp, &addr, UPT_MAX_ADDRESS - addr, FALSE);
-	(void)vm_map_inherit(vp, addr, UPT_MAX_ADDRESS, VM_INHERIT_NONE);
+	if ((fd = open(name, O_RDWR)) == -1) {
+		stall("can't open %s: %m", name);
+		_exit(1);
 	}
 
-so the child's u-area and whole page-table region are thrown away and
-re-allocated as one anonymous entry over [0xEFBFE000, 0xEFFF7000),
-then marked non-inheritable. Confirmed from the running kernel: the
-first vm_map_delete of the boot is
-`vm_map_delete(map, 0xefbfe000, 0xefff7000)', with vm_deallocate,
-vm_fork and fork1 above it on the stack.
+The image has no /dev at all, so the open fails and the child stalls
+and exits. gdb confirms it: execve is entered once, by init, and never
+a second time for /bin/sh.
 
-Page tables are then faulted into that entry as the child runs, each
-through vm_fault and pmap_enter, each with a pv entry. The one page
-inside it that arrives any other way is 0xEFFBF000, whose PTE is the
-self-map pmap_pinit assigned by hand.
-
-And the arrangement itself is not the defect, which was checked.
-Putting page tables in the process's own address space is how this
-port allocates them: i386/trap.c's user_page_fault faults on the
-table's own self-mapped address --
-
-	if (!pde_v(va)) {
-		v = trunc_page(vtopte(va));
-		vm_fault(map, v, ftype, FALSE);
-
--- so the map has to cover PTmap, which is why VM_MAX_ADDRESS is
-UPT_MAX_ADDRESS and sits above VM_MAXUSER_ADDRESS. Every i386 BSD does
-this: NetBSD 1.0, FreeBSD 2.0.5 and OpenBSD 1996 all carry PTDPTDI and
-PTmap in their i386 pmap.h. hp300 and luna68k do not need it because
-pt_map serves the same purpose in kernel space, and pmax, news3400 and
-sparc have neither.
-
-The teardown order is why it is reached at all. vm_map_delete walks
-the whole map before pmap_release frees the directory --
-vm/vm_map.c's vmspace_free is
-
-	vm_map_delete(&vm->vm_map, min_offset, max_offset);
-	pmap_release(&vm->vm_pmap);
-
--- so the self-map PDE is still valid when pmap_remove descends
-through it, and pmap_remove reads PTmap[0x3BF], which through the
-recursion is that PDE itself, as though it were a user PTE.
-
-And Berkeley wrote the case as a can't-happen: "PA not in pv_tab" is a
-panic, not a recovery. So in the operation he intended, pmap_remove is
-never handed a range covering the self-map page at all, which argues
-the defect is upstream of pmap_remove rather than in it.
-
-So the question is which of three things is right, and it is open:
-pmap_pinit creates a mapping without recording a pv entry for it;
-pmap_remove should not treat the PTDPTDI slot as a user mapping; or
-vm_fork's vm_allocate should not cover the self-map page. The
-asymmetry is in the first -- every other mapping of a managed page
-goes through pmap_enter, which records one -- but Berkeley's
-can't-happen panic points at the third, and neither NetBSD 1.0 nor
-FreeBSD 2.0.5 can settle it, because both rewrote pmap_remove
-entirely. Any of the three would be this project's own code, which is
-reason to be slow.
-
-Ruled out by measurement: nothing faults on 0xEFFBF000, so no map
-entry is created there by faulting -- vm_map_delete passes
-pmap_remove a range and pmap_remove walks into it. And this port's
-pmap_release does free the directory, `kmem_free(kernel_map,
-pmap->pm_pdir, NBPG)', the same as FreeBSD 2.0.5's.
+So the next thing is a device node. /dev/console is character major 0
+minor 0 -- `cdev_cn_init(1,cn)' is slot 0 of i386/i386/conf.c's
+cdevsw. build/addfile-host.c already writes inodes, and a device node
+is an inode with IFCHR and di_rdev in place of block pointers.
 
 **Earlier: not in the fault path.** init's first write to its
 bss faults at 0x08075188, and that fault is handled correctly. Every
