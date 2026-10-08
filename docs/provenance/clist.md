@@ -126,14 +126,56 @@ than ruled out by their headers:
 
 | donor | structure | quoting | verdict |
 |---|---|---|---|
-| NetBSD, OpenBSD | seven fields, ring + bitmap | yes, its own way | needs a new `struct clist` |
-| FreeBSD 2.0.5 | ten fields, reservation | yes, `c_quote` field | needs a new `struct clist` |
-| Lites, CMU | **ours exactly** | **none at all** | would lose `TTY_QUOTE` |
+| NetBSD, OpenBSD | MALLOC'd flat buffer, separate bitmap | yes, its own way | needs a new `struct clist` |
+| 386BSD 0.1 | a ring, no clist at all | none | different everything |
+| Lites, CMU | ours exactly | **none at all** | would lose `TTY_QUOTE` |
+| **FreeBSD 2.0.5** | **ours, plus accounting** | **yes, our `c_quote`** | **the donor** |
 | 4.4BSD encumbered | ours | yes, `isquote` | read-only |
 
-The encumbered file is the only implementation that both fits the
-structure and quotes, and it is the one that may be read but not
-taken. That is precisely the settlement-body case.
+**FreeBSD 2.0.5 is the one to follow**, and the field list misled an
+earlier reading of this file into ruling it out. Its extra fields are
+additions, not replacements: `c_cc`, `c_cf` and `c_cl` work exactly as
+ours do, the cblock pool survives with 116 references, and the quote
+bit comes out of our own array:
+
+	cblockp = (struct cblock *)((long)clistp->c_cf & ~CROUND);
+	chr = (u_char)*clistp->c_cf;
+	if (isset(cblockp->c_quote, clistp->c_cf - (char *)cblockp->c_info))
+		chr |= TTY_QUOTE;
+	clistp->c_cf++;
+	clistp->c_cc--;
+
+What is theirs and must come off is the cblock reservation accounting
+-- `c_cbcount`, `c_cbreserved`, `c_cbmax`, `cslushcount`,
+`cblock_alloc`, `cblock_free`, `clist_alloc_cblocks` -- which needs
+struct fields this tree does not have and a protocol `tty.c` would
+have to call at open. Strip that and what remains is the cblock walk
+this tree's structure asks for.
+
+And it descends from Lite2 specifically. Its initialiser is
+`clist_init`, which is Lite2's own rename of CSRG's `cinit`; NetBSD
+kept `cinit`. So this is Lite2's file with the bodies written, which
+is the same relationship NetBSD 1.0's `vfs_bio.c` has to ours.
+
+Nine of the ten map across. The tenth, `ndqb`, FreeBSD dropped. In
+this tree it is called only by news3400's `bm/bmcons.c` and
+`iop/rs.c`, never by `kern/tty.c` and never on the i386 path, so
+nothing here exercises it -- but it is in the file and those ports
+call it, so it still needs a body, and for that one the encumbered
+file is the shape.
+
+## 386BSD, checked because it rewrote execve
+
+It rewrote this too, and further. There is no `tty_subr.c`: Jolitz
+replaced the clist with `kern/tty_ring.c`, 162 lines under his own
+copyright --
+
+	Copyright (c) 1989, 1990, 1991, 1992 William F. Jolitz, TeleMuse
+
+-- which is clean, as his `kern_execve.c` is. But it is a ring buffer
+with no `struct clist` at all, its functions are `putc getc nextc
+ungetc unputc initrb catb` so `q_to_b`, `b_to_q`, `ndqb` and `ndflush`
+have no counterpart, and it does not quote. Nothing to take.
 
 The function set confirms the shape is unchanged apart from Lite's own
 editing:
