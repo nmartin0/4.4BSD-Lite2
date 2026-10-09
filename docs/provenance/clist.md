@@ -603,3 +603,43 @@ and its ten functions would close the largest single gap in an
 afternoon -- but they are kind D, transplants, and should be recorded
 as such rather than as restorations. Nothing in this document supports
 calling any of them canonical to this tree.
+
+## 386BSD, and a correction to the claim made for it
+
+An earlier reading of 386BSD 0.1 called `sys_process.c` "the best
+candidate" for that hole, on the grounds that both functions are
+present, that `procxmt` is Lite's `trace_req` under its older name,
+and that every dependency was already here. The first two hold. The
+third was asserted about the wrong file: the dependency check had been
+run against 4.4BSD's encumbered `sys_process.c`, not against
+386BSD's, and the two are not the same program.
+
+Compiled against this tree, Jolitz's file wants **79 references across
+23 identifiers this tree does not have**:
+
+| what | uses | why |
+|---|---|---|
+| `IPC_BUSY`, `IPC_DONE`, `IPC_WANT`, `sipcreg` | 14 | 386BSD's own naming for the tracer rendezvous |
+| `PT_GETREGS`, `PT_SETREGS`, `PT_SYSCALL`, `PT_DUMP`, `PT_INHERIT`, `PT_BREAD_*`, `PT_BWRITE_*` | 19 | 386BSD's extensions; `sys/ptrace.h` here stops at `PT_DETACH` |
+| `p_tptr`, `p_regs`, `xreg` | 11 | fields not in this tree's `struct proc` |
+| `STRC`, `SSTRC`, `SFTRC`, `setrun` | 11 | pre-Lite names |
+| `bufbase`, `pcscale`, `pcoffset` | 5 | `profil()`, which Jolitz put in this file |
+
+It uses every one of this tree's twelve `PT_` codes **and** seven of
+its own, so it is a superset rather than a different design -- but a
+superset built on a `struct proc` and a rendezvous this tree does not
+have. Adapting it means adding three fields and seven request codes,
+which is a change to the ptrace interface rather than a fill of its
+hole.
+
+The anti-copy check `precedent.md` requires was run and is clean, so
+the file is usable in principle: against 4.4BSD's `procxmt` it is 15
+per cent identical and against 4.3BSD's 11, with no run of four
+consecutive lines in either; `ptrace` is 8 per cent against both. The
+single five-line run is the argument struct -- `int req; int pid; int
+*addr; int data;` -- which is the system call's interface and is what
+Lite2's `struct ptrace_args` replaces anyway. Jolitz wrote those
+bodies.
+
+So the hole stands open, and 386BSD answered five of Berkeley's seven
+rather than six.
