@@ -51,66 +51,28 @@
 #ifndef _MACHINE_STDARG_H
 #define _MACHINE_STDARG_H
 
-typedef char *va_list;
-
 /*
- * va_start sets ap to point to the first variable argument.
- * The `last fixed argument' parameter l is ignored (and should
- * never have been included in the ANSI standard!).
+ * The mechanism is the compiler's; hp300/include/stdarg.h carries the
+ * reasoning.  Berkeley needed a different body here because this
+ * machine passes arguments differently, and that distinction is gone
+ * once the compiler is asked directly: __builtin_va_start knows the
+ * calling convention, so the three macros are now the same on every
+ * port.  NetBSD drew the same conclusion and collapsed its per-port
+ * copies into one machine-independent sys/sys/stdarg.h; this tree
+ * keeps the file per port because include/Makefile installs
+ * machine/stdarg.h.
  *
- * va_end cleans up after va_start.  There is nothing to do there.
+ * Only the i386 is built and measured here.  This port's old body
+ * could not have worked with this compiler in any case: it is written over
+ * __builtin_saveregs and __builtin_next_arg, which GCC no longer
+ * provides.
  */
-#ifdef __GCC_NEW_VARARGS__	/* gcc 2.4.5 */
-#define va_start(ap, l)	((ap) = (char *)__builtin_saveregs())
-#else				/* gcc 2.3.3 */
-#define va_start(ap, l)	(__builtin_saveregs(), \
-			 (ap) = (char *)__builtin_next_arg())
-#endif
-#define va_end(ap)	/* empty */
 
-#if __GNUC__ == 1
-#define __extension__	/* hack for bootstrapping via gcc 1.x */
-#endif
+typedef __builtin_va_list va_list;
 
-/*
- * va_arg picks up the next argument of type `ty'.  Appending an
- * asterisk to ty must produce a pointer to ty (i.e., ty may not be,
- * e.g., `int (*)()').  In addition, ty must not be any type which
- * undergoes promotion to some other type (e.g., char): it must
- * be the promoted type instead.
- *
- * Gcc-2.x tries to use ldd/std for double and quad_t values, but Sun's
- * brain-damaged calling convention does not quad-align these.  Thus,
- * for 8-byte arguments, we have to pick up the actual value four bytes
- * at a time, and use type punning (i.e., a union) to produce the result.
- * (We could also do this with a libc function, actually, by returning
- * 8 byte integers in %o0+%o1 and the same 8 bytes as a double in %f0+%f1.)
- *
- * Note: we cannot use the union trick (which generates better code) for
- * C++, since `ty' might be a type with a constructor (these may not appear
- * in a union).
- *
- * The extraneous casts through `void *' avoid gcc alignment warnings.
- */
-#ifdef __cplusplus
-#define	__va_8byte(ap, ty) ({ \
-	int __va_i[2]; \
-	__va_i[0] = ((int *)(void *)(ap))[0]; \
-	__va_i[1] = ((int *)(void *)(ap))[1]; \
-	(ap) += 8; *(ty *)(void *)__va_i; })
-#else
-#define	__va_8byte(ap, ty) ({ \
-	union { ty __d; int __i[2]; } __va_u; \
-	__va_u.__i[0] = ((int *)(void *)(ap))[0]; \
-	__va_u.__i[1] = ((int *)(void *)(ap))[1]; \
-	(ap) += 8; __va_u.__d; })
-#endif /* __cplusplus */
+#define	va_start(ap, last)	__builtin_va_start((ap), (last))
+#define	va_arg(ap, type)	__builtin_va_arg((ap), type)
+#define	va_end(ap)		__builtin_va_end((ap))
+#define	__va_copy(dst, src)	__builtin_va_copy((dst), (src))
 
-#define va_arg(ap, ty) __extension__ ({ \
-    ty __va_temp; /* to check for invisible-ptr struct-valued args */ \
-    __builtin_classify_type(__va_temp) >= 12 ? \
-	((ty **)(void *)((ap) += sizeof(ty *)))[-1][0] : \
-    sizeof(ty) == 8 ? __va_8byte(ap, ty) : \
-	((ty *)(void *)(ap += sizeof(ty)))[-1]; })
-
-#endif /* _MACHINE_STDARG_H */
+#endif /* !_MACHINE_STDARG_H */

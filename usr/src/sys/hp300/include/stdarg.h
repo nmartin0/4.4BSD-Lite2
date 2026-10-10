@@ -36,23 +36,41 @@
 #ifndef _STDARG_H_
 #define	_STDARG_H_
 
-typedef char *va_list;
+/*
+ * The mechanism is the compiler's.  Berkeley's version of this file
+ * walked the argument list by hand: va_list was char *, va_start took
+ * the address of the last named parameter and added its promoted
+ * size, and va_arg stepped that pointer.  That is only correct while
+ * the compiler keeps a named parameter in the slot the calling
+ * convention gave it, which GCC stopped guaranteeing: with -O it may
+ * copy a parameter whose address is taken into a stack slot of its
+ * own choosing, and then &last + 4 points at an unrelated local
+ * instead of at the first variable argument.  Reading one is silent
+ * -- it yields whatever that local holds -- so a function miscompiled
+ * this way fails far from the header, and only in the functions where
+ * GCC happened to make that choice.
+ *
+ * __builtin_va_start is how a compiler is told what is wanted rather
+ * than shown a trick that used to work, and it is where every
+ * descendant of this file ended up: NetBSD's sys/sys/stdarg.h still
+ * carries this file's SCCS identifier and defines the same three
+ * macros over the builtins, FreeBSD's sys/sys/_stdarg.h does, and so
+ * does OpenBSD's sys/sys/stdarg.h.  The bodies no longer depend on
+ * the machine, which is why NetBSD collapsed the per-port copies into
+ * one machine-independent header; this tree keeps them per port
+ * because include/Makefile installs machine/stdarg.h.
+ *
+ * __va_promote is gone: nothing in this tree used it but va_start.
+ * va_arg no longer differs between the kernel and the userland.  The
+ * old userland form called abort() for a type narrower than int,
+ * which the compiler now rejects outright at compile time.
+ */
 
-#define	__va_promote(type) \
-	(((sizeof(type) + sizeof(int) - 1) / sizeof(int)) * sizeof(int))
+typedef __builtin_va_list va_list;
 
-#define	va_start(ap, last) \
-	(ap = ((char *)&(last) + __va_promote(last)))
-
-#ifdef KERNEL
-#define	va_arg(ap, type) \
-	((type *)(ap += sizeof(type)))[-1]
-#else
-#define	va_arg(ap, type) \
-	((type *)(ap += sizeof(type) < sizeof(int) ? \
-		(abort(), 0) : sizeof(type)))[-1]
-#endif
-
-#define	va_end(ap)
+#define	va_start(ap, last)	__builtin_va_start((ap), (last))
+#define	va_arg(ap, type)	__builtin_va_arg((ap), type)
+#define	va_end(ap)		__builtin_va_end((ap))
+#define	__va_copy(dst, src)	__builtin_va_copy((dst), (src))
 
 #endif /* !_STDARG_H_ */

@@ -214,6 +214,18 @@ The reverse also holds: a working-around is not a fix. Linking
 work, at the cost of pinning this system's output to 1995 link
 conventions for good. That was proposed here and was wrong.
 
+A header is part of the toolchain. This tree supplies its own
+`<stdarg.h>`, and Berkeley's body walks the argument list by hand from
+`&last' -- a construct GCC honoured in 1993 and does not now, so that
+with `-O' it may copy the named parameter to a local and leave
+`va_arg' reading uninitialised stack. It is silent, it is per-function,
+and it cost a shell that could not run a command;
+`docs/provenance/stdarg.md' has the diagnosis. The era donors carry the
+same body, for the same reason the era ELF loaders cap at two segments,
+and the answer again only exists in releases well after Lite2. So when
+generated code disagrees with readable source, the headers this tree
+installs are as much a suspect as the flags.
+
 Where it does settle a question, the finding is what gets recorded,
 and any line adopted must also exist in a tree that may be copied. The
 console device in i386/conf/LINK.i386 is the first use: the history

@@ -36,25 +36,27 @@
 #ifndef _STDARG_H_
 #define	_STDARG_H_
 
-typedef char *va_list;
+/*
+ * The mechanism is the compiler's; hp300/include/stdarg.h carries the
+ * reasoning.  Berkeley needed a different body here because this
+ * machine passes arguments differently, and that distinction is gone
+ * once the compiler is asked directly: __builtin_va_start knows the
+ * calling convention, so the three macros are now the same on every
+ * port.  NetBSD drew the same conclusion and collapsed its per-port
+ * copies into one machine-independent sys/sys/stdarg.h; this tree
+ * keeps the file per port because include/Makefile installs
+ * machine/stdarg.h.
+ *
+ * Only the i386 is built and measured here.  This port's old body
+ * could not have worked with this compiler in any case: it walks the list with &last, the
+ * construct GCC stopped honouring.
+ */
 
-#define	__va_promote(type) \
-	(((sizeof(type) + sizeof(int) - 1) / sizeof(int)) * sizeof(int))
+typedef __builtin_va_list va_list;
 
-#define	va_start(ap, last) \
-	(ap = ((char *)&(last) + __va_promote(last)))
-
-#ifdef KERNEL
-#define	va_arg(ap, type) \
-	((type *)(ap += sizeof(type)))[-1]
-#else
-#define	va_arg(ap, type) \
-	((type *)(ap += sizeof(type) == sizeof(int) ? sizeof(type) : \
-		sizeof(type) > sizeof(int) ? \
-		(-(int)(ap) & (sizeof(type) - 1)) + sizeof(type) : \
-		(abort(), 0)))[-1]
-#endif
-
-#define	va_end(ap)
+#define	va_start(ap, last)	__builtin_va_start((ap), (last))
+#define	va_arg(ap, type)	__builtin_va_arg((ap), type)
+#define	va_end(ap)		__builtin_va_end((ap))
+#define	__va_copy(dst, src)	__builtin_va_copy((dst), (src))
 
 #endif /* !_STDARG_H_ */
