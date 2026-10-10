@@ -81,6 +81,35 @@
 #		unresolved.
 #   -fcommon	stdio/glue.h defines __sglue in a header; without this
 #		fwalk.o and findfp.o both define it.
+#   -fno-builtin	a libc implements the functions GCC has built-in
+#		knowledge of, and GCC pattern-matches an
+#		implementation back into a call to itself. At -O2 it
+#		compiles stdlib/calloc.c --
+#
+#			size *= num;
+#			if (p = malloc(size))
+#				bzero(p, size);
+#			return(p);
+#
+#		-- into calloc(size * num, 1) and tail-jumps to
+#		calloc's own entry:
+#
+#			mov    0x8(%esp),%eax
+#			imul   0x4(%esp),%eax
+#			movl   $0x1,0x8(%esp)
+#			mov    %eax,0x4(%esp)
+#			jmp    805d500 <calloc>
+#
+#		Four instructions and no way out. /sbin/init reached
+#		calloc and never returned: five samples of EIP three
+#		seconds apart all read 0x805d500, with no page-fault
+#		storm to explain it. The flag restores the calls the
+#		source asks for -- objdump -r then shows R_386_PC32
+#		relocations against malloc and bzero. Scanning all 478
+#		objects of the built libc.a found calloc the only one
+#		affected, but the flag is applied to the whole library
+#		because that is what a libc needs: the next function
+#		GCC learns about would do the same.
 #   -nostdinc -isystem ROOT/usr/include
 #		the target root's headers, never the host's.
 #   -static	Lite2 has no shared libraries.
@@ -243,7 +272,7 @@ BINGRP=$(id -gn)
 LIBOWN="$BINOWN"
 LIBGRP="$BINGRP"
 LIBMODE=644
-CC="gcc -m32 -std=gnu89 -fcommon -fno-stack-protector -fno-pic"
+CC="gcc -m32 -std=gnu89 -fcommon -fno-builtin -fno-stack-protector -fno-pic"
 CC="$CC -static"
 CC="$CC -specs=$SPECS --sysroot=$ROOT -Wl,-nostdlib"
 CC="$CC -nostdinc -isystem $ROOT/usr/include"
