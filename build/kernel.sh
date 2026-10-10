@@ -178,8 +178,27 @@ kmake() {
 say "make depend"
 kmake depend >/dev/null
 
+# AI-ONLY NOTE: the old kernel goes before make runs, and make's
+# status is reported rather than discarded.
+#
+# This line used to read `kmake "$@" || true', so that a failed build
+# still reached the object count below -- which was useful while the
+# link did not complete at all. The cost was found the hard way: a
+# kernel build failed, the script said nothing, the report below
+# described the vmunix left over from an earlier build, and the next
+# QEMU run spent hours silent on a kernel linked at the KERNBASE this
+# tree used before it moved -- loading to a physical address past the
+# end of RAM and jumping into nothing.
+#
+# So: remove vmunix first, so a failed build can never present an old
+# kernel as a new one, and exit non-zero when make fails. Losing a
+# working kernel on a failed build is the lesser harm; booting the
+# wrong one costs an afternoon and lies about what it is.
+rm -f "$COMPILE/vmunix"
+
 say "make"
-kmake "$@" || true
+rc=0
+kmake "$@" || rc=$?
 
 objs=$(find "$COMPILE" -maxdepth 1 -name '*.o' | wc -l)
 say "$objs objects in $COMPILE"
@@ -188,3 +207,4 @@ if [ -f "$COMPILE/vmunix" ]; then
 else
 	say "no vmunix: the link did not complete (see docs/status.md)"
 fi
+[ "$rc" -eq 0 ] || die "make failed, status $rc"
