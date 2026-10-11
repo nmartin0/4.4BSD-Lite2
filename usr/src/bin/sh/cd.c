@@ -50,8 +50,6 @@ static char sccsid[] = "@(#)cd.c	8.2 (Berkeley) 5/4/95";
 
 #include "shell.h"
 #include "var.h"
-#include "nodes.h"	/* for jobs.h */
-#include "jobs.h"
 #include "options.h"
 #include "output.h"
 #include "memalloc.h"
@@ -322,55 +320,60 @@ pwdcmd(argc, argv)
 
 
 /*
- * Run /bin/pwd to find out what the current directory is.  We suppress
- * interrupts throughout most of this, but the user can still break out
- * of it by killing the pwd program.  If we already know the current
- * directory, this routine returns immediately.
+ * Find out what the current directory is, with getcwd(3).  If we
+ * already know it, this routine returns immediately.  Interrupts are
+ * suppressed throughout, as they were when this ran /bin/pwd.
+ *
+ * AI-ONLY NOTE: this used to fork a shell, pipe it, and exec
+ * /bin/pwd, and the child ended
+ *
+ *	execl("/bin/pwd", "pwd", (char *)0);
+ *	error("Cannot exec /bin/pwd");
+ *
+ * which is a bug, measured on this port.  error() in a forked child
+ * does not exit: it longjmps to `handler', and for a builtin that is
+ * evalcommand's own jmploc, so the child landed at evalcommand's
+ * cmddone and carried on as a second shell -- holding pip[1] as its
+ * standard output.  The parent was then wedged for ever in the read
+ * loop below, since the pipe never reached end of file, and every
+ * line the surviving child printed went into the pipe and was read
+ * into a buffer nobody looked at.  The symptom was a shell whose
+ * standard output went silent after `pwd' while its standard error
+ * kept working; `exec 1>/dev/console' restored it.  See
+ * docs/provenance/pwd.md.
+ *
+ * The fix is the descendants': ask the C library.  NetBSD's cd.c
+ * keeps this fork only under #else, for systems whose getcwd is a
+ * popen of /bin/pwd, and takes the getcwd path on NetBSD itself;
+ * FreeBSD's getpwd2 does nothing but the loop below.  This tree's own
+ * getcwd -- lib/libc/gen/getcwd.c -- walks up with opendir and
+ * readdir and execs nothing, so the condition the descendants test
+ * for holds here.  One fork, one pipe, one job and the dependency on
+ * /bin/pwd all go with it.
  */
 
 #define MAXPWD 256
 
 STATIC void
 getpwd() {
-	char buf[MAXPWD];
-	char *p;
+	char *pwd;
 	int i;
-	int status;
-	struct job *jp;
-	int pip[2];
 
 	if (curdir)
 		return;
 	INTOFF;
-	if (pipe(pip) < 0)
-		error("Pipe call failed");
-	jp = makejob((union node *)NULL, 1);
-	if (forkshell(jp, (union node *)NULL, FORK_NOJOB) == 0) {
-		close(pip[0]);
-		if (pip[1] != 1) {
-			close(1);
-			copyfd(pip[1], 1);
-			close(pip[1]);
+	for (i = MAXPWD ; ; i *= 2) {
+		pwd = stalloc(i);
+		if (getcwd(pwd, i) != NULL) {
+			curdir = savestr(pwd);
+			stunalloc(pwd);
+			INTON;
+			return;
 		}
-		execl("/bin/pwd", "pwd", (char *)0);
-		error("Cannot exec /bin/pwd");
+		stunalloc(pwd);
+		if (errno != ERANGE)
+			break;
 	}
-	close(pip[1]);
-	pip[1] = -1;
-	p = buf;
-	while ((i = read(pip[0], p, buf + MAXPWD - p)) > 0
-	     || (i == -1 && errno == EINTR)) {
-		if (i > 0)
-			p += i;
-	}
-	close(pip[0]);
-	pip[0] = -1;
-	status = waitforjob(jp);
-	if (status != 0)
-		error((char *)0);
-	if (i < 0 || p == buf || p[-1] != '\n')
-		error("pwd command failed");
-	p[-1] = '\0';
-	curdir = savestr(buf);
 	INTON;
+	error2("getcwd", errmsg(errno, E_OPEN));
 }

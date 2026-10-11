@@ -252,21 +252,18 @@ as much a toolchain-era fault as a missing `-fno-builtin`. The place to
 look when generated code disagrees with readable source is not only
 the flags.
 
-## And a bug this uncovered, not yet chased
+## And a bug this uncovered
 
-After a command whose exec fails, the shell's standard output goes
-silent for the rest of the session while standard error keeps working:
+After a command whose exec fails, the shell's standard output went
+silent for the rest of the session while standard error kept working:
 
 	# pwd
 	pwd: Cannot exec /bin/pwd
-	# cd /
 	# echo one two three
 	#                         <- nothing, here and ever after
 	# echo a | /bin/sh -c "cat"
 	cat: not found            <- stderr still fine
 
-Reproducible, and unrelated to this header: it happens with the fixed
-headers and a clean kernel. `jobs.c:542` is a real `fork`, not a
-`vfork`, so it is not the child writing through the parent's buffers.
-The `JOBS` arm of `forkshell` hands the terminal to the child with
-`ioctl(2, TIOCSPGRP, ...)`, which is the first thing to look at.
+Unrelated to this header, and chased separately:
+`docs/provenance/pwd.md` has it. It is Berkeley's `getpwd` calling
+`error()` in a forked child, where `error()` does not exit.

@@ -149,6 +149,17 @@ copied, and the commit names it with its release.
   kdump: $DESTDIR in mkioctls, FreeBSD 2.0.5; syscalls.c from the
     tree, OpenBSD 1996
   Kerberos made optional: NetBSD 1.0's shape, in eleven Makefiles
+  machine/stdarg.h: va_start, va_arg and va_end over the compiler's
+    builtins, NetBSD current, FreeBSD current and OpenBSD current --
+    all three, and NetBSD's sys/sys/stdarg.h still carries this file's
+    SCCS identifier. Of the five lines adopted, 2 are byte-identical
+    to FreeBSD's, 1 to NetBSD's, 0 to OpenBSD's: the macro signatures
+    C fixes over the builtin names GCC fixes. docs/provenance/stdarg.md
+  bin/sh/cd.c: getpwd by getcwd(3) rather than a forked /bin/pwd,
+    NetBSD current (whose cd.c carries this file's SCCS identifier)
+    and FreeBSD current. This one is a body and not a line: 9 of 20
+    lines are NetBSD's, longest identical run 4 -- the stalloc,
+    getcwd, savestr, stunalloc core. docs/provenance/pwd.md
 
 ## C -- our judgement, no donor line
 
