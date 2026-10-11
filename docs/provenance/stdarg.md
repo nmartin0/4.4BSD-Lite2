@@ -142,27 +142,46 @@ of the macro parameters.
 
 `__va_promote` is dropped: nothing in this tree used it but `va_start`.
 `va_arg` no longer differs between the kernel and the userland; the
-old userland form called `abort()` for a type narrower than `int`,
-which the compiler now rejects at compile time, and nothing in this
-tree outside `contrib` asks for one -- every `va_arg(ap, char ...)` in
-the tree is `char *`.
+old userland form called `abort()` for a type narrower than `int`.
+Nothing in this tree outside `contrib` asks for one -- every
+`va_arg(ap, char ...)` in the tree is `char *` -- and the two forms
+fail differently rather than one of them being safe: Berkeley's macro
+called `abort()` at run time, and `__builtin_va_arg` warns at compile
+time ("`char' is promoted to `int' when passed through ...", "if this
+code is reached, the program will abort") and traps at run time.
+Measured; an earlier version of this file and of the commit message
+said the compiler rejects it outright, which it does not.
+
+Also checked, because it is the one unusual use in the tree: the
+kernel's `printf` passes a `va_list` *through* a `va_list` for its
+`%r` recursion -- `subr_prf.c` does `va_arg(ap, va_list)`, fed by
+`panic`. `__builtin_va_arg` takes it, because on this machine
+`__builtin_va_list` is still a pointer type. It was portable by
+construction while `va_list` was spelled `char *` and now is not, so
+it is noted here rather than left to be found.
 
 ## Which files, and which ports
 
-Lite2 ships four real `machine/stdarg.h` files; the other four ports
-reach them by symlink:
+Lite2 ships **three** real `machine/stdarg.h` files; every other port
+reaches one of them by symlink:
 
 	hp300/include/stdarg.h     i386, vax, luna68k -> hp300; tahoe -> vax
 	pmax/include/stdarg.h      news3400 -> pmax
 	sparc/include/stdarg.h
-	vax/include/stdarg.h       -> hp300
+
+`sys/mips` is itself a symlink to `sys/pmax`, so what looks like a
+fourth file, `mips/include/stdarg.h`, is pmax's own seen through it.
 
 and one `ansi.h`, hp300's, which every port symlinks and which defines
-`_BSD_VA_LIST_` for the `vfprintf`-style prototypes in `<stdio.h>` and
-`<err.h>`. On the i386 `__builtin_va_list` *is* `char *`, so changing
-`_BSD_VA_LIST_` changes no type and no ABI.
+`_BSD_VA_LIST_` for the `vfprintf`-style prototypes in `<stdio.h>`,
+`<err.h>` and `<sys/syslog.h>`. On the i386 `__builtin_va_list` *is*
+`char *`, so changing `_BSD_VA_LIST_` changes no type and no ABI. On a
+port where it is not, those prototypes would disagree with anything
+still defining `va_list` from `machine/varargs.h`, which is left as
+Berkeley wrote it -- `sys/syslog.h` carries a comment about exactly
+that hazard.
 
-All four files get the same body, because the mechanism is no longer
+All three files get the same body, because the mechanism is no longer
 machine-dependent. That is why NetBSD collapsed its per-port copies
 into one machine-independent `sys/sys/stdarg.h`; this tree keeps them
 per port because `include/Makefile` installs `machine/stdarg.h`.
@@ -190,6 +209,15 @@ kept aside:
 	sh          3 of 28    error output show
 	kernel      2 of 138   subr_prf vm_glue
 	                       (trap and vers changed for other reasons)
+
+And a sweep, to answer the question those counts do not: every file in
+`usr/src` outside `contrib` that names `va_start` or `va_arg` -- 98 of
+them -- syntax-checked with this tree's userland flags against the new
+header and against the old one, by `-fsyntax-only` with the old header
+staged in a directory ahead of the sysroot. Identical outcome on all
+98: the same 83 pass and the same 15 fail, the failures being missing
+local headers and nothing to do with either version. So the change
+breaks no file it reaches, including the ones no port here builds.
 
 Of the functions in them, one was reading the wrong slot: libedit's
 `history()`. Checked by hand through their prologues, `err`, `warn`,

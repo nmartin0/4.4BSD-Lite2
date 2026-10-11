@@ -88,7 +88,16 @@ progname=$(basename "$0")
 say() { printf '%s: %s\n' "$progname" "$*"; }
 die() { printf '%s: %s\n' "$progname" "$*" >&2; exit 1; }
 
+# AI-ONLY NOTE: the configuration name is consumed here, and anything
+# after it is passed to make as a target. Without the shift, $@ still
+# held the configuration name at the make below, so the documented
+# invocation -- `sh build/kernel.sh LINK.i386', docs/status.md -- asked
+# bmake to build a target called LINK.i386 and got `don't know how to
+# make LINK.i386'. That was harmless only while the make's status was
+# discarded; the moment it stopped being discarded it deleted the
+# kernel and failed.
 config=${1:-LINK.i386}
+[ $# -eq 0 ] || shift
 MACHINE=${MACHINE:-i386}
 
 SRC=$(cd "$(dirname "$0")/.." && pwd)
@@ -175,26 +184,32 @@ kmake() {
 	    CC="$KCC" CPP="$KCPP" AS="as --32" LD="ld -m elf_i386" "$@" )
 }
 
-say "make depend"
-kmake depend >/dev/null
-
-# AI-ONLY NOTE: the old kernel goes before make runs, and make's
-# status is reported rather than discarded.
+# AI-ONLY NOTE: the old kernel goes before anything can produce an
+# object, and make's status is reported rather than discarded.
 #
-# This line used to read `kmake "$@" || true', so that a failed build
-# still reached the object count below -- which was useful while the
-# link did not complete at all. The cost was found the hard way: a
-# kernel build failed, the script said nothing, the report below
-# described the vmunix left over from an earlier build, and the next
-# QEMU run spent hours silent on a kernel linked at the KERNBASE this
-# tree used before it moved -- loading to a physical address past the
-# end of RAM and jumping into nothing.
+# The make below used to read `kmake "$@" || true', so that a failed
+# build still reached the object count that follows -- useful while
+# the link did not complete at all. The cost was found the hard way: a
+# kernel build failed, the script said nothing, the report described
+# the vmunix left over from an earlier build, and the next QEMU run
+# spent hours silent on a kernel linked at the KERNBASE this tree used
+# before it moved -- loading to a physical address past the end of RAM
+# and jumping into nothing.
 #
 # So: remove vmunix first, so a failed build can never present an old
 # kernel as a new one, and exit non-zero when make fails. Losing a
 # working kernel on a failed build is the lesser harm; booting the
 # wrong one costs an afternoon and lies about what it is.
+#
+# It goes here and not next to the make, because `set -e' is in force
+# and a failure in `make depend' would otherwise exit with the stale
+# kernel still in place -- the very case this is for. Everything
+# before this point either checks a prerequisite or rewrites the
+# Makefile and cannot touch an object.
 rm -f "$COMPILE/vmunix"
+
+say "make depend"
+kmake depend >/dev/null
 
 say "make"
 rc=0

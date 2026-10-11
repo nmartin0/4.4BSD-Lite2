@@ -248,6 +248,32 @@ whether or not it found anything, is kept outside the tree with the
 maintainer's working copies; it is not part of building this system.
 
 ## Corrections to committed messages
+- **`machine/stdarg.h: the compiler's va_start, not Berkeley's &last`**
+  (`f82c575e`), two wrong statements, both caught by a review that had
+  not seen the work being produced.
+
+  It says *"Lite2 ships four real machine/stdarg.h and one ansi.h; the
+  rest are symlinks."* There are **three**: hp300's, pmax's and
+  sparc's. `vax/include/stdarg.h` is a symlink to hp300's, and the
+  message's own table says so two lines above the count. What looks
+  like a fourth, `mips/include/stdarg.h`, is pmax's file seen through
+  `sys/mips`, which is itself a symlink to `sys/pmax`.
+
+  It also says the old `va_arg`'s `abort()` for a type narrower than
+  `int` is something *"the compiler now rejects outright"*. It does
+  not. `__builtin_va_arg(ap, char)` compiles with a warning and traps
+  at run time; Berkeley's macro called `abort()` at run time. The two
+  forms fail differently and neither is a compile error. Measured
+  after the fact, which is the wrong order.
+
+  Neither touches the change: nothing in the tree outside `contrib`
+  does `va_arg` on a narrow type, and all three files were edited.
+  `docs/provenance/stdarg.md` carries both corrections, and one thing
+  the same review turned up that the first version had not looked at:
+  `subr_prf.c` passes a `va_list` through a `va_list` for `printf`'s
+  `%r` recursion, which worked by construction while `va_list` was
+  spelled `char *` and now works only because `__builtin_va_list` is a
+  pointer on this machine.
 - **`i386: locore.s must pass main a frame pointer`**. The message
   credits NetBSD 1.0's `locore.s:572` with the two instructions. That
   is true, but **hp300 does the same thing in this tree** and should
