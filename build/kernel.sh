@@ -223,3 +223,28 @@ else
 	say "no vmunix: the link did not complete (see docs/status.md)"
 fi
 [ "$rc" -eq 0 ] || die "make failed, status $rc"
+
+# A common symbol must not have become code. The kernel is compiled
+# -fcommon, as its headers need: sys/buf.h, vm/vm_object.h and a
+# hundred others declare `int nbuf;' and the like in every file that
+# includes them, and the linker merges them. It merges a common with a
+# function of the same name just as quietly, and that is how
+# pmap.c's `struct pte *mmap' became the mmap system call's first four
+# bytes (docs/provenance/install.md, fault 10). So every symbol that is
+# common in some object is looked up in vmunix, and a text symbol there
+# stops the build. -fno-common would make the linker refuse it, at the
+# cost of an extern in each of those headers; docs/roadmap.md records
+# that as not done.
+if [ -f "$COMPILE/vmunix" ]; then
+	(cd "$COMPILE" && for o in *.o; do nm "$o"; done) |
+	    awk '$2 == "C" { print $3 }' | sort -u > "$COMPILE/.commons"
+	nm "$COMPILE/vmunix" | awk '$2 == "T" || $2 == "t" { print $3 }' |
+	    sort -u > "$COMPILE/.text"
+	bad=$(comm -12 "$COMPILE/.commons" "$COMPILE/.text" | tr '\n' ' ')
+	rm -f "$COMPILE/.commons" "$COMPILE/.text"
+	if [ -n "$bad" ]; then
+		rm -f "$COMPILE/vmunix"	# as above: no kernel, not a wrong one
+		die "common symbol resolved to code: $bad"
+	fi
+	say "no common symbol resolved to code"
+fi
