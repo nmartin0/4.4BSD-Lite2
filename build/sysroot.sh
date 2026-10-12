@@ -48,13 +48,14 @@
 #   3. Host tools, in ${L2_BUILD}/tools/bin. First install, which is
 #      build/install.sh and is put there before the headers are
 #      installed, since every install a Makefile runs through
-#      build/make.sh from here on goes through it. Then four from this
+#      build/make.sh from here on goes through it. Then five from this
 #      tree's own sources: lorder, from usr.bin/lorder/lorder.sh,
 #      which bsd.lib.mk runs to order an archive and which the host
 #      does not have; mkdep, for the same reason; yacc, because the
 #      packaged byacc reads these grammars but writes a yylex
-#      declaration this tree's own yacc does not; and config, which
-#      the kernel build runs. NetBSD 1.6's build.sh installs its own
+#      declaration this tree's own yacc does not; config, which
+#      the kernel build runs; and btxld, which sys/boot/i386/boot2
+#      runs to join boot2 to BTX. NetBSD 1.6's build.sh installs its own
 #      tree's lorder the same way, as nblorder, and builds its own
 #      yacc as nbyacc. Each carries its reasoning at its site below.
 #
@@ -99,10 +100,10 @@
 #   the root a program is built against, and building one is a
 #   separate run of build/make.sh in its own directory.
 #
-# HOST TOOLS: bmake, mtree, pax, ctags and flex, besides GCC and
+# HOST TOOLS: bmake, mtree, pax, ctags, flex and m4, besides GCC and
 # binutils --
 #
-#	sudo apt install bmake mtree-netbsd pax universal-ctags flex
+#	sudo apt install bmake mtree-netbsd pax universal-ctags flex m4
 #
 set -e
 
@@ -133,13 +134,15 @@ case "$L2_BUILD" in
 esac
 ROOT="$L2_BUILD/root"
 
-pkgs="bmake mtree-netbsd pax universal-ctags flex"
+pkgs="bmake mtree-netbsd pax universal-ctags flex m4"
 missing=
 # flex is here because config's scanner is generated from lang.l below.
 # It was used without being checked for, so a host without it got past
 # this point and failed two hundred lines later, inside the config
 # build, with flex's own "not found" and nothing naming the package.
-for t in bmake mtree pax ctags flex gcc cpp as ld ar ranlib nm tsort; do
+# m4 and objcopy are for the boot blocks: btx.s goes through m4.
+for t in bmake mtree pax ctags flex m4 gcc cpp as ld ar ranlib nm tsort \
+    objcopy; do
 	command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
 done
 if [ -n "$missing" ]; then
@@ -231,6 +234,13 @@ C=$SRC/usr.sbin/config
 $HOSTCC -w -fcommon -include sys/sysmacros.h -I. -I"$C" \
     -o "$TOOLS/config" config.c lang.c "$C/main.c" "$C/mkioconf.c" \
     "$C/mkmakefile.c" "$C/mkglue.c" "$C/mkheaders.c" "$C/mkswapconf.c"
+
+# btxld, for the boot blocks: sys/boot/i386/boot2's Makefile runs it
+# here to join boot2 to BTX, so it is built for this machine, as
+# FreeBSD builds it for the host before the boot blocks. _GNU_SOURCE
+# for glibc's asprintf.
+# shellcheck disable=SC2086  # HOSTCC carries its own flags
+$HOSTCC -w -D_GNU_SOURCE -o "$TOOLS/btxld" "$SRC/usr.sbin/btxld/btxld.c"
 
 for lib in $libs; do
 	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
