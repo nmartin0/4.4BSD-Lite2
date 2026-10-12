@@ -241,7 +241,28 @@ copyfault:	frame.tf_eip = (int)pcb->pcb_onfault;
 		break;
 
 	case T_PAGEFLT:			/* allow page faults in kernel mode */
+		/*
+		 * AI-ONLY NOTE: NetBSD 1.0's arch/i386/i386/trap.c:286-290,
+		 * the same line under #if 0 with the reason beside it.
+		 *
+		 * A kernel-mode fault on a present page could only be a bug
+		 * on a 386, which does not honour PG_RW against the kernel.
+		 * This port sets CR0_WP on a 486 and above (identifycpu in
+		 * machdep.c), and copyout's fast path in locore.s depends on
+		 * it: it writes straight into the user's pages and lets the
+		 * write to a page not yet copied on write fault here, to be
+		 * resolved by vm_fault below. Both halves came from NetBSD
+		 * 1.0; this third one did not, so every such copyout went to
+		 * we_re_toast. Measured: `echo /bin/*' after pax -r panicked
+		 * with type 12 code 3 at copyout's rep movsl, cr2 a page of
+		 * the shell's heap. FreeBSD 2.0's trap_pfault has no such
+		 * test either; PGEX_W chooses the fault type and nothing
+		 * else reads the error code.
+		 */
+#if 0
+		/* XXX - check only applies to 386's and 486's with WP off */
 		if (code & PGEX_P) goto we_re_toast;
+#endif
 
 		/* fall into */
 	case T_PAGEFLT|T_USER:		/* page fault */
