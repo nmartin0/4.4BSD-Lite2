@@ -212,6 +212,8 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	lib/libc/gen/nlist_elf32.c	NetBSD 1.3, adapted
 	usr.sbin/kvm_mkdb/nlist_elf32.c	NetBSD 1.3, adapted
 	sys/exec_elf.h: Shdr, Sym	NetBSD 1.3
+	sys/boot/i386			FreeBSD 4.1, adapted
+	usr.sbin/btxld			FreeBSD 4.1, adapted
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -277,6 +279,44 @@ four-clause one, with an advertising clause.
 
 The header's own note claimed revision 1.1 had Elf32_Shdr and the SHT_
 constants; it has neither. Corrected there.
+
+**Boot blocks that read ELF.** Lite2's own, sys/i386/stand, read an
+a.out kernel through disk drivers of their own and load it at
+physical 0; this kernel is ELF, and an ISO is booted through the
+BIOS. Robert Nordier's boot1 and boot2 (1998) read an ELF kernel from
+a UFS root through the BIOS, under BTX, a small protected-mode
+supervisor that makes the BIOS calls in virtual-8086 mode; they load
+each segment at its physical address, so the kernel was first moved
+to 1 MB, as every descendant's i386 kernel had been before Lite2
+shipped (commit *i386: the kernel at physical 1 MB*). NetBSD's i386
+boot programs read only a.out until 1.4 (1999), and come with
+NetBSD's stand-alone library beneath them; 4.1's boot2.c is 805
+lines with nothing beneath it but BTX.
+
+FreeBSD 3.0 was the first release with them, and is not the one
+taken: its btx.s and boot1.s were written for the assembler of the
+day, with m4 macros for 16-bit code and operand sizes current GNU as
+rejects. 4.1 (July 2000) is the first whose sources use `.code16`
+and assemble unchanged. Taken from it: boot1.s, boot2.c, lib.h,
+sio.s, btx.s and BTX's client library -- btxcsu.s, btxsys.s,
+btxv86.s, btxv86.h -- and btxld, the host program that joins boot2
+to BTX. Not taken: btxldr, the third-stage loader and libi386, mbr,
+boot0, kgzldr, cdldr, pxeldr, and btxld's ELF header template.
+
+Shrink-wrapped, each change noted at its site: boot2 reads ELF only,
+one PT_LOAD or two; no bootinfo, BIOS probes or symbol table, which
+this kernel does not read; no third stage; no DOS slices, since
+Lite2's wd driver reads its label from sector 1 and knows no
+partition table; the flags this kernel has (-a -s -r -d) passed and
+the console ones kept; this tree's majors in the boot device; and
+/vmunix. btxld writes `-f bin' only.
+The Makefiles are FreeBSD's, for this tree's make and GNU binutils;
+boot2's says why each flag changed, -fno-reorder-functions above all.
+The boot blocks install to /usr/mdec under disklabel's names.
+
+The licence of boot1, boot2, BTX and lib.h is Nordier's own: use and
+redistribution provided the notice and disclaimer are kept. btxld's
+is the two-clause BSD licence.
 
 ## E -- a reimplementation of something the Lite cut removed
 

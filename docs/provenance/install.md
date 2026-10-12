@@ -514,3 +514,52 @@ now, the same address on the ports where the two are equal. After:
 	   81 ??  I      0:00.04 amd -l /var/log/amd -r -a /amd -p /home ...
 	   90 ??  Ss     0:00.10 -csh (csh)
 	   96 ??  R+     0:00.03 ps -ax
+
+# Booting from the disk
+
+Until now QEMU loaded the kernel from the host, through build/shim.
+FreeBSD 4.1's boot blocks, shrink-wrapped in `sys/boot/i386` (kind D
+in imports.md), load it from the disk:
+
+	(cd usr/src/sys/boot/i386 && sh "$r/build/make.sh" all install)
+	m=$L2_BUILD/root/usr/mdec
+	dd if=$m/boot1 of=disk.img conv=notrunc
+	dd if=$m/boot2 of=disk.img bs=512 skip=1 seek=2 conv=notrunc
+	qemu-system-i386 -drive file=disk.img,format=raw -nographic
+
+boot1 goes in sector 0 and boot2 in sectors 2 to 15; sector 1 is the
+label, and the first 512 bytes of boot2 are the hole left for it. That
+is the layout `disklabel -B` writes from /usr/mdec/wdboot and bootwd,
+the names make install links to boot1 and boot2, so the system can
+put its own boot blocks on a disk once disklabel is installed (see
+*Staging*, above, for why it is not yet). Here they are written from
+the host, onto the disk the install above made. The kernel must be
+the one at physical 1 MB, as built since commit *i386: the kernel at
+physical 1 MB*; the one before loads at 0, where a BIOS loader cannot
+put it.
+
+	Booting from Hard Disk...
+	>> 4.4BSD/i386 BOOT
+	Default: 0:wd(0,a)/vmunix
+	boot:
+	...
+	changing root device to wd0a
+	Automatic boot in progress: starting file system checks.
+	/dev/rwd0a: FILESYSTEM CLEAN; SKIPPING CHECKS
+	...
+	4.4BSD-Lite (myname.my.domain) (console)
+
+	login:
+
+boot2 waits five seconds at `boot:`. `-s` there boots single user;
+`wd(0,a)/vmunix` names a kernel; a line in /boot.config is read as if
+typed. `changing root device to wd0a` is setroot decoding the boot
+device boot2 passes, the first time this kernel has been given one.
+
+boot2 writes to the screen, as 4.1's did; under `-nographic` it is
+seen, and typed to, on COM1 all the same, because SeaBIOS copies the
+screen to the serial line and what arrives there to the keyboard
+buffer. The kernel's console is
+COM1 itself. On a machine with a serial terminal and no screen,
+`-h` in /boot.config moves boot2 to COM1. boot2 does not start on
+COM1 unasked: with no UART there, its serial code waits for ever.

@@ -2,7 +2,8 @@
 
 ## Now: multi-user, installed by itself
 
-On QEMU's `pc` machine, with the kernel loaded by `build/shim`:
+On QEMU's `pc` machine, with the kernel loaded by `build/shim` for
+the install and by its own boot blocks after:
 
 - **Install.** The kernel boots single user from a disk image made by
   the host tools in `build/`, mounts its root read-write, and installs
@@ -14,6 +15,10 @@ On QEMU's `pc` machine, with the kernel loaded by `build/shim`:
   clean, /etc/rc runs to the end, getty prints `login:`, root logs in
   to csh, `ps`, `w`, `dmesg`, `savecore` and `kvm_mkdb` work, and
   `reboot` prints `syncing disks... done`.
+- **Boot.** With boot1 and boot2 written around the label, the
+  installed disk boots with no help from the host: boot2 reads
+  /vmunix from the root filesystem, the kernel takes its root from
+  the boot device, and `-s` at boot2's prompt gives single user.
 
 `docs/provenance/install.md` has the procedure and every fault it
 found, each with the commit that answered it; `docs/roadmap.md` has

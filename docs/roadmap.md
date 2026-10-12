@@ -92,7 +92,7 @@ getty prints `login:`, root logs in to csh, `ps`, `w`, `dmesg`,
 in the order it found them, and what /etc/rc still reports.
 
 The original list, for the record, all done: the link; `libkern.a`;
-loading the kernel (`build/shim`, provisionally -- see Tier 1½);
+loading the kernel (`build/shim` then, boot2 now -- see Tier 1½);
 `DELAY()`; the serial console; `KERNBASE` at `0xF0000000`; a root
 device; `pmap_remove` on the self-map.
 
@@ -157,11 +157,13 @@ NetBSD and OpenBSD used scripted installers on a RAM-disk root, NetBSD
 adding sysinst in 1.3. Bootable CDs came after El Torito (1995), first
 as the boot floppy image in floppy emulation.
 
-1. **A bootloader that reads ELF.** Lite2's `sys/i386/boot` reads a.out
-   and the kernel is ELF; today QEMU's `-kernel` and `build/shim`
-   stand in. Survey the earliest ELF-capable i386 boot blocks of
-   NetBSD, FreeBSD and OpenBSD and shrink-wrap one. This also boots
-   an installed disk with no host help.
+1. ~~**A bootloader that reads ELF.**~~ FreeBSD 4.1's boot1 and
+   boot2, Robert Nordier's, under BTX, shrink-wrapped in
+   `sys/boot/i386`, after the kernel moved to physical 1 MB as every
+   descendant's had. An installed disk boots in QEMU with no
+   `-kernel`, to `login:`; install.md, *Booting from the disk*.
+   `build/shim` stays for the install recipe, until 2 and 3 replace
+   it.
 2. **An install kernel with its root inside it** -- the miniroot,
    FreeBSD 2.0.5's MFS-in-kernel boot floppy -- holding sh, the disk
    tools and pax.
