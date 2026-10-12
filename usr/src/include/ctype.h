@@ -61,6 +61,37 @@
 #define	_T	0x00100000L		/* Special */
 #define	_Q	0x00200000L		/* Phonogram */
 
+/*
+ * AI-ONLY NOTE: the functions behind the macros, declared. C requires
+ * each of these to be a function as well as whatever macro a header
+ * adds, and libc has them -- lib/libc/locale/isctype.c defines every
+ * one -- but this header declared none, so a program that takes a
+ * classifier's address, as awk's b.c does for its [:alpha:] table,
+ * found the name undeclared. FreeBSD 2.0.5's ctype.h declares them
+ * in this place with these lines. tolower and toupper are left out:
+ * here they are static inline functions further down, which a
+ * non-static declaration before them would contradict.
+ */
+__BEGIN_DECLS
+int	isalnum __P((int));
+int	isalpha __P((int));
+int	iscntrl __P((int));
+int	isdigit __P((int));
+int	isgraph __P((int));
+int	islower __P((int));
+int	isprint __P((int));
+int	ispunct __P((int));
+int	isspace __P((int));
+int	isupper __P((int));
+int	isxdigit __P((int));
+
+#if !defined(_ANSI_SOURCE) && !defined(_POSIX_SOURCE)
+int	isascii __P((int));
+int	isblank __P((int));
+int	toascii __P((int));
+#endif
+__END_DECLS
+
 #define isalnum(c)      __istype((c), (_A|_D))
 #define isalpha(c)      __istype((c),     _A)
 #define iscntrl(c)      __istype((c),     _C)
