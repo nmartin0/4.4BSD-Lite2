@@ -42,7 +42,24 @@
 /* AI-ONLY NOTE: _C_LABEL, for ELF naming; see SYS.h. */
 
 	.globl	_C_LABEL(errno)
+/*
+ * AI-ONLY NOTE: %edx as well as %eax, so a failing call that returns
+ * a quad -- lseek's off_t, through __syscall -- returns (off_t)-1 and
+ * not (whatever %edx held : 0xffffffff). The kernel's error path in
+ * i386/i386/trap.c writes only %eax and the carry bit, so %edx is the
+ * caller's own value coming back.
+ *
+ * Every port in this tree whose libc was brought to 4.4BSD's 64-bit
+ * off_t does this: hp300's and luna68k's cerror.s set d0 and d1,
+ * sparc's %o0 and %o1, mips's v0 and v1. vax's and tahoe's set one
+ * register, as this file did; those two ports were not carried
+ * forward. Measured: `dd if=/dev/rwd0c ... | pax' listed one member
+ * and stopped, because pax's ar_io.c:175 tells a pipe from a file by
+ * `lseek(arfd, 0, SEEK_CUR) == -1 && errno == ESPIPE', the high word
+ * was not -1, and pax took the pipe for a seekable file.
+ */
 cerror:
 	movl	%eax,_C_LABEL(errno)
 	movl	$-1,%eax
+	movl	$-1,%edx
 	ret

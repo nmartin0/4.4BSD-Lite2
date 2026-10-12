@@ -50,6 +50,7 @@
 #include <sys/user.h>
 #include <sys/acct.h>
 #include <sys/kernel.h>
+#include <sys/syscall.h>
 #ifdef KTRACE
 #include <sys/ktrace.h>
 #endif
@@ -399,26 +400,96 @@ syscall(frame)
 	 * Reconstruct pc, assuming lcall $X,y is 7 bytes, as it is always.
 	 */
 	opc = frame.sf_eip - 7;
-	callp = (code >= nsysent) ? &sysent[63] : &sysent[code];
-	if (callp == sysent) {
+	/*
+	 * AI-ONLY NOTE: the two indirect system calls, in hp300's form --
+	 * hp300/hp300/trap.c:919-956. luna68k's switch is the same text;
+	 * pmax, news3400 and sparc handle both cases too, reading the code
+	 * from registers rather than the stack as their conventions
+	 * require.
+	 *
+	 * This port handled only syscall (0). __syscall (198), the quad-
+	 * aligned indirection 4.4BSD added for the off_t calls, fell
+	 * through to sysent[198], which kern/init_sysent.c:687 fills with
+	 * nosys -- because each port is meant to intercept it here, as
+	 * every other port in this tree does. libc's lseek, mmap, truncate
+	 * and ftruncate all go through it, so every one of them raised
+	 * SIGSYS on this port. Measured: `dd if=<regular file>' died with
+	 * `Bad system call', status 140, the kernel reporting eax 198 and
+	 * nosys.
+	 *
+	 * The out-of-range slot changes too. This file sent a number past
+	 * nsysent to &sysent[63], which in Net/2's table was unused and in
+	 * this tree's renumbered one is compat_43 getkerninfo, so a bad
+	 * number from user mode ran ogetkerninfo with whatever arguments
+	 * happened to be there. hp300 sends it to sysent[SYS_syscall],
+	 * which is nosys and raises SIGSYS.
+	 *
+	 * hp300's SYS_syscall case also refuses sigreturn, because on that
+	 * machine sigreturn needs a stack the dedicated trap builds. Not
+	 * here: the i386 enters sigreturn through the same call gate as
+	 * every other call, and it reads md_regs, which is set above for
+	 * all of them.
+	 */
+	switch (code) {
+	case SYS_syscall:
+		/*
+		 * Code is first argument, followed by actual args.
+		 */
 		code = fuword(params);
 		params += sizeof (int);
-		callp = (code >= nsysent) ? &sysent[63] : &sysent[code];
+		break;
+	case SYS___syscall:
+		/*
+		 * Like syscall, but code is a quad, so as to maintain
+		 * quad alignment for the rest of the arguments.
+		 */
+		code = fuword(params + _QUAD_LOWWORD * sizeof (int));
+		params += sizeof (quad_t);
+		break;
+	default:
+		/* nothing to do by default */
+		break;
 	}
+	if (code < nsysent)
+		callp = &sysent[code];
+	else
+		callp = &sysent[SYS_syscall];	/* => nosys */
 
-	if ((i = callp->sy_narg * sizeof (int)) &&
+	/*
+	 * AI-ONLY NOTE: sy_argsize, the bytes the arguments occupy, and
+	 * not sy_narg * sizeof (int), the count of them. The two agree
+	 * until an argument is a quad, and in this tree's renumbered
+	 * table four are: mmap, lseek, truncate and ftruncate -- the
+	 * four __syscall serves. Each lost its last word: lseek its
+	 * `whence', mmap the high half of its offset, truncate and
+	 * ftruncate the high half of their length, the missing word
+	 * being whatever an earlier call had left in args[]. Measured:
+	 * `pax -f' on a regular file seeks to skip each member's data,
+	 * and with whence taken from the stack it landed behind where it
+	 * started and found the same header for ever.
+	 *
+	 * sys/systm.h:96 carries sy_argsize for this, and hp300's
+	 * syscall() copies by it at hp300/hp300/trap.c:957 and hands it
+	 * to ktrsyscall, whose third parameter is a size in bytes
+	 * (kern/kern_ktrace.c:68). luna68k was not carried this far: its
+	 * trap.c:881 still counts sy_narg, as this file did, so its quad
+	 * arguments are truncated the same way. The largest sy_argsize in
+	 * the table is mmap's 32, which args[8] holds -- hp300's buffer is
+	 * the same eight ints.
+	 */
+	if ((i = callp->sy_argsize) &&
 	    (error = copyin(params, (caddr_t)args, (u_int)i))) {
 		frame.sf_eax = error;
 		frame.sf_eflags |= PSL_C;	/* carry bit */
 #ifdef KTRACE
 		if (KTRPOINT(p, KTR_SYSCALL))
-			ktrsyscall(p->p_tracep, code, callp->sy_narg, &args);
+			ktrsyscall(p->p_tracep, code, callp->sy_argsize, &args);
 #endif
 		goto done;
 	}
 #ifdef KTRACE
 	if (KTRPOINT(p, KTR_SYSCALL))
-		ktrsyscall(p->p_tracep, code, callp->sy_narg, &args);
+		ktrsyscall(p->p_tracep, code, callp->sy_argsize, &args);
 #endif
 	rval[0] = 0;
 	rval[1] = frame.sf_edx;
