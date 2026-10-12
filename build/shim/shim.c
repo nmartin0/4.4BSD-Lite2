@@ -29,6 +29,12 @@
  * kernel that has never executed an instruction.  That change wants
  * a baseline to compare against, and this is how one is obtained.
  *
+ * The move has since been made: conf/Makefile.i386 links the text
+ * at F0100000, so the kernel now runs at physical 1 MB, and this shim
+ * is linked at 8 MB to stay out of its way (shim.ld).  It remains as a
+ * quick way to boot a kernel from the host while the tree's own
+ * bootstrap, FreeBSD 4.1's boot2, is brought up.
+ *
  * The kernel is passed as a multiboot module.  Segments are copied
  * to vaddr - KERNBASE; the first LOAD segment of our image sits at
  * KERNBASE - 0x1000 and holds the ELF headers rather than any

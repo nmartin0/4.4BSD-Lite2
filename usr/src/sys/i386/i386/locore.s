@@ -506,7 +506,20 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
 	movl	_C_LABEL(proc0paddr), %eax
 	movl	%esi, PCB_CR3(%eax)
 
-	lea	7*NBPG(%esi),%esi	# skip past stack.
+/*
+ * AI-ONLY NOTE: past the page tables as well, where this skipped seven
+ * pages. The block cleared above is UPAGES+2+NKPDE pages -- page
+ * directory, proc 0's stack, the user stack's page table, and NKPDE
+ * kernel page tables from the fifth page on -- and %esi becomes init386's
+ * `first', the first physical page the VM system may hand out. Seven
+ * pages in was the middle of the kernel page tables. It went unseen
+ * while the kernel sat at physical 0: those tables ended below 1 MB,
+ * and pmap_bootstrap raised firstaddr to 0x100000 regardless. With the
+ * kernel at 1 MB the VM system was given live page tables, and the
+ * first vm_page_lookup faulted. NetBSD 1.0's locore.s:546 is this
+ * line, comment and all.
+ */
+	leal	((NKPDE+UPAGES+2)*NBPG)(%esi),%esi	# skip past stack and page tables
 	pushl	%esi
 	
 	call	_C_LABEL(init386)		# wire 386 chip for unix operation

@@ -242,8 +242,18 @@ extern int IdlePTD;
 /* disable pageing in basemem for all machines until this cryptic comment
  * can be explained
  */
+/*
+ * AI-ONLY NOTE: raised to 0x100000 only if below it. This set
+ * firstaddr to 0x100000 outright, which was a raise while the kernel
+ * sat at physical 0 and its page tables ended below 640K; with the
+ * kernel at the first megabyte (conf/Makefile.i386), firstaddr is
+ * already past it, and the assignment handed the kernel's own pages
+ * to the VM system. FreeBSD 2.0's pmap_bootstrap starts avail_start
+ * at firstaddr. Base memory stays unused, as it was.
+ */
 #if 1 ||	defined(ODYSSEUS) || defined(ARGO) || defined(CIRCE)
-firstaddr=0x100000;	/* for some reason, basemem screws up on this machine */
+if (firstaddr < 0x100000)
+	firstaddr=0x100000;	/* for some reason, basemem screws up on this machine */
 #endif
 printf("ps %x pe %x ", firstaddr, maxmem <<PG_SHIFT);
 	avail_start = firstaddr;

@@ -1,9 +1,10 @@
 /*
  * SPDX-FileCopyrightText: 2026 Nicholas Martin
  *
- * Multiboot entry for the shim.  Loaded by QEMU or GRUB at 1 MB,
- * where multiboot requires it; the kernel it carries runs at
- * physical 0, which no multiboot loader will place.  See shim.c.
+ * Multiboot entry for the shim.  Linked at 8 MB (shim.ld), because
+ * the kernel it carries now runs at physical 1 MB, where a shim at
+ * 1 MB would copy the kernel over itself -- and QEMU places the
+ * kernel, as a module, right after the shim.  See shim.c.
  */
 	.set	MAGIC, 0x1BADB002
 	.set	FLAGS, 0x00000001		/* page-align modules */

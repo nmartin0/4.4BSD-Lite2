@@ -68,7 +68,7 @@ SYSTEM_OBJ=	locore.o ${OBJS} param.o ioconf.o vnode_if.o
 #SYSTEM_DEP=	Makefile symbols.sort ${SYSTEM_OBJ}
 SYSTEM_DEP=	Makefile ${SYSTEM_OBJ} libkern.a
 SYSTEM_LD_HEAD=	@echo loading $@; rm -f $@
-# AI-ONLY NOTE: -Ttext, not -T, and no -n.
+# AI-ONLY NOTE: -Ttext, not -T.
 #
 # -T FE000000 meant `put the text at this address' to the a.out
 # linker of the day. To GNU ld, -T names a linker script, so it looks
@@ -83,11 +83,13 @@ SYSTEM_LD_HEAD=	@echo loading $@; rm -f $@
 #
 # and FreeBSD 2.0.5 keep -T with theirs. The address is unchanged and
 # is this tree's own: KERNBASE is 0xFE000000 in i386/include/param.h,
-# as it is in 4.4BSD-Lite.
+# as it is in 4.4BSD-Lite. (Both have moved since: KERNBASE to
+# 0xF0000000, and the text a megabyte above it -- see below.)
 #
 # -n asked for an a.out NMAGIC binary. This toolchain produces ELF,
-# as the userland does since the csu work, so it is dropped and
-# vmunix is an ELF kernel.
+# as the userland does since the csu work, and vmunix is an ELF
+# kernel; -n was dropped for that, and is back for another reason --
+# see LDFORMAT below.
 #
 # What the later releases do instead: a linker script, which is what
 # -T means now and what every modern BSD kernel is linked with. That
@@ -96,43 +98,28 @@ SYSTEM_LD_HEAD=	@echo loading $@; rm -f $@
 # the section layout ever needs saying exactly. It is not done here:
 # no BSD of this period has one to copy, and a script written from
 # nothing would be this project's own invention.
-# AI-ONLY NOTE: the format the kernel is linked in. ELF by default,
-# since that is what this tree's toolchain produces and what the
-# userland has used since the csu work; set OBJECT_FMT to anything
-# else and -n comes back. -Ttext serves both -- GNU ld takes it in
-# either mode, and NetBSD 1.4 likewise keeps one -Ttext line and
-# branches only on the magic-number flag.
-#
-# CORRECTION. This note first said the other arm gives "an a.out
-# link", and the commit that added it said the same. That was written
-# without running it and it is wrong for the toolchain build/make.sh
-# requires. GNU binutils 2.42 supports six emulations -- elf_x86_64,
-# elf32_x86_64, elf_i386, elf_iamcu, i386pep, i386pe -- and no a.out
-# target at all; i386aout was removed years ago. To that ld, -n means
-# NMAGIC section alignment within ELF, so the other arm produces an
-# ELF kernel too, and says nothing about it. Measured: linking
-# LINK.i386 with -n and -m elf_i386 gives "ELF 32-bit LSB executable,
-# Intel 80386". The conditional is left in place because it is
-# correct for an ld that has an a.out target -- a cross binutils
-# configured for i386-*-netbsdaout, say -- and that is a question for
-# whoever decides how a kernel from this tree gets loaded. It is not
-# a switch this host can select today, and nothing should read it as
-# one. See also i386/stand/boot.c:122, which reads struct exec and
-# accepts only a_magic 0407, 0410 and 0413: the bootstrap this tree
-# ships cannot load the ELF kernel the default arm produces.
-#
-# The shape of the conditional is this tree's own:
-# sparc/conf/Makefile.sparc writes `DEBUG?=' and then `.if ${DEBUG} ==
-# "-g"' around a variable holding the differing flag, which is the only
-# conditional in any of the kernel Makefile templates here.
-OBJECT_FMT?=ELF
-.if ${OBJECT_FMT} == "ELF"
-LDFORMAT=
-.else
+# AI-ONLY NOTE: F0100000, KERNBASE plus one megabyte, where this said
+# F0000000. The kernel maps virtual KERNBASE + x to physical x, so the
+# text address is also where in memory it must be put: at F0000000 it
+# had to be loaded at physical 0, over the real-mode interrupt vectors
+# and the BIOS data area, which only Berkeley's own boot blocks could
+# do, reading the disk with drivers of their own. A loader that uses
+# the BIOS -- the only kind that can read a CD or an emulated floppy --
+# needs that memory left alone, and puts a kernel at the first
+# megabyte. OpenBSD 1996 links its i386 kernel with -Ttext F0100000,
+# and FreeBSD 2.0's KERNBASE plus this offset is the same address.
+# AI-ONLY NOTE: -n, Berkeley's flag, back in, and the OBJECT_FMT
+# conditional that took it out for ELF gone. To this ld -n is NMAGIC
+# within ELF -- binutils here has no a.out target at all, which an
+# earlier form of this note corrected itself to say -- and what it
+# changes is the program headers. Without it ld gives the ELF header a
+# LOAD segment of its own, a page below the text: 0xF00FF000, which a
+# loader putting segments at their address less KERNBASE copies to
+# physical 0xFF000, inside the BIOS ROM. With it there is one LOAD
+# segment, starting exactly at F0100000. Measured with readelf.
 LDFORMAT=-n
-.endif
 SYSTEM_LD=	@strip=-x; [ X${DEBUG} = X-g ] && strip=-X; \
-		${LD} $$strip ${LDFORMAT} -Ttext F0000000 -o $@ ${SYSTEM_OBJ} \
+		${LD} $$strip ${LDFORMAT} -Ttext F0100000 -o $@ ${SYSTEM_OBJ} \
 		vers.o libkern.a
 #SYSTEM_LD_TAIL= @echo rearranging symbols;\
 #		symorder symbols.sort $@;\
