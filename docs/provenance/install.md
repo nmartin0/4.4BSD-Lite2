@@ -199,7 +199,7 @@ whole of it archived.
 	    usr.bin/xinstall usr.bin/sed usr.bin/tset usr.sbin/sysctl \
 	    usr.sbin/quotaon usr.sbin/accton usr.sbin/timed usr.sbin/lpr \
 	    usr.sbin/inetd usr.sbin/portmap usr.sbin/amd usr.bin/cap_mkdb \
-	    usr.bin/script usr.sbin/pstat
+	    usr.bin/script usr.sbin/pstat usr.bin/awk
 	do
 		(cd usr/src/$d && sh "$r/build/make.sh" \
 		    depend all install NOMAN=noman)
@@ -261,7 +261,7 @@ build/distribution.sh's two, and cap_mkdb:
 	# /stand2/dd if=/stand3/rwd0c bs=10240 skip=4096 count=1611 | \
 	      TMPDIR=/ /stand1/pax -r -pe
 	# /usr/sbin/pwd_mkdb -p /etc/master.passwd
-	# cd /dev; sh MAKEDEV std wd0; cd /
+	# cd /dev; sh MAKEDEV std wd0 pty0; cd /
 	# /usr/bin/cap_mkdb /usr/share/misc/termcap
 	# echo '/dev/wd0a / ufs rw 1 1' > /etc/fstab
 	# echo '/dev/wd0b none swap sw 0 0' >> /etc/fstab
@@ -469,3 +469,28 @@ By hand, because `sh MAKEDEV pty0' generates its mknod lines with
 awk, and this tree has no awk: 4.4BSD-Lite's was AT&T's and went with
 the settlement. MAKEDEV std's fd/ wants it too. Recorded in
 docs/roadmap.md.
+
+# awk
+
+usr.bin/awk is Kernighan's own, version 20121220, unchanged
+(imports.md, kind E), and `sh MAKEDEV std wd0 pty0' now runs whole:
+fd/ gets its 64 nodes, ttyp0-f and ptyp0-f appear at 5 and 6, and the
+`chmod 666 /dev/tty[pqrs]*' in /etc/rc finds them. On the system:
+
+	myname# echo 'a b c' | awk '{ print $2, NF }'
+	b 3
+	myname# awk 'BEGIN { for (i = 1; i <= 3; i++) s += i * i;
+	    printf "%d %s\n", s, toupper("ok") }'
+	14 OK
+	myname# awk -F: '$3 == 0 { print $1 }' /etc/master.passwd
+	root
+	toor
+	myname# echo 'x123y' | awk '{ gsub(/[[:digit:]]+/, "N"); print }'
+	xNy
+
+Two faults in the tree found on the way. include/ctype.h declared none
+of the classifier functions libc defines, so awk's table of their
+addresses would not compile; it declares them now, after FreeBSD
+2.0.5. And MAKEDEV's PATH lacked /usr/sbin, so `std' could not find
+chown; it is etc.hp300/MAKEDEV's PATH now.
+

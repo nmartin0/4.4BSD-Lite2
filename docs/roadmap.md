@@ -123,13 +123,8 @@ not compile, and:
    i386 cdevsw has no driver for, and **the panic from removing the
    device node the root was remounted through** (`vinvalbuf: dirty
    bufs`).
-4½. **awk.** MAKEDEV's pty and fd cases generate their mknod lines
-   with it, and 4.4BSD-Lite has none: Berkeley's was AT&T's. The
-   contemporaries shipped GNU awk. The One True Awk -- Aho,
-   Weinberger and Kernighan's own, the AT&T awk itself, freely
-   licensed since Lucent released it -- is what OpenBSD, FreeBSD and
-   NetBSD all carry now.
-   Needs a donor decision.
+4½. ~~**awk.**~~ Kernighan's own, version 20121220: MAKEDEV's pty
+   and fd cases run, and ptys and fd/ are made at install.
 5. **`-fno-common`.** The `mmap` fault (install.md, fault 10) was a
    common symbol resolved to a function. GCC has defaulted to
    `-fno-common` since 10; this tree passes `-fcommon` because 1990s
