@@ -64,6 +64,32 @@ int	dkn;		/* number of iostat dk numbers assigned so far */
 extern int	cold;		/* cold start flag initialized in locore.s */
 
 /*
+ * AI-ONLY NOTE: MFS_ROOT, a root filesystem carried inside the kernel,
+ * for an install kernel booted from a floppy or CD. The three
+ * declarations here and the call in configure() are FreeBSD 2.0.5's
+ * i386/i386/autoconf.c:82-85 and :174-176; release/
+ * write_mfs_in_kernel, from the same release, finds the first string
+ * in the linked kernel and writes a filesystem image over the zeros
+ * after it, refusing if any byte it would cover is not zero. The
+ * second string does not bound the array: this link puts it before
+ * mfs_root, not after. mfs_initminiroot() and the mfs_mountroot() it
+ * installs are Berkeley's, in ufs/mfs/mfs_vfsops.c, unchanged and
+ * until now used only by pmax and news3400. Setting RB_DFLTROOT with
+ * a miniroot is pmax's (pmax/pmax/machdep.c:279), so that setroot()
+ * leaves rootdev as mfs_initminiroot set it rather than taking the
+ * boot disk.
+ *
+ * An install kernel is configured without GENERIC, with root and
+ * swap on wd0: setconf() would otherwise put swap and dumps on the
+ * miniroot's major, 255, past the end of bdevsw.
+ */
+#ifdef MFS_ROOT
+int mfs_initminiroot __P((u_char *));
+u_char mfs_root[MFS_ROOT*1024] = "MFS Filesystem goes here";
+u_char end_mfs_root[] = "MFS Filesystem had better STOP here";
+#endif
+
+/*
  * Determine i/o configuration for a machine.
  */
 configure()
@@ -73,6 +99,11 @@ configure()
 #if NISA > 0
 	isa_configure();
 #endif
+
+#ifdef MFS_ROOT
+	if (mfs_initminiroot(mfs_root))
+		boothowto |= RB_DFLTROOT;
+#endif /* MFS_ROOT */
 
 /*
  * AI-ONLY NOTE: GENERIC, where this said GENERICxxx.
