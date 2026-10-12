@@ -34,18 +34,19 @@
 #			an unprivileged user cannot give files away,
 #			and the archive's owners are settled later, as
 #			install.md says.
-#   -f flags		dropped, with its argument, and -fflags too. 4.4BSD file flags
-#			(rcp's Makefile asks for schg) do not exist on
-#			the host's filesystem, and GNU install has no
-#			-f. The target sets them itself if it wants
-#			them.
+#   -f flags		dropped, with its argument, and -fflags too.
+#			4.4BSD file flags (rcp's Makefile asks for
+#			schg) do not exist on the host's filesystem,
+#			and GNU install has no -f. The target sets
+#			them itself if it wants them.
 #
 # Everything else goes to the host's install unchanged, and anything
 # after `--' is not looked at. Forms the Makefiles do not write --
-# -obin, --owner=bin -- pass through and are the host's to resolve. NetBSD's build
-# solves the same problem with its own install, built for the host,
-# that takes -N etcdir; this is the same idea for a tree whose
-# install(1) cannot be built on Linux, since it calls chflags(2).
+# -obin, --owner=bin -- pass through and are the host's to resolve.
+#
+# NetBSD's build solves the same problem with its own install, built
+# for the host, that takes -N etcdir; this is the same idea for a tree
+# whose install(1) cannot be built on Linux, since it calls chflags(2).
 #
 # Nothing here is copied from another system.
 
