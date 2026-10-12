@@ -1,11 +1,9 @@
-/*-
- * Copyright (c) 1982, 1986, 1993
- *	The Regents of the University of California.  All rights reserved.
- * (c) UNIX System Laboratories, Inc.
- * All or some portions of this file are derived from material licensed
- * to the University of California by American Telephone and Telegraph
- * Co. or Unix System Laboratories, Inc. and are reproduced herein with
- * the permission of UNIX System Laboratories, Inc.
+/*	$NetBSD: subr_rmap.c,v 1.11 1996/03/16 23:17:11 christos Exp $	*/
+
+/*
+ * Copyright (C) 1992, 1994 Wolfgang Solfrank.
+ * Copyright (C) 1992, 1994 TooLs GmbH.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,65 +15,236 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
- * 4. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	This product includes software developed by TooLs GmbH.
+ * 4. The name of TooLs GmbH may not be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY TOOLS GMBH ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL TOOLS GMBH BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*
+ * AI-ONLY NOTE: a transplant, and labelled one.
  *
- *	from: @(#)subr_rmap.c	8.1 (Berkeley) 6/10/93
+ * rminit, rmalloc and rmfree were bodies withheld from the Lite
+ * releases: this file in 4.4BSD-Lite2 carried Berkeley's and USL's
+ * notices over three stubs reading `Body deleted', and rmalloc
+ * returned 0, so the swap pager could never allocate swap. On the
+ * i386 the callers are all swap's: vm/swap_pager.c allocates from swapmap with
+ * rmalloc and returns to it with rmfree, and vm/vm_swap.c fills it
+ * with rminit and rmfree as each swap device is enabled.
+ *
+ * Donor: NetBSD 1.2, revision 1.11, whole and unchanged. Wolfgang
+ * Solfrank and TooLs GmbH wrote it in 1992 and 1994 from how
+ * swap_pager.c and vm_swap.c use the interface and from sys/map.h's
+ * comments -- its own head says so -- which is to say, without
+ * Berkeley's code.
+ * NetBSD 1.0's is the same file, revision 1.9; 1.11 adds
+ * <sys/systm.h> and prints the two longs with %ld where 1.9 had %d,
+ * and 1.3's revision 1.13 differs from 1.11 only in indentation.
+ * FreeBSD 2.0 had already replaced resource maps for swap with its
+ * own rlist, a different interface that would change both callers.
+ *
+ * Its licence is TooLs GmbH's four-clause one, with an advertising
+ * clause. ovbcopy, which it uses for overlapping moves, is i386
+ * locore.s's bcopy under its second name.
  */
 
 #include <sys/param.h>
 #include <sys/map.h>
-#include <sys/proc.h>
+#include <sys/systm.h>
 
+/*
+ * Resource allocation map handling.
+ *
+ * Code derived from usage in ../vm/swap_pager.c and ../vm/vm_swap.c
+ * and the (corrected due to the above) comments in ../sys/map.h.
+ *
+ * Assume small maps. Keep it sorted by addr with free mapents last.
+ */
+
+/*
+ * Initialize a resource map.
+ * The map is called "name", and has nelem-1
+ * slots (the first one is reused to describe the map).
+ * Initially it manages the address range starting at
+ * addr with size size.
+ */
 void
-rminit(a1, a2, a3, a4, a5)
-	struct map *a1;
-	long a2, a3;
-	char *a4;
-	int a5;
+rminit(mp, size, addr, name, nelem)
+	struct map *mp;
+	long size, addr;
+	char *name;
+	int nelem;
 {
-
-	/*
-	 * Body deleted.
-	 */
-	return;
+	struct mapent *ep;
+	
+	/* mapsize had better be at least 2 */
+	if (nelem < 2 || addr <= 0 || size < 0)
+		panic("rminit %s",name);
+	mp->m_name = name;
+	mp->m_limit = (struct mapent *)mp + nelem;
+	
+	/* initially the first entry describes all free space */
+	ep = (struct mapent *)mp + 1;
+	ep->m_size = size;
+	ep->m_addr = addr;
+	/* the remaining slots are unused (indicated by m_addr == 0) */
+	while (++ep < mp->m_limit)
+		ep->m_addr = 0;
 }
 
+/*
+ * Allocate space out of a resource map.
+ * Try to find an exact match. Otherwise get the space from
+ * the smallest slot.
+ */
 long
-rmalloc(a1, a2)
-	struct map *a1;
-	long a2;
+rmalloc(mp, size)
+	struct map *mp;
+	long size;
 {
-
-	/*
-	 * Body deleted.
-	 */
-	return (0);
+	struct mapent *ep, *fp;
+	long addr;
+	
+	/* first check arguments */
+	if (size < 0)
+		panic("rmalloc %s", mp->m_name);
+	if (!size)
+		return 0;
+	
+	fp = 0;
+	/* try to find the smallest fit */
+	for (ep = (struct mapent *)mp + 1; ep < mp->m_limit; ep++) {
+		if (!ep->m_addr) {
+			/* unused slots terminate the list */
+			break;
+		}
+		if (ep->m_size == size) {
+			/* found exact match, use it, ... */
+			addr = ep->m_addr;
+			/* copy over the remaining slots ... */
+			ovbcopy(ep + 1,ep,(char *)mp->m_limit - (char *)(ep + 1));
+			/* and mark the last slot as unused */
+			mp->m_limit[-1].m_addr = 0;
+			return addr;
+		}
+		if (ep->m_size > size
+		    && (!fp
+			|| fp->m_size > ep->m_size)) {
+			/* found a larger slot, remember the smallest of these */
+			fp = ep;
+		}
+	}
+	if (fp) {
+		/* steal requested size from a larger slot */
+		addr = fp->m_addr;
+		fp->m_addr += size;
+		fp->m_size -= size;
+		return addr;
+	}
+	return 0;
 }
 
+/*
+ * Free (or add) space to a resource map.
+ * If there aren't enough slots in the map to describe the free space,
+ * drop the smallest slot.
+ */
 void
-rmfree(a1, a2, a3)
-	struct map *a1;
-	long a2, a3;
+rmfree(mp, size, addr)
+	struct map *mp;
+	long size, addr;
 {
+	struct mapent *ep, *fp;
 
-	/*
-	 * Body deleted.
-	 */
-	return;
+	/* first check arguments */
+	if (size <= 0 || addr <= 0)
+		panic("rmfree %s", mp->m_name);
+	
+	while (1) {
+		fp = 0;
+		
+		for (ep = (struct mapent *)mp + 1; ep < mp->m_limit; ep++) {
+			if (!ep->m_addr) {
+				/* unused slots terminate the list */
+				break;
+			}
+			if (ep->m_addr + ep->m_size == addr) {
+				/* this slot ends just with the address to free */
+				ep->m_size += size; /* increase size of slot */
+				if (ep < mp->m_limit
+				    && ep[1].m_addr
+				    && (addr += size) >= ep[1].m_addr) {
+					if (addr > ep[1].m_addr) /* overlapping frees? */
+						panic("rmfree %s", mp->m_name);
+					/* the next slot is now contiguous, so join ... */
+					ep->m_size += ep[1].m_size;
+					ovbcopy(ep + 2, ep + 1,
+						(char *)mp->m_limit - (char *)(ep + 2));
+					/* and mark the last slot as unused */
+					mp->m_limit[-1].m_addr = 0;
+				}
+				return;
+			}
+			if (addr + size == ep->m_addr) {
+				/* range to free is contiguous to this slot */
+				ep->m_addr = addr;
+				ep->m_size += size;
+				return;
+			}
+			if (addr < ep->m_addr
+			    && !mp->m_limit[-1].m_addr) {
+				/* insert entry into list keeping it sorted on m_addr */
+				ovbcopy(ep,ep + 1,(char *)(mp->m_limit - 1) - (char *)ep);
+				ep->m_addr = addr;
+				ep->m_size = size;
+				return;
+			}
+			if (!fp || fp->m_size > ep->m_size) {
+				/* find the slot with the smallest size to drop */
+				fp = ep;
+			}
+		}
+		if (ep != (struct mapent *)mp + 1
+		    && ep[-1].m_addr + ep[-1].m_size == addr) {
+			/* range to free is contiguous to the last used slot */
+			(--ep)->m_size += size;
+			return;
+		}
+		if (ep != mp->m_limit) {
+			/* use empty slot for range to free */
+			ep->m_addr = addr;
+			ep->m_size = size;
+			return;
+		}
+		/*
+		 * The range to free isn't contiguous to any free space,
+		 * and there is no free slot available, so we are sorry,
+		 * but we have to loose some space.
+		 * fp points to the slot with the smallest size
+		 */
+		if (fp->m_size > size) {
+			/* range to free is smaller, so drop that */
+			printf("rmfree: map '%s' loses space (%ld)\n",
+			       mp->m_name, size);
+			return;
+		} else {
+			/* drop the smallest slot in the list */
+			printf("rmfree: map '%s' loses space (%ld)\n",
+			       mp->m_name, fp->m_size);
+			ovbcopy(fp + 1, fp,
+				(char *)(mp->m_limit - 1) - (char *)fp);
+			mp->m_limit[-1].m_addr = 0;
+			/* now retry */
+		}
+	}
 }

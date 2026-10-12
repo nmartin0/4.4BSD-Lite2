@@ -14,7 +14,14 @@
  * Build and use:
  *	cc -I usr/src/sys/sys -o mklabel build/mklabel.c
  *	dd if=/dev/zero of=disk.img bs=1M count=20
- *	./mklabel disk.img 40960
+ *	./mklabel disk.img 40960 [swapsectors]
+ *
+ * With a third argument, partition b is swap, that many sectors just
+ * before the reserved last track, and a ends where b begins. The
+ * kernel's swap is b of the root's drive: i386/swapgeneric.c's
+ * setconf sets swdevt[0] to the root's minor plus one, and
+ * autoconf.c sizes it by asking wd for b's size, so without b the
+ * kernel says `no swap space found'.
  */
 #include <stdio.h>
 #include <string.h>
@@ -37,7 +44,19 @@ int main(int argc, char **argv)
 	struct disklabel l;
 	char sec[512];
 	FILE *f;
-	unsigned long secs = strtoul(argv[2], 0, 10);
+	unsigned long secs, swap;
+
+	if (argc < 3 || argc > 4) {
+		fprintf(stderr,
+		    "usage: mklabel image sectors [swapsectors]\n");
+		return 1;
+	}
+	secs = strtoul(argv[2], 0, 10);
+	swap = argc == 4 ? strtoul(argv[3], 0, 10) : 0;
+	if (secs <= 256 + 32 || swap >= secs - 256 - 32) {
+		fprintf(stderr, "mklabel: no room for a\n");
+		return 1;
+	}
 
 	memset(&l, 0, sizeof l);
 	l.d_magic = DISKMAGIC;
@@ -73,10 +92,16 @@ int main(int argc, char **argv)
 	 * says to', and writing the table was working around it.
 	 */
 	l.d_partitions[0].p_offset = 256;
-	l.d_partitions[0].p_size = secs - 256 - 32;
+	l.d_partitions[0].p_size = secs - 256 - 32 - swap;
 	l.d_partitions[0].p_fstype = FS_BSDFFS;
 	l.d_partitions[0].p_fsize = 1024;
 	l.d_partitions[0].p_frag = 8;
+	/* b: swap, if asked for */
+	if (swap) {
+		l.d_partitions[1].p_offset = secs - 32 - swap;
+		l.d_partitions[1].p_size = swap;
+		l.d_partitions[1].p_fstype = FS_SWAP;
+	}
 	/* c: the whole disk */
 	l.d_partitions[2].p_offset = 0;
 	l.d_partitions[2].p_size = secs;
@@ -91,7 +116,7 @@ int main(int argc, char **argv)
 	fwrite(sec, 1, 512, f);
 
 	fclose(f);
-	printf("label: %lu sectors, LABELSECTOR %d LABELOFFSET %d, sizeof %zu\n",
-	    secs, LABELSECTOR, LABELOFFSET, sizeof l);
+	printf("label: %lu sectors, swap %lu, LABELSECTOR %d LABELOFFSET %d, "
+	    "sizeof %zu\n", secs, swap, LABELSECTOR, LABELOFFSET, sizeof l);
 	return 0;
 }

@@ -238,11 +238,11 @@ loads the kernel from the host, so nothing else would put it there.
 The disk is the earlier one at twice the size, since the archive is
 16 MB and the root holds it unpacked:
 
-	dd if=/dev/zero of=disk.img bs=512 count=245760	# 120 MB
+	dd if=/dev/zero of=disk.img bs=512 count=278528	# 136 MB
 	mklabel disk.img 81920
 	mkfs-host disk.img
 	addfile-host disk.img ...	# the scaffolding, as before
-	mklabel disk.img 245760
+	mklabel disk.img 278528 32768	# b: 16 MB of swap
 	dd if=dist.tar of=disk.img bs=512 seek=81920 conv=notrunc
 
 ## Installing
@@ -258,6 +258,7 @@ build/distribution.sh's two, and cap_mkdb:
 	# cd /dev; sh MAKEDEV std wd0; cd /
 	# /usr/bin/cap_mkdb /usr/share/misc/termcap
 	# echo '/dev/wd0a / ufs rw 1 1' > /etc/fstab
+	# echo '/dev/wd0b none swap sw 0 0' >> /etc/fstab
 	# /sbin/reboot
 
 `count` is the archive's length in 10240-byte records, 1611 here.
@@ -422,3 +423,24 @@ Still reported by /etc/rc, and why:
 
 /usr/share/misc/termcap is made since -- see the staging recipe --
 and `Terminal type? [unknown] vt100` is accepted.
+
+# Swap
+
+kern/subr_rmap.c was three stubs reading `Body deleted', and rmalloc
+returned 0, so the swap pager could allocate nothing: the system lived
+in RAM. It is now NetBSD 1.2's (imports.md, kind E). With it, and with
+a b partition -- build/mklabel.c takes a swap size as a third argument
+-- and an fstab line for it, /etc/rc's `swapon -a` enables it:
+
+	myname# pstat -s
+	Device      1K-blocks     Used    Avail Capacity  Type
+	/dev/wd0b       16384        4    16380     0%    Interleaved
+
+Measured under load with QEMU's `-m 16`, `real mem = 16384000`: a test
+program that mallocs 8 MB and writes each page three times, then the
+same at 12 MB alongside one asking for 20 MB, which malloc refuses (its
+power-of-two request passes the 32 MB data limit). The 12 MB run
+completed with the right checksum and swap showed 3284 KB in use. The
+kernel finds b by itself: i386/swapgeneric.c makes the swap device the
+root's minor plus one, and autoconf.c sizes it from the label.
+

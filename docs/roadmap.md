@@ -98,12 +98,12 @@ device; `pmap_remove` on the self-map.
 
 **The settlement and Net/2 bodies.** Filled by import: the clists
 (`tty_subr.c`), the buffer cache's write path (`vfs_bio.c`, NetBSD
-1.0), accounting (`kern_acct.c`) and raw I/O (`kern_physio.c`). Two
-files still hold `Body deleted`:
+1.0), accounting (`kern_acct.c`), raw I/O (`kern_physio.c`) and the
+resource maps swap allocates from (`subr_rmap.c`, NetBSD 1.2). One
+file still holds `Body deleted`:
 
 | file | what | what it costs |
 |---|---|---|
-| `kern/subr_rmap.c` | `rminit`, `rmalloc`, `rmfree` | swap: `rmalloc` returns 0, so nothing can be paged out |
 | `kern/sys_process.c` | `ptrace` | debuggers; returns ENOSYS |
 
 **What is left before Tier 1 is solid**, in the order proposed:
@@ -111,8 +111,9 @@ files still hold `Body deleted`:
 1. ~~Owners and groups as the tree names them~~ -- `build/install.sh`.
 2. ~~`/usr/share/misc/termcap`~~ -- built on the host, indexed on the
    system.
-3. **Swap.** `subr_rmap.c` from a donor, a swap partition in the
-   image, `swapon -a` from fstab.
+3. ~~**Swap.**~~ `subr_rmap.c` from NetBSD 1.2, a b partition from
+   `build/mklabel.c`, `swapon -a` from fstab; measured paging under
+   `-m 16`.
 4. **MAKEDEV's i386 majors** -- pty 4/5 against conf.c's 5/6, fd/ at
    53 -- and **the panic from removing the device node the root was
    remounted through** (`vinvalbuf: dirty bufs`).

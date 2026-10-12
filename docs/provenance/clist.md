@@ -381,7 +381,7 @@ Taking the best of each, by file rather than by tree:
 |---|---|---|---|
 | `tty_subr.c` | 10 | FreeBSD 2.0 | fitted and tested; a user write reaches the console |
 | `vfs_bio.c` | 4 | NetBSD 1.0 | links untouched; ten bodies already written from it |
-| `subr_rmap.c` | 3 | NetBSD 1.0 | links untouched |
+| `subr_rmap.c` | 3 | NetBSD 1.0 | links untouched; taken as NetBSD 1.2's revision 1.11, the same code with `%ld` and `<sys/systm.h>`, and swap measured working |
 | `kern_acct.c` | 2 | either | two lines, tested with FreeBSD's |
 | `kern_physio.c` | 2 | neither | FreeBSD wants `getpbuf`/`relpbuf`, NetBSD `p_holdcnt` |
 | `sys_process.c` | 2 | neither | FreeBSD wants `p_tptr`, NetBSD three MD hooks |

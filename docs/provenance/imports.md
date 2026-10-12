@@ -278,6 +278,7 @@ constants; it has neither. Corrected there.
 
 	lib/libcompat/4.3/regex.c   93 lines	NetBSD 1.0
 	bin/expr			679 lines	NetBSD 1.0, unmodified
+	sys/kern/subr_rmap.c		NetBSD 1.2, unmodified
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
@@ -302,6 +303,18 @@ Not acted on. The file is Berkeley's own copyright, a correct shim
 would look like it, and rewriting correct code to shorten a list is
 churn. Recorded so that the next file considered for import is asked
 the question first: does this tree already have both sides of it?
+
+**sys/kern/subr_rmap.c** replaces three `Body deleted' stubs -- rminit,
+rmalloc, rmfree, the resource map swap allocates from -- with NetBSD
+1.2's file, revision 1.11, whole: Wolfgang Solfrank and TooLs GmbH,
+1992 and 1994, written from how the swap code uses the interface and
+from sys/map.h's comments, by its own account. docs/provenance/clist.md
+surveyed this file and chose NetBSD 1.0's revision 1.9; 1.11 is the
+same code with <sys/systm.h> included and the two longs printed with
+%ld, and NetBSD 1.3's 1.13 differs from it only in indentation.
+FreeBSD 2.0 had replaced resource maps for swap with its own rlist,
+which would change both callers. TooLs GmbH's licence is four-clause,
+with an advertising clause. install.md, *Swap*, has the measurement.
 
 **bin/expr** is expr.y, expr.1 and the Makefile, byte for byte as
 NetBSD's netbsd-1-0 branch has them. Berkeley's expr was AT&T's and
