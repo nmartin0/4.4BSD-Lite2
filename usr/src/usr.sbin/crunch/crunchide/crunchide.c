@@ -68,7 +68,7 @@ __RCSID("$NetBSD: crunchide.c,v 1.8 1997/11/01 06:51:45 lukem Exp $");
 #include <stdlib.h>
 #include <string.h>
 #include <fcntl.h>
-#include <a.out.h>
+/* AI-ONLY NOTE: <a.out.h> goes with exec_aout.c; nothing here uses it. */
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/errno.h>

@@ -40,7 +40,12 @@
 #ifdef __powerpc__
 #define	NLIST_ELF32
 #else
-#define	NLIST_AOUT
+/*
+ * AI-ONLY NOTE: ELF32 only, for the i386. This tree's objects are
+ * ELF, and the a.out back end, exec_aout.c, is not imported; nor is
+ * ELF64's. FreeBSD 3.0 kept a.out beside ELF because it built both.
+ */
+/* #define	NLIST_AOUT */
 /* #define	NLIST_ECOFF */
 #define	NLIST_ELF32
 /* #define	NLIST_ELF64 */

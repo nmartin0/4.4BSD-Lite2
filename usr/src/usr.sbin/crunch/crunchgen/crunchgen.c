@@ -30,6 +30,22 @@
  * Generates a Makefile and main C file for a crunched executable,
  * from specs given in a .conf file.
  */
+
+/*
+ * AI-ONLY NOTE: two changes for this tree's build, each at its site
+ * and both as later BSDs made them. The object directory is
+ * ${MAKEOBJDIRPREFIX} followed by the source directory, where 3.0
+ * wrote that prefix as its default, /usr/obj: build/make.sh puts
+ * objects under ${L2_BUILD}/obj the same way, and FreeBSD's own
+ * crunchgen came to read the variable by 4.3, as NetBSD's did in 1.5.
+ * And the generated makefile links each program's objects with
+ * ${LD}, which build/make.sh sets to the i386 linker, where 3.0 ran
+ * `ld', the host's; NetBSD's crunchgen made the same change in 1.4.
+ *
+ * `make' is run by name, here and in the generated makefile, and
+ * means the BSD make: build/sysroot.sh puts a `make' that is bmake
+ * first on the PATH build/make.sh gives.
+ */
 #include <ctype.h>
 #include <err.h>
 #include <stdio.h>
@@ -487,7 +503,8 @@ void fillin_program(prog_t *p)
     if(!p->objdir && p->srcdir) {
 	FILE *f;
 
-	sprintf(path, "cd %s && echo -n /usr/obj`/bin/pwd`", p->srcdir);
+	sprintf(path, "cd %s && echo -n ${MAKEOBJDIRPREFIX:-/usr/obj}`/bin/pwd`",
+	    p->srcdir);
         p->objdir = p->srcdir;
 	f = popen(path,"r");
 	if (f) {
@@ -795,7 +812,7 @@ void prog_makefile_rules(FILE *outmk, prog_t *p)
 	    p->ident, p->name);
     fprintf(outmk, "%s.lo: %s_stub.o $(%s_OBJPATHS)\n",
 	    p->name, p->name, p->ident);
-    fprintf(outmk, "\tld -dc -r -o %s.lo %s_stub.o $(%s_OBJPATHS)\n",
+    fprintf(outmk, "\t${LD} -dc -r -o %s.lo %s_stub.o $(%s_OBJPATHS)\n",
 	    p->name, p->name, p->ident);
     fprintf(outmk, "\tcrunchide -k _crunched_%s_stub ", p->ident);
     for(lst = p->keeplist; lst != NULL; lst = lst->next)
