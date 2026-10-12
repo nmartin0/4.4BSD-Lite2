@@ -39,7 +39,8 @@
  *
  * Build and use, after mklabel and mkfs-host:
  *
- *	cc -m32 -w -include build/fs-host.h -I usr/src/sbin/newfs \
+ *	cc -m32 -std=gnu89 -w -include build/fs-host.h \
+ *	   -I usr/src/sbin/newfs \
  *	   -I <private include dir> -o addfile-host \
  *	   build/addfile-host.c usr/src/sbin/newfs/mkfs.c
  *	./addfile-host disk.img /path/to/init
@@ -51,6 +52,14 @@
  *	inc/sys/disklabel.h	   copied from usr/src/sys/sys
  *	inc/a.out.h		   empty -- mkfs.c includes <a.out.h>
  *				   and uses nothing from it
+ *
+ * -std=gnu89 for GCC 14, which makes implicit int, implicit function
+ * declarations and a bare `return' in an int function errors in its
+ * default C17 -- and mkfs.c, Berkeley's 1993 code, has all three. Under
+ * gnu89 they are the C89 they were written in; -w then quiets them,
+ * which is all it did before GCC 14. build/make.sh builds the tree the
+ * same way, for the same reason. Built both ways, GCC 13 and GCC 14
+ * produce byte-identical images.
  *
  * It takes pairs, `dir file', and gives each pair a directory of its
  * own under the root holding that one file: a second pair naming the

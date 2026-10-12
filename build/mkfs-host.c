@@ -32,7 +32,8 @@
  * asserted at startup the way mklabel.c prints its own.
  *
  * Build and use:
- *	cc -m32 -w -include build/fs-host.h -I usr/src/sbin/newfs \
+ *	cc -m32 -std=gnu89 -w -include build/fs-host.h \
+ *	   -I usr/src/sbin/newfs \
  *	   -I <private include dir> -o mkfs-host \
  *	   build/mkfs-host.c usr/src/sbin/newfs/mkfs.c
  *	./mkfs-host disk.img
