@@ -34,5 +34,7 @@
  */
 
 void	create_knlist __P((char *, DB *));
+int	create_knlist_aout __P((char *, DB *));
+int	create_knlist_elf32 __P((char *, DB *));
 void	error __P((char *));
 int	testdb __P(());

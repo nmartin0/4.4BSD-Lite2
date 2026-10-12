@@ -202,6 +202,9 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	lib/libkvm/kvm_i386.c	221 lines	NetBSD 1.0, adapted
 	vmstat/names.c i386 case  6 lines	NetBSD 1.0
 	lib/libl/Makefile	  4 lines	NetBSD 1.0
+	lib/libc/gen/nlist_elf32.c	NetBSD 1.3, adapted
+	usr.sbin/kvm_mkdb/nlist_elf32.c	NetBSD 1.3, adapted
+	sys/exec_elf.h: Shdr, Sym	NetBSD 1.3
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -228,6 +231,45 @@ _kvm_uvatop; FreeBSD 2.0.5 has _kvm_vatop in its place.
 The other three fill holes in Berkeley's i386 port:
 kvm_i386.c and the names.c case are in no CSRG tree at all, so nothing
 removed them -- they were never written.
+
+**Reading an ELF kernel's symbols.** This kernel is ELF, and nlist(3)
+and kvm_mkdb read only a.out: at every boot savecore said `/vmunix:
+nlist: Undefined error: 0' and kvm_mkdb `bad magic number', and
+everything that names kernel variables -- savecore, dmesg on a dump,
+vmstat, iostat, netstat, pstat -- went through the same nlist.
+
+Surveyed: FreeBSD 3.0 keeps one nlist.c with its a.out reader and an
+ELF reader side by side, which made it the first choice, but its ELF
+reader maps the section headers and the string table at their own
+file offsets, and this kernel's mmap refuses an offset that is not
+page-aligned, as 4.4BSD's did; and for every local symbol it sets
+n_type to N_EXT alone, losing the type, while no global gets N_EXT.
+NetBSD 1.2 has no ELF reader. NetBSD 1.3 (Christopher G. Demetriou,
+1996) maps the whole file from offset 0, checks the ELF header, the
+section header table and the symbol and string sections against the
+file's size -- not each symbol's name offset, nor sh_link -- and has
+the binding the right way round, as OpenBSD's current nlist.c also
+does; and the tree's sys/exec_elf.h is
+already NetBSD's, revision 1.1 from NetBSD 1.1. NetBSD 1.3's readers
+were taken, for libc and for kvm_mkdb, with what they need from
+NetBSD 1.3's revision of the same header: Elf_Byte, the section types,
+Elf32_Shdr, Elf32_Sym and the symbol binding and type enumerations.
+
+Shrink-wrapped to one size and one machine: NetBSD builds each reader
+twice through ELFSIZE and the ELFNAME macros, and chooses its formats
+in nlist_private.h and its machine cases in elf_machdep.h; here the
+32-bit names are written out, the two formats are listed in each
+nlist.c, and the i386 cases are spelt as this tree's exec_elf.h spells
+them. Berkeley's a.out readers stay, renamed __fdnlist_aout and
+create_knlist_aout, the latter returning -1 for a file that is not
+a.out, with NetBSD 1.3's two lines, so the ELF reader can be tried.
+kvm_mkdb's exits are Berkeley's errx and err where NetBSD calls a
+punt() this tree does not have, and one NULL test is added, from the
+libc reader of the same release. The licence is Demetriou's
+four-clause one, with an advertising clause.
+
+The header's own note claimed revision 1.1 had Elf32_Shdr and the SHT_
+constants; it has neither. Corrected there.
 
 ## E -- a reimplementation of something the Lite cut removed
 

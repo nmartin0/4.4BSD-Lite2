@@ -61,8 +61,41 @@ static void badread __P((int, char *));
 
 static char *kfile;
 
+/*
+ * AI-ONLY NOTE: one reader per object format, tried in turn, as
+ * NetBSD 1.3's kvm_mkdb does it: Berkeley's a.out reader is now
+ * create_knlist_aout, and NetBSD 1.3's ELF reader is
+ * create_knlist_elf32, in nlist_elf32.c. The table and create_knlist
+ * are NetBSD 1.3's nlist.c, with the two entries written in where its
+ * extern.h chooses them per machine, and errx in place of its punt(),
+ * which this kvm_mkdb.c does not have -- the same exit Berkeley's
+ * badfmt makes. The a.out reader now returns -1 for a file that is
+ * not a.out, so the next reader can try, with NetBSD 1.3's
+ * nlist_aout.c's two lines; before, it exited on `bad magic number',
+ * which every ELF kernel has.
+ */
+static struct {
+	int	(*knlist) __P((char *, DB *));
+} knlist_fmts[] = {
+	{	create_knlist_aout	},
+	{	create_knlist_elf32	},
+};
+
 void
 create_knlist(name, db)
+	char *name;
+	DB *db;
+{
+	int i;
+
+	for (i = 0; i < sizeof(knlist_fmts) / sizeof(knlist_fmts[0]); i++)
+		if ((*knlist_fmts[i].knlist)(name, db) != -1)
+			return;
+	errx(1, "%s: file format not recognized", name);
+}
+
+int
+create_knlist_aout(name, db)
 	char *name;
 	DB *db;
 {
@@ -81,11 +114,11 @@ create_knlist(name, db)
 	/* Read in exec structure. */
 	nr = read(fd, &ebuf, sizeof(struct exec));
 	if (nr != sizeof(struct exec))
-		badfmt("no exec header");
+		return (-1);
 
 	/* Check magic number and symbol count. */
 	if (N_BADMAG(ebuf))
-		badfmt("bad magic number");
+		return (-1);
 	if (!ebuf.a_syms)
 		badfmt("stripped");
 
@@ -173,6 +206,7 @@ create_knlist(name, db)
 		}
 	}
 	(void)fclose(fp);
+	return (0);
 }
 
 static void

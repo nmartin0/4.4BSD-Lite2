@@ -46,6 +46,25 @@ static char sccsid[] = "@(#)nlist.c	8.1 (Berkeley) 6/4/93";
 #include <string.h>
 #include <unistd.h>
 
+/*
+ * AI-ONLY NOTE: a reader per object format, tried in turn, as NetBSD
+ * 1.3's nlist.c does it: Berkeley's a.out reader, below, is now
+ * __fdnlist_aout, and NetBSD 1.3's ELF reader is __fdnlist_elf32, in
+ * nlist_elf32.c. The table and __fdnlist are NetBSD's, with the two
+ * entries this tree has written in where NetBSD's nlist_private.h
+ * chooses them per machine. The kernel is ELF, so without the second
+ * entry nlist(3) could not read /vmunix at all.
+ */
+int	__fdnlist_aout __P((int, struct nlist *));
+int	__fdnlist_elf32 __P((int, struct nlist *));
+
+static struct {
+	int	(*fdnlist) __P((int, struct nlist *));
+} fdnlist_fmts[] = {
+	{	__fdnlist_aout		},
+	{	__fdnlist_elf32		},
+};
+
 int
 nlist(name, list)
 	const char *name;
@@ -61,10 +80,23 @@ nlist(name, list)
 	return (n);
 }
 
+int
+__fdnlist(fd, list)
+	int fd;
+	struct nlist *list;
+{
+	int i, rv;
+
+	for (i = 0; i < sizeof(fdnlist_fmts) / sizeof(fdnlist_fmts[0]); i++)
+		if ((rv = (*fdnlist_fmts[i].fdnlist)(fd, list)) != -1)
+			return rv;
+	return -1;
+}
+
 #define	ISLAST(p)	(p->n_un.n_name == 0 || p->n_un.n_name[0] == 0)
 
 int
-__fdnlist(fd, list)
+__fdnlist_aout(fd, list)
 	register int fd;
 	register struct nlist *list;
 {

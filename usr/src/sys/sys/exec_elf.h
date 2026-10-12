@@ -39,9 +39,11 @@
  * exec_elf_makecmds and elf_copyargs, which belong to NetBSD's exec
  * framework -- struct exec_package and the vmcmd set -- and this tree
  * does not have that framework and is not taking it. What remains is
- * the on-disk format alone: Elf32_Ehdr, Elf32_Phdr, Elf32_Shdr, the
- * e_ident magic and the PT_ and SHT_ constants, which are the ELF
- * specification and not anyone's design.
+ * the on-disk format alone: Elf32_Ehdr, Elf32_Phdr, the e_ident magic,
+ * and the machine, type and program-header constants, which are the
+ * ELF specification and not anyone's design. (An earlier form of this
+ * note also listed Elf32_Shdr and SHT_ constants; revision 1.1 has
+ * neither. They arrive below, from a later revision.)
  *
  * Three-clause BSD, Christos Zoulas 1994. No Regents notice, so
  * nothing here is Berkeley's.
@@ -133,6 +135,76 @@ typedef struct {
 
 #define Elf32_e_ident "\177ELF"
 #define Elf32_e_siz (sizeof(Elf32_e_ident) - 1)
+
+/*
+ * AI-ONLY NOTE: section headers and symbols, for nlist(3) and
+ * kvm_mkdb(8) to read a kernel's symbol table -- revision 1.1 above
+ * describes only what exec needs. Taken from NetBSD 1.3's revision of
+ * this same file, 1.11 of 10 June 1997, which is the revision
+ * NetBSD 1.3's nlist_elf32.c was written against: Elf_Byte, the
+ * section-type enumeration, Elf32_Shdr, Elf32_Sym, and the symbol
+ * binding and type enumerations with their two macros. Their 64-bit
+ * twins, the section flags, the special section indices and the
+ * relocation, dynamic and note structures are left there.
+ */
+typedef u_int8_t  Elf_Byte;
+
+enum Elf_s_sht {
+	Elf_sht_null = 0,
+	Elf_sht_progbits = 1,
+	Elf_sht_symtab = 2,
+	Elf_sht_strtab = 3,
+	Elf_sht_rela = 4,
+	Elf_sht_hash = 5,
+	Elf_sht_dynamic = 6,
+	Elf_sht_note = 7,
+	Elf_sht_nobits = 8,
+	Elf_sht_rel =	9,
+	Elf_sht_shlib = 10,
+	Elf_sht_dynsym = 11,
+	Elf_sht_loproc = 0x70000000,
+	Elf_sht_hiproc = 0x7FFFFFFF
+};
+
+typedef struct {
+	Elf32_Word	sh_name;	/* section name */
+	Elf32_Word	sh_type;	/* section type */
+	Elf32_Word	sh_flags;	/* section flags */
+	Elf32_Addr	sh_addr;	/* virtual address */
+	Elf32_Off	sh_offset;	/* file offset */
+	Elf32_Word	sh_size;	/* section size */
+	Elf32_Word	sh_link;	/* link to another */
+	Elf32_Word	sh_info;	/* misc info */
+	Elf32_Word	sh_addralign;	/* memory alignment */
+	Elf32_Word	sh_entsize;	/* table entry size */
+} Elf32_Shdr;
+
+typedef struct {
+	Elf32_Word	st_name;	/* Symbol name index in str table */
+	Elf32_Word	st_value;	/* value of symbol */
+	Elf32_Word	st_size;	/* size of symbol */
+	Elf_Byte	st_info;	/* type / binding attrs */
+	Elf_Byte	st_other;	/* unused */
+	Elf32_Half	st_shndx;	/* section index of symbol */
+} Elf32_Sym;
+
+enum elf_e_symbol_binding {
+	Elf_estb_local,
+	Elf_estb_global,
+	Elf_estb_weak
+};
+
+#define	ELF_SYM_BIND(info)	((enum elf_e_symbol_binding) (((u_int32_t)(info)) >> 4))
+
+enum elf_e_symbol_type {
+	Elf_estt_notype,
+	Elf_estt_object,
+	Elf_estt_func,
+	Elf_estt_section,
+	Elf_estt_file
+};
+
+#define	ELF_SYM_TYPE(info)	((enum elf_e_symbol_type) ((info) & 0x0F))
 
 typedef struct {
 	int		au_id;

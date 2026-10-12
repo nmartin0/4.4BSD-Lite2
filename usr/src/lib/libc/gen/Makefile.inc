@@ -9,9 +9,9 @@ SRCS+=	alarm.c assert.c clock.c closedir.c confstr.c crypt.c ctermid.c \
 	getgrent.c getgrouplist.c gethostname.c getloadavg.c getlogin.c \
 	getmntinfo.c getnetgrent.c getpagesize.c getpass.c getpwent.c \
 	getttyent.c getusershell.c getvfsbyname.c glob.c initgroups.c isatty.c \
-	nice.c nlist.c opendir.c pause.c popen.c psignal.c pwcache.c raise.c \
-	readdir.c rewinddir.c scandir.c seekdir.c sethostname.c setjmperr.c \
-	setmode.c siginterrupt.c siglist.c signal.c \
+	nice.c nlist.c nlist_elf32.c opendir.c pause.c popen.c psignal.c \
+	pwcache.c raise.c readdir.c rewinddir.c scandir.c seekdir.c \
+	sethostname.c setjmperr.c setmode.c siginterrupt.c siglist.c signal.c \
 	sigsetops.c sleep.c sysconf.c sysctl.c syslog.c telldir.c \
 	termios.c time.c times.c timezone.c ttyname.c ttyslot.c ualarm.c \
 	uname.c unvis.c usleep.c utime.c valloc.c vis.c wait.c wait3.c \
