@@ -1,6 +1,14 @@
 # $FreeBSD$
+#
+# AI-ONLY NOTE: FreeBSD 4.1's, for this tree's make and GNU binutils:
+# the a.out arm of the OBJFORMAT test is gone, ${OBJCOPY} names
+# objcopy, and NOMAN, as in the other boot Makefiles here.
+# btx.s is still run through m4, for its PAGING conditionals; boot2
+# does not ask for paging, and FreeBSD 4.1's boot2 did not either.
 
 M4?=	m4
+OBJCOPY?=	objcopy
+NOMAN=	noman
 
 .if defined(PAGING)
 M4FLAGS+=	-DPAGING
@@ -11,13 +19,8 @@ ORG=	0x9000
 all: btx
 
 btx: btx.o
-.if ${OBJFORMAT} == aout
-	${LD} -nostdlib -N -s -T ${ORG} -o btx.out btx.o
-	dd if=btx.out of=${.TARGET} ibs=32 skip=1
-.else
 	${LD} -N -e start -Ttext ${ORG} -o btx.out btx.o
-	objcopy -S -O binary btx.out ${.TARGET}
-.endif
+	${OBJCOPY} -S -O binary btx.out ${.TARGET}
 
 btx.o: btx.s
 	(cd ${.CURDIR}; ${M4} ${M4FLAGS} btx.s) | \

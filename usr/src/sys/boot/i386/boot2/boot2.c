@@ -17,95 +17,116 @@
  * $FreeBSD$
  */
 
+/*
+ * AI-ONLY NOTE: FreeBSD 4.1's boot2.c, shrink-wrapped for this tree.
+ * docs/provenance/imports.md (kind D) has why this release.
+ *
+ * Cut, because this tree has no use for it:
+ *   - a.out kernels. This tree's kernel is ELF; boot2 reads its
+ *     PT_LOAD segments, one or two -- `ld -n' makes one, and 4.1
+ *     assumed two.
+ *   - struct bootinfo, the BIOS memory and disk-geometry probes that
+ *     filled it, and the symbol table loaded after the kernel for it.
+ *     This kernel reads none of them; it sizes memory itself, and
+ *     ps and kvm_mkdb read /vmunix.
+ *   - the third stage, /boot/loader, tried before the kernel.
+ *   - DOS slices. Lite2's wd driver reads its label from sector 1 of
+ *     the disk and knows no partition table, so boot2 does the same.
+ *     boot1 still finds boot2 through the one-entry table at the end
+ *     of its sector, as on a FreeBSD disk used whole.
+ *   - the ad and da disk types and the CD flag; the -c, -C, -g and -v
+ *     options, which set boot flags this kernel does not have. Of
+ *     <sys/reboot.h>'s, -a, -s, -r and -d reach the kernel; -h, -D and
+ *     -P choose boot2's own console and are not passed on. A raw
+ *     partition without a label is no longer booted.
+ *
+ * Changed:
+ *   - /vmunix for /kernel, and the banner.
+ *   - MAKEBOOTDEV with wd 0 and fd 2, this tree's block majors, which
+ *     i386/i386/autoconf.c's setroot decodes, and no slice; a device
+ *     is named wd(0,a), with no slice field.
+ *   - this tree's headers: <sys/exec_elf.h>'s names, IS_ELF and
+ *     roundup2 spelled out, uint32_t and uint8_t from u_int32_t and
+ *     u_int8_t, and dinode.h before fs.h, which needs it here.
+ */
+
 #include <sys/param.h>
 #include <sys/reboot.h>
-#include <sys/diskslice.h>
 #include <sys/disklabel.h>
 #include <sys/dirent.h>
-#include <machine/bootinfo.h>
 
-#include <ufs/ffs/fs.h>
 #include <ufs/ufs/dinode.h>
+#include <ufs/ffs/fs.h>
 
 #include <stdarg.h>
 
-#include <a.out.h>
-#include <elf.h>
+#include <sys/exec_elf.h>
+
+typedef u_int32_t uint32_t;
+typedef u_int8_t uint8_t;
 
 #include <btxv86.h>
 
 #include "lib.h"
 
+#define IS_ELF(eh)	((eh).e_ident[0] == 0x7f && (eh).e_ident[1] == 'E' && \
+			 (eh).e_ident[2] == 'L' && (eh).e_ident[3] == 'F')
+#define roundup2(x, y)	(((x)+((y)-1))&(~((y)-1)))
+
 #define RBX_ASKNAME	0x0	/* -a */
 #define RBX_SINGLE	0x1	/* -s */
 #define RBX_DFLTROOT	0x5	/* -r */
 #define RBX_KDB 	0x6	/* -d */
-#define RBX_CONFIG	0xa	/* -c */
-#define RBX_VERBOSE	0xb	/* -v */
 #define RBX_SERIAL	0xc	/* -h */
-#define RBX_CDROM	0xd	/* -C */
-#define RBX_GDB 	0xf	/* -g */
 #define RBX_DUAL	0x1d	/* -D */
 #define RBX_PROBEKBD	0x1e	/* -P */
 
-#define RBX_MASK	0xffff
+#define RBX_MASK	(1 << RBX_ASKNAME | 1 << RBX_SINGLE | \
+			 1 << RBX_DFLTROOT | 1 << RBX_KDB)
 
 #define PATH_CONFIG	"/boot.config"
-#define PATH_BOOT3	"/boot/loader"
-#define PATH_KERNEL	"/kernel"
+#define PATH_KERNEL	"/vmunix"
 
 #define ARGS		0x900
-#define NOPT		11
+#define NOPT		7
 #define BSIZEMAX	8192
-#define NDEV		5
-#define MEM_BASE	0x12
-#define MEM_EXT 	0x15
+#define NDEV		2
 #define V86_CY(x)	((x) & 1)
 #define V86_ZR(x)	((x) & 0x40)
 
 #define DRV_HARD	0x80
 #define DRV_MASK	0x7f
 
-#define TYPE_AD		0
-#define TYPE_WD		1
-#define TYPE_WFD 	2
-#define TYPE_FD		3
-#define TYPE_DA		4
+#define TYPE_WD		0
+#define TYPE_FD		1
 
 extern uint32_t _end;
 
-static const char optstr[NOPT] = "DhaCcdgPrsv";
+static const char optstr[NOPT] = "DhadPrs";
 static const unsigned char flags[NOPT] = {
     RBX_DUAL,
     RBX_SERIAL,
     RBX_ASKNAME,
-    RBX_CDROM,
-    RBX_CONFIG,
     RBX_KDB,
-    RBX_GDB,
     RBX_PROBEKBD,
     RBX_DFLTROOT,
-    RBX_SINGLE,
-    RBX_VERBOSE
+    RBX_SINGLE
 };
 
-static const char *const dev_nm[] = {"ad", "wd", "  ", "fd", "da"};
-static const unsigned dev_maj[] = {30, 0, 1, 2, 4};
+static const char *const dev_nm[] = {"wd", "fd"};
+static const unsigned dev_maj[] = {0, 2};
 
 static struct dsk {
     unsigned drive;
     unsigned type;
     unsigned unit;
-    unsigned slice;
     unsigned part;
     unsigned start;
-    int init;
     int meta;
 } dsk;
 static char cmd[512];
 static char kname[1024];
 static uint32_t opts;
-static struct bootinfo bootinfo;
 static int ls;
 static uint32_t fs_off;
 static uint8_t ioctrl = 0x1;
@@ -121,7 +142,6 @@ static int printf(const char *,...);
 static int putchar(int);
 static void *memcpy(void *, const void *, size_t);
 static void *malloc(size_t);
-static uint32_t memsize(int);
 static int drvread(void *, unsigned, unsigned);
 static int keyhit(unsigned);
 static int xputc(int);
@@ -212,19 +232,6 @@ getstr(char *str, int size)
     } while (c != '\n');
 }
 
-static inline uint32_t
-drvinfo(int drive)
-{
-    v86.addr = 0x13;
-    v86.eax = 0x800;
-    v86.edx = DRV_HARD + drive;
-    v86int();
-    if (V86_CY(v86.efl))
-	return 0x4f010f;
-    return ((v86.ecx & 0xc0) << 18) | ((v86.ecx & 0xff00) << 8) |
-	   (v86.edx & 0xff00) | (v86.ecx & 0x3f);
-}
-
 static inline void
 putc(int c)
 {
@@ -237,21 +244,13 @@ putc(int c)
 int
 main(void)
 {
-    int autoboot, i;
+    int autoboot;
 
     v86.ctl = V86_FLAGS;
     dsk.drive = *(uint8_t *)PTOV(ARGS);
-    dsk.type = dsk.drive & DRV_HARD ? TYPE_AD : TYPE_FD;
+    dsk.type = dsk.drive & DRV_HARD ? TYPE_WD : TYPE_FD;
     dsk.unit = dsk.drive & DRV_MASK;
-    dsk.slice = *(uint8_t *)PTOV(ARGS + 1) + 1;
-    bootinfo.bi_version = BOOTINFO_VERSION;
-    bootinfo.bi_size = sizeof(bootinfo);
-    bootinfo.bi_basemem = memsize(MEM_BASE);
-    bootinfo.bi_extmem = memsize(MEM_EXT);
-    bootinfo.bi_memsizes_valid++;
-    for (i = 0; i < N_BIOS_GEOM; i++)
-	bootinfo.bi_bios_geom[i] = drvinfo(i);
-    autoboot = 2;
+    autoboot = 1;
     readfile(PATH_CONFIG, cmd, sizeof(cmd));
     if (*cmd) {
 	printf("%s: %s", PATH_CONFIG, cmd);
@@ -259,19 +258,10 @@ main(void)
 	    autoboot = 0;
 	*cmd = 0;
     }
-    if (autoboot && !*kname) {
-	if (autoboot == 2) {
-	    memcpy(kname, PATH_BOOT3, sizeof(PATH_BOOT3));
-	    if (!keyhit(0x37)) {
-		load(kname);
-		autoboot = 1;
-	    }
-	}
-	if (autoboot == 1)
-	    memcpy(kname, PATH_KERNEL, sizeof(PATH_KERNEL));
-    }
+    if (autoboot && !*kname)
+	memcpy(kname, PATH_KERNEL, sizeof(PATH_KERNEL));
     for (;;) {
-	printf(" \n>> FreeBSD/i386 BOOT\n"
+	printf(" \n>> 4.4BSD/i386 BOOT\n"
 	       "Default: %u:%s(%u,%c)%s\n"
 	       "boot: ",
 	       dsk.drive & DRV_MASK, dev_nm[dsk.type], dsk.unit,
@@ -300,15 +290,13 @@ static void
 load(const char *fname)
 {
     union {
-	struct exec ex;
 	Elf32_Ehdr eh;
     } hdr;
     Elf32_Phdr ep[2];
-    Elf32_Shdr es[2];
     caddr_t p;
     ino_t ino;
-    uint32_t addr, x;
-    int fmt, i, j;
+    uint32_t addr;
+    int i, j;
 
     if (!(ino = lookup(fname))) {
 	if (!ls)
@@ -317,78 +305,26 @@ load(const char *fname)
     }
     if (xfsread(ino, &hdr, sizeof(hdr)))
 	return;
-    if (N_GETMAGIC(hdr.ex) == ZMAGIC)
-	fmt = 0;
-    else if (IS_ELF(hdr.eh))
-	fmt = 1;
-    else {
+    if (!IS_ELF(hdr.eh)) {
 	printf("Invalid %s\n", "format");
 	return;
     }
-    if (fmt == 0) {
-	addr = hdr.ex.a_entry & 0xffffff;
-	p = PTOV(addr);
-	fs_off = PAGE_SIZE;
-	if (xfsread(ino, p, hdr.ex.a_text))
+    fs_off = hdr.eh.e_phoff;
+    for (j = i = 0; i < hdr.eh.e_phnum && j < 2; i++) {
+	if (xfsread(ino, ep + j, sizeof(ep[0])))
 	    return;
-	p += roundup2(hdr.ex.a_text, PAGE_SIZE);
-	if (xfsread(ino, p, hdr.ex.a_data))
-	    return;
-	p += hdr.ex.a_data + roundup2(hdr.ex.a_bss, PAGE_SIZE);
-	bootinfo.bi_symtab = VTOP(p);
-	memcpy(p, &hdr.ex.a_syms, sizeof(hdr.ex.a_syms));
-	p += sizeof(hdr.ex.a_syms);
-	if (hdr.ex.a_syms) {
-	    if (xfsread(ino, p, hdr.ex.a_syms))
-		return;
-	    p += hdr.ex.a_syms;
-	    if (xfsread(ino, p, sizeof(int)))
-		return;
-	    x = *(uint32_t *)p;
-	    p += sizeof(int);
-	    x -= sizeof(int);
-	    if (xfsread(ino, p, x))
-		return;
-	    p += x;
-	}
-    } else {
-	fs_off = hdr.eh.e_phoff;
-	for (j = i = 0; i < hdr.eh.e_phnum && j < 2; i++) {
-	    if (xfsread(ino, ep + j, sizeof(ep[0])))
-		return;
-	    if (ep[j].p_type == PT_LOAD)
-		j++;
-	}
-	for (i = 0; i < 2; i++) {
-	    p = PTOV(ep[i].p_paddr & 0xffffff);
-	    fs_off = ep[i].p_offset;
-	    if (xfsread(ino, p, ep[i].p_filesz))
-		return;
-	}
-	p += roundup2(ep[1].p_memsz, PAGE_SIZE);
-	bootinfo.bi_symtab = VTOP(p);
-	if (hdr.eh.e_shnum == hdr.eh.e_shstrndx + 3) {
-	    fs_off = hdr.eh.e_shoff + sizeof(es[0]) *
-		(hdr.eh.e_shstrndx + 1);
-	    if (xfsread(ino, &es, sizeof(es)))
-		return;
-	    for (i = 0; i < 2; i++) {
-		memcpy(p, &es[i].sh_size, sizeof(es[i].sh_size));
-		p += sizeof(es[i].sh_size);
-		fs_off = es[i].sh_offset;
-		if (xfsread(ino, p, es[i].sh_size))
-		    return;
-		p += es[i].sh_size;
-	    }
-	}
-	addr = hdr.eh.e_entry & 0xffffff;
+	if (ep[j].p_type == Elf32_pt_load)
+	    j++;
     }
-    bootinfo.bi_esymtab = VTOP(p);
-    bootinfo.bi_kernelname = VTOP(fname);
-    bootinfo.bi_bios_dev = dsk.drive;
-    __exec((caddr_t)addr, RB_BOOTINFO | (opts & RBX_MASK),
-	   MAKEBOOTDEV(dev_maj[dsk.type], 0, dsk.slice, dsk.unit, dsk.part),
-	   0, 0, 0, VTOP(&bootinfo));
+    for (i = 0; i < j; i++) {
+	p = PTOV(ep[i].p_paddr & 0xffffff);
+	fs_off = ep[i].p_offset;
+	if (xfsread(ino, p, ep[i].p_filesz))
+	    return;
+    }
+    addr = hdr.eh.e_entry & 0xffffff;
+    __exec((caddr_t)addr, opts & RBX_MASK,
+	   MAKEBOOTDEV(dev_maj[dsk.type], 0, 0, dsk.unit, dsk.part), 0);
 }
 
 static int
@@ -443,23 +379,13 @@ parse(char *arg)
 		    return -1;
 		dsk.unit = *arg - '0';
 		arg += 2;
-		dsk.slice = WHOLE_DISK_SLICE;
-		if (arg[1] == ',') {
-		    if (*arg < '0' || *arg > '0' + NDOSPART)
-			return -1;
-		    if ((dsk.slice = *arg - '0'))
-			dsk.slice++;
-		    arg += 2;
-		}
-		if (arg[1] != ')' || *arg < 'a' || *arg > 'p')
+		if (arg[1] != ')' || *arg < 'a' || *arg > 'h')
 		    return -1;
 		dsk.part = *arg - 'a';
 		arg += 2;
 		if (drv == -1)
 		    drv = dsk.unit;
-		dsk.drive = (dsk.type == TYPE_WD ||
-			     dsk.type == TYPE_AD ||
-			     dsk.type == TYPE_DA ? DRV_HARD : 0) + drv;
+		dsk.drive = (dsk.type == TYPE_WD ? DRV_HARD : 0) + drv;
 		dsk.meta = 0;
 		fsread(0, NULL, 0);
 	    }
@@ -592,60 +518,25 @@ static int
 dskread(void *buf, unsigned lba, unsigned nblk)
 {
     static char *sec;
-    struct dos_partition *dp;
     struct disklabel *d;
-    unsigned sl, i;
 
     if (!dsk.meta) {
 	if (!sec)
 	    sec = malloc(DEV_BSIZE);
 	dsk.start = 0;
-	if (drvread(sec, DOSBBSECTOR, 1))
+	if (drvread(sec, LABELSECTOR, 1))
 	    return -1;
-	dp = (void *)(sec + DOSPARTOFF);
-	sl = dsk.slice;
-	if (sl < BASE_SLICE) {
-	    for (i = 0; i < NDOSPART; i++)
-		if (dp[i].dp_typ == DOSPTYP_386BSD &&
-		    (dp[i].dp_flag & 0x80 || sl < BASE_SLICE)) {
-		    sl = BASE_SLICE + i;
-		    if (dp[i].dp_flag & 0x80 ||
-			dsk.slice == COMPATIBILITY_SLICE)
-			break;
-		}
-	    if (dsk.slice == WHOLE_DISK_SLICE)
-		dsk.slice = sl;
-	}
-	if (sl != WHOLE_DISK_SLICE) {
-	    if (sl != COMPATIBILITY_SLICE)
-		dp += sl - BASE_SLICE;
-	    if (dp->dp_typ != DOSPTYP_386BSD) {
-		printf("Invalid %s\n", "slice");
-		return -1;
-	    }
-	    dsk.start = dp->dp_start;
-	}
-	if (drvread(sec, dsk.start + LABELSECTOR, 1))
-		return -1;
 	d = (void *)(sec + LABELOFFSET);
 	if (d->d_magic != DISKMAGIC || d->d_magic2 != DISKMAGIC) {
-	    if (dsk.part != RAW_PART) {
-		printf("Invalid %s\n", "label");
-		return -1;
-	    }
-	} else {
-	    if (!dsk.init) {
-		if (d->d_type == DTYPE_SCSI)
-		    dsk.type = TYPE_DA;
-		dsk.init++;
-	    }
-	    if (dsk.part >= d->d_npartitions ||
-		!d->d_partitions[dsk.part].p_size) {
-		printf("Invalid %s\n", "partition");
-		return -1;
-	    }
-	    dsk.start = d->d_partitions[dsk.part].p_offset;
+	    printf("Invalid %s\n", "label");
+	    return -1;
 	}
+	if (dsk.part >= d->d_npartitions ||
+	    !d->d_partitions[dsk.part].p_size) {
+	    printf("Invalid %s\n", "partition");
+	    return -1;
+	}
+	dsk.start = d->d_partitions[dsk.part].p_offset;
     }
     return drvread(buf, dsk.start + lba, nblk);
 }
@@ -721,15 +612,6 @@ malloc(size_t size)
     p = (void *)next;
     next += size;
     return p;
-}
-
-static uint32_t
-memsize(int type)
-{
-    v86.addr = type;
-    v86.eax = 0x8800;
-    v86int();
-    return v86.eax;
 }
 
 static int

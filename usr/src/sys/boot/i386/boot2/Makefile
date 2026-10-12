@@ -1,12 +1,35 @@
 # $FreeBSD$
+#
+# AI-ONLY NOTE: FreeBSD 4.1's, for this tree's make, GCC and GNU
+# binutils:
+#
+#   BINDIR	/usr/mdec, where disklabel -B looks, with wdboot and bootwd
+#		linked to boot1 and boot2: those are the names it makes
+#		from wd0 (sbin/disklabel/disklabel.c). Its two-piece rule
+#		-- the first sector from one file, the next 7680 bytes from
+#		the other, with the label's sector left as the other's
+#		first 512 bytes -- is the layout boot2.ldr reserves.
+#   CFLAGS	-falign-*=1 for -malign-*=0, the spelling GCC has used
+#		since; -fno-reorder-functions, without which GCC puts
+#		main() in .text.startup, ahead of btxcsu's _start, and
+#		BTX enters main with __base never set; -ffreestanding,
+#		-fno-asynchronous-unwind-tables, so no .eh_frame is
+#		linked into a binary that must fit in 7680 bytes; and
+#		-Wno-array-bounds, since GCC 12 and later take PTOV(),
+#		an address computed from a constant, for an access
+#		through a null pointer. -elf and -fforce-addr go: this
+#		GCC makes nothing but ELF and no longer has the other.
+#   dd		bs=7680 conv=sync for obs=7680 conv=osync: GNU dd has no
+#		osync, and the two pad the one block the same way.
+#   install	written out with install(1), as this tree's
+#		bsd.prog.mk does; ${INSTALL} ${COPY} are FreeBSD's.
 
-PROG=		boot2
-NOMAN=
-STRIP=
-BINDIR?=	/boot
+BINDIR?=	/usr/mdec
 BINMODE=	444
+NOMAN=		noman
+OBJCOPY?=	objcopy
 CLEANFILES+=	boot1 boot1.out boot1.o \
-		boot2.ldr boot2.bin boot2.ld boot2.out boot2.o \
+		boot2 boot2.ldr boot2.bin boot2.ld boot2.out boot2.o \
 		sio.o
 
 # A value of 0x80 enables LBA support.
@@ -25,20 +48,22 @@ BTX=	${.CURDIR}/../btx
 ORG1=	0x7c00
 ORG2=	0x1000
 
-CFLAGS=	-elf -I${.CURDIR}/../btx/lib -I. \
-	-Os -fno-builtin -fforce-addr -fdata-sections \
-	-malign-functions=0 -malign-jumps=0 -malign-loops=0 -mrtd \
+CFLAGS=	-ffreestanding -I${.CURDIR}/../btx/lib -I. \
+	-Os -fno-builtin -fno-reorder-functions \
+	-fno-asynchronous-unwind-tables -fdata-sections \
+	-falign-functions=1 -falign-jumps=1 -falign-loops=1 -mrtd \
 	-mpreferred-stack-boundary=2 \
 	-Wall -Waggregate-return -Wbad-function-cast -Wcast-align \
 	-Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
-	-Wpointer-arith -Wshadow -Wstrict-prototypes -Wwrite-strings
+	-Wpointer-arith -Wshadow -Wstrict-prototypes -Wwrite-strings \
+	-Wno-array-bounds
 
 LDFLAGS=-nostdlib -static -N
 
 all: boot1 boot2
 
 boot1: boot1.out
-	objcopy -S -O binary boot1.out ${.TARGET}
+	${OBJCOPY} -S -O binary boot1.out ${.TARGET}
 
 boot1.out: boot1.o
 	${LD} ${LDFLAGS} -e start -Ttext ${ORG1} -o ${.TARGET} boot1.o
@@ -51,13 +76,13 @@ boot2: boot2.ldr boot2.bin ${BTX}/btx/btx
 		-o boot2.ld -P 1 boot2.bin
 	@ls -l boot2.ld | awk '{ x = 7680 - $$5; \
 		print x " bytes available"; if (x < 0) exit 1 }'
-	dd if=boot2.ld of=${.TARGET} obs=7680 conv=osync 2>/dev/null
+	dd if=boot2.ld of=${.TARGET} bs=7680 conv=sync 2>/dev/null
 
 boot2.ldr:
 	dd if=/dev/zero of=${.TARGET} bs=512 count=1 2>/dev/null
 
 boot2.bin: boot2.out
-	objcopy -S -O binary boot2.out ${.TARGET}
+	${OBJCOPY} -S -O binary boot2.out ${.TARGET}
 
 boot2.out: boot2.o sio.o
 	${LD} ${LDFLAGS} -Ttext ${ORG2} -o ${.TARGET} \
@@ -70,9 +95,12 @@ sio.o: sio.s
 		${.IMPSRC} -o ${.TARGET}
 
 install:
-	${INSTALL} ${COPY} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
+	install -c -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		boot1 ${DESTDIR}${BINDIR}/boot1
-	${INSTALL} ${COPY} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
+	install -c -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 		boot2 ${DESTDIR}${BINDIR}/boot2
+	rm -f ${DESTDIR}${BINDIR}/wdboot ${DESTDIR}${BINDIR}/bootwd
+	ln ${DESTDIR}${BINDIR}/boot1 ${DESTDIR}${BINDIR}/wdboot
+	ln ${DESTDIR}${BINDIR}/boot2 ${DESTDIR}${BINDIR}/bootwd
 
 .include <bsd.prog.mk>

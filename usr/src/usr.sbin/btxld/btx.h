@@ -30,6 +30,7 @@
 #define _BTX_H_
 
 #include <sys/types.h>
+#include <stdint.h>	/* AI-ONLY NOTE: for a Linux host; see btxld.c */
 
 #define BTX_PGSIZE	0x1000		/* Page size */
 #define BTX_PGBASE	0x5000		/* Start of page tables */

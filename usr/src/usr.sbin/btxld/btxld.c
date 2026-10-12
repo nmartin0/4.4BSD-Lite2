@@ -29,9 +29,25 @@ static const char rcsid[] =
   "$FreeBSD$";
 #endif /* not lint */
 
-#include <sys/types.h>
+/*
+ * AI-ONLY NOTE: FreeBSD 4.1's btxld, cut to the one format this tree
+ * uses. sys/boot/i386/boot2 hands it a flat binary and asks for a flat
+ * binary (-f bin), so the a.out and ELF readers in gethdr, the a.out
+ * and ELF headers puthdr wrote, and with them <a.out.h> and elfh.c's
+ * template are gone; gethdr now only takes the file's size, which is
+ * all it took for a binary before. The bytes written for -f bin are
+ * unchanged. What tested the other formats' fields -- IMPURE, the
+ * loader-format and client-origin warnings -- is left as it was and
+ * can no longer fire. -l is needed: the default loader, btxldr, is
+ * not imported.
+ *
+ * It is a host tool, built by build/sysroot.sh, so it is written for
+ * the host's headers: <sys/param.h> for howmany, which FreeBSD's
+ * <sys/types.h> brought in, and btx.h's <stdint.h>.
+ */
+
+#include <sys/param.h>
 #include <sys/stat.h>
-#include <sys/mman.h>
 
 #include <err.h>
 #include <errno.h>
@@ -42,10 +58,7 @@ static const char rcsid[] =
 #include <string.h>
 #include <unistd.h>
 
-#include <a.out.h>
-
 #include "btx.h"
-#include "elfh.h"
 
 #define BTX_PATH		"/sys/boot/i386/btx"
 
@@ -54,9 +67,7 @@ static const char rcsid[] =
 #define I_CLNT	2		/* Client program */
 
 #define F_BIN	0		/* Binary */
-#define F_AOUT	1		/* ZMAGIC a.out */
-#define F_ELF	2		/* 32-bit ELF */
-#define F_CNT	3		/* Number of formats */
+#define F_CNT	1		/* Number of formats */
 
 #define IMPURE	1		/* Writable text */
 #define MAXU32	0xffffffff	/* Maximum unsigned 32-bit quantity */
@@ -74,7 +85,7 @@ struct hdr {
     uint32_t entry;		/* Program entry point */
 };
 
-static const char *const fmtlist[] = {"bin", "aout", "elf"};
+static const char *const fmtlist[] = {"bin"};
 
 static const char binfo[] =
     "kernel: ver=%u.%02u size=%x load=%x entry=%x map=%uM "
@@ -111,7 +122,6 @@ static void cleanup(void);
 static void btxld(const char *);
 static void getbtx(int, struct btx_hdr *);
 static void gethdr(int, struct hdr *);
-static void puthdr(int, struct hdr *);
 static void copy(int, int, size_t, off_t);
 static size_t readx(int, void *, size_t, off_t);
 static void writex(int, const void *, size_t);
@@ -251,7 +261,6 @@ btxld(const char *iname)
 	err(2, "%s", name);
     if (!(tname = strdup(name)))
 	err(2, NULL);
-    puthdr(fdo, &ohdr);
     for (i = I_LDR; i <= I_CLNT; i++) {
 	fname = i == I_LDR ? lname : i == I_BTX ? bname : iname;
 	switch (i) {
@@ -304,17 +313,12 @@ getbtx(int fd, struct btx_hdr * btx)
 }
 
 /*
- * Get file size and read a.out or ELF header.
+ * Get file size.
  */
 static void
 gethdr(int fd, struct hdr *hdr)
 {
     struct stat sb;
-    const struct exec *ex;
-    const Elf32_Ehdr *ee;
-    const Elf32_Phdr *ep;
-    void *p;
-    unsigned int fmt, x, n, i;
 
     memset(hdr, 0, sizeof(*hdr));
     if (fstat(fd, &sb))
@@ -322,102 +326,6 @@ gethdr(int fd, struct hdr *hdr)
     if (sb.st_size > MAXU32)
 	errx(1, "%s: Too big", fname);
     hdr->size = sb.st_size;
-    if ((p = mmap(NULL, hdr->size, PROT_READ, MAP_SHARED, fd,
-		  0)) == MAP_FAILED)
-	err(2, "%s", fname);
-    for (fmt = F_CNT - 1; !hdr->fmt && fmt; fmt--)
-	switch (fmt) {
-	case F_AOUT:
-	    ex = p;
-	    if (hdr->size >= sizeof(struct exec) && !N_BADMAG(*ex)) {
-		hdr->fmt = fmt;
-		x = N_GETMAGIC(*ex);
-		if (x == OMAGIC || x == NMAGIC) {
-		    if (x == NMAGIC)
-			Warn(fname, "Treating %s NMAGIC as OMAGIC",
-			     fmtlist[fmt]);
-		    hdr->flags |= IMPURE;
-		}
-		hdr->text = ex->a_text;
-		hdr->data = ex->a_data;
-		hdr->bss = ex->a_bss;
-		hdr->entry = ex->a_entry;
-		if (ex->a_entry >= BTX_PGSIZE)
-		    hdr->org = BTX_PGSIZE;
-	    }
-	    break;
-	case F_ELF:
-	    ee = p;
-	    if (hdr->size >= sizeof(Elf32_Ehdr) && IS_ELF(*ee)) {
-		hdr->fmt = fmt;
-		for (n = i = 0; i < ee->e_phnum; i++) {
-		    ep = (void *)((uint8_t *)p + ee->e_phoff +
-				  ee->e_phentsize * i);
-		    if (ep->p_type == PT_LOAD)
-			switch (n++) {
-			case 0:
-			    hdr->text = ep->p_filesz;
-			    hdr->org = ep->p_paddr;
-			    if (ep->p_flags & PF_W)
-				hdr->flags |= IMPURE;
-			    break;
-			case 1:
-			    hdr->data = ep->p_filesz;
-			    hdr->bss = ep->p_memsz - ep->p_filesz;
-			    break;
-			case 2:
-			    Warn(fname,
-				 "Ignoring extra %s PT_LOAD segments",
-				 fmtlist[fmt]);
-			}
-		}
-		hdr->entry = ee->e_entry;
-	    }
-	}
-    if (munmap(p, hdr->size))
-	err(2, "%s", fname);
-}
-
-/*
- * Write a.out or ELF header.
- */
-static void
-puthdr(int fd, struct hdr *hdr)
-{
-    struct exec ex;
-    struct elfh eh;
-
-    switch (hdr->fmt) {
-    case F_AOUT:
-	memset(&ex, 0, sizeof(ex));
-	N_SETMAGIC(ex, ZMAGIC, MID_ZERO, 0);
-	hdr->text = N_ALIGN(ex, hdr->text);
-	ex.a_text = hdr->text;
-	hdr->data = N_ALIGN(ex, hdr->data);
-	ex.a_data = hdr->data;
-	ex.a_entry = hdr->entry;
-	writex(fd, &ex, sizeof(ex));
-	hdr->size = N_ALIGN(ex, sizeof(ex));
-	seekx(fd, hdr->size);
-	break;
-    case F_ELF:
-	eh = elfhdr;
-	eh.e.e_entry = hdr->entry;
-	eh.p[0].p_vaddr = eh.p[0].p_paddr = hdr->org;
-	eh.p[0].p_filesz = eh.p[0].p_memsz = hdr->text;
-	eh.p[1].p_offset = eh.p[0].p_offset + eh.p[0].p_filesz;
-	eh.p[1].p_vaddr = eh.p[1].p_paddr = align(eh.p[0].p_paddr +
-						  eh.p[0].p_memsz, 4);
-	eh.p[1].p_filesz = eh.p[1].p_memsz = hdr->data;
-	eh.sh[2].sh_addr = eh.p[0].p_vaddr;
-	eh.sh[2].sh_offset = eh.p[0].p_offset;
-	eh.sh[2].sh_size = eh.p[0].p_filesz;
-	eh.sh[3].sh_addr = eh.p[1].p_vaddr;
-	eh.sh[3].sh_offset = eh.p[1].p_offset;
-	eh.sh[3].sh_size = eh.p[1].p_filesz;
-	writex(fd, &eh, sizeof(eh));
-	hdr->size = sizeof(eh);
-    }
 }
 
 /*
