@@ -167,6 +167,10 @@ copied, and the commit names it with its release.
     and FreeBSD current. This one is a body and not a line: 9 of 20
     lines are NetBSD's, longest identical run 4 -- the stalloc,
     getcwd, savestr, stunalloc core. docs/provenance/pwd.md
+  i386 isa.c: isa_strayintr logs the irq number, and only five times,
+    NetBSD 1.0's intr.c; FreeBSD 2.0 stops at five per irq. Berkeley's
+    took ffs() of the number as if it were a mask and logged every
+    one -- seventeen thousand lines on the console during one install.
 
 ## C -- our judgement, no donor line
 

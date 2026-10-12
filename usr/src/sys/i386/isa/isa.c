@@ -248,7 +248,23 @@ isa_nmi(cd) {
  * Caught a stray interrupt, notify
  */
 isa_strayintr(d) {
+	static u_long strays;
 
 	/* for some reason, we get bursts of intr #7, even if not enabled! */
-	log(LOG_ERR,"ISA strayintr %d", ffs(d)-1);
+	/*
+	 * AI-ONLY NOTE: NetBSD 1.0's intr.c, without its irq -1 case,
+	 * which nothing here passes. d is the irq number -- INTR_TAIL in
+	 * icu.h pushes `unit', 0 to 15 -- not a mask, so ffs(d)-1 printed
+	 * 0 for every odd irq. The likely reason for the bursts is the
+	 * 8259 itself: a request masked in the IMR after it was raised,
+	 * as an spl does, is acknowledged as that controller's lowest
+	 * priority line, 7 on the master or 15 on the slave -- not
+	 * confirmed here beyond the number. Measured under QEMU: irq 15,
+	 * the slave's, which wd0's 14 is on, seventeen thousand times
+	 * while pax extracted from wd0, each one a line on the console.
+	 * FreeBSD 2.0 stops after five too, counting each irq apart.
+	 */
+	if (++strays <= 5)
+		log(LOG_ERR, "stray interrupt %d%s\n", d,
+		    strays >= 5 ? "; stopped logging" : "");
 }
