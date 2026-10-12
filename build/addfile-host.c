@@ -43,6 +43,20 @@
  *	   -I <private include dir> -o addfile-host \
  *	   build/addfile-host.c usr/src/sbin/newfs/mkfs.c
  *	./addfile-host disk.img /path/to/init
+ *
+ * The private include dir holds exactly what fs-host.h says this
+ * tree supplies, and one empty file:
+ *
+ *	inc/ufs			-> usr/src/sys/ufs
+ *	inc/sys/disklabel.h	   copied from usr/src/sys/sys
+ *	inc/a.out.h		   empty -- mkfs.c includes <a.out.h>
+ *				   and uses nothing from it
+ *
+ * It takes pairs, `dir file', and gives each pair a directory of its
+ * own under the root holding that one file: a second pair naming the
+ * same dir makes a second directory, which lookup never reaches. So a
+ * name may be used once. docs/provenance/install.md works within
+ * that.
  */
 #include <sys/param.h>
 #include <sys/types.h>
@@ -120,7 +134,7 @@ main(int argc, char **argv)
 	ufs_daddr_t *indir, blkno;
 	char *dirname, *filepath, *entname;
 	char devbuf[64];
-	int isdev, devmaj, devmin;
+	int isdev, devmaj, devmin, devblk;
 	ino_t dirino, fileino;
 	int arg;
 	int fd, pfd, ifd, n, i, nblk, bsz;
@@ -241,6 +255,7 @@ main(int argc, char **argv)
 	 * file below is that the block loop does not run.
 	 */
 	isdev = 0;
+	devblk = 0;
 	if (strchr(filepath, ':') != NULL) {
 		char *q;
 
@@ -248,10 +263,11 @@ main(int argc, char **argv)
 		devbuf[sizeof devbuf - 1] = '\0';
 		q = strchr(devbuf, ':');
 		*q++ = '\0';
-		if (*q != 'c' || q[1] != ':' ||
+		devblk = (*q == 'b');
+		if ((*q != 'c' && *q != 'b') || q[1] != ':' ||
 		    (q = strchr(q + 2, ':')) == NULL) {
 			fprintf(stderr, "addfile-host: %s: want "
-			    "name:c:major:minor, character devices only\n",
+			    "name:c:major:minor or name:b:major:minor\n",
 			    filepath);
 			return (1);
 		}
@@ -311,19 +327,40 @@ main(int argc, char **argv)
 	cp = (char *)dp + dp->d_reclen;
 	dp = (struct direct *)cp;
 	dp->d_ino = fileino;
-	dp->d_type = isdev ? DT_CHR : DT_REG;
+	dp->d_type = isdev ? (devblk ? DT_BLK : DT_CHR) : DT_REG;
 	dp->d_namlen = strlen(entname);
 	strcpy(dp->d_name, entname);
-	dp->d_reclen = bsz - (cp - buf);
+	/*
+	 * AI-ONLY NOTE: DIRBLKSIZ, not bsz. A directory entry may not
+	 * cross a DIRBLKSIZ boundary: each 512-byte chunk of a directory
+	 * stands alone, and the last entry in a chunk runs to the end of
+	 * that chunk and no further. This wrote one fs_bsize directory,
+	 * 8192 bytes, whose third entry ran 8168 bytes to the end of it.
+	 *
+	 * The kernel's lookup never noticed -- without DIAGNOSTIC,
+	 * ufs_lookup.c:57 sets dirchk to 0 and it walks d_reclen
+	 * unchecked, so /bin/sh and /dev/console were found -- but
+	 * libc's readdir stops on a record longer than what is left of
+	 * its chunk, so every directory this made read as empty:
+	 * `echo /bin/*' printed `/bin/*', while `echo /*', over the root
+	 * mkfs built, listed it. And files that pax extracted into /bin
+	 * could not be found afterwards.
+	 *
+	 * mkfs.c's own makedir() is the model, and fsinit() its use for
+	 * the root: entries packed into one DIRBLKSIZ, the last taking
+	 * what is left of it, di_size DIRBLKSIZ, and one fragment
+	 * allocated and written.
+	 */
+	dp->d_reclen = DIRBLKSIZ - (cp - buf);
 
 	memset((char *)&node, 0, sizeof node);
 	node.di_atime = node.di_mtime = node.di_ctime = utime;
 	node.di_mode = IFDIR | 0755;
 	node.di_nlink = 2;
-	node.di_size = bsz;
-	node.di_db[0] = alloc(bsz, node.di_mode);
-	node.di_blocks = btodb(fragroundup(&sblock, bsz));
-	wtfs(fsbtodb(&sblock, node.di_db[0]), bsz, buf);
+	node.di_size = DIRBLKSIZ;
+	node.di_db[0] = alloc(sblock.fs_fsize, node.di_mode);
+	node.di_blocks = btodb(fragroundup(&sblock, node.di_size));
+	wtfs(fsbtodb(&sblock, node.di_db[0]), sblock.fs_fsize, buf);
 	iput(&node, dirino);
 	say("addfile-host: /%s, inode %d, block %d\n",
 	    dirname, (int)dirino, node.di_db[0]);
@@ -350,12 +387,21 @@ main(int argc, char **argv)
 	node.di_nlink = 1;
 	node.di_blocks = 0;
 	if (isdev) {
-		node.di_mode = IFCHR | 0666;
+		/*
+		 * AI-ONLY NOTE: a block device as well, `name:b:major:
+		 * minor', for the root partition that `mount -u /' must
+		 * name: ffs_mount refuses an update whose device is not
+		 * VBLK, and mount(8) takes it from /etc/fstab. The numbers
+		 * are etc/etc.i386/MAKEDEV's again -- its wd case at :94
+		 * and :98, `mknod wd${unit}a b 0 ...', block major 0.
+		 */
+		node.di_mode = (devblk ? IFBLK : IFCHR) | 0666;
 		node.di_size = 0;
 		node.di_rdev = (devmaj << 8) | devmin;
 		iput(&node, fileino);
-		say("addfile-host: /%s/%s, inode %d, char %d/%d\n",
-		    dirname, entname, (int)fileino, devmaj, devmin);
+		say("addfile-host: /%s/%s, inode %d, %s %d/%d\n",
+		    dirname, entname, (int)fileino, devblk ? "block" : "char",
+		    devmaj, devmin);
 		goto rootent;
 	}
 	node.di_mode = IFREG | 0755;

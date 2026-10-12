@@ -32,10 +32,16 @@
  * asserted at startup the way mklabel.c prints its own.
  *
  * Build and use:
- *	cc -m32 -w -I usr/src/sbin/newfs \
- *	   -I $L2_BUILD/root/usr/include -o mkfs-host \
+ *	cc -m32 -w -include build/fs-host.h -I usr/src/sbin/newfs \
+ *	   -I <private include dir> -o mkfs-host \
  *	   build/mkfs-host.c usr/src/sbin/newfs/mkfs.c
  *	./mkfs-host disk.img
+ *
+ * with the private include dir build/addfile-host.c describes. An
+ * earlier form of this note gave -I $L2_BUILD/root/usr/include
+ * instead, which links against nothing: that is the tree's own
+ * <stdio.h>, whose stdout is &__sF[1], and glibc has no __sF --
+ * the collision build/fs-host.h was written to avoid.
  *
  * after build/mklabel.c has written the label, since the geometry and
  * the a partition are read back from it.
