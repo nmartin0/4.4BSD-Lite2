@@ -216,6 +216,7 @@ removed them -- they were never written.
 ## E -- a reimplementation of something the Lite cut removed
 
 	lib/libcompat/4.3/regex.c   93 lines	NetBSD 1.0
+	bin/expr			679 lines	NetBSD 1.0, unmodified
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
@@ -240,6 +241,37 @@ Not acted on. The file is Berkeley's own copyright, a correct shim
 would look like it, and rewriting correct code to shorten a list is
 churn. Recorded so that the next file considered for import is asked
 the question first: does this tree already have both sides of it?
+
+**bin/expr** is expr.y, expr.1 and the Makefile, byte for byte as
+NetBSD's netbsd-1-0 branch has them. Berkeley's expr was AT&T's and
+went with the settlement; this one says it was written by Pace
+Willisson, placed in the public domain, and largely rewritten by J.T.
+Conklin. The manual page is separate work, copyright Winning
+Strategies, Inc. 1993, under a four-clause licence whose third clause
+asks for an acknowledgement in advertising, as Berkeley's own did.
+
+The survey, all read and the yacc ones built here under GCC 14:
+
+	NetBSD 1.0	expr.y	builds unmodified
+	FreeBSD 2.0	expr.y	the same file, plus an unused %left
+				UNARY and <sys/types.h>; drops the
+				free(vp) in free_value, a leak, and
+				an (int) cast in op_colon
+	FreeBSD 2.0.5	expr.y	2.0's, plus a yyparse declaration,
+				less an unused local
+	NetBSD 1.1	expr.c	hand-written, no yacc
+	OpenBSD now	expr.c	NetBSD 1.1's, carried forward
+	NetBSD now	expr.y	a 2000 rewrite
+	FreeBSD now	expr.y	the 1993 file, much grown
+
+NetBSD 1.0 is the earliest, needs nothing changed, and is the release
+every other choice in this file prefers. Nothing was cut from it,
+because nothing in it is unused here: it is one grammar and the
+operators POSIX names. It needs a yacc, and build/make.sh's is byacc.
+
+Tested on the system: `expr 3 + 4`, `expr abc : 'a\(.*\)'`,
+`expr 6 \* 7` and `expr 7 / 0` (status 2, "division by zero"), and
+MAKEDEV's `expr $unit '*' 8 + 0` for every wd0 minor.
 
 ## F -- Berkeley's own file, restored
 
@@ -285,7 +317,8 @@ These are refusals, not omissions. Each one gives up something.
   The twenty-five programs the SUBDIR lists name
 	ed, expr, bc, dc, spell, learn, at, cron, sa, compress and the
 	rest, all proprietary-marked or patent-encumbered. Several
-	BSDs wrote their own.
+	BSDs wrote their own. expr has since been taken, NetBSD 1.0's
+	(kind E above), because MAKEDEV cannot make a disk without it.
 	Cost: no editor, no calculator, no scheduler, no compression.
 
   usr.bin/vacation's libdbm and the fourteen games

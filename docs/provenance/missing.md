@@ -88,6 +88,11 @@ ones those projects rewrote from nothing after the lawsuit: their own
 ed, expr, at, cron and sa. compress is there because they were willing
 to carry the LZW patent, which Berkeley was not.
 
+expr has since been restored: `bin/expr` is NetBSD 1.0's, unmodified,
+and `docs/provenance/imports.md` records why that one (kind E).
+MAKEDEV computes every disk minor with it, so without it `sh MAKEDEV
+wd0` makes nothing.
+
 Also named and absent, in directories whose lists were trimmed so that
 what is present would build:
 
@@ -451,9 +456,10 @@ which returns null because its body is one of these.
 
 ## What is not being done
 
-None of the above is being restored. This fork is 4.4BSD-Lite2 as
-Berkeley shipped it, built with a modern toolchain; taking ed, expr,
-at, cron, sa and compress from NetBSD or FreeBSD would make it a
-hybrid of this tree and theirs. Where a missing file blocks something
-that is here -- zopen.c did, kvm_i386.c does -- that is decided one
-file at a time, and recorded.
+None of the above is being restored wholesale. This fork is
+4.4BSD-Lite2 as Berkeley shipped it, built with a modern toolchain;
+taking ed, at, cron, sa and compress from NetBSD or FreeBSD would make
+it a hybrid of this tree and theirs. Where a missing file blocks
+something that is here -- zopen.c did, kvm_i386.c does, expr's absence
+left MAKEDEV unable to make a disk -- that is decided one program at a
+time, and recorded.
