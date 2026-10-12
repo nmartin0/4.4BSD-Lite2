@@ -191,7 +191,20 @@ void		pmap_clear_modify();
 /*
  * All those kernel PT submaps that BSD is so fond of
  */
-struct pte	*CMAP1, *CMAP2, *mmap;
+/*
+ * AI-ONLY NOTE: XXX_mmap, where Berkeley wrote mmap: a pointer to the
+ * PTE behind vmmap, which mem.c uses for /dev/mem, and a name the
+ * mmap(2) system call in vm/vm_mmap.c also has. Built -fcommon, the
+ * uninitialised variable is a common symbol, and the linker resolved
+ * it to the function, without a word; pmap_bootstrap's SYSMAP then
+ * stored a PTE address into the first four bytes of mmap()'s code,
+ * and every mmap(2) after boot executed that address as instructions:
+ * its low byte, 0xcc, is int3, and the kernel panicked with `trap
+ * type 3'. Nothing else refers to the variable by name.
+ * NetBSD 1.0 renamed it XXX_mmap, FreeBSD 2.0 ptmmap; NetBSD's name
+ * is taken. No other common symbol in this kernel resolves to code.
+ */
+struct pte	*CMAP1, *CMAP2, *XXX_mmap;
 caddr_t		CADDR1, CADDR2, vmmap;
 struct pte	*msgbufmap;
 struct msgbuf	*msgbufp;
@@ -285,7 +298,7 @@ printf("ps %x pe %x ", firstaddr, maxmem <<PG_SHIFT);
 
 	SYSMAP(caddr_t		,CMAP1		,CADDR1	   ,1		)
 	SYSMAP(caddr_t		,CMAP2		,CADDR2	   ,1		)
-	SYSMAP(caddr_t		,mmap		,vmmap	   ,1		)
+	SYSMAP(caddr_t		,XXX_mmap	,vmmap	   ,1		)
 	SYSMAP(struct msgbuf *	,msgbufmap	,msgbufp   ,1		)
 	virtual_avail = va;
 #endif

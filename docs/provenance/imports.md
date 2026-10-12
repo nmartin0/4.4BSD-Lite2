@@ -167,6 +167,11 @@ copied, and the commit names it with its release.
     and FreeBSD current. This one is a body and not a line: 9 of 20
     lines are NetBSD's, longest identical run 4 -- the stalloc,
     getcwd, savestr, stunalloc core. docs/provenance/pwd.md
+  i386 pmap.c: XXX_mmap for Berkeley's PTE pointer `mmap', NetBSD 1.0
+    (FreeBSD 2.0 calls it ptmmap). As a common symbol the variable
+    was resolved to the mmap(2) function, and pmap_bootstrap wrote a
+    PTE address over that function's first four bytes: every mmap
+    call panicked with `trap type 3'.
   i386 isa.c: isa_strayintr logs the irq number, and only five times,
     NetBSD 1.0's intr.c; FreeBSD 2.0 stops at five per irq. Berkeley's
     took ffs() of the number as if it were a mask and logged every
