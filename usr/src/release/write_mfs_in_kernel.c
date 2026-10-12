@@ -12,6 +12,17 @@
  * option.
  */
 
+/*
+ * AI-ONLY NOTE: built on the host, by build/sysroot.sh, which has no
+ * <ufs/ffs/fs.h>. SBOFF is that header's, 8192 -- BBOFF 0 plus BBSIZE
+ * 8192 -- written out, the one thing this takes from it. <string.h>
+ * for strcmp and memcpy, which the original left to implicit
+ * declarations, and the usage message is given the program name its
+ * %s asks for. And an image no larger than SBOFF, or not smaller than
+ * the kernel, is refused before the two loops below, whose bounds
+ * are unsigned differences of the sizes and would wrap.
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -19,7 +30,9 @@
 #include <sys/types.h>
 #include <sys/param.h>
 #include <sys/stat.h>
-#include <ufs/ffs/fs.h>
+#include <string.h>
+
+#define	SBOFF	8192
 
 main(int argc, char **argv)
 {
@@ -29,7 +42,7 @@ main(int argc, char **argv)
 	u_long l;
 
 	if (argc < 3) {
-		fprintf(stderr,"Usage:\n\t%s kernel fs\n");
+		fprintf(stderr,"Usage:\n\t%s kernel fs\n", argv[0]);
 		exit(2);
 	}
 	fd_kernel = open(argv[1],O_RDWR);
@@ -46,6 +59,10 @@ main(int argc, char **argv)
 		{ perror(argv[1]); exit(2); }
 	if (st_fs.st_size != read(fd_fs,buf_fs,st_fs.st_size))
 		{ perror(argv[2]); exit(2); }
+	if (st_fs.st_size <= SBOFF || st_fs.st_size >= st_kernel.st_size) {
+		fprintf(stderr,"%s: wrong size for %s\n",argv[2],argv[1]);
+		exit(1);
+	}
 	for(l=0,p=buf_kernel; l < st_kernel.st_size - st_fs.st_size ; l++,p++ )
 		if(*p == 'M' && !strcmp(p,"MFS Filesystem goes here"))
 			goto found;
