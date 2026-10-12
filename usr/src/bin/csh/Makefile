@@ -39,6 +39,13 @@ const.h: const.c
 	    sed -e 's/Char \([a-zA-Z0-9_]*\)\(.*\)/extern Char \1[];/' | \
 	    sort >> $@
 
-.depend: const.h err.h 
+# AI-ONLY NOTE: alloc.o as well as .depend, NetBSD 1.0's line in its
+# bin/csh/Makefile. 4.4BSD made const.h and err.h during `make depend';
+# this tree's build runs `make' with no depend pass, so csh.c's
+# `#include "const.h"' found nothing: `const.h: No such file or
+# directory'. alloc.o is the first object bmake builds, SRCS being in
+# that order, so the headers exist before any file that includes them
+# is compiled.
+.depend alloc.o: const.h err.h
 
 .include <bsd.prog.mk>
