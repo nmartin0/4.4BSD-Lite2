@@ -48,16 +48,18 @@
 #   3. Host tools, in ${L2_BUILD}/tools/bin. First install, which is
 #      build/install.sh and is put there before the headers are
 #      installed, since every install a Makefile runs through
-#      build/make.sh from here on goes through it. Then five from this
+#      build/make.sh from here on goes through it. Then six from this
 #      tree's own sources: lorder, from usr.bin/lorder/lorder.sh,
 #      which bsd.lib.mk runs to order an archive and which the host
 #      does not have; mkdep, for the same reason; yacc, because the
 #      packaged byacc reads these grammars but writes a yylex
 #      declaration this tree's own yacc does not; config, which
-#      the kernel build runs; and btxld, which sys/boot/i386/boot2
-#      runs to join boot2 to BTX. NetBSD 1.6's build.sh installs its own
-#      tree's lorder the same way, as nblorder, and builds its own
-#      yacc as nbyacc. Each carries its reasoning at its site below.
+#      the kernel build runs; btxld, which sys/boot/i386/boot2
+#      runs to join boot2 to BTX; and write_mfs_in_kernel, which puts
+#      a root filesystem into an install kernel. NetBSD 1.6's
+#      build.sh installs its own tree's lorder the same way, as
+#      nblorder, and builds its own yacc as nbyacc. Each carries its
+#      reasoning at its site below.
 #
 #   4. The libraries named in $libs, by their own all and install
 #      targets, in that order: libc, libutil, libterm, libcurses,
@@ -241,6 +243,13 @@ $HOSTCC -w -fcommon -include sys/sysmacros.h -I. -I"$C" \
 # for glibc's asprintf.
 # shellcheck disable=SC2086  # HOSTCC carries its own flags
 $HOSTCC -w -D_GNU_SOURCE -o "$TOOLS/btxld" "$SRC/usr.sbin/btxld/btxld.c"
+
+# write_mfs_in_kernel, for an install kernel: it writes a filesystem
+# image into a kernel built with options MFS_ROOT, here, after the link,
+# as FreeBSD 2.0.5's release build did.
+# shellcheck disable=SC2086  # HOSTCC carries its own flags
+$HOSTCC -w -o "$TOOLS/write_mfs_in_kernel" \
+    "$SRC/release/write_mfs_in_kernel.c"
 
 for lib in $libs; do
 	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
