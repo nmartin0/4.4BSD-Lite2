@@ -290,10 +290,39 @@ a UFS root through the BIOS, under BTX, a small protected-mode
 supervisor that makes the BIOS calls in virtual-8086 mode; they load
 each segment at its physical address, so the kernel was first moved
 to 1 MB, as every descendant's i386 kernel had been before Lite2
-shipped (commit *i386: the kernel at physical 1 MB*). NetBSD's i386
-boot programs read only a.out until 1.4 (1999), and come with
-NetBSD's stand-alone library beneath them; 4.1's boot2.c is 805
-lines with nothing beneath it but BTX.
+shipped (commit *i386: the kernel at physical 1 MB*); 4.1's boot2.c
+is 805 lines with nothing beneath it but BTX.
+
+The lineage, and why none of it was taken. The i386 BSDs' common
+loader through the Lite2 years was the CMU Mach boot Julian Elischer
+ported to 386BSD in the 1992 patchkit (sys.386bsd/i386/boot, its
+README.386BSD: "uses the BIOS to load the kernel"): NetBSD 0.9 to
+1.2 shipped it as sys/arch/i386/boot, FreeBSD 1.0 to 4.7 as
+sys/i386/boot, its biosboot directory from 2.0. It reads a.out only, in every release --
+FreeBSD 3.0's sys/Makefile calls it "the old aout only boot loader"
+-- so it would need an ELF loader written for it. Lite2's own
+sys/i386/stand, Jolitz's, drives the disk controllers itself, which
+an emulated CD floppy does not have. Every loader that reads ELF is
+new code of 1997-2003: Nordier's boot2 (FreeBSD 3.0, 1998);
+Matthias Drochner's libsa-based NetBSD boot, new in 1.3 (1997),
+reading ELF from 1.4 (1999); OpenBSD's, ELF from 2003, for 3.4.
+
+NetBSD 1.4's was tried before this choice was confirmed. Built with
+GCC 14 from netbsd-1-4 -- two flags, -fno-reorder-functions and
+-fno-aggressive-loop-optimizations, and 22 assembler lines respelt --
+it booted this tree's disk to the login prompt, and passes the same
+howto and bootdev through its COMPAT_OLDBOOT path. Not taken: it is
+105 files and some 14,700 lines against FreeBSD's 3,240, and built
+against NetBSD's own headers; it is 44 KB, of which 7.5 KB fits the
+boot area and the rest is a /boot file found through a block list
+that installboot writes, and installboot is a NetBSD program that
+mounts the filesystem and asks for the label by ioctl, so it does not
+run on the build host and nothing here could stand in for it without
+writing one; and its third argument to the kernel, where this kernel
+reads cyloffset, is the address of NetBSD's bootinfo, harmless only
+because wd.c ignores a value that large. FreeBSD's fits the 8 KB
+boot area and is installed with dd, by disklabel -B, or into a
+floppy image for El Torito.
 
 FreeBSD 3.0 was the first release with them, and is not the one
 taken: its btx.s and boot1.s were written for the assembler of the
@@ -323,9 +352,10 @@ is the two-clause BSD licence.
 **A root inside the kernel.** Berkeley's MFS already has a miniroot:
 mfs_initminiroot() takes a filesystem in memory and makes it the root,
 and pmax and news3400 call it for an image their boot program loads
-after the kernel. boot2 loads one file, so the image goes inside the
-kernel instead, which is what FreeBSD 2.0.5's boot floppy did: an
-initialised array, `options MFS_ROOT=n` KB, marked by a string, and
+after the kernel (pmax/stand/mkboottape.c; share/doc/smm/01.setup/
+2.t). boot2 loads one file, so the image goes inside the kernel
+instead, which is what FreeBSD's boot floppy did from 2.0.5 (June
+1995) and, unchanged, in 2.1.0 (January 1996): an initialised array, `options MFS_ROOT=n` KB, marked by a string, and
 Poul-Henning Kamp's write_mfs_in_kernel to write an image over it
 after the link. Taken: the three declarations of the array and the
 call to mfs_initminiroot in configure(), and the program, under its
@@ -333,10 +363,18 @@ own beer-ware licence, with SBOFF written out and <string.h> added so
 it builds on the host, and a size check added before its loops.
 Setting RB_DFLTROOT with a miniroot is Berkeley's, from pmax.
 
-NetBSD 1.0 kept Berkeley's pmax miniroot and had none for the i386;
-1.1 added a RAM-disk driver, sys/dev/ramdisk.c, a device rather than
-this. The image itself is made with the host's makefs, NetBSD's,
-as mtree is.
+Why not the i386's own precedents. Every i386 install medium of the
+Lite2 years kept its root on the floppy it booted from: Berkeley's
+sys/i386/floppy in Lite2 itself (1993, 31 small programs), FreeBSD
+1.x's kernel-copy and filesystem floppies, NetBSD 1.0 to 1.2's
+install floppies, FreeBSD 2.0's boot floppy. A kernel booted from a
+CD in floppy emulation cannot read that floppy: the emulation is the
+BIOS's, and the kernel's fd driver talks to the controller. The root
+has to be in memory. NetBSD reached that with a RAM-disk driver,
+sys/dev/ramdisk.c in 1.1 (for the sun3) and md and mdsetimage for
+the i386 in 1.3; OpenBSD with its ramdisk floppies of 1997. Each is a
+block driver beside MFS; FreeBSD's is MFS, which Lite2 has. The image
+itself is made with the host's makefs, NetBSD's, as mtree is.
 
 ## E -- a reimplementation of something the Lite cut removed
 
