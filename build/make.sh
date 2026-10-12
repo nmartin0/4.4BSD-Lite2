@@ -56,10 +56,27 @@
 #		already exists, so the one for the current directory is
 #		created here.
 #   PATH	${L2_BUILD}/tools/bin first, for the host tools
-#		sysroot.sh installs there (lorder).
-#   BINOWN, BINGRP, LIBOWN, LIBGRP, LIBMODE
-#		the building user, and libraries writable: install makes
-#		them 444 and then runs ranlib -t, which writes.
+#		sysroot.sh installs there: lorder, mkdep, yacc, config,
+#		and install, build/install.sh, which turns the owners and
+#		groups the Makefiles name into this tree's numbers when
+#		run as root and drops them otherwise.
+#   LIBMODE	libraries writable: install makes them 444 and then
+#		runs ranlib -t, which writes.
+#
+#   BINOWN, BINGRP, LIBOWN, LIBGRP
+#		unprivileged, the building user, as before: a few
+#		Makefiles run chown ${BINOWN}.${BINGRP} directly, not
+#		through install -- include/Makefile's header loops, and
+#		lib/librpc/rpc's without a `-' -- and only the building
+#		user can be given there. As root, or under fakeroot,
+#		the numbers of this tree's bin user and group, which is
+#		what bsd.prog.mk and bsd.lib.mk default them to by
+#		name: a number means the same to the host's chown as
+#		to build/install.sh. A Makefile's own BINGRP= kmem
+#		still overrides them, and the wrapper turns it into
+#		this tree's kmem. Names a Makefile writes into a chown
+#		of its own -- games.bin, in a few places -- are still
+#		the host's.
 #   HOSTCC	cc for programs the build runs here rather than on the
 #		target: bin/sh compiles mkinit, mknodes and mksyntax and
 #		runs them to generate source.
@@ -267,10 +284,16 @@ MAKEFLAGS="-m $MKDIR${MAKEFLAGS:+ $MAKEFLAGS}"
 DESTDIR="$ROOT"
 MAKEOBJDIRPREFIX="$OBJ"
 PATH="$TOOLS:$PATH"
-BINOWN=$(id -un)
-BINGRP=$(id -gn)
+if [ "$(id -u)" -ne 0 ]; then
+	BINOWN=$(id -un)
+	BINGRP=$(id -gn)
+else
+	BINOWN=$(awk -F: '$1 == "bin" { print $3 }' "$SRC/etc/master.passwd")
+	BINGRP=$(awk -F: '$1 == "bin" { print $3 }' "$SRC/etc/group")
+fi
 LIBOWN="$BINOWN"
 LIBGRP="$BINGRP"
+export BINOWN BINGRP LIBOWN LIBGRP
 LIBMODE=644
 CC="gcc -m32 -std=gnu89 -fcommon -fno-builtin -fno-stack-protector -fno-pic"
 CC="$CC -static"
@@ -287,6 +310,6 @@ YACC="byacc"
 AS="as --32"
 LD="ld -m elf_i386"
 export LC_ALL MACHINE MAKEFLAGS DESTDIR MAKEOBJDIRPREFIX PATH
-export BINOWN BINGRP LIBOWN LIBGRP LIBMODE CC CPP AS LD HOSTCC YACC
+export LIBMODE CC CPP AS LD HOSTCC YACC
 
 exec bmake "$@"

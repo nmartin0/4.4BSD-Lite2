@@ -45,15 +45,18 @@
 #      One message is expected: "install: cannot stat 'mp.h'". FILES
 #      lists the header of libmp, which Lite2 removed.
 #
-#   3. Host tools, in ${L2_BUILD}/tools/bin, all three from this
+#   3. Host tools, in ${L2_BUILD}/tools/bin. First install, which is
+#      build/install.sh and is put there before the headers are
+#      installed, since every install a Makefile runs through
+#      build/make.sh from here on goes through it. Then four from this
 #      tree's own sources: lorder, from usr.bin/lorder/lorder.sh,
 #      which bsd.lib.mk runs to order an archive and which the host
-#      does not have; yacc, because the packaged byacc reads these
-#      grammars but writes a yylex declaration this tree's own yacc
-#      does not; and config, which the kernel build runs. NetBSD
-#      1.6's build.sh installs its own tree's lorder the same way, as
-#      nblorder, and builds its own yacc as nbyacc. Each of the three
-#      carries its reasoning at its site below.
+#      does not have; mkdep, for the same reason; yacc, because the
+#      packaged byacc reads these grammars but writes a yylex
+#      declaration this tree's own yacc does not; and config, which
+#      the kernel build runs. NetBSD 1.6's build.sh installs its own
+#      tree's lorder the same way, as nblorder, and builds its own
+#      yacc as nbyacc. Each carries its reasoning at its site below.
 #
 #   4. The libraries named in $libs, by their own all and install
 #      targets, in that order: libc, libutil, libterm, libcurses,
@@ -86,9 +89,10 @@
 #
 # WHAT IT DOES NOT DO
 #
-#   Ownership in the root is the building user's, not root and bin.
-#   That is enough to compile against; a disk image will need the real
-#   ownership recorded separately.
+#   Ownership in the root is the building user's when this runs
+#   unprivileged: build/install.sh drops -o and -g then. Run as root,
+#   or under fakeroot, it is the tree's own -- bin, kmem, operator --
+#   as numbers from etc/master.passwd and etc/group.
 #
 #   Not the whole of lib/. Eleven libraries are built; the rest are
 #   added one at a time as each is tried. Nor any program: this fills
@@ -160,6 +164,14 @@ mkdir -p "$ROOT"
 printf '%s\n' "sysroot.sh: hierarchy -> $ROOT"
 mtree -N "$SRC/etc" -W -def "$SRC/etc/mtree/4.4BSD.dist" -p "$ROOT" -u \
     >/dev/null
+
+# install, before anything is installed: build/install.sh, with the
+# tree's etc directory written in. make.sh puts this directory first
+# on PATH, so every Makefile's install comes through it; its head says
+# what it changes and why.
+mkdir -p "$TOOLS"
+sed "s|@ETC@|$SRC/etc|" "$REPO_ROOT/build/install.sh" > "$TOOLS/install"
+chmod 755 "$TOOLS/install"
 
 printf '%s\n' "sysroot.sh: headers -> $ROOT/usr/include"
 cd "$SRC/include"
