@@ -465,7 +465,22 @@ kvm_argv(kd, p, addr, narg, maxcnt)
 	 * Check that there aren't an unreasonable number of agruments,
 	 * and that the address is in user space.
 	 */
-	if (narg > 512 || addr < VM_MIN_ADDRESS || addr >= VM_MAXUSER_ADDRESS)
+	/*
+	 * AI-ONLY NOTE: USRSTACK, where this read VM_MAXUSER_ADDRESS,
+	 * here and in the page loop below. The argument strings sit just
+	 * under PS_STRINGS, which <sys/exec.h> puts just under USRSTACK
+	 * and kvm_doargv below reads at USRSTACK - sizeof(arginfo). On
+	 * the i386 Berkeley put USRSTACK a page above
+	 * VM_MAXUSER_ADDRESS -- 0xEFBFE000 against 0xEFBFD000 here,
+	 * 0xFDBFE000 against 0xFDBFD000 as shipped -- so every string
+	 * fell in the page this test refused, and ps found no
+	 * arguments for any process. NetBSD 1.0 and FreeBSD 2.0 keep
+	 * the test and define USRSTACK as VM_MAXUSER_ADDRESS. In this
+	 * tree the two are equal on mips, pmax, news3400 and sparc,
+	 * where nothing changes; hp300 and luna68k put USRSTACK above
+	 * VM_MAXUSER_ADDRESS as the i386 does.
+	 */
+	if (narg > 512 || addr < VM_MIN_ADDRESS || addr >= USRSTACK)
 		return (0);
 
 	if (kd->argv == 0) {
@@ -497,7 +512,7 @@ kvm_argv(kd, p, addr, narg, maxcnt)
 	/*
 	 * Loop over pages, filling in the argument vector.
 	 */
-	while (addr < VM_MAXUSER_ADDRESS) {
+	while (addr < USRSTACK) {
 		cc = NBPG - (addr & PGOFSET);
 		if (maxcnt > 0 && cc > maxcnt - len)
 			cc = maxcnt - len;;
