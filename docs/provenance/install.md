@@ -198,7 +198,8 @@ whole of it archived.
 	    usr.bin/head usr.bin/tail usr.bin/env usr.bin/uname usr.bin/w \
 	    usr.bin/xinstall usr.bin/sed usr.bin/tset usr.sbin/sysctl \
 	    usr.sbin/quotaon usr.sbin/accton usr.sbin/timed usr.sbin/lpr \
-	    usr.sbin/inetd usr.sbin/portmap usr.sbin/amd usr.bin/cap_mkdb
+	    usr.sbin/inetd usr.sbin/portmap usr.sbin/amd usr.bin/cap_mkdb \
+	    usr.bin/script usr.sbin/pstat
 	do
 		(cd usr/src/$d && sh "$r/build/make.sh" \
 		    depend all install NOMAN=noman)
@@ -216,8 +217,13 @@ whole of it archived.
 
 `NOMAN` because there is no nroff. Run as root, or under fakeroot,
 for the tree's owners and groups: build/install.sh, which every
-Makefile's install goes through, turns `bin`, `kmem`, `operator` and
-the rest into this tree's numbers, and drops them unprivileged. It
+Makefile's `install' goes through, turns `bin`, `kmem`, `operator`
+and the rest into this tree's numbers, and drops them unprivileged;
+and make.sh gives BINOWN and BINGRP as bin's numbers, so the few
+Makefiles that run chown themselves get them too. Still the host's:
+a name a Makefile writes into its own chown (games.bin), and
+SHARED=copies, which copies the headers with pax -pa and so with the
+source tree's owners. It
 also drops `-fschg`, a 4.4BSD file flag rcp's Makefile asks for and a
 Linux filesystem cannot hold; an earlier form of this recipe passed
 `INSTALLFLAGS=` for that.
@@ -351,8 +357,8 @@ system call; none stops it.
   written for this project, kern/kern_exec.c -- copies the arguments
   but never fills ps_strings in. Recorded in docs/roadmap.md.
 - **MAKEDEV's majors are partly wrong for this kernel.** Its `pty`
-  case makes `c 4` and `c 5` where conf.c has 5 and 6 (4 is drum,
-  which `std` also gives 4). `std` makes stdin, stdout, stderr and
+  case made `c 4` and `c 5` where conf.c has 5 and 6 (4 is drum,
+  which `std` also gives 4) -- fixed since; see *Pseudo-terminals*. `std` makes stdin, stdout, stderr and
   fd/ at major 53, which the i386 cdevsw, ending at 14, does not have;
   fd/ needs awk, which there is none of; and `chown` is looked for in
   /bin and /usr/bin and lives in /usr/sbin.
@@ -396,8 +402,8 @@ read ELF*; `docs/provenance/imports.md`, kind D, has the survey.
 **12. tset died at every login.** `.login` runs `tset -Q \?$TERM`;
 with an unknown terminal libterm's tgetent() freed an uninitialised
 pointer. Commit *libterm: tgetent starts its entry pointer at NULL*,
-as NetBSD 1.0 and FreeBSD 2.0 do. tset now asks again, because there
-is still no /usr/share/misc/termcap -- see below.
+as NetBSD 1.0 and FreeBSD 2.0 do. tset then asked again, because
+there was no /usr/share/misc/termcap yet -- see below.
 
 Afterwards, at boot: `savecore: no core dump`, a fresh
 `/var/db/kvm_vmunix.db`, and `Terminal type? [unknown]`, which a
@@ -415,8 +421,9 @@ Still reported by /etc/rc, and why:
 - `ifconfig: ... no such interface` seven times: netstart configures
   ace0, ex0, imp0, le0, ne0, we0 and en0. Five are not in this
   configuration; ne0 and we0 are, and their probes find no card.
-- `chmod: /dev/tty[pqrs]*`: no ptys; MAKEDEV's pty majors are wrong
-  (above).
+- `chmod: /dev/tty[pqrs]*`: no ptys. The kernel has them since and
+  MAKEDEV's majors are right, but `MAKEDEV pty0' needs awk; see
+  *Pseudo-terminals*.
 - `accton: /var/account/acct`: the file is not made by etc/Makefile.
 - `timed` prints its usage: rc passes it `$timedflags` from netstart,
   which is `YES`, a switch and not an option.
@@ -444,3 +451,21 @@ completed with the right checksum and swap showed 3284 KB in use. The
 kernel finds b by itself: i386/swapgeneric.c makes the swap device the
 root's minor plus one, and autoconf.c sizes it from the label.
 
+# Pseudo-terminals
+
+LINK.i386 now configures `pseudo-device pty 16', which GENERIC.i386
+lacked and every other port's GENERIC has, and MAKEDEV's pty case makes
+ttyXX at character major 5 and ptyXX at 6, where conf.c has them; it
+had 4 and 5, drum's major and the slaves'. Measured with nodes made by
+hand:
+
+	myname# script /tmp/s
+	Script started, output file is /tmp/s
+	myname# tty; echo through-a-pty
+	/dev/ttyp0
+	through-a-pty
+
+By hand, because `sh MAKEDEV pty0' generates its mknod lines with
+awk, and this tree has no awk: 4.4BSD-Lite's was AT&T's and went with
+the settlement. MAKEDEV std's fd/ wants it too. Recorded in
+docs/roadmap.md.

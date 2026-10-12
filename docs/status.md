@@ -12,7 +12,8 @@ On QEMU's `pc` machine, with the kernel loaded by `build/shim`:
   `pax`. Then `pwd_mkdb`, `cap_mkdb`, `MAKEDEV std wd0` and an fstab.
 - **Multi-user.** It reboots without `-s`: `fsck -p` finds the root
   clean, /etc/rc runs to the end, getty prints `login:`, root logs in
-  to csh, `ps`, `w`, `dmesg`, `savecore` and `kvm_mkdb` work, and
+  to csh, `dmesg`, `savecore` and `kvm_mkdb` work, `ps` and `w`
+  work but show each command in parentheses (see roadmap.md), and
   `reboot` prints `syncing disks... done`.
 
 `docs/provenance/install.md` has the procedure and every fault it

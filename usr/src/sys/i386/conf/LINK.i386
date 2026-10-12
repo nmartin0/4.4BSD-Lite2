@@ -125,3 +125,11 @@ device we0 at isa? port 0x280 net irq 3 iomem 0xd0000 iosiz 8192 vector weintr
 pseudo-device	loop
 pseudo-device	ether
 pseudo-device	sl	1
+# AI-ONLY NOTE: pseudo-terminals, which GENERIC.i386 leaves out and
+# every other port's GENERIC configuration in this tree carries --
+# hp300's and pmax's as `pseudo-device pty 64', sparc's with no count.
+# tty_pty.c and conf.c's slots 5 and 6 are already here; without the
+# line NPTY is 0 and /etc/rc's `chmod 666 /dev/tty[pqrs]*' finds
+# nothing, nor does script(1), telnetd or rlogind. 16 is one MAKEDEV
+# class, pty0.
+pseudo-device	pty	16

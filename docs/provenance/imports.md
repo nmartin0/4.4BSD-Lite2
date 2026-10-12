@@ -278,7 +278,7 @@ constants; it has neither. Corrected there.
 
 	lib/libcompat/4.3/regex.c   93 lines	NetBSD 1.0
 	bin/expr			679 lines	NetBSD 1.0, unmodified
-	sys/kern/subr_rmap.c		NetBSD 1.2, unmodified
+	sys/kern/subr_rmap.c		NetBSD 1.2, a note added
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It

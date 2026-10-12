@@ -136,6 +136,11 @@ com*)
 	esac
 	;;
 
+# AI-ONLY NOTE: ttyXX at character major 5 and ptyXX at 6, where this
+# script made them at 4 and 5. The i386 cdevsw in sys/i386/i386/conf.c
+# has drum at 4, the pty slaves at 5 and the masters at 6, and `std'
+# above makes drum at 4 too. NetBSD 1.0's and FreeBSD 2.0's i386
+# MAKEDEV both make them at 5 and 6.
 pty*)
 	class=`expr $i : 'pty\(.*\)'`
 	case $class in
@@ -152,8 +157,8 @@ pty*)
 		umask 0
 		eval `echo $offset $name | awk ' { b=$1; n=$2 } END {
 			for (i = 0; i < 16; i++)
-				printf("mknod tty%s%x c 4 %d; \
-					mknod pty%s%x c 5 %d; ", \
+				printf("mknod tty%s%x c 5 %d; \
+					mknod pty%s%x c 6 %d; ", \
 					n, i, b+i, n, i, b+i); }'`
 		umask 77
 		if [ $class = 1 ]; then

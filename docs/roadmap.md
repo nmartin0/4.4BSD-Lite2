@@ -86,8 +86,9 @@ on `yylex` was dropped only to satisfy byacc.
 **Reached.** On QEMU's `pc` machine the kernel boots single user,
 installs the system from a ustar archive on a raw disk with its own
 `dd` and `pax`, and reboots multi-user: `/etc/rc` runs to the end,
-getty prints `login:`, root logs in to csh, `ps`, `w`, `dmesg`,
-`savecore` and `kvm_mkdb` work, and `reboot` syncs and halts.
+getty prints `login:`, root logs in to csh, `dmesg`, `savecore` and
+`kvm_mkdb` work, `ps` and `w` work with every command in parentheses
+(item 7 below), and `reboot` syncs and halts.
 `docs/provenance/install.md` has the procedure, the faults it found
 in the order it found them, and what /etc/rc still reports.
 
@@ -99,8 +100,10 @@ device; `pmap_remove` on the self-map.
 **The settlement and Net/2 bodies.** Filled by import: the clists
 (`tty_subr.c`), the buffer cache's write path (`vfs_bio.c`, NetBSD
 1.0), accounting (`kern_acct.c`), raw I/O (`kern_physio.c`) and the
-resource maps swap allocates from (`subr_rmap.c`, NetBSD 1.2). One
-file still holds `Body deleted`:
+resource maps swap allocates from (`subr_rmap.c`, NetBSD 1.2). Still
+`Body deleted`: `tty_subr.c`'s ndqb, stubbed again deliberately
+(its own note says why), `hp/dev/hil_subr.c`, which this build does
+not compile, and:
 
 | file | what | what it costs |
 |---|---|---|
@@ -114,9 +117,19 @@ file still holds `Body deleted`:
 3. ~~**Swap.**~~ `subr_rmap.c` from NetBSD 1.2, a b partition from
    `build/mklabel.c`, `swapon -a` from fstab; measured paging under
    `-m 16`.
-4. **MAKEDEV's i386 majors** -- pty 4/5 against conf.c's 5/6, fd/ at
-   53 -- and **the panic from removing the device node the root was
-   remounted through** (`vinvalbuf: dirty bufs`).
+4. ~~**MAKEDEV's pty majors**~~, now 5 and 6 as conf.c has them, and
+   ptys configured in LINK.i386; `script` runs through ttyp0. Still
+   open: std's stdin, stdout, stderr and fd/ at major 53, which the
+   i386 cdevsw has no driver for, and **the panic from removing the
+   device node the root was remounted through** (`vinvalbuf: dirty
+   bufs`).
+4½. **awk.** MAKEDEV's pty and fd cases generate their mknod lines
+   with it, and 4.4BSD-Lite has none: Berkeley's was AT&T's. The
+   contemporaries shipped GNU awk. The One True Awk -- Aho,
+   Weinberger and Kernighan's own, the AT&T awk itself, freely
+   licensed since Lucent released it -- is what OpenBSD, FreeBSD and
+   NetBSD all carry now.
+   Needs a donor decision.
 5. **`-fno-common`.** The `mmap` fault (install.md, fault 10) was a
    common symbol resolved to a function. GCC has defaulted to
    `-fno-common` since 10; this tree passes `-fcommon` because 1990s
