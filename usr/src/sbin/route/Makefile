@@ -23,3 +23,10 @@ keywords.h: keywords
 .include <bsd.prog.mk>
 
 route .depend lint tags: keywords.h
+# AI-ONLY NOTE: the object as well. 4.4BSD generated keywords.h during
+# `make depend', through the line above; this tree's build runs `make'
+# without a depend pass first, so route.c was compiled before the
+# header existed: `keywords.h: No such file or directory'. FreeBSD 2.0
+# puts keywords.h in SRCS, which its bsd.prog.mk filters out of OBJS
+# and this tree's does not, so the dependency is said directly.
+route.o: keywords.h
