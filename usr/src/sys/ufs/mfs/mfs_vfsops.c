@@ -103,6 +103,15 @@ mfs_mountroot()
 	}
 	if (error = vfs_rootmountalloc("mfs", "mfs_root", &mp))
 		return (error);
+	/*
+	 * AI-ONLY NOTE: read-write. vfs_rootmountalloc mounts every root
+	 * read-only, for /etc/rc to fsck and then `mount -u'; a root in
+	 * memory has nothing to check, and `mount -u' cannot reach it:
+	 * mount(8) runs mount_mfs for an mfs filesystem, which is newfs
+	 * and makes a new one. FreeBSD 2.0.5's mfs_mountroot, which
+	 * filled in the mount structure itself, never set MNT_RDONLY.
+	 */
+	mp->mnt_flag &= ~MNT_RDONLY;
 	mfsp = malloc(sizeof *mfsp, M_MFSNODE, M_WAITOK);
 	rootvp->v_data = mfsp;
 	rootvp->v_op = mfs_vnodeop_p;
