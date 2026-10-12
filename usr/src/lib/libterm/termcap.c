@@ -69,7 +69,15 @@ tgetent(bp, name)
 {
 	register char *p;
 	register char *cp;
-	char  *dummy;
+	/*
+	 * AI-ONLY NOTE: NULL, as NetBSD 1.0 and FreeBSD 2.0 both
+	 * initialise it. cgetent() stores through its first argument
+	 * only when it finds the entry, so for an unknown terminal, or
+	 * with no termcap file at all, the free() below was handed
+	 * whatever the stack held: `Terminal type? [unknown] vt100' at
+	 * login, and tset died with a segmentation fault.
+	 */
+	char  *dummy = NULL;
 	char **fname;
 	char  *home;
 	int    i;

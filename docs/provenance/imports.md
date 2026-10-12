@@ -172,6 +172,9 @@ copied, and the commit names it with its release.
     was resolved to the mmap(2) function, and pmap_bootstrap wrote a
     PTE address over that function's first four bytes: every mmap
     call panicked with `trap type 3'.
+  libterm: tgetent's dummy pointer starts NULL, NetBSD 1.0 and
+    FreeBSD 2.0; an unknown terminal freed stack garbage and tset
+    died at every login.
   i386 isa.c: isa_strayintr logs the irq number, and only five times,
     NetBSD 1.0's intr.c; FreeBSD 2.0 stops at five per irq. Berkeley's
     took ffs() of the number as if it were a mask and logged every
