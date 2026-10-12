@@ -494,3 +494,23 @@ addresses would not compile; it declares them now, after FreeBSD
 2.0.5. And MAKEDEV's PATH lacked /usr/sbin, so `std' could not find
 chown; it is etc.hp300/MAKEDEV's PATH now.
 
+# ps's arguments
+
+ps and w showed every command in parentheses: kvm_getargv reads struct
+ps_strings at PS_STRINGS, under USRSTACK, and this tree's execve put
+the argument strings in those bytes and never wrote the structure.
+It now puts the structure there and the strings below it, the order
+NetBSD 1.0 and FreeBSD 2.0 both use, and fills it as FreeBSD 2.0's
+exec_copyout_strings does. And kvm_argv refused any string address at
+or above VM_MAXUSER_ADDRESS, which on this port is a page below
+USRSTACK, so every argument string was refused; it bounds by USRSTACK
+now, the same address on the ports where the two are equal. After:
+
+	myname# ps -ax
+	  PID TT  STAT      TIME COMMAND
+	    1 ??  Ss     0:00.06 /sbin/init
+	   31 ??  Ss     0:00.08 syslogd
+	   52 ??  Ss     0:00.01 routed -q
+	   81 ??  I      0:00.04 amd -l /var/log/amd -r -a /amd -p /home ...
+	   90 ??  Ss     0:00.10 -csh (csh)
+	   96 ??  R+     0:00.03 ps -ax

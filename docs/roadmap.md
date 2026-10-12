@@ -86,9 +86,8 @@ on `yylex` was dropped only to satisfy byacc.
 **Reached.** On QEMU's `pc` machine the kernel boots single user,
 installs the system from a ustar archive on a raw disk with its own
 `dd` and `pax`, and reboots multi-user: `/etc/rc` runs to the end,
-getty prints `login:`, root logs in to csh, `dmesg`, `savecore` and
-`kvm_mkdb` work, `ps` and `w` work with every command in parentheses
-(item 7 below), and `reboot` syncs and halts.
+getty prints `login:`, root logs in to csh, `ps`, `w`, `dmesg`,
+`savecore` and `kvm_mkdb` work, and `reboot` syncs and halts.
 `docs/provenance/install.md` has the procedure, the faults it found
 in the order it found them, and what /etc/rc still reports.
 
@@ -120,26 +119,33 @@ not compile, and:
 4. ~~**MAKEDEV's pty majors**~~, now 5 and 6 as conf.c has them, and
    ptys configured in LINK.i386; `script` runs through ttyp0. Still
    open: std's stdin, stdout, stderr and fd/ at major 53, which the
-   i386 cdevsw has no driver for, and **the panic from removing the
-   device node the root was remounted through** (`vinvalbuf: dirty
-   bufs`).
+   i386 cdevsw has no driver for, and the panic from removing the
+   device node the root was remounted through (`vinvalbuf: dirty
+   bufs`). That one is understood and left: `mount -u` looks the
+   device up by name, and checkalias, finding the root's vnode still
+   tagged VT_NON from bdevvp, cleans it and makes it that file's vnode;
+   remove the file and its vnode -- the mounted root's device -- goes
+   with it. NetBSD 1.0 and 1.3 and FreeBSD 2.0 have the same
+   checkalias. Do not remove /dev/wd0a.
 4½. ~~**awk.**~~ Kernighan's own, version 20121220: MAKEDEV's pty
    and fd cases run, and ptys and fd/ are made at install.
 5. **`-fno-common`.** The `mmap` fault (install.md, fault 10) was a
    common symbol resolved to a function. GCC has defaulted to
    `-fno-common` since 10; this tree passes `-fcommon` because 1990s
-   code declares the same global in several files. A kernel scan found
-   every other common symbol to be data shared on purpose, so the
-   kernel can move to `-fno-common` with `extern` in the headers, and
-   the linker will refuse the next one. Userland the same, directory
-   by directory.
+   code declares the same global in several files. Measured: 332
+   common symbols in the kernel's objects, 101 of them tentatively
+   defined in more than one -- `nbuf`, `bufpages` and `nswbuf` in some
+   sixty each, from headers that say `int nbuf;` without `extern`.
+   Moving to `-fno-common` means an `extern` in each of those headers
+   and one definition apiece; not done. What is done:
+   `build/kernel.sh` now refuses a kernel in which any common symbol
+   is a text symbol, the exact class of the `mmap` fault, and was
+   seen to refuse one with that fault put back.
 6. **`ptrace`**, for gdb. Lower: nothing in the boot path needs it.
-7. **`ps_strings`.** kern/kern_exec.c, written for this project,
-   copies argv and envp to the new stack but never fills in struct
-   ps_strings at PS_STRINGS, so ps and w show every command in
-   parentheses. Where the strings sit also wants checking against
-   VM_MAXUSER_ADDRESS, which kvm_argv tests: USRSTACK is a page above
-   it on this port. A donor's exec copies the layout whole.
+7. ~~**`ps_strings`.**~~ execve fills it in, and kvm_argv bounds
+   addresses by USRSTACK; `ps -ax` shows every command's arguments.
+   Left: `ps -e` on init shows a garbage environment -- init has none,
+   and kvm_argv given a count of 0 still returns one string.
 
 ## Tier 1½ — an installable `.iso`
 
