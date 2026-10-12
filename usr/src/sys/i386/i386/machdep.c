@@ -567,7 +567,16 @@ extern int cold;
 		 */
 		if (panicstr == 0)
 			vnode_pager_umount(NULL);
-		sync((struct sigcontext *)0);
+		/*
+		 * AI-ONLY NOTE: sync takes (p, uap, retval) and reads
+		 * p->p_ucred; this passed a null sigcontext pointer in
+		 * the first place, the call of an older sync, and every
+		 * reboot after a filesystem was mounted read-write
+		 * panicked here on a fault at address 0x10. &proc0 is
+		 * what sparc's boot() passes in this tree and what
+		 * NetBSD 1.0's i386 boot() passes.
+		 */
+		sync(&proc0, (void *)NULL, (int *)NULL);
 		/*
 		 * Unmount filesystems
 		 */

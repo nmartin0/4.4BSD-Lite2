@@ -118,6 +118,13 @@ history; no other system is needed to justify them.
 					sparc/conf/Makefile.sparc's, the
 					only one in this tree's kernel
 					templates.
+  i386 boot(): sync(&proc0, ...)	sparc/sparc/machdep.c's boot()
+					in this tree makes this call; the
+					i386 passed one null sigcontext
+					pointer to the three-argument sync
+					and panicked on every reboot with
+					a writable filesystem. NetBSD 1.0's
+					i386 makes the same call.
 
 ## B -- corrected following another BSD's line
 
