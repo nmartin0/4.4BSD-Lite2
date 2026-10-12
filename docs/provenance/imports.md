@@ -214,6 +214,8 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	sys/exec_elf.h: Shdr, Sym	NetBSD 1.3
 	sys/boot/i386			FreeBSD 4.1, adapted
 	usr.sbin/btxld			FreeBSD 4.1, adapted
+	i386/autoconf.c: MFS_ROOT  4 statements	FreeBSD 2.0.5
+	release/write_mfs_in_kernel.c	FreeBSD 2.0.5, adapted
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -317,6 +319,24 @@ The boot blocks install to /usr/mdec under disklabel's names.
 The licence of boot1, boot2, BTX and lib.h is Nordier's own: use and
 redistribution provided the notice and disclaimer are kept. btxld's
 is the two-clause BSD licence.
+
+**A root inside the kernel.** Berkeley's MFS already has a miniroot:
+mfs_initminiroot() takes a filesystem in memory and makes it the root,
+and pmax and news3400 call it for an image their boot program loads
+after the kernel. boot2 loads one file, so the image goes inside the
+kernel instead, which is what FreeBSD 2.0.5's boot floppy did: an
+initialised array, `options MFS_ROOT=n` KB, marked by a string, and
+Poul-Henning Kamp's write_mfs_in_kernel to write an image over it
+after the link. Taken: the three declarations of the array and the
+call to mfs_initminiroot in configure(), and the program, under its
+own beer-ware licence, with SBOFF written out and <string.h> added so
+it builds on the host, and a size check added before its loops.
+Setting RB_DFLTROOT with a miniroot is Berkeley's, from pmax.
+
+NetBSD 1.0 kept Berkeley's pmax miniroot and had none for the i386;
+1.1 added a RAM-disk driver, sys/dev/ramdisk.c, a device rather than
+this. The image itself is made with the host's makefs, NetBSD's,
+as mtree is.
 
 ## E -- a reimplementation of something the Lite cut removed
 

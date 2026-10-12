@@ -563,3 +563,75 @@ buffer. The kernel's console is
 COM1 itself. On a machine with a serial terminal and no screen,
 `-h` in /boot.config moves boot2 to COM1. boot2 does not start on
 COM1 unasked: with no UART there, its serial code waits for ever.
+
+# A root inside the kernel
+
+The install kernel carries its own root: `options MFS_ROOT=n` reserves
+n KB inside the kernel, `write_mfs_in_kernel` writes a filesystem
+image there after the link, and the kernel mounts it from memory
+(kind D in imports.md, FreeBSD 2.0.5's). The image is made on the
+host with `makefs`, NetBSD's, which Debian packages:
+
+	sudo apt install makefs
+	: ${L2_BUILD:=$HOME/.cache/lite2}; R=$L2_BUILD/root
+	cd usr/src/sys/i386/conf
+	sed -e 's/^ident[[:space:]]*LINK/ident		INSTALL/' \
+	    -e '/^options[[:space:]]*GENERIC/d' \
+	    -e 's/^config[[:space:]].*/config		vmunix	root on wd0 swap on wd0/' \
+	    LINK.i386 > INSTALL
+	printf 'options\t\t"MFS_ROOT=1024"\n' >> INSTALL
+	cd -; sh build/kernel.sh INSTALL
+
+	mkdir -p mr/sbin mr/bin mr/dev mr/etc mr/tmp
+	cp $R/sbin/init mr/sbin; cp $R/bin/sh $R/bin/echo mr/bin
+	strip mr/sbin/* mr/bin/*
+	sudo mknod mr/dev/console c 0 0
+	makefs -t ffs -B le -o version=1,bsize=8192,fsize=1024 \
+	    -o density=4096,minfree=0,optimization=space -s 1024k mr.img mr
+	cp usr/src/sys/compile/INSTALL/vmunix .
+	$L2_BUILD/tools/bin/write_mfs_in_kernel vmunix mr.img
+
+Without GENERIC, and with root and swap on wd0: with GENERIC,
+setconf() would put swap and dumps on the miniroot's own major, 255,
+which is past the end of the block-device table. Then a 2.88 MB floppy
+image -- the size El Torito also emulates -- with boot1 and boot2
+and that kernel as /vmunix in partition a, which mklabel puts at
+sector 256:
+
+	mkdir fl; cp vmunix fl
+	makefs -t ffs -B le -o version=1,bsize=8192,fsize=1024 \
+	    -o minfree=0,optimization=space -s $(( (5760-256-32)*512 )) \
+	    fl.img fl
+	dd if=/dev/zero of=floppy.img bs=512 count=5760
+	mklabel floppy.img 5760
+	dd if=fl.img of=floppy.img bs=512 seek=256 conv=notrunc
+	dd if=$R/usr/mdec/boot1 of=floppy.img conv=notrunc
+	dd if=$R/usr/mdec/boot2 of=floppy.img bs=512 skip=1 seek=2 \
+	    conv=notrunc
+	qemu-system-i386 -drive file=floppy.img,format=raw,if=floppy \
+	    -boot a -nographic
+
+It boots with or without a disk attached:
+
+	>> 4.4BSD/i386 BOOT
+	Default: 0:fd(0,a)/vmunix
+	...
+	4.4BSD-Lite #0: ...
+	    .../compile/INSTALL
+	...
+	Enter pathname of shell or RETURN for sh:
+	# PATH=/sbin:/bin; export PATH; mount
+	mfs_root on / (local)
+	# echo written > /tmp/x; read l < /tmp/x; echo got: $l
+	got: written
+
+The root is read-write from the start; commit *mfs: a root in memory
+is mounted read-write* says why it has to be. makefs's FFS is NetBSD
+2019's version 1 format, which this kernel mounts and writes.
+
+What does not fit yet is a useful root: each program here is linked
+statically, with its own copy of libc, so sh alone is 394 KB stripped
+and pax 285 KB. The BSDs' install floppies put every program into one
+binary with crunchgen; that is next. 1 MB was enough for init, sh
+and echo; the kernel is then 1.6 MB, and a 1.44 MB floppy is out of
+reach in any case.
