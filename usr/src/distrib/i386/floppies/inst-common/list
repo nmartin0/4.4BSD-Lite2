@@ -1,5 +1,17 @@
 #	$Id: list,v 1.4.4.1 1995/11/20 22:10:35 perry Exp $
 
+# AI-ONLY NOTE: NetBSD 1.1's, for this tree. The links follow
+# instbin.conf: no ed, gzip, gunzip, gzcat, mount_ffs, mount_msdos or
+# more, and awk and tar where gawk and GNU tar were. The MAKEDEV
+# script is copied and left, for making more nodes by hand; the nodes
+# the install needs are in devices.spec, not made here, and
+# Makefile.inc says why. The boot
+# blocks are copied by name -- COPYDIR runs cpio, which a Linux host
+# need not have -- with the two names disklabel -B looks for. And the
+# /etc files come from the tree's etc/, since nothing on the build
+# host has run this tree's pwd_mkdb: there is no pwd.db, passwd or
+# spwd.db, which nothing the install runs reads.
+
 # copy the crunched binary, link to it, and kill it
 COPY	${OBJDIR}/instbin	instbin
 LINK	instbin			bin/cat
@@ -7,7 +19,6 @@ LINK	instbin			bin/chmod
 LINK	instbin			bin/cp
 LINK	instbin			bin/dd
 LINK	instbin			bin/df
-LINK	instbin			bin/ed
 LINK	instbin			bin/expr
 LINK	instbin			bin/ln
 LINK	instbin			bin/ls
@@ -28,8 +39,6 @@ LINK	instbin			sbin/init
 LINK	instbin			sbin/mknod
 LINK	instbin			sbin/mount
 LINK	instbin			sbin/mount_cd9660
-LINK	instbin			sbin/mount_ffs
-LINK	instbin			sbin/mount_msdos
 LINK	instbin			sbin/mount_nfs
 LINK	instbin			sbin/mount_kernfs
 LINK	instbin			sbin/newfs
@@ -42,10 +51,6 @@ LINK	instbin			sbin/umount
 SYMLINK	/bin/cat		usr/bin/awk
 SYMLINK	/bin/cat		usr/bin/chgrp
 SYMLINK	/bin/cat		usr/bin/ftp
-SYMLINK	/bin/cat		usr/bin/gunzip
-SYMLINK	/bin/cat		usr/bin/gzcat
-SYMLINK	/bin/cat		usr/bin/gzip
-SYMLINK	/bin/cat		usr/bin/more
 SYMLINK	/bin/cat		usr/bin/sed
 SYMLINK	/bin/cat		usr/bin/strings
 SYMLINK	/bin/cat		usr/bin/tar
@@ -57,21 +62,19 @@ SYMLINK	/bin/cat		usr/sbin/update
 SPECIAL	/bin/rm instbin
 
 # copy the MAKEDEV script and make some devices
-COPY	${DESTDIR}/dev/MAKEDEV	dev/MAKEDEV
-SPECIAL	cd dev; sh MAKEDEV floppy
-SPECIAL	/bin/rm dev/MAKEDEV
+COPY	${SRCTOP}/etc/etc.i386/MAKEDEV	dev/MAKEDEV
 
 # we need the contents of /usr/mdec
-COPYDIR	${DESTDIR}/usr/mdec	usr/mdec
+COPY	${MDEC}/boot1		usr/mdec/boot1
+COPY	${MDEC}/boot2		usr/mdec/boot2
+LINK	usr/mdec/boot1		usr/mdec/wdboot
+LINK	usr/mdec/boot2		usr/mdec/bootwd
 
 # various files that we need in /etc for the install
-COPY	${DESTDIR}/etc/group		etc/group
-COPY	${DESTDIR}/etc/master.passwd	etc/master.passwd
-COPY	${DESTDIR}/etc/passwd		etc/passwd
-COPY	${DESTDIR}/etc/protocols	etc/protocols
-COPY	${DESTDIR}/etc/pwd.db		etc/pwd.db
-COPY	${DESTDIR}/etc/services		etc/services
-COPY	${DESTDIR}/etc/spwd.db		etc/spwd.db
+COPY	${SRCTOP}/etc/group		etc/group
+COPY	${SRCTOP}/etc/master.passwd	etc/master.passwd
+COPY	${SRCTOP}/etc/protocols		etc/protocols
+COPY	${SRCTOP}/etc/services		etc/services
 
 # and the common installation tools
 COPY	${TOPDIR}/inst-common/dot.commonutils	.commonutils
