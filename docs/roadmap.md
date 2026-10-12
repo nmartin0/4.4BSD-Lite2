@@ -170,12 +170,15 @@ as the boot floppy image in floppy emulation.
    mfs_initminiroot, FreeBSD 2.0.5's write_mfs_in_kernel, an image
    from the host's makefs, booted from a 2.88 MB floppy image
    (install.md, *A root inside the kernel*). crunchgen is in, FreeBSD
-   3.0's (install.md, *One binary*). Left: the install root itself, a
-   crunched binary of Berkeley's sys/i386/floppy list and what the
-   installer needs, in the install kernel.
+   3.0's (install.md, *One binary*). The install root is in:
+   NetBSD 1.1's i386 install floppy, 42 programs in one binary, in an
+   install kernel that boots from a 2.88 MB floppy image to NetBSD's
+   installer (install.md, *The install root*).
 3. **A scripted installer**: label, newfs, mount, extract the sets,
    pwd_mkdb, cap_mkdb, MAKEDEV, fstab. It is the single-user sequence
-   install.md runs by hand.
+   install.md runs by hand. NetBSD 1.1's i386 install.sh, which the
+   install root already carries, adapted to this tree: its disktab
+   and disklabel -B, pax for GNU tar, and loading the sets.
 4. **The image**: El Torito, the boot image in floppy emulation as
    the BSDs did it first, the sets as ustar files on an ISO 9660
    filesystem, which Lite2's cd9660 reads.

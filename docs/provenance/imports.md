@@ -217,6 +217,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	i386/autoconf.c: MFS_ROOT  4 statements	FreeBSD 2.0.5
 	release/write_mfs_in_kernel.c	FreeBSD 2.0.5, adapted
 	usr.sbin/crunch			FreeBSD 3.0, adapted
+	distrib/i386/floppies		NetBSD 1.1, adapted
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -410,6 +411,27 @@ where 3.0 wrote /usr/obj, and links with ${LD}, as NetBSD's did from
 PATH a `make' that is bmake, the name crunchgen runs. The licence is
 the University of Maryland's permission notice, and the crunchide
 back end Christopher Demetriou's.
+
+**The install root and its installer.** NetBSD's i386 install
+floppy, distrib/i386/floppies, Christopher Demetriou's of 1994: the
+crunchgen configuration of its one binary, the list of what goes on
+it with the two tools that run the list, and the installer, install.sh
+with its profile and the set-loading functions. The same tree is in
+NetBSD 1.0 (October 1994) and changed little to 1.2; it is NetBSD's
+own i386 installer of the Lite2 years, where NetBSD 1.2's
+distrib/miniroot, considered first, served sparc and hp300 booting
+from a swap partition. NetBSD 1.1 (November 1995) is taken, the first
+release after Lite2 that carries it. Not taken: the kernel-copy and
+upgrade floppies.
+
+Adapted: built on the host into a directory and made into an image by
+makefs, sized for the install kernel's MFS_ROOT, with its device nodes
+in an mtree specification instead of a MAKEDEV run; the program list
+less what this tree has no source for, and less more, with awk, pax as
+tar and -lrpc. Each change is noted at its site, and install.md, *The
+install root*, has the build. The installer itself runs as shipped
+until it is adapted: it still speaks of NetBSD 1.1 and GNU tar. The
+licence is Demetriou's four-clause one, with an advertising clause.
 
 ## E -- a reimplementation of something the Lite cut removed
 

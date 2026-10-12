@@ -679,3 +679,59 @@ makefs keeps the hard links. `make depend', which the generated
 makefile runs in each program's directory first, prints mkdep's
 complaints about headers it cannot find, as it does for every
 program here, and goes on.
+
+# The install root
+
+The install kernel's root is NetBSD 1.1's i386 install floppy,
+distrib/i386/floppies (kind D in imports.md), built on the host: its
+list run into a directory, makefs over that, and the image written
+into a kernel built with MFS_ROOT. Run as root or under fakeroot, for
+the tree's owners:
+
+	cd usr/src/distrib/i386/floppies/inst
+	sh ../../../../../build/make.sh
+	O=$L2_BUILD/obj$(pwd)
+
+That crunches the 42 programs of inst-common/instbin.conf into one
+binary, 1205800 bytes, and makes $O/inst-11.fs, 1600 KB, 83% full.
+Then the kernel, configured as in *A root inside the kernel* with
+`"MFS_ROOT=1600"`, and the floppy image as there:
+
+	write_mfs_in_kernel usr/src/sys/compile/INSTALL/vmunix $O/inst-11.fs
+
+The kernel is 2200040 bytes. Booted from the floppy image with a
+blank disk attached:
+
+	wd0 at 0x1f0 irq 14 on isa
+	...
+	wd0: bad disk label
+	/etc/rc: Can't open /etc/rc
+	Enter pathname of shell or RETURN for sh:
+	erase ^?, werase ^W, kill ^U, intr ^C
+	kernfs: Operation not supported by device
+	Welcome to the NetBSD 1.1 installation program.
+	...
+	Proceed with installation? [n]
+
+and at the shell, after declining, the root holds what the list put
+there:
+
+	# ls /bin /sbin; df
+	/bin:
+	[       chmod   dd      expr    ls      mv      rm      stty    test
+	cat     cp      df      ln      mkdir   pwd     sh      sync
+	/sbin:
+	disklabel       init            mount_kernfs    reboot          umount
+	fsck            mknod           mount_nfs       route
+	halt            mount           newfs           shutdown
+	ifconfig        mount_cd9660    ping            slattach
+	Filesystem  512-blocks     Used    Avail Capacity  Mounted on
+	mfs_root          3054     2524      530    83%    /
+
+What is left is the installer's, step 3 of Tier 1½ in roadmap.md. It
+runs as shipped and is NetBSD's: it names NetBSD 1.1, asks for SCSI
+first, and uses GNU tar's options; the profile mounts a kernfs this
+kernel is not configured with. And the prompt for a shell's pathname
+is this tree's init, built with DEBUGSHELL, which goes to single user
+because there is no /etc/rc; RETURN gives sh, whose /.profile starts
+the installer.
