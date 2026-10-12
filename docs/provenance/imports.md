@@ -216,6 +216,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	usr.sbin/btxld			FreeBSD 4.1, adapted
 	i386/autoconf.c: MFS_ROOT  4 statements	FreeBSD 2.0.5
 	release/write_mfs_in_kernel.c	FreeBSD 2.0.5, adapted
+	usr.sbin/crunch			FreeBSD 3.0, adapted
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -375,6 +376,40 @@ sys/dev/ramdisk.c in 1.1 (for the sun3) and md and mdsetimage for
 the i386 in 1.3; OpenBSD with its ramdisk floppies of 1997. Each is a
 block driver beside MFS; FreeBSD's is MFS, which Lite2 has. The image
 itself is made with the host's makefs, NetBSD's, as mtree is.
+
+**One binary for the install root.** James da Silva's crunch
+(University of Maryland, 1994) links many programs into one binary
+that runs the one its argv[0] names, so they share one copy of libc:
+it is how the BSDs' install floppies were made. It first shipped in
+FreeBSD 1.1.5 (contrib/crunch, crunch 0.2, June 1994) and NetBSD 1.0
+(distrib/crunch, 0.3); crunchgen.c changed little after -- NetBSD
+1.3's differs from 1.0's in some sixty lines.
+
+The donor is set by crunchide, which hides each program's globals but
+its entry point, and so must read the object format. The a.out ones,
+FreeBSD 1.1.5 to 2.2.8 and NetBSD 1.0 to 1.2, cannot read this tree's
+objects. NetBSD 1.3 has an ELF back end, exec_elf32.c, but its
+extern.h enables it on the i386 only after the i386 itself went ELF;
+and the netbsd-1-3 branch's revision of it, 1.4.2.1 of 1998, renames
+symbols and refuses an object whose string table is not the last
+section -- which a current `ld -r' never makes, since it puts
+.shstrtab last. FreeBSD 3.0 (October 1998), the first BSD release
+whose i386 is ELF, carries NetBSD's earlier revision, 1.4 of August
+1997, which turns the hidden globals into locals and has no such
+condition, and enables it for the i386. Measured: built on the host,
+it hides a duplicate global in `ld -r' output and the two link. So
+FreeBSD 3.0's crunchgen and crunchide are taken, without the example
+configurations, the a.out back end or the ELF64 one.
+
+Adapted, each change noted at its site: crunchide is ELF32 alone and
+builds against the host's <elf.h> with build/elf-host.h, which names
+the aliases FreeBSD's ELF headers gave it; crunchgen takes the object
+directory from ${MAKEOBJDIRPREFIX}, which FreeBSD's own read by 4.3,
+where 3.0 wrote /usr/obj, and links with ${LD}, as NetBSD's did from
+1.4. Both are host tools, and build/sysroot.sh gives build/make.sh's
+PATH a `make' that is bmake, the name crunchgen runs. The licence is
+the University of Maryland's permission notice, and the crunchide
+back end Christopher Demetriou's.
 
 ## E -- a reimplementation of something the Lite cut removed
 

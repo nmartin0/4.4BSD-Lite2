@@ -169,8 +169,10 @@ as the boot floppy image in floppy emulation.
    tools and pax. The mechanism is in: `options MFS_ROOT`, Berkeley's
    mfs_initminiroot, FreeBSD 2.0.5's write_mfs_in_kernel, an image
    from the host's makefs, booted from a 2.88 MB floppy image
-   (install.md, *A root inside the kernel*). Left: crunchgen, so the
-   programs share one libc and fit.
+   (install.md, *A root inside the kernel*). crunchgen is in, FreeBSD
+   3.0's (install.md, *One binary*). Left: the install root itself, a
+   crunched binary of Berkeley's sys/i386/floppy list and what the
+   installer needs, in the install kernel.
 3. **A scripted installer**: label, newfs, mount, extract the sets,
    pwd_mkdb, cap_mkdb, MAKEDEV, fstab. It is the single-user sequence
    install.md runs by hand.

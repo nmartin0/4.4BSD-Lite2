@@ -635,3 +635,47 @@ and pax 285 KB. The BSDs' install floppies put every program into one
 binary with crunchgen; that is next. 1 MB was enough for init, sh
 and echo; the kernel is then 1.6 MB, and a 1.44 MB floppy is out of
 reach in any case.
+
+# One binary
+
+Each program here is linked statically, so each carries its own libc
+and a root that holds the installer's tools would not fit. crunchgen,
+FreeBSD 3.0's (kind D in imports.md), links them into one binary that
+runs the program its argv[0] names. build/sysroot.sh builds it and
+crunchide for the host, and puts a `make' that is bmake first on
+build/make.sh's PATH, since crunchgen runs make by name. A
+configuration names the programs, where their sources are, and the
+libraries they link with:
+
+	srcdirs /path/to/usr/src/bin /path/to/usr/src/sbin
+	progs sh echo ls init mount
+	libs -ll -ledit -ltermcap -lutil
+
+and a Makefile, run through build/make.sh, runs crunchgen on it and
+then the makefile crunchgen writes:
+
+	all:
+		crunchgen ${.CURDIR}/t.conf
+		make -f t.mk objs exe
+
+That builds each program's objects in its own object directory, links
+each set with ld -r, hides all but its entry point with crunchide,
+and links the five and libc once. The binary is 456424 bytes, against
+957724 for the five stripped and apart. In the install kernel's root,
+with sh, echo, ls, init and mount all hard links to it, it boots as
+init and runs as each:
+
+	# ls -li /bin /sbin; mount
+	/bin:
+	10 -rwxr-xr-x  5 0  0  456424 Oct 12 23:34 echo
+	10 -rwxr-xr-x  5 0  0  456424 Oct 12 23:34 ls
+	10 -rwxr-xr-x  5 0  0  456424 Oct 12 23:34 sh
+	/sbin:
+	10 -rwxr-xr-x  5 0  0  456424 Oct 12 23:34 init
+	10 -rwxr-xr-x  5 0  0  456424 Oct 12 23:34 mount
+	mfs_root on / (local)
+
+makefs keeps the hard links. `make depend', which the generated
+makefile runs in each program's directory first, prints mkdep's
+complaints about headers it cannot find, as it does for every
+program here, and goes on.
