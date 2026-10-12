@@ -170,3 +170,172 @@ has not been looked into.
   no-op here, which was tried first and is why this install uses one
   disk and not two.
 - **`trap` takes signal numbers only** (`docs/provenance/pwd.md`).
+
+# Multi-user, to a login prompt
+
+The same procedure carried one step further: everything this tree
+builds and needs for `init` to run `/etc/rc` and `getty`, plus etc/'s
+own files, installed by the system from a raw disk, then booted
+without -s. It reaches `login:`, takes root, runs csh, and reboots
+cleanly. Two faults in the kernel turned up on the way, and one
+missing program.
+
+## Staging
+
+The target root build/sysroot.sh makes is the staging tree, as
+NetBSD's build.sh uses its DESTDIR: the programs are installed into it
+by their own Makefiles, etc/'s files by build/distribution.sh, and the
+whole of it archived.
+
+	export L2_BUILD=$HOME/.cache/lite2
+	sh build/sysroot.sh
+	r=$(pwd)
+	for d in bin sbin libexec/getty usr.bin/login usr.bin/passwd \
+	    usr.sbin/pwd_mkdb usr.sbin/dev_mkdb usr.sbin/kvm_mkdb \
+	    usr.sbin/syslogd usr.sbin/chown usr.sbin/update \
+	    usr.bin/logger usr.bin/find usr.bin/true usr.bin/false \
+	    usr.bin/tty usr.bin/id usr.bin/who usr.bin/more usr.bin/wc \
+	    usr.bin/head usr.bin/tail usr.bin/env usr.bin/uname usr.bin/w
+	do
+		(cd usr/src/$d && sh "$r/build/make.sh" \
+		    depend all install NOMAN=noman INSTALLFLAGS=)
+	done
+	sh build/kernel.sh
+	install -m 755 usr/src/sys/compile/LINK.i386/vmunix \
+	    $L2_BUILD/root/vmunix
+	sh build/distribution.sh $L2_BUILD/root
+	tar -C $L2_BUILD/root --numeric-owner --format=ustar \
+	    -cf dist.tar .
+
+`INSTALLFLAGS=` because rcp's Makefile sets `-fschg`, a 4.4BSD file
+flag GNU install does not know. `NOMAN` because there is no nroff.
+Of sbin, all but disklabel is installed: its Makefile formats its
+manual page whatever NOMAN says. reboot's install stops on
+`boot_hp300.0`, and id's on `groups.0`, after the programs themselves
+are in place. `/vmunix` is there for ps,
+kvm_mkdb and savecore, which read the kernel's namelist; the shim
+loads the kernel from the host, so nothing else would put it there.
+
+The disk is the earlier one at twice the size, since the archive is
+16 MB and the root holds it unpacked:
+
+	dd if=/dev/zero of=disk.img bs=512 count=245760	# 120 MB
+	mklabel disk.img 81920
+	mkfs-host disk.img
+	addfile-host disk.img ...	# the scaffolding, as before
+	mklabel disk.img 245760
+	dd if=dist.tar of=disk.img bs=512 seek=81920 conv=notrunc
+
+## Installing
+
+Single user, as before, then the two steps build/distribution.sh
+leaves to the system:
+
+	# /stand5/mount -u /
+	# cd /
+	# /stand2/dd if=/stand3/rwd0c bs=10240 skip=4096 count=1611 | \
+	      TMPDIR=/ /stand1/pax -r -pe
+	# /usr/sbin/pwd_mkdb -p /etc/master.passwd
+	# cd /dev; sh MAKEDEV std wd0; cd /
+	# echo '/dev/wd0a / ufs rw 1 1' > /etc/fstab
+	# /sbin/reboot
+
+`count` is the archive's length in 10240-byte records, 1611 here.
+Then multi-user, log in as root, and only then remove the scaffolding
+(see *Noted, not changed* below for why not before):
+
+	login: root
+	myname# rm -rf /stand1 /stand2 /stand3 /stand4 /stand5 /stand6
+
+## What it found
+
+**7. MAKEDEV could make no disk.** `sh MAKEDEV wd0` said `bad unit
+for disk in: wd0`: every minor it computes, it computes with expr, and
+4.4BSD-Lite has no expr. Restored from NetBSD 1.0; see
+`docs/provenance/imports.md`, kind E.
+
+**8. Every reboot with a writable filesystem panicked.** `syncing
+disks...` and a page fault at address 0x10: i386's `boot()` called
+`sync((struct sigcontext *)0)`, a call of an older sync, and sync
+reads `p->p_ucred`. Commit *i386: boot() passes proc0 to sync*, as
+sparc's boot() in this tree does.
+
+**9. Seventeen thousand stray interrupts on the console.** `ISA
+strayintr 0`, once per disk transfer or so, for the length of the
+extraction. The number was wrong -- `ffs()` of an irq number, which
+is 0 for every odd one -- and the irq was 15, the slave controller's
+lowest line. The likely cause is the 8259 itself, which reports a
+request masked between being raised and being acknowledged on that
+line; that is not confirmed beyond the number. Every BSD logs these;
+NetBSD 1.0 stops after five, FreeBSD 2.0 after five for each irq. Commit *i386: report a stray
+interrupt by number, five times*.
+
+## The result
+
+	Automatic boot in progress: starting file system checks.
+	/dev/rwd0a: FILESYSTEM CLEAN; SKIPPING CHECKS
+	starting network
+	...
+	4.4BSD-Lite (myname.my.domain) (console)
+
+	login: root
+	Copyright (c) 1980, 1983, 1986, 1988, 1990, 1991, 1993, 1994
+	        The Regents of the University of California.   All rights reserved.
+
+	tset: Command not found.
+	erase ^H, kill ^U, intr ^C status ^T
+	Don't login as root, use the su command.
+	myname# echo $shell; tty; who
+	/bin/csh
+	/dev/console
+	root     console Oct 12 12:39
+	myname# ps -ax
+	  PID TT  STAT      TIME COMMAND
+	    0 ??  DLs    0:00.01 (swapper)
+	    1 ??  Is     0:00.04 (init)
+	    2 ??  DL     0:00.01 (pagedaemon)
+	   31 ??  Is     0:00.07 (syslogd)
+	   45 ??  Is     0:00.00 (update)
+	...
+	myname# reboot
+	syncing disks... done
+
+`logout` brings getty back; a second login prints `Last login: ... on
+console`. /etc/rc runs to the end, reporting each program this tree
+does not build or install yet -- install, sed, sysctl, timed, quotaon,
+lpd, sendmail, inetd, amd, portmap -- and the NFS daemons' missing
+system call; none stops it.
+
+## Noted, not changed, from this run
+
+- **Removing the device node the root was remounted through, then
+  rebooting, panics** with `vinvalbuf: dirty bufs`. `rm -rf /stand6`
+  in single user does it; `/stand1` to `/stand5` do not, and neither
+  does removing `/stand6` after a multi-user boot, when the root was
+  remounted through `/dev/wd0a` instead. The node's vnode is the
+  mounted device's, by `checkalias`. Not looked into further; the
+  procedure above avoids it.
+- **getty's banner and prompt arrive with the eighth bit set**: the
+  `default` gettytab entry is `:ap:`, and getty then sends even
+  parity, as 4.4BSD always did. Correct for a 7-bit terminal; a modern
+  serial console shows `M-` characters. NetBSD 1.0 does the same.
+- **The host's install resolves group names.** Makefiles that set
+  BINGRP got Debian's numbers for it, not this tree's: ps, w and
+  dmesg are setgid kmem, 15 for 2, and ps shows commands in
+  parentheses; df and shutdown are operator, 37 for 5; dump and
+  restore are tty, Debian's 5, which here is operator.
+  distribution.sh resolves its own names from etc/group; the program
+  installs do not.
+- **MAKEDEV's majors are partly wrong for this kernel.** Its `pty`
+  case makes `c 4` and `c 5` where conf.c has 5 and 6 (4 is drum,
+  which `std` also gives 4). `std` makes stdin, stdout, stderr and
+  fd/ at major 53, which the i386 cdevsw, ending at 14, does not have;
+  fd/ needs awk, which there is none of; and `chown` is looked for in
+  /bin and /usr/bin and lives in /usr/sbin.
+- **root's group is 10**, which etc/group does not have; `id` says
+  `gid=10`. That is Berkeley's master.passwd as shipped.
+- **Without root, the archive's owners are yours.** distribution.sh
+  passes -o and -g only as uid 0. Unprivileged, either run the whole
+  staging under fakeroot(1), or give tar `--owner=0 --group=0`, which
+  loses operator on dumpdates, staff on lastlog and utmp on utmp --
+  /etc/rc remakes utmp in any case.
