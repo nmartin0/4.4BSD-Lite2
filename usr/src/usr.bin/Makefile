@@ -1,6 +1,8 @@
 #	@(#)Makefile	8.3 (Berkeley) 1/7/94
 
-SUBDIR=	apply apropos ar at banner basename bc bdes biff cal calendar \
+# AI-ONLY NOTE: awk, which 4.4BSD-Lite's lists had dropped with the
+# program itself; it is back as Kernighan's own -- see awk/Makefile.
+SUBDIR=	apply apropos ar at awk banner basename bc bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
 	comm compress cpp ctags cut dc deroff diction diff dirname du \
 	env error ex expand false file find finger fmt fold fpr from \

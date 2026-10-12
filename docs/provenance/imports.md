@@ -283,6 +283,7 @@ constants; it has neither. Corrected there.
 	lib/libcompat/4.3/regex.c   93 lines	NetBSD 1.0
 	bin/expr			679 lines	NetBSD 1.0, unmodified
 	sys/kern/subr_rmap.c		NetBSD 1.2, a note added
+	usr.bin/awk			Kernighan, 20121220, unmodified
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
@@ -319,6 +320,29 @@ same code with <sys/systm.h> included and the two longs printed with
 FreeBSD 2.0 had replaced resource maps for swap with its own rlist,
 which would change both callers. TooLs GmbH's licence is four-clause,
 with an advertising clause. install.md, *Swap*, has the measurement.
+
+**usr.bin/awk** is the One True Awk -- Aho, Weinberger and Kernighan's
+own, the AT&T awk that 4.4BSD-Lite lost with the settlement -- at
+version 20121220, the sources of Kernighan's own repository's first
+commit (github.com/onetrueawk/awk, 87b9493), byte for byte: LICENSE,
+README, awk.1, awk.h, awkgram.y, b.c, lex.c, lib.c, main.c, maketab.c,
+parse.c, proto.h, run.c, tran.c. Not taken: his makefile and the test
+archive. The licence is Lucent's of 1997, a permission notice with a
+disclaimer and no advertising clause.
+
+Chosen by the user over GNU awk, which is what NetBSD 1.0 and FreeBSD
+2.0 shipped; it is what OpenBSD, FreeBSD and NetBSD carry now. Of its
+versions, 20121220 is the oldest whose sources can be had as
+Kernighan published them: the GitHub repository begins there, and the
+earlier releases survive in the BSDs' trees with their own changes
+(FreeBSD 5.0's contrib/one-true-awk is 20021129). It is also the last
+release before the 2018 maintenance and the 2023 UTF-8 rewrite.
+
+The Makefile is this project's, in the shape of OpenBSD's: yacc, then
+maketab built with HOSTCC and run here to make proctab.c. The one
+change outside the directory is usr.bin/Makefile's SUBDIR, which names
+awk again. Building it found that include/ctype.h declared none of the
+classifier functions; that fix is kind B above.
 
 **bin/expr** is expr.y, expr.1 and the Makefile, byte for byte as
 NetBSD's netbsd-1-0 branch has them. Berkeley's expr was AT&T's and
