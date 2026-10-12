@@ -129,6 +129,7 @@ execve(p, uap, retval)
 	int na, ne, nc, cc, len, resid, ssize, phsize;
 	int error, i;
 	int ap, ucp;
+	struct ps_strings arginfo;
 
 	indir = 0;
 	uid = cred->cr_uid;
@@ -401,9 +402,28 @@ again:
 
 	/*
 	 * Copy the arguments onto the new stack.
+	 *
+	 * AI-ONLY NOTE: below struct ps_strings, which is filled in
+	 * after the loop. PS_STRINGS, in Berkeley's <sys/exec.h>, is
+	 * the top sizeof(struct ps_strings) bytes under USRSTACK, and
+	 * ps, w and every kvm_getargv reader look there for where the
+	 * strings are and how many; this body used to put the strings
+	 * themselves in those bytes and never write the structure, so
+	 * ps showed every command in parentheses. The structure at
+	 * PS_STRINGS with the strings and the argv and envp vectors
+	 * below it is how NetBSD 1.0 and FreeBSD 2.0 both arrange the
+	 * top of the stack -- each puts more between the two, signal
+	 * trampoline or spare space, which this tree does not need --
+	 * and the fields are set as FreeBSD 2.0's
+	 * exec_copyout_strings sets them: the first argument string,
+	 * the argument count, the first environment string, the
+	 * environment count.
 	 */
+	arginfo.ps_nargvstr = na - ne;
+	arginfo.ps_nenvstr = ne;
 	ssize = (na + 3) * NBPW;
-	ucp = USRSTACK - nc;
+	ucp = (int)PS_STRINGS - nc;
+	arginfo.ps_argvstr = arginfo.ps_envstr = (char *)ucp;
 	ap = ucp - ssize;
 	ssize += nc;
 	cpu_setstack(p, ap);
@@ -416,6 +436,7 @@ again:
 		if (na == ne) {
 			(void) suword((caddr_t)ap, 0);
 			ap += NBPW;
+			arginfo.ps_envstr = (char *)ucp;
 		}
 		if (--na < 0)
 			break;
@@ -432,6 +453,8 @@ again:
 			panic("exec: EFAULT");
 	}
 	(void) suword((caddr_t)ap, 0);
+	(void) copyout((caddr_t)&arginfo, (caddr_t)PS_STRINGS,
+	    sizeof(arginfo));
 
 	execsigs(p);
 	fdcloseexec(p);
