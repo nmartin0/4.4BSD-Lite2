@@ -712,6 +712,48 @@ wdopen(dev, flags, fmt)
 		return(0);	/* already is open, don't mess with it */
 	}
 #endif
+	/*
+	 * AI-ONLY NOTE: a drive that is already open and labelled is
+	 * not reset. Everything from here to `done' re-initialises the
+	 * drive -- it empties its queue with `wdutab[unit].b_actf =
+	 * NULL', puts the state machine back to WANTOPEN, replaces the
+	 * label with dflt_sizes and reads it again -- and this ran on
+	 * every open, including an open of /dev/rwd0c while wd0a was
+	 * mounted as root and in use.
+	 *
+	 * Measured. `dd if=/dev/rwd0c ... | pax' hung, and with pax
+	 * writing it panicked in wdintr reading bp->b_dev through a NULL
+	 * bp (cr2 0x38): pax was paging its text in from wd0a when dd's
+	 * open emptied the queue under it, so pax's requests were never
+	 * completed, and the transfer in flight came back to a drive
+	 * whose queue head was gone. dd alone, or dd | dd, worked only
+	 * because nothing else had I/O queued at the moment of the open.
+	 *
+	 * Jolitz's own guard is the notdef block above, and it is why
+	 * that block exists -- `already is open, don't mess with it' --
+	 * but it returns before the partition checks below, so it would
+	 * hand back any partition number unchecked. FreeBSD 2.0's wd.c,
+	 * the same driver from the same 386BSD source, takes the
+	 * narrower test: it reads the label only while DKFL_BSDLABEL is
+	 * clear (its :967), sets that flag once a label is found (:1011)
+	 * and never clears it, so a drive is reset once and every later
+	 * open goes straight to the partition checks. dk_state == OPEN is
+	 * this driver's equivalent: the reading path below sets it only
+	 * for a labelled drive, and wdclose never resets it. OPENRAW, an
+	 * open with no label, is left to retry the read, as FreeBSD's
+	 * clear flag does.
+	 *
+	 * Not taken from FreeBSD: DKFL_LABELLING, its lock against a
+	 * second open while the first is reading the label, nor the
+	 * wdsleep() that waits for the controller to go idle before a
+	 * reset. The first open of wd0 here is the root mount, before any
+	 * process exists to race it. But a drive left OPENRAW -- opened
+	 * with no label -- is still reset by every open, so it still has
+	 * the hazard this guards against; no unlabelled drive is in use on
+	 * this port, and FreeBSD 2.0's two are the answer when one is.
+	 */
+	if (du->dk_state == OPEN)
+		goto opened;
 	du->dk_unit = unit;
 	wdutab[unit].b_actf = NULL;
 	/*if (flags & O_NDELAY)
@@ -826,6 +868,7 @@ done:
 	brelse(bp);
 	if (error == 0)
 		du->dk_open = 1;
+opened:
 
         /*
          * Warn if a partion is opened
