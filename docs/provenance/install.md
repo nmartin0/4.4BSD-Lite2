@@ -195,7 +195,10 @@ whole of it archived.
 	    usr.sbin/syslogd usr.sbin/chown usr.sbin/update \
 	    usr.bin/logger usr.bin/find usr.bin/true usr.bin/false \
 	    usr.bin/tty usr.bin/id usr.bin/who usr.bin/more usr.bin/wc \
-	    usr.bin/head usr.bin/tail usr.bin/env usr.bin/uname usr.bin/w
+	    usr.bin/head usr.bin/tail usr.bin/env usr.bin/uname usr.bin/w \
+	    usr.bin/xinstall usr.bin/sed usr.bin/tset usr.sbin/sysctl \
+	    usr.sbin/quotaon usr.sbin/accton usr.sbin/timed usr.sbin/lpr \
+	    usr.sbin/inetd usr.sbin/portmap usr.sbin/amd
 	do
 		(cd usr/src/$d && sh "$r/build/make.sh" \
 		    depend all install NOMAN=noman INSTALLFLAGS=)
@@ -339,3 +342,64 @@ system call; none stops it.
   staging under fakeroot(1), or give tar `--owner=0 --group=0`, which
   loses operator on dumpdates, staff on lastlog and utmp on utmp --
   /etc/rc remakes utmp in any case.
+
+# What /etc/rc found next
+
+Eleven more directories, for programs /etc/rc and .login run --
+install, sed, sysctl, quotaon, accton, timed, lpd, inetd, portmap, amd
+and tset -- were added to the staging. Each built and installed as it
+stands; what running them found:
+
+**10. Every mmap(2) panicked the kernel.** With nlist able to read
+the kernel (11), the first program to map a file -- savecore, then
+kvm_mkdb, then a small test program mapping /bin/csh -- stopped the system
+with `trap type 3' at the first instruction of mmap(). QEMU's monitor
+showed the four bytes there already overwritten at the single-user
+prompt, and a watchpoint caught the writer: pmap_bootstrap's SYSMAP,
+storing the PTE pointer Berkeley named `mmap'. Built -fcommon, that
+uninitialised variable was a common symbol, and the linker resolved it
+to the mmap() function. Nothing installed until now had called mmap()
+at all -- the a.out nlist rejected the ELF kernel by its header before
+mapping anything -- so the first call was the first to reach the
+damage. Commit *i386: pmap's PTE pointer is XXX_mmap, not mmap*, after
+NetBSD 1.0. Checked across the whole kernel: no other common symbol
+resolves to code.
+
+**11. nlist(3) and kvm_mkdb could not read an ELF kernel.**
+`savecore: /vmunix: nlist: Undefined error: 0` and `kvm_mkdb:
+/vmunix: bad magic number` at every boot. NetBSD 1.3's ELF readers,
+for libc and for kvm_mkdb, with the definitions they need added to
+sys/exec_elf.h from the same release. Commit *nlist(3), kvm_mkdb:
+read ELF*; `docs/provenance/imports.md`, kind D, has the survey.
+
+**12. tset died at every login.** `.login` runs `tset -Q \?$TERM`;
+with an unknown terminal libterm's tgetent() freed an uninitialised
+pointer. Commit *libterm: tgetent starts its entry pointer at NULL*,
+as NetBSD 1.0 and FreeBSD 2.0 do. tset now asks again, because there
+is still no /usr/share/misc/termcap -- see below.
+
+Afterwards, at boot: `savecore: no core dump`, a fresh
+`/var/db/kvm_vmunix.db`, and `Terminal type? [unknown]`, which a
+return or ^D answers.
+
+Still reported by /etc/rc, and why:
+
+- `named`, `sendmail`, `cron`, `/usr/libexec/ex3.7preserve`: not in
+  this tree's build. bind is in contrib/; sendmail's directory holds a
+  README; cron is one of the programs missing.md lists; and
+  ex3.7preserve belongs to the old ex 3.7, of which usr.bin/ex keeps
+  only the manual pages and USD document -- contrib's nvi does not
+  provide it.
+- `nfsd`, `nfsiod`, `mountd`: the kernel is configured without NFS.
+- `ifconfig: ... no such interface` seven times: netstart configures
+  ace0, ex0, imp0, le0, ne0, we0 and en0. Five are not in this
+  configuration; ne0 and we0 are, and their probes find no card.
+- `chmod: /dev/tty[pqrs]*`: no ptys; MAKEDEV's pty majors are wrong
+  (above).
+- `accton: /var/account/acct`: the file is not made by etc/Makefile.
+- `timed` prints its usage: rc passes it `$timedflags` from netstart,
+  which is `YES`, a switch and not an option.
+
+Not yet done: /usr/share/misc/termcap. share/termcap's Makefile builds
+it with `ex` on the host and indexes it with cap_mkdb, the target's
+program, as pwd_mkdb is.
