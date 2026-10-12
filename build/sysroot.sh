@@ -48,15 +48,17 @@
 #   3. Host tools, in ${L2_BUILD}/tools/bin. First install, which is
 #      build/install.sh and is put there before the headers are
 #      installed, since every install a Makefile runs through
-#      build/make.sh from here on goes through it. Then six from this
+#      build/make.sh from here on goes through it. Then eight from this
 #      tree's own sources: lorder, from usr.bin/lorder/lorder.sh,
 #      which bsd.lib.mk runs to order an archive and which the host
 #      does not have; mkdep, for the same reason; yacc, because the
 #      packaged byacc reads these grammars but writes a yylex
 #      declaration this tree's own yacc does not; config, which
 #      the kernel build runs; btxld, which sys/boot/i386/boot2
-#      runs to join boot2 to BTX; and write_mfs_in_kernel, which puts
-#      a root filesystem into an install kernel. NetBSD 1.6's
+#      runs to join boot2 to BTX; write_mfs_in_kernel, which puts
+#      a root filesystem into an install kernel; and crunchgen and
+#      crunchide, which make the one binary that root holds. And a
+#      `make' that is bmake, for crunchgen. NetBSD 1.6's
 #      build.sh installs its own tree's lorder the same way, as
 #      nblorder, and builds its own yacc as nbyacc. Each carries its
 #      reasoning at its site below.
@@ -250,6 +252,31 @@ $HOSTCC -w -D_GNU_SOURCE -o "$TOOLS/btxld" "$SRC/usr.sbin/btxld/btxld.c"
 # shellcheck disable=SC2086  # HOSTCC carries its own flags
 $HOSTCC -w -o "$TOOLS/write_mfs_in_kernel" \
     "$SRC/release/write_mfs_in_kernel.c"
+
+# crunchgen and crunchide, for an install root: crunchgen writes a
+# makefile that links many programs into one binary, and runs make to
+# learn each program's objects; crunchide, run by that makefile, hides
+# all but each program's entry point. Both run here. crunchide is
+# built against the host's <elf.h> with build/elf-host.h, which names
+# the FreeBSD aliases its ELF back end uses.
+#
+# make, as a name: crunchgen runs `make' to read each program's
+# Makefile and its makefile runs `make' in each program's directory,
+# and both mean the BSD make. So a `make' that is bmake goes here,
+# first on the PATH build/make.sh gives.
+C=$SRC/usr.sbin/crunch
+cdir="$L2_BUILD/tools/crunch.build"
+rm -rf "$cdir"
+mkdir -p "$cdir"
+sh -e "$C/crunchgen/mkskel.sh" "$C/crunchgen/crunched_main.c" \
+    > "$cdir/crunched_skel.c"
+# shellcheck disable=SC2086  # HOSTCC carries its own flags
+$HOSTCC -w -o "$TOOLS/crunchgen" "$C/crunchgen/crunchgen.c" \
+    "$cdir/crunched_skel.c"
+# shellcheck disable=SC2086
+$HOSTCC -w -include "$REPO_ROOT/build/elf-host.h" -o "$TOOLS/crunchide" \
+    "$C/crunchide/crunchide.c" "$C/crunchide/exec_elf32.c"
+ln -sf "$(command -v bmake)" "$TOOLS/make"
 
 for lib in $libs; do
 	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
