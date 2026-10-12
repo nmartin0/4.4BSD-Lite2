@@ -28,7 +28,11 @@
 #	flog*	kernel logging device
 #
 
-PATH=/sbin:/bin/:/usr/bin
+# AI-ONLY NOTE: /usr/sbin, where chown lives, which `std' runs on
+# fd/ -- `chown: not found' otherwise. This is etc.hp300/MAKEDEV's
+# line, from this tree; NetBSD 1.0's and FreeBSD 2.0's i386 MAKEDEV
+# both have /usr/sbin too.
+PATH=/sbin:/bin/:/usr/bin:/usr/sbin
 umask 77
 for i
 do
