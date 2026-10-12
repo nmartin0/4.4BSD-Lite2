@@ -198,11 +198,15 @@ whole of it archived.
 	    usr.bin/head usr.bin/tail usr.bin/env usr.bin/uname usr.bin/w \
 	    usr.bin/xinstall usr.bin/sed usr.bin/tset usr.sbin/sysctl \
 	    usr.sbin/quotaon usr.sbin/accton usr.sbin/timed usr.sbin/lpr \
-	    usr.sbin/inetd usr.sbin/portmap usr.sbin/amd
+	    usr.sbin/inetd usr.sbin/portmap usr.sbin/amd usr.bin/cap_mkdb
 	do
 		(cd usr/src/$d && sh "$r/build/make.sh" \
-		    depend all install NOMAN=noman INSTALLFLAGS=)
+		    depend all install NOMAN=noman)
 	done
+	(cd usr/src/share/termcap && sh "$r/build/make.sh" termcap)
+	$L2_BUILD/tools/bin/install -o bin -g bin -m 444 \
+	    $L2_BUILD/obj$r/usr/src/share/termcap/termcap \
+	    $L2_BUILD/root/usr/share/misc/termcap
 	sh build/kernel.sh
 	install -m 755 usr/src/sys/compile/LINK.i386/vmunix \
 	    $L2_BUILD/root/vmunix
@@ -210,8 +214,20 @@ whole of it archived.
 	tar -C $L2_BUILD/root --numeric-owner --format=ustar \
 	    -cf dist.tar .
 
-`INSTALLFLAGS=` because rcp's Makefile sets `-fschg`, a 4.4BSD file
-flag GNU install does not know. `NOMAN` because there is no nroff.
+`NOMAN` because there is no nroff. Run as root, or under fakeroot,
+for the tree's owners and groups: build/install.sh, which every
+Makefile's install goes through, turns `bin`, `kmem`, `operator` and
+the rest into this tree's numbers, and drops them unprivileged. It
+also drops `-fschg`, a 4.4BSD file flag rcp's Makefile asks for and a
+Linux filesystem cannot hold; an earlier form of this recipe passed
+`INSTALLFLAGS=` for that.
+
+termcap is share/termcap's own `termcap' target -- `ex' on the host
+running the tree's reorder script over termcap.src -- installed by
+hand, through the same install wrapper, because its Makefile's install
+also wants termcap.db, which cap_mkdb makes, and cap_mkdb is a program
+for the target. It is run on the system below, as pwd_mkdb is. Host
+`ex' is Debian's vim; it runs the script as written.
 Of sbin, all but disklabel is installed: its Makefile formats its
 manual page whatever NOMAN says. reboot's install stops on
 `boot_hp300.0`, and id's on `groups.0`, after the programs themselves
@@ -231,8 +247,8 @@ The disk is the earlier one at twice the size, since the archive is
 
 ## Installing
 
-Single user, as before, then the two steps build/distribution.sh
-leaves to the system:
+Single user, as before, then the steps the host cannot do --
+build/distribution.sh's two, and cap_mkdb:
 
 	# /stand5/mount -u /
 	# cd /
@@ -240,6 +256,7 @@ leaves to the system:
 	      TMPDIR=/ /stand1/pax -r -pe
 	# /usr/sbin/pwd_mkdb -p /etc/master.passwd
 	# cd /dev; sh MAKEDEV std wd0; cd /
+	# /usr/bin/cap_mkdb /usr/share/misc/termcap
 	# echo '/dev/wd0a / ufs rw 1 1' > /etc/fstab
 	# /sbin/reboot
 
@@ -322,13 +339,16 @@ system call; none stops it.
   `default` gettytab entry is `:ap:`, and getty then sends even
   parity, as 4.4BSD always did. Correct for a 7-bit terminal; a modern
   serial console shows `M-` characters. NetBSD 1.0 does the same.
-- **The host's install resolves group names.** Makefiles that set
-  BINGRP got Debian's numbers for it, not this tree's: ps, w and
-  dmesg are setgid kmem, 15 for 2, and ps shows commands in
-  parentheses; df and shutdown are operator, 37 for 5; dump and
-  restore are tty, Debian's 5, which here is operator.
-  distribution.sh resolves its own names from etc/group; the program
-  installs do not.
+- **The host's install resolved group names** -- ps, w and dmesg
+  setgid to Debian's kmem, 15 for this tree's 2; df and shutdown to
+  its operator, 37 for 5; dump and restore to its tty, 5, which here
+  is operator. Answered since by build/install.sh. Measured after:
+  `-r-xr-sr-x  1 bin  kmem  /bin/ps`.
+- **ps shows every command in parentheses** all the same, and w its
+  own. That is not the group: kvm_getargv reads struct ps_strings at
+  the top of the process's stack, and this tree's execve -- a body
+  written for this project, kern/kern_exec.c -- copies the arguments
+  but never fills ps_strings in. Recorded in docs/roadmap.md.
 - **MAKEDEV's majors are partly wrong for this kernel.** Its `pty`
   case makes `c 4` and `c 5` where conf.c has 5 and 6 (4 is drum,
   which `std` also gives 4). `std` makes stdin, stdout, stderr and
@@ -400,6 +420,5 @@ Still reported by /etc/rc, and why:
 - `timed` prints its usage: rc passes it `$timedflags` from netstart,
   which is `YES`, a switch and not an option.
 
-Not yet done: /usr/share/misc/termcap. share/termcap's Makefile builds
-it with `ex` on the host and indexes it with cap_mkdb, the target's
-program, as pwd_mkdb is.
+/usr/share/misc/termcap is made since -- see the staging recipe --
+and `Terminal type? [unknown] vt100` is accepted.

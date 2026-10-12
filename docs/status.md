@@ -1,5 +1,28 @@
 # Where the work stands
 
+## Now: multi-user, installed by itself
+
+On QEMU's `pc` machine, with the kernel loaded by `build/shim`:
+
+- **Install.** The kernel boots single user from a disk image made by
+  the host tools in `build/`, mounts its root read-write, and installs
+  the whole staged system -- bin, sbin, the programs /etc/rc runs,
+  etc/'s files from `build/distribution.sh`, the libraries and headers
+  -- from a ustar archive on the same disk, with its own `dd` and
+  `pax`. Then `pwd_mkdb`, `cap_mkdb`, `MAKEDEV std wd0` and an fstab.
+- **Multi-user.** It reboots without `-s`: `fsck -p` finds the root
+  clean, /etc/rc runs to the end, getty prints `login:`, root logs in
+  to csh, `ps`, `w`, `dmesg`, `savecore` and `kvm_mkdb` work, and
+  `reboot` prints `syncing disks... done`.
+
+`docs/provenance/install.md` has the procedure and every fault it
+found, each with the commit that answered it; `docs/roadmap.md` has
+what is next. What follows below is the record as it was kept on the
+way here, and is history rather than the present.
+
+## Before: the record as it was kept
+
+
 **The kernel execs a program and enters user mode.** With a disk image
 carrying a label, an FFS filesystem and `/sbin/init`, all built by the
 host tools in `build/`:

@@ -41,10 +41,10 @@ corrected to Berkeley's own intent.
 incomplete type in `vfs_subr.c`. A whole build configuration is
 broken and nothing tracks it.
 
-**`wd`, `fd` and `wt` are out of `LINK.i386`.** Nine `b_actf`/`b_actb`
-sites — seven in `wd.c`, two in `fd.c`; `wt.c` fails separately on a static
-declaration following a non-static one. Donor checked: FreeBSD 2.0.5
-alone. These are the local disk, so Tier 1 needs them.
+**`wd` is in `LINK.i386` and carries the root; `fd` and `wt` are
+not.** `fd.c` still has the `b_actf`/`b_actb` sites recorded here
+before, and `wt.c` fails on a static declaration following a
+non-static one. Neither is needed to boot from disk.
 
 **Seven ports have never been compiled at all** — hp300 (74 sources),
 luna68k (59), sparc (55), pmax (48), news3400 (57), vax (61), tahoe
@@ -83,54 +83,85 @@ on `yylex` was dropped only to satisfy byacc.
 
 ## Tier 1 — boot on QEMU's legacy machine
 
-**The kernel reaches user mode and runs a program.** It loads, probes
-and attaches an IDE disk, mounts an FFS root filesystem, forks, execs
-an ELF binary and enters user mode at that binary's entry point. It
-panics when the first child is reaped. `docs/status.md` has the
-output and what had to be fixed to get there. What this tier
-predicted would be the hard part -- the loader -- was sidestepped by
-`build/shim`, which is scratch tooling and says what deletes it.
+**Reached.** On QEMU's `pc` machine the kernel boots single user,
+installs the system from a ustar archive on a raw disk with its own
+`dd` and `pax`, and reboots multi-user: `/etc/rc` runs to the end,
+getty prints `login:`, root logs in to csh, `ps`, `w`, `dmesg`,
+`savecore` and `kvm_mkdb` work, and `reboot` syncs and halts.
+`docs/provenance/install.md` has the procedure, the faults it found
+in the order it found them, and what /etc/rc still reports.
 
-What remains of it, in order:
+The original list, for the record, all done: the link; `libkern.a`;
+loading the kernel (`build/shim`, provisionally -- see Tier 1½);
+`DELAY()`; the serial console; `KERNBASE` at `0xF0000000`; a root
+device; `pmap_remove` on the self-map.
 
-1. ~~**Close the link.**~~ Done.
-2. ~~**Build `libkern.a`.**~~ Done, by `build/kernel.sh`.
-3. ~~**Load the kernel.**~~ Done, by `build/shim`, provisionally.
-4. ~~**`DELAY()`.**~~ Done. It was worse than recorded: nothing called
-   `startrtclock()`, so the 8254 was never programmed and every
-   `DELAY` was a no-op for every argument. `delay()` now reads the
-   counter.
-5. ~~**The console.**~~ Done, and it is serial rather than `pccons`:
-   one line, `options COMCONSOLE`, using Berkeley's own priority
-   mechanism.
-6. ~~**`kmem_suballoc` returns `KERN_NO_SPACE`.**~~ Done. `KERNBASE`
-   moved to `0xF0000000`.
-7. ~~**A root device.**~~ Done. `setconf()` is written for the i386,
-   `rootdev` is `NODEV` so `setconf` runs, and `wd.c`'s drive queue
-   uses `struct disk`'s `dk_dchain` rather than `b_actf`. The kernel
-   prints `root on wd0` and mounts an FFS filesystem.
-8. **The settlement bodies.** `execve` is written, and ten of the
-   buffer cache's fourteen with it. **23 of the 35 remain**, all but
-   one of them in `LINK.i386`:
+**The settlement and Net/2 bodies.** Filled by import: the clists
+(`tty_subr.c`), the buffer cache's write path (`vfs_bio.c`, NetBSD
+1.0), accounting (`kern_acct.c`) and raw I/O (`kern_physio.c`). Two
+files still hold `Body deleted`:
 
-   | file | stubs | what they are |
-   |---|---|---|
-   | `kern/tty_subr.c` | 10 | the clist routines |
-   | `kern/vfs_bio.c` | 4 | `bwrite`, `bdwrite`, `bawrite`, `breadn` |
-   | `kern/subr_rmap.c` | 3 | resource maps |
-   | `kern/kern_acct.c` | 2 | process accounting |
-   | `kern/kern_physio.c` | 2 | raw device I/O |
-   | `kern/sys_process.c` | 2 | `ptrace` |
-   | `hp/dev/hil_subr.c` | 1 | not in this build |
+| file | what | what it costs |
+|---|---|---|
+| `kern/subr_rmap.c` | `rminit`, `rmalloc`, `rmfree` | swap: `rmalloc` returns 0, so nothing can be paged out |
+| `kern/sys_process.c` | `ptrace` | debuggers; returns ENOSYS |
 
-   `vfs_bio.c`'s four are the write path, and nothing reaches a disk
-   without them.
-9. **`pmap_remove` on the self-map.** The kernel panics when the
-   first child is reaped, on a null pv entry for `0xEFFBF000` -- the
-   page directory's own address in the recursive self-map, the one
-   mapping `pmap_pinit` installs by assignment rather than through
-   `pmap_enter`. `docs/status.md` carries the measurements and what
-   has been ruled out. This is what stops the kernel now.
+**What is left before Tier 1 is solid**, in the order proposed:
+
+1. ~~Owners and groups as the tree names them~~ -- `build/install.sh`.
+2. ~~`/usr/share/misc/termcap`~~ -- built on the host, indexed on the
+   system.
+3. **Swap.** `subr_rmap.c` from a donor, a swap partition in the
+   image, `swapon -a` from fstab.
+4. **MAKEDEV's i386 majors** -- pty 4/5 against conf.c's 5/6, fd/ at
+   53 -- and **the panic from removing the device node the root was
+   remounted through** (`vinvalbuf: dirty bufs`).
+5. **`-fno-common`.** The `mmap` fault (install.md, fault 10) was a
+   common symbol resolved to a function. GCC has defaulted to
+   `-fno-common` since 10; this tree passes `-fcommon` because 1990s
+   code declares the same global in several files. A kernel scan found
+   every other common symbol to be data shared on purpose, so the
+   kernel can move to `-fno-common` with `extern` in the headers, and
+   the linker will refuse the next one. Userland the same, directory
+   by directory.
+6. **`ptrace`**, for gdb. Lower: nothing in the boot path needs it.
+7. **`ps_strings`.** kern/kern_exec.c, written for this project,
+   copies argv and envp to the new stack but never fills in struct
+   ps_strings at PS_STRINGS, so ps and w show every command in
+   parentheses. Where the strings sit also wants checking against
+   VM_MAXUSER_ADDRESS, which kvm_argv tests: USRSTACK is a page above
+   it on this port. A donor's exec copies the layout whole.
+
+## Tier 1½ — an installable `.iso`
+
+What the BSDs of 1994-98 shipped: a boot image carrying a kernel and a
+small root, an installer on that root, and the distribution as files
+beside it. FreeBSD 2.0 installed from a boot floppy with shell
+scripts; FreeBSD 2.0.5 (1995) introduced the menu-driven sysinstall;
+NetBSD and OpenBSD used scripted installers on a RAM-disk root, NetBSD
+adding sysinst in 1.3. Bootable CDs came after El Torito (1995), first
+as the boot floppy image in floppy emulation.
+
+1. **A bootloader that reads ELF.** Lite2's `sys/i386/boot` reads a.out
+   and the kernel is ELF; today QEMU's `-kernel` and `build/shim`
+   stand in. Survey the earliest ELF-capable i386 boot blocks of
+   NetBSD, FreeBSD and OpenBSD and shrink-wrap one. This also boots
+   an installed disk with no host help.
+2. **An install kernel with its root inside it** -- the miniroot,
+   FreeBSD 2.0.5's MFS-in-kernel boot floppy -- holding sh, the disk
+   tools and pax.
+3. **A scripted installer**: label, newfs, mount, extract the sets,
+   pwd_mkdb, cap_mkdb, MAKEDEV, fstab. It is the single-user sequence
+   install.md runs by hand.
+4. **The image**: El Torito, the boot image in floppy emulation as
+   the BSDs did it first, the sets as ustar files on an ISO 9660
+   filesystem, which Lite2's cd9660 reads.
+
+## After Tier 1½ — self-hosting
+
+The system building itself. Lite2 ships no C compiler, so this begins
+with a decision: which compiler, from where, and whether the first
+stage is a cross-build from the host.
 
 ## Tier 2 — modern hardware
 
