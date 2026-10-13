@@ -898,3 +898,13 @@ own kernel, /vmunix from the set, with the CD driver in it:
 
 Measured under QEMU 8.2.2 with -accel tcg,one-insn-per-tb=on, for
 the reason in *Installing with the installer*, *Noted, not changed*.
+
+All of it in one command, from a clean tree, as root or under
+fakeroot -- build/release.sh runs the recipes of this file in order,
+from the target root to the CD, and leaves the CD as
+$L2_BUILD/release/i386-cd.iso:
+
+	sh build/release.sh
+
+Run from a fresh clone with an empty $L2_BUILD, it made a 24 MB CD,
+and that CD installed a blank disk as above.
