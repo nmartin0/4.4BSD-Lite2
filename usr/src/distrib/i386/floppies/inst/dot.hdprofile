@@ -58,6 +58,6 @@ if [ "X${DONEPROFILE}" = "X" ]; then
 	. /.commonutils
 	. /.instutils
 
-	echo "Follow the installation directions to install the NetBSD"
+	echo "Follow the installation directions to install the 4.4BSD"
 	echo "distribution sets."
 fi

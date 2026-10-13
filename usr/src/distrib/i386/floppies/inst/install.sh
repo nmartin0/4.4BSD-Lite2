@@ -34,11 +34,23 @@
 #	In a perfect world, this would be a nice C program, with a reasonable
 #	user interface.
 
+# AI-ONLY NOTE: NetBSD 1.1's installer, for this tree, each change
+# small and in place: the system it names is 4.4BSD and the version
+# Lite2; IDE, the one disk driver this kernel has, is the default; no
+# remount of the root, which is the install kernel's and writable;
+# the boot messages shown with cat, there being no more; the root
+# copied to the new disk with pax, where NetBSD ran GNU tar with
+# --one-file-system and --unlink, which this tree's tar does not
+# have, and leaving /dev's nodes to Configure's MAKEDEV, which does not
+# replace a node that is there; and the fstab's filesystem type is ufs, this kernel's name
+# for it, where NetBSD's was ffs. The closing message says the base
+# set carries the kernel: NetBSD's came from a kernel-copy floppy.
+
 DT=/etc/disktab				# /etc/disktab
 FSTABDIR=/mnt/etc			# /mnt/etc
 #DONTDOIT=echo
 
-VERSION=1.1
+VERSION=Lite2
 FSTAB=${FSTABDIR}/fstab
 
 getresp() {
@@ -48,9 +60,9 @@ getresp() {
 	fi
 }
 
-echo	"Welcome to the NetBSD ${VERSION} installation program."
+echo	"Welcome to the 4.4BSD ${VERSION} installation program."
 echo	""
-echo	"This program is designed to help you put NetBSD on your hard disk,"
+echo	"This program is designed to help you put 4.4BSD on your hard disk,"
 echo	"in a simple and rational way.  You'll be asked several questions,"
 echo	"and it would probably be useful to have your disk's hardware"
 echo	"manual, the installation notes, and a calculator handy."
@@ -88,9 +100,9 @@ echo	""
 echo	"To do the installation, you'll need to provide some information about"
 echo	"your disk."
 echo	""
-echo	"NetBSD can be installed on ST506, ESDI, IDE, or SCSI disks."
-echo -n	"What kind of disk will you be installing on? [SCSI] "
-getresp "SCSI"
+echo	"4.4BSD can be installed on ST506, ESDI, IDE, or SCSI disks."
+echo -n	"What kind of disk will you be installing on? [IDE] "
+getresp "IDE"
 case "$resp" in
 	esdi|ESDI|st506|ST506)
 		drivetype=wd
@@ -159,7 +171,7 @@ labelname=$resp
 echo	""
 echo	"You will now need to provide some information about your disk's"
 echo	"geometry.  This should either be in the User's Manual for your disk,"
-echo	"or you should have written down what NetBSD printed when booting."
+echo	"or you should have written down what 4.4BSD printed when booting."
 echo	"(Note that he geometry that's printed at boot time is preferred.)"
 echo	""
 echo    "You may choose to view the initial boot messages for your system"
@@ -168,7 +180,7 @@ echo -n "View the boot messages again? [n] "
 getresp "n"
 case "$resp" in
 	y*|Y*)
-		more /kern/msgbuf
+		cat /kern/msgbuf
 		;;
 	*)
 		echo	""
@@ -232,13 +244,13 @@ if [ $sizeunit = "sectors" ]; then
 fi
 
 echo -n ""
-echo -n "Size of NetBSD portion of disk (in $sizeunit)? "
+echo -n "Size of 4.4BSD portion of disk (in $sizeunit)? "
 getresp
 partition=$resp
 partition_sects=`expr $resp \* $sizemult`
 part_offset=0
 if [ $partition_sects -lt $disksize ]; then
-	echo -n "Offset of NetBSD portion of disk (in $sizeunit)? "
+	echo -n "Offset of 4.4BSD portion of disk (in $sizeunit)? "
 	getresp
 	part_offset=$resp
 fi
@@ -281,7 +293,7 @@ echo	""
 
 swap=0
 while [ $swap -eq 0 ]; do 
-	echo	"$units_left $sizeunit remaining in NetBSD portion of disk."
+	echo	"$units_left $sizeunit remaining in 4.4BSD portion of disk."
 	echo -n	"Swap partition size (in $sizeunit)? "
 	getresp
 	case $resp in
@@ -301,10 +313,9 @@ echo	""
 
 fragsize=1024
 blocksize=8192
-$DONTDOIT mount -u /dev/fd0a /
 cat /etc/disktab.preinstall > $DT
 echo	"" >> $DT
-echo	"$labelname|NetBSD installation generated:\\" >> $DT
+echo	"$labelname|4.4BSD installation generated:\\" >> $DT
 echo	"	:dt=${type}:ty=winchester:\\" >> $DT
 echo -n	"	:nc#${cyls_per_disk}:ns#${sects_per_track}" >> $DT
 echo	":nt#${tracks_per_cyl}:\\" >> $DT
@@ -321,8 +332,8 @@ _offset=`expr $part_offset \* $sizemult`
 echo	"	:pc#${_size}:oc#${_offset}:\\" >> $DT
 
 echo	"You will now have to enter information about any other partitions"
-echo	"to be created in the NetBSD portion of the disk.  This process will"
-echo	"be complete when you've filled up all remaining space in the NetBSD"
+echo	"to be created in the 4.4BSD portion of the disk.  This process will"
+echo	"be complete when you've filled up all remaining space in the 4.4BSD"
 echo	"portion of the disk."
 
 while [ $part_used -lt $partition ]; do
@@ -330,7 +341,7 @@ while [ $part_used -lt $partition ]; do
 	units_left=`expr $partition - $part_used`
 	while [ $part_size -eq 0 ]; do
 		echo	""
-		echo -n	"$units_left $sizeunit remaining in NetBSD portion of "
+		echo -n	"$units_left $sizeunit remaining in 4.4BSD portion of "
 		echo	"the disk"
 		echo -n "Next partition size (in $sizeunit)? "
 		getresp
@@ -390,7 +401,7 @@ sync
 echo	""
 echo	"THIS IS YOUR LAST CHANCE!!!"
 echo	""
-echo -n	"Are you SURE you want NetBSD installed on your hard drive? (yes/no) "
+echo -n	"Are you SURE you want 4.4BSD installed on your hard drive? (yes/no) "
 answer=""
 while [ "$answer" = "" ]; do
 	getresp
@@ -459,23 +470,23 @@ fi
 
 echo	""
 echo    "Populating filesystems with bootstrapping binaries and config files"
-$DONTDOIT tar --one-file-system -cf - . | (cd /mnt ; tar --unlink -xpf - )
+$DONTDOIT pax -rw -pe -X -s ',^\./dev/..*$,,' . /mnt
 $DONTDOIT cp /tmp/.hdprofile /mnt/.profile
 
 echo	""
 echo -n	"Creating an fstab..."
-echo /dev/${drivename}a / ffs rw 1 1 | sed -e s,//,/, > $FSTAB
+echo /dev/${drivename}a / ufs rw 1 1 | sed -e s,//,/, > $FSTAB
 if [ "$ename" != "" ]; then
-	echo /dev/${drivename}e /$ename ffs rw 1 2 | sed -e s,//,/, >> $FSTAB
+	echo /dev/${drivename}e /$ename ufs rw 1 2 | sed -e s,//,/, >> $FSTAB
 fi
 if [ "$fname" != "" ]; then
-	echo /dev/${drivename}f /$fname ffs rw 1 3 | sed -e s,//,/, >> $FSTAB
+	echo /dev/${drivename}f /$fname ufs rw 1 3 | sed -e s,//,/, >> $FSTAB
 fi
 if [ "$gname" != "" ]; then
-	echo /dev/${drivename}g /$gname ffs rw 1 4 | sed -e s,//,/, >> $FSTAB
+	echo /dev/${drivename}g /$gname ufs rw 1 4 | sed -e s,//,/, >> $FSTAB
 fi
 if [ "$hname" != "" ]; then
-	echo /dev/${drivename}h /$hname ffs rw 1 5 | sed -e s,//,/, >> $FSTAB
+	echo /dev/${drivename}h /$hname ufs rw 1 5 | sed -e s,//,/, >> $FSTAB
 fi
 sync
 echo	" done."
@@ -486,10 +497,8 @@ echo	"OK!  The preliminary work of setting up your disk is now complete."
 echo 	""
 echo	"The remaining tasks are:"
 echo	""
-echo	"To copy a NetBSD kernel to the hard drive's root filesystem."
-echo	"Once accomplished, you can boot off the hard drive."
-echo	""
-echo	"To load and install the NetBSD distribution sets."
+echo	"To load and install the 4.4BSD distribution sets, the base set"
+echo	"carrying the kernel, /vmunix; then to run Configure."
 echo	"Currently the hard drive's root filesystem is mounted on /mnt"
 echo	""
 echo	"Consult the installation notes which will describe how to"

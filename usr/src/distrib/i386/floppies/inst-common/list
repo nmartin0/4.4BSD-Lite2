@@ -2,7 +2,8 @@
 
 # AI-ONLY NOTE: NetBSD 1.1's, for this tree. The links follow
 # instbin.conf: no ed, gzip, gunzip, gzcat, mount_ffs, mount_msdos or
-# more, and awk and tar where gawk and GNU tar were. The MAKEDEV
+# more, and awk and tar where gawk and GNU tar were, and pax by its
+# own name too, for install.sh. The MAKEDEV
 # script is copied and left, for making more nodes by hand; the nodes
 # the install needs are in devices.spec, not made here, and
 # Makefile.inc says why. The boot
@@ -24,6 +25,7 @@ LINK	instbin			bin/ln
 LINK	instbin			bin/ls
 LINK	instbin			bin/mkdir
 LINK	instbin			bin/mv
+LINK	instbin			bin/pax
 LINK	instbin			bin/pwd
 LINK	instbin			bin/rm
 LINK	instbin			bin/sh

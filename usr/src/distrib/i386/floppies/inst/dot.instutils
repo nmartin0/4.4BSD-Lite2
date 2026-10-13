@@ -33,13 +33,29 @@
 # reasonably once it is installed on the hard disk.  These are meant to be
 # invoked from the shell prompt, by people installing NetBSD.
 
+# AI-ONLY NOTE: Configure, for this tree's /etc. Lite2's netstart sets
+# the hostname from its own `hostname=' line and configures each
+# interface with an ifconfig line of its own; NetBSD's read
+# /etc/myname and /etc/hostname.<if>, which nothing here reads. So
+# the hostname is written into netstart's line, and the interface's
+# ifconfig line appended to netstart. MAKEDEV makes the nodes the
+# install recipe in docs/provenance/install.md makes -- this tree's
+# MAKEDEV has no `all' -- and the password and termcap databases are
+# made here, through chroot, by the installed system's own pwd_mkdb
+# and cap_mkdb: NetBSD's sets carried them made, and these cannot be
+# made on the build host. The closing message says the base set
+# carries the kernel, and Configure ends in /, not in the new /dev,
+# so that the new root can be unmounted.
+
 Configure()
 {
 	DEV=/dev
 	ETC=/etc
+	ROOT=/
 	if [ ! -f /etc/fstab ]; then
 		DEV=/mnt/dev
 		ETC=/mnt/etc
+		ROOT=/mnt
 	fi
 
 	echo	"You will now be prompted for information about this"
@@ -52,7 +68,8 @@ Configure()
 	if [ "$hname" = "" ]; then
 		hname=unknown.host.domain
 	fi
-	echo $hname > ${ETC}/myname
+	sed -e "s/^hostname=.*/hostname=$hname/" ${ETC}/netstart > /tmp/netstart
+	cp /tmp/netstart ${ETC}/netstart
 	proto_domain=`echo $hname | sed -e 's/[^.]*\.//'`
 
 	echo	""
@@ -131,7 +148,8 @@ Configure()
 				ifflags=
 				;;
 		esac
-		echo "inet $ifname $ifnetmask $ifflags" > ${ETC}/hostname.$intf
+		echo "ifconfig $intf inet $ifname ${ifnetmask:+netmask $ifnetmask} $ifflags" \
+		    >> ${ETC}/netstart
 
 		echo    ""
 		echo -n	"WARNING: if you have any more ethernet interfaces, "
@@ -144,14 +162,18 @@ Configure()
 	echo	""
 	echo -n	"Making device nodes (may take a while)..."
 	cd ${DEV}
-	sh MAKEDEV all
+	sh MAKEDEV std wd0 pty0
+	echo	" done."
+
+	echo -n	"Making the password and termcap databases..."
+	chroot ${ROOT} /usr/sbin/pwd_mkdb -p /etc/master.passwd
+	chroot ${ROOT} /usr/bin/cap_mkdb /usr/share/misc/termcap
 	echo	" done."
 
 	sync
 
 	echo	""
-	echo	"If you haven't already installed a kernel on the hard drive"
-	echo	"using your kernel-copy floppy, do so now.  Kernel"
-	echo 	"installation instructions can be found in the"
-	echo 	"installation notes."	
+	echo	"The kernel, /vmunix, came with the base set.  Halt, remove"
+	echo	"the install floppy, and boot from the hard drive."
+	cd /
 }

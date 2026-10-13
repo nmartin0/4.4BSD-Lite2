@@ -41,7 +41,11 @@ fi
 
 # counter for possible shared library confusion
 TAR=/usr/bin/tar
-GUNZIP=/usr/bin/gunzip
+
+# AI-ONLY NOTE: the sets here are plain ustar, and tar is this tree's
+# pax under that name: no gunzip in Extract, and no --unlink, GNU
+# tar's, there or in Load_tape -- pax, reading, replaces a file it
+# finds. NetBSD's sets were gzipped, for GNU tar.
 
 Set_tmp_dir()
 {
@@ -111,7 +115,7 @@ Load_tape()
 	echo -n "continue..."
 	read foo
 	echo	"Extracting files from the tape..."
-	$TAR --unlink -xvpf /dev/$which
+	$TAR -xvpf /dev/$which
 	echo	"Done."
 }
 
@@ -128,5 +132,5 @@ Extract()
 		tarverbose=
 		;;
 	esac
-	cat "$1"* | $GUNZIP | (cd $dest_dir ; $TAR  --unlink -xp"$tarverbose"f - )
+	cat "$1"* | (cd $dest_dir ; $TAR -xp"$tarverbose"f - )
 }
