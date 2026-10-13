@@ -61,6 +61,11 @@ options		MFS
 options		SWAPPAGER
 options		VNODEPAGER
 options		DEVPAGER
+# AI-ONLY NOTE: kernfs, for /kern, which the installer's profile
+# mounts, and from which it shows the boot messages again. The line is this tree's hp300 and pmax GENERIC
+# configurations', `options KERNFS # kernel data-structure
+# filesystem'; NetBSD 1.1's i386 GENERIC carries it as well.
+options		KERNFS
 
 config		vmunix	swap on generic
 
