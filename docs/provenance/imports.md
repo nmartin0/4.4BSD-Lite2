@@ -429,9 +429,12 @@ makefs, sized for the install kernel's MFS_ROOT, with its device nodes
 in an mtree specification instead of a MAKEDEV run; the program list
 less what this tree has no source for, and less more, with awk, pax as
 tar and -lrpc. Each change is noted at its site, and install.md, *The
-install root*, has the build. The installer itself runs as shipped
-until it is adapted: it still speaks of NetBSD 1.1 and GNU tar. The
-licence is Demetriou's four-clause one, with an advertising clause.
+install root*, has the build. The installer is adapted in place: the
+system's name, IDE as the default, pax for GNU tar, ufs in fstab,
+Configure writing Lite2's netstart and making the password and
+termcap databases through chroot; install.md, *Installing with the
+installer*, has a whole install. The licence is Demetriou's
+four-clause one, with an advertising clause.
 
 ## E -- a reimplementation of something the Lite cut removed
 

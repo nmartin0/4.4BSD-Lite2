@@ -174,14 +174,21 @@ as the boot floppy image in floppy emulation.
    NetBSD 1.1's i386 install floppy, 42 programs in one binary, in an
    install kernel that boots from a 2.88 MB floppy image to NetBSD's
    installer (install.md, *The install root*).
-3. **A scripted installer**: label, newfs, mount, extract the sets,
-   pwd_mkdb, cap_mkdb, MAKEDEV, fstab. It is the single-user sequence
-   install.md runs by hand. NetBSD 1.1's i386 install.sh, which the
-   install root already carries, adapted to this tree: its disktab
-   and disklabel -B, pax for GNU tar, and loading the sets.
+3. ~~**A scripted installer**~~: NetBSD 1.1's i386 install.sh and
+   Configure, adapted. From the install floppy image it labels a
+   blank disk with the boot blocks, makes and populates the root,
+   and after the base set is extracted names the host and makes
+   /dev, pwd.db and termcap.db; the disk then boots by itself, to
+   login (install.md, *Installing with the installer*). Left: a
+   medium for the sets. The install kernel reads one disk only --
+   no CD or floppy driver, and a wd driver of one drive -- so today
+   the set is read raw from past the end of the 4.4BSD part of the
+   disk.
 4. **The image**: El Torito, the boot image in floppy emulation as
    the BSDs did it first, the sets as ustar files on an ISO 9660
-   filesystem, which Lite2's cd9660 reads.
+   filesystem, which Lite2's cd9660 reads. It needs what the kernel
+   lacks: a CD driver -- ATAPI, for QEMU and every PC since -- and
+   options CD9660. A survey of the donors comes first.
 
 ## After Tier 1½ — self-hosting
 

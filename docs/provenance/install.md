@@ -735,3 +735,66 @@ kernel is not configured with. And the prompt for a shell's pathname
 is this tree's init, built with DEBUGSHELL, which goes to single user
 because there is no /etc/rc; RETURN gives sh, whose /.profile starts
 the installer.
+
+# Installing with the installer
+
+NetBSD 1.1's installer, adapted (kind D in imports.md), now installs
+the system. The sets have to reach it, and this install kernel can
+read one disk and nothing else: no CD driver, no floppy driver, and
+the wd driver knows a single drive. So, until a CD driver is in, the
+base set -- a ustar archive of the staged root, as dist.tar in
+*Multi-user, to a login prompt* -- goes on the target disk past the
+part given to 4.4BSD, and is read from there raw, as that section
+reads it:
+
+	dd if=/dev/zero of=disk.img bs=512 count=252000	# 250 x 16 x 63
+	dd if=base.tar of=disk.img bs=512 seek=211680 conv=notrunc
+	qemu-system-i386 -drive file=floppy.img,format=raw,if=floppy \
+	    -drive file=disk.img,format=raw -boot a -nographic
+
+At the installer: IDE, wd0; 512-byte sectors, 250 cylinders, 16
+heads, 63 sectors; cylinders as the unit; 203 of them for 4.4BSD at
+offset 0, 160 for root and 43 for swap; `yes'. It writes the disktab
+entry, labels the disk with disklabel -w -B -- which writes boot1 and
+boot2 from /usr/mdec -- makes and mounts the root, copies its own
+root over and writes an fstab. Then, at its shell:
+
+	# dd if=/dev/rwd0d bs=10240 skip=10584 count=2008 | \
+	      (cd /mnt; tar -xpf -)
+	# Configure
+	What is this machine's hostname? [unknown.host.domain] testhost.my.domain
+	...
+	Making device nodes (may take a while)... done.
+	Making the password and termcap databases... done.
+	# umount /mnt; halt
+
+skip is sector 211680 in 10240-byte records; count, the set's length
+in them. Booted from the disk alone:
+
+	>> 4.4BSD/i386 BOOT
+	Default: 0:wd(0,a)/vmunix
+	...
+	changing root device to wd0a
+	Automatic boot in progress: starting file system checks.
+	...
+	login: root
+	testhost# hostname; df
+	testhost.my.domain
+	Filesystem  1K-blocks     Used    Avail Capacity  Mounted on
+	/dev/wd0a       77983    23034    51049    31%    /
+
+The set measured was an earlier staging of the root, whose MAKEDEV
+predates the PATH fix of `etc.i386/MAKEDEV: /usr/sbin on PATH', so
+Configure's MAKEDEV said `chown: not found' for fd/; a set staged from
+the tree now does not.
+
+## Noted, not changed
+
+- **The wd driver knows one drive.** Its configuration makes one
+  isa_device, and wdunit() reads the drive from bits 5 and 6 of the
+  minor, where MAKEDEV numbers a second drive's partitions from 8 --
+  partition 8 of drive 0 to the driver, its raw partition. So
+  MAKEDEV's wd1 is wd0, and the install root carries no wd1.
+- **Configure's ethernet questions** append an ifconfig line to
+  netstart, whose own ifconfig lines for ace0, ex0 and the rest are
+  Berkeley's template and fail on every boot, as they did before.
