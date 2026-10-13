@@ -67,7 +67,7 @@ typedef struct bitcmd {
 #define	CMD2_UBITS	0x10
 
 static BITCMD	*addcmd __P((BITCMD *, int, int, int, u_int));
-static int	 compress_mode __P((BITCMD *));
+static void	 compress_mode __P((BITCMD *));
 #ifdef SETMODE_DEBUG
 static void	 dumpmode __P((BITCMD *));
 #endif
@@ -402,7 +402,13 @@ dumpmode(set)
  * 'g' and 'o' commands continue to be separate.  They could probably be 
  * compacted, but it's not worth the effort.
  */
-static int
+/*
+ * AI-ONLY NOTE: void, as NetBSD's from 1.2 and FreeBSD's by 2.2.8
+ * declare it: it returns nothing, by a bare `return', and its one
+ * caller ignores the value. pcc refuses a bare return from a
+ * function declared int.
+ */
+static void
 compress_mode(set)
 	register BITCMD *set;
 {

@@ -73,6 +73,14 @@ static char sccsid[] = "@(#)ping.c	8.3 (Berkeley) 4/28/95";
 #include <netinet/ip.h>
 #include <netinet/ip_icmp.h>
 #include <netinet/ip_var.h>
+/*
+ * AI-ONLY NOTE: <arpa/inet.h>, as NetBSD 1.1's ping.c includes it, for
+ * inet_ntoa and inet_addr, which ping calls undeclared otherwise --
+ * inet_ntoa with a struct argument, which pcc cannot pass to a
+ * function it has no prototype for ("Cannot generate code ... op
+ * STARG").
+ */
+#include <arpa/inet.h>
 #include <netdb.h>
 #include <unistd.h>
 #include <stdio.h>
@@ -548,7 +556,7 @@ pr_pack(buf, cc, from)
 		if (!(options & F_VERBOSE))
 			return;
 		(void)printf("%d bytes from %s: ", cc,
-		    pr_addr(from->sin_addr.s_addr));
+		    pr_addr(from->sin_addr));
 		pr_icmph(icp);
 	}
 
@@ -573,8 +581,11 @@ pr_pack(buf, cc, from)
 					l = (l<<8) + *++cp;
 					if (l == 0)
 						(void)printf("\t0.0.0.0");
-				else
-					(void)printf("\t%s", pr_addr(ntohl(l)));
+				else {
+					struct in_addr ina;
+					ina.s_addr = ntohl(l);
+					(void)printf("\t%s", pr_addr(ina));
+				}
 				hlen -= 4;
 				j -= 4;
 				if (j <= IPOPT_MINOFF)
@@ -611,8 +622,11 @@ pr_pack(buf, cc, from)
 				l = (l<<8) + *++cp;
 				if (l == 0)
 					(void)printf("\t0.0.0.0");
-				else
-					(void)printf("\t%s", pr_addr(ntohl(l)));
+				else {
+					struct in_addr ina;
+					ina.s_addr = ntohl(l);
+					(void)printf("\t%s", pr_addr(ina));
+				}
 				hlen -= 4;
 				i -= 4;
 				if (i <= 0)
@@ -907,19 +921,25 @@ pr_iph(ip)
  *	Return an ascii host address as a dotted quad and optionally with
  * a hostname.
  */
+/*
+ * AI-ONLY NOTE: pr_addr takes the struct in_addr itself, and its
+ * callers make one, as FreeBSD's ping.c has it by 3.0 -- where it took
+ * the address as a u_long and passed inet_ntoa *(struct in_addr *)&l,
+ * which pcc, optimizing, cannot compile ("Cannot generate code ... op
+ * STARG"). The body is otherwise this one's.
+ */
 char *
-pr_addr(l)
-	u_long l;
+pr_addr(ina)
+	struct in_addr ina;
 {
 	struct hostent *hp;
 	static char buf[80];
 
 	if ((options & F_NUMERIC) ||
-	    !(hp = gethostbyaddr((char *)&l, 4, AF_INET)))
-		(void)sprintf(buf, "%s", inet_ntoa(*(struct in_addr *)&l));
+	    !(hp = gethostbyaddr((char *)&ina, 4, AF_INET)))
+		(void)sprintf(buf, "%s", inet_ntoa(ina));
 	else
-		(void)sprintf(buf, "%s (%s)", hp->h_name,
-		    inet_ntoa(*(struct in_addr *)&l));
+		(void)sprintf(buf, "%s (%s)", hp->h_name, inet_ntoa(ina));
 	return(buf);
 }
 
