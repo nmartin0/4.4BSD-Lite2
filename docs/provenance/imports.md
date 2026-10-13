@@ -417,10 +417,12 @@ floppy, distrib/i386/floppies, Christopher Demetriou's of 1994: the
 crunchgen configuration of its one binary, the list of what goes on
 it with the two tools that run the list, and the installer, install.sh
 with its profile and the set-loading functions. The same tree is in
-NetBSD 1.0 (October 1994) and changed little to 1.2; it is NetBSD's
-own i386 installer of the Lite2 years, where NetBSD 1.2's
-distrib/miniroot, considered first, served sparc and hp300 booting
-from a swap partition. NetBSD 1.1 (November 1995) is taken, the first
+NetBSD 1.0 (October 1994), with other kernel-copy floppies, and
+changed little to 1.2; it is NetBSD's own i386 installer of the Lite2
+years. NetBSD 1.2's distrib/miniroot, considered first, is a
+machine-independent installer; that release carries per-port parts
+for atari, hp300 and sparc, and the Makefile fragment that builds it
+for atari alone. NetBSD 1.1 (November 1995) is taken, the first
 release after Lite2 that carries it. Not taken: the kernel-copy and
 upgrade floppies.
 

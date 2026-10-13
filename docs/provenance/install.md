@@ -764,8 +764,8 @@ root over and writes an fstab. Then, at its shell:
 	# Configure
 	What is this machine's hostname? [unknown.host.domain] testhost.my.domain
 	...
-	Making device nodes (may take a while)... done.
 	Making the password and termcap databases... done.
+	Making device nodes (may take a while)... done.
 	# umount /mnt; halt
 
 skip is sector 211680 in 10240-byte records; count, the set's length
@@ -783,10 +783,12 @@ in them. Booted from the disk alone:
 	Filesystem  1K-blocks     Used    Avail Capacity  Mounted on
 	/dev/wd0a       77983    23034    51049    31%    /
 
-The set measured was an earlier staging of the root, whose MAKEDEV
-predates the PATH fix of `etc.i386/MAKEDEV: /usr/sbin on PATH', so
-Configure's MAKEDEV said `chown: not found' for fd/; a set staged from
-the tree now does not.
+Configure makes the databases first and then runs MAKEDEV inside the
+new root, from the base set's /dev/MAKEDEV: MAKEDEV's `chown -R
+bin.bin fd' looks `bin' up, and this libc finds a user only in a
+pwd.db, which the install root does not have. After: fd/ is owned by
+bin, kmem's group is kmem, and ttyp0 is there. The set measured was an
+earlier staging of the root with the tree's current MAKEDEV in it.
 
 ## Noted, not changed
 
@@ -798,3 +800,11 @@ the tree now does not.
 - **Configure's ethernet questions** append an ifconfig line to
   netstart, whose own ifconfig lines for ace0, ex0 and the rest are
   Berkeley's template and fail on every boot, as they did before.
+  Run twice, Configure appends the line twice.
+- **Load_fd and Load_tape**, NetBSD's set loaders, cannot work: this
+  install kernel has no floppy, msdos or tape driver.
+- **The installer's files stay on the new root** -- /install,
+  /.instutils, /.commonutils, /mnt2, /usr/mdec and
+  /etc/disktab.preinstall -- as on a NetBSD 1.1 install, for running
+  its functions from the installed system. Its /.profile does not:
+  the base set's replaces it.

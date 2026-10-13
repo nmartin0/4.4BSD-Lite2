@@ -43,7 +43,10 @@
 # MAKEDEV has no `all' -- and the password and termcap databases are
 # made here, through chroot, by the installed system's own pwd_mkdb
 # and cap_mkdb: NetBSD's sets carried them made, and these cannot be
-# made on the build host. The closing message says the base set
+# made on the build host. The databases come first and MAKEDEV runs
+# in the new root too, from the base set's /dev/MAKEDEV: its chown
+# looks up `bin', which this libc finds only in a pwd.db, and the
+# install root has none. The closing message says the base set
 # carries the kernel, and Configure ends in /, not in the new /dev,
 # so that the new root can be unmounted.
 
@@ -160,14 +163,14 @@ Configure()
 	esac
 	
 	echo	""
-	echo -n	"Making device nodes (may take a while)..."
-	cd ${DEV}
-	sh MAKEDEV std wd0 pty0
-	echo	" done."
-
 	echo -n	"Making the password and termcap databases..."
 	chroot ${ROOT} /usr/sbin/pwd_mkdb -p /etc/master.passwd
 	chroot ${ROOT} /usr/bin/cap_mkdb /usr/share/misc/termcap
+	echo	" done."
+
+	echo	""
+	echo -n	"Making device nodes (may take a while)..."
+	chroot ${ROOT} /bin/sh -c 'cd /dev; sh MAKEDEV std wd0 pty0'
 	echo	" done."
 
 	sync

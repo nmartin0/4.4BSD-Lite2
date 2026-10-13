@@ -45,7 +45,10 @@ TAR=/usr/bin/tar
 # AI-ONLY NOTE: the sets here are plain ustar, and tar is this tree's
 # pax under that name: no gunzip in Extract, and no --unlink, GNU
 # tar's, there or in Load_tape -- pax, reading, replaces a file it
-# finds. NetBSD's sets were gzipped, for GNU tar.
+# finds. NetBSD's sets were gzipped, for GNU tar. Load_fd and
+# Load_tape are NetBSD's and cannot work with this install kernel,
+# which has no floppy, msdos or tape driver; they are left for when
+# it does.
 
 Set_tmp_dir()
 {

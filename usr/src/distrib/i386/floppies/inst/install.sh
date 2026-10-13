@@ -41,9 +41,9 @@
 # the boot messages shown with cat, there being no more; the root
 # copied to the new disk with pax, where NetBSD ran GNU tar with
 # --one-file-system and --unlink, which this tree's tar does not
-# have, and leaving /dev's nodes to Configure's MAKEDEV, which does not
-# replace a node that is there; and the fstab's filesystem type is ufs, this kernel's name
-# for it, where NetBSD's was ffs. The closing message says the base
+# have, and leaving /dev to Configure, which runs the base set's
+# MAKEDEV, since MAKEDEV does not replace a node that is there; and the fstab's filesystem type is ufs, this kernel's name
+# for it, where NetBSD's was ffs. The closing messages say the base
 # set carries the kernel: NetBSD's came from a kernel-copy floppy.
 
 DT=/etc/disktab				# /etc/disktab
@@ -502,7 +502,7 @@ echo	"carrying the kernel, /vmunix; then to run Configure."
 echo	"Currently the hard drive's root filesystem is mounted on /mnt"
 echo	""
 echo	"Consult the installation notes which will describe how to"
-echo	"install the distribution sets and kernel.  Post-installation"
+echo	"install the distribution sets.  Post-installation"
 echo	"configuration is also discussed therein."
 echo	""
 echo	"GOOD LUCK!"
