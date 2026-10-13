@@ -299,6 +299,16 @@ CC="gcc -m32 -std=gnu89 -fcommon -fno-builtin -fno-stack-protector -fno-pic"
 CC="$CC -static"
 CC="$CC -specs=$SPECS --sysroot=$ROOT -Wl,-nostdlib"
 CC="$CC -nostdinc -isystem $ROOT/usr/include"
+# L2_CC=pcc: the target's own compiler instead, contrib/pcc as
+# build/sysroot.sh builds it for this machine -- its driver knows the
+# target's startup files, libraries and headers under --sysroot, so
+# none of the above stands in for them. -static and -std=gnu89 as
+# above: pcc otherwise says C11 in __STDC_VERSION__, and code that
+# tests it -- the scanners host flex writes, for one -- then looks
+# for C99 headers this tree does not have.
+if [ "${L2_CC:-}" = pcc ]; then
+	CC="$TOOLS/pcc --sysroot=$ROOT -static -std=gnu89"
+fi
 CPP="cpp -m32 -traditional-cpp -nostdinc -I$ROOT/usr/include"
 # The few programs a build runs on this machine rather than the
 # target: -std=gnu89 for the same reason the target compiler has it.

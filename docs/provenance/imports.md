@@ -221,6 +221,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	i386/isa/wd.c, atapi.c, wcd.c	FreeBSD 2.1.0, adapted
 	the slice layer, 4 files	FreeBSD 2.1.0, 2 lines changed
 	config: isa_biotab		FreeBSD 2.1.0, adapted
+	contrib/pcc			NetBSD's framework, pcc 20220331, adapted
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -521,6 +522,48 @@ FreeBSD: a dev with bit 31 set, which only mknod or a Rock Ridge
 device entry on a mounted CD could make, reads as a negative minor,
 which a driver that checks only `minor(dev) >= N', as tty_pty.c
 does, lets through.
+
+**The C compiler: pcc.** The Portable C Compiler, Anders Magnusson's
+revival of Johnson's, as NetBSD carries it in src/external/bsd/pcc --
+its Makefiles, its include/config.h, and dist/pcc for pcc's sources
+-- with dist/pcc the last snapshot upstream made, 20220331, put in the
+way NetBSD's prepare-import.sh puts one in, where NetBSD's own is of
+20160208. The choice of compiler, and of NetBSD's tree over
+OpenBSD's 2007-2012 usr.bin/pcc, is in roadmap.md, *self-hosting*;
+the later snapshot, for the fixes upstream made after NetBSD's import
+-- wrong code from `||' and `&&' with constant operands, the x87 stack
+left unpopped, an internal error passing a struct from an old-style
+parameter -- is in the import commit. The snapshot is a CVS checkout
+of pcc's repository as Debian and Ubuntu redistribute it,
+pcc_1.2.0~DEVEL+20220331.orig.tar.gz; pcc.ludd.ltu.se is gone.
+
+Its target is pcc's os/litebsd, written for Serge Vakulenko's
+4.4BSD-Lite on MIPS, made a target for this i386 -- the nearest of
+pcc's systems to this one, static and crt0-based, where NetBSD's
+names a dynamic linker and crt files this csu has not. Its MIPS lines
+give way to NetBSD's for the i386, `unix' and `i386' are predefined as
+this tree's own contrib/gcc-2.3.3 predefines them (config/i386bsd.h),
+since Lite2's sources test them, and __LiteBSD__ goes. Built on the
+build host by build/sysroot.sh, as NetBSD's tools/pcc builds it --
+from the file lists of pcc's own Makefiles, with the host's as and ld
+for the i386 behind it until binutils are built here too -- and
+chosen for a build by L2_CC=pcc. The licences are Magnusson's
+two-clause BSD and Caldera's four-clause on what descends from the
+Unix pcc.
+
+Measured: built so, it compiles libc, the startup files, bin, sbin
+and eleven more of the staging list's programs; with that libc
+and those startup files, on the target, 64-bit division and modulus,
+float arithmetic, strtol and atof give the right answers, and sh,
+csh, ls, ps, df, date, id, sed, awk, find, wc, head and ping run
+correctly. Two sources needed what later BSDs had already done:
+lib/libc/gen/setmode.c's compress_mode returns void, as NetBSD's from
+1.2 and FreeBSD's by 2.2.8 declare it, since pcc refuses its bare
+`return' in an int function; and sbin/ping includes <arpa/inet.h>, as
+NetBSD 1.1's does, and pr_addr takes a struct in_addr, as FreeBSD
+3.0's does, since pcc, optimizing, cannot compile passing
+*(struct in_addr *)&l. Not yet: the kernel, and pcc building itself
+on the target.
 
 ## E -- a reimplementation of something the Lite cut removed
 

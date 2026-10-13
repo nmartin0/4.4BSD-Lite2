@@ -192,9 +192,12 @@ as the boot floppy image in floppy emulation.
 
 ## After Tier 1½ — self-hosting
 
-The system building itself. Lite2 ships no C compiler, assembler or
-linker, so this began with a decision: which, from where, and whether
-the first stage is a cross-build from the host.
+The system building itself. Lite2 has no compiler for its i386: its
+contrib/gcc-2.3.3 carries Berkeley's BSD-make Makefile for hp300,
+luna68k, mips and sparc and not the i386, and contrib/gas-1.38 and
+usr.bin/ld, GNU ld 1.x, are a.out tools; all C89. So this began with
+a decision: which compiler, assembler and linker, from where, and
+whether the first stage is a cross-build from the host.
 
 **Decided: pcc now, to reach a self-hosting system soonest.** The
 Portable C Compiler -- BSD-licensed, about 1.5 MB, C99 with parts of
@@ -266,6 +269,11 @@ misreads in gen/nlist_elf32.c and one in <rpc/auth.h>, and one
 internal error passing a struct by value (sbin/ping). libkern
 compiles whole. 64-bit division calls __divdi3 and its kin, which
 libc/quad has. Not yet run on the target.
+
+Done: pcc in contrib/pcc, built on the host as a cross-compiler and
+chosen by L2_CC=pcc; with it, libc, the startup files, bin, sbin and
+eleven more programs build, and run on the target (imports.md, *The C
+compiler: pcc*).
 
 The stages: (1) pcc as a host tool, replacing the GCC specs file
 (deferred.md, *The specs file stands in for a cross-compiler*), the

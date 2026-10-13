@@ -278,6 +278,75 @@ $HOSTCC -w -include "$REPO_ROOT/build/elf-host.h" -o "$TOOLS/crunchide" \
     "$C/crunchide/crunchide.c" "$C/crunchide/exec_elf32.c"
 ln -sf "$(command -v bmake)" "$TOOLS/make"
 
+# pcc, the target's C compiler (contrib/pcc, NetBSD's), built here as
+# a cross-compiler: ccom and pcpp, its compiler proper and
+# preprocessor, into tools/libexec, and the driver as tools/bin/pcc.
+# This is NetBSD's tools/pcc in purpose -- the compiler built for the
+# build machine -- by the file lists of contrib/pcc's own Makefiles,
+# with its os/litebsd target and its include/config.h, as
+# build/sysroot.sh builds config and crunchgen. mkext runs here to
+# write the table of instructions ccom is compiled with. As and ld
+# are the host's, for the i386, through the two wrappers below, until
+# the target's own binutils are built here too. CROSS_COMPILING, as
+# pcc's configure defines it when build and target differ, keeps
+# softfloat from checking its arithmetic against this machine's.
+# pcc's sources are C99,
+# so -std=gnu99 where the tree's host tools take gnu89; -fcommon,
+# because they define variables in headers; and _DEFAULT_SOURCE, since
+# include/config.h, written for a NetBSD host, says strlcat and ffs are
+# there, and glibc declares them only so (strlcat from glibc 2.38).
+P=$SRC/contrib/pcc
+D=$P/dist/pcc
+pdir="$L2_BUILD/tools/pcc.build"
+LX="$L2_BUILD/tools/libexec"
+rm -rf "$pdir"
+mkdir -p "$pdir" "$LX"
+printf '#!/bin/sh\nexec as --32 "$@"\n' > "$LX/i386-as"
+printf '#!/bin/sh\nexec ld -m elf_i386 "$@"\n' > "$LX/i386-ld"
+chmod 755 "$LX/i386-as" "$LX/i386-ld"
+pver=$(sed -n 's/^PCC_VERSION=//p' "$P/Makefile.inc")
+pdate=$(sed -n 's/^PCC_DATESTAMP=//p' "$P/Makefile.inc")
+PCPP="-DGCC_COMPAT -DPCC_DEBUG -D_ISOC99_SOURCE -Dos_litebsd -Dmach_i386"
+PCPP="$PCPP -DHOST_LITTLE_ENDIAN -DTARGET_LITTLE_ENDIAN -DCROSS_COMPILING"
+PCPP="$PCPP -I$P/include -I$D/common"
+VERS="-DVERSSTR=\"pcc $pver $pdate for i386--litebsd\""
+PCC_CC="$HOSTCC -std=gnu99 -fcommon -w -D_DEFAULT_SOURCE"
+cd "$pdir"
+# shellcheck disable=SC2086
+$PCC_CC -DMKEXT $PCPP -I"$D/mip" -I"$D/arch/i386" -o mkext \
+    "$D/mip/mkext.c" "$D/arch/i386/table.c" "$D/mip/common.c"
+./mkext
+"$TOOLS/yacc" -d "$D/cc/ccom/cgram.y"
+mv y.tab.c cgram.c
+mv y.tab.h cgram.h
+flex -o scan.c "$D/cc/ccom/scan.l"
+# shellcheck disable=SC2086
+$PCC_CC $PCPP "$VERS" \
+    -I. -I"$D/mip" -I"$D/os/litebsd" -I"$D/arch/i386" -I"$D/cc/ccom" \
+    -o "$LX/ccom" cgram.c scan.c \
+    "$D/cc/ccom/optim.c" "$D/cc/ccom/pftn.c" "$D/cc/ccom/trees.c" \
+    "$D/cc/ccom/inline.c" "$D/cc/ccom/symtabs.c" \
+    "$D/cc/ccom/gcc_compat.c" "$D/cc/ccom/init.c" "$D/arch/i386/local.c" \
+    "$D/arch/i386/code.c" "$D/cc/ccom/stabs.c" "$D/cc/ccom/builtins.c" \
+    "$D/mip/match.c" "$D/mip/reader.c" "$D/mip/optim2.c" "$D/mip/regs.c" \
+    "$D/arch/i386/local2.c" "$D/arch/i386/order.c" \
+    "$D/arch/i386/table.c" "$D/mip/common.c" "$D/cc/ccom/main.c" \
+    external.c "$D/common/unicode.c" "$D/common/compat.c" \
+    "$D/common/softfloat.c" "$D/cc/ccom/dwarf.c"
+# shellcheck disable=SC2086
+$PCC_CC $PCPP "$VERS" -I. -I"$D/mip" -I"$D/cc/cpp" -o "$LX/pcpp" \
+    "$D/cc/cpp/cpc.c" "$D/cc/cpp/cpp.c" "$D/cc/cpp/token.c" \
+    "$D/common/compat.c"
+# shellcheck disable=SC2086
+$PCC_CC $PCPP "$VERS" -DTARGOS=\"litebsd\" -DTARGMACH=\"i386\" \
+    -DLIBEXECDIR=\"$LX/\" -DINCLUDEDIR=\"/usr/include/\" \
+    -DCPPROGNAME=\"pcpp\" -DPREPROCESSOR=\"pcpp\" \
+    -DASSEMBLER=\"$LX/i386-as\" -DLINKER=\"$LX/i386-ld\" \
+    -I"$D/cc/driver" -I"$D/mip" -I"$D/os/litebsd" -I"$D/arch/i386" \
+    -DTARGSTR=\"i386--litebsd\" \
+    -o "$TOOLS/pcc" "$D/cc/cc/cc.c" "$D/cc/driver/strlist.c" \
+    "$D/cc/driver/xalloc.c" "$D/common/compat.c"
+
 for lib in $libs; do
 	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
 	cd "$SRC/lib/$lib"

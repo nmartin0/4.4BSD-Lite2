@@ -29,8 +29,25 @@
  * Various settings that controls how the C compiler works.
  */
 
+/*
+ * AI-ONLY NOTE: this is pcc's target for LiteBSD, Serge Vakulenko's
+ * 4.4BSD-Lite on MIPS, made a target for this tree's i386: the closest
+ * of pcc's operating systems to this one -- 4.4BSD-Lite, static,
+ * crt0.o and libc -- where NetBSD's names a dynamic linker and crt
+ * files this csu does not have. Changed: __LiteBSD__ goes, since this
+ * is not LiteBSD; unix and i386 are predefined as 4.4BSD-Lite2's own
+ * compiler predefines them for the i386 (contrib/gcc-2.3.3/config/
+ * i386bsd.h, CPP_PREDEFINES), since Lite2's sources test them --
+ * <setjmp.h>, <rpc/auth.h>, strtod.c; __i386__ and the type names
+ * are NetBSD's os/netbsd/ccconfig.h's for mach_i386; MIPS's go. The
+ * startup files are this tree's lib/csu, NetBSD 1.6's: crt0.o with
+ * crtbegin.o and crtend.o around a program, static or not, and no
+ * crti.o or crtn.o. The libraries are libc alone: there is no
+ * libgcc, and libc's quad routines (__divdi3 and the rest) are what
+ * pcc's i386 code calls for 64-bit division.
+ */
 /* common cpp predefines */
-#define CPPADD  { "-D__LiteBSD__", "-D__ELF__", "-D__unix__", \
+#define CPPADD  { "-Dunix", "-D__ELF__", "-D__unix__", \
 	NULL, }
 #define	DYNLINKER { NULL }
 
@@ -38,13 +55,13 @@
 #define F77LIBLIST { "-L/usr/local/lib", "-lF77", "-lI77", "-lm", "-lc", NULL };
 #endif
 
-#define	CPPMDADD { "-D__mips__", "-Dmips", "-D__mips=32", "-D__MIPSEL", \
-	"-D__MIPSEL__", "-DMIPSEL", "-D_MIPSEL", NULL, }
+#define	CPPMDADD { "-D__i386__", "-Di386", NULL, }
+#define	PCC_SIZE_TYPE		"unsigned int"
+#define	PCC_PTRDIFF_TYPE	"int"
 
-#define DEFLIBS { "-lc", "-lgcc", NULL }
+#define DEFLIBS { "-lc", NULL }
 
-/* We only have crt0.o */
-#define CRTBEGIN	0
-#define CRTEND		0
+#define CRTBEGIN_T	"crtbegin.o"
+#define CRTEND_T	"crtend.o"
 #define CRTI		0
 #define CRTN		0
