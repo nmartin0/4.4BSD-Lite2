@@ -192,9 +192,48 @@ as the boot floppy image in floppy emulation.
 
 ## After Tier 1½ — self-hosting
 
-The system building itself. Lite2 ships no C compiler, so this begins
-with a decision: which compiler, from where, and whether the first
-stage is a cross-build from the host.
+The system building itself. Lite2 ships no C compiler, assembler or
+linker, so this began with a decision: which, from where, and whether
+the first stage is a cross-build from the host.
+
+**Decided: pcc now, to reach a self-hosting system soonest.** The
+Portable C Compiler -- BSD-licensed, about 1.5 MB, C99 with parts of
+C11 -- as NetBSD carries it in src/external/bsd/pcc (1.2.0.DEVEL,
+20160208, imported 2016-02-09, with BSD-make Makefiles for cpp, ccom
+and the driver); OpenBSD carried an earlier one in usr.bin/pcc from
+2007 to 2012. It emits GNU-syntax assembly and runs the system's `as`
+and `ld`; nothing BSD-licensed assembles and links i386 ELF in C, so
+those come from GNU binutils, as with pcc in both trees, of the GPLv2
+releases (to 2.17). Which tree's is the donor is still to measure:
+OpenBSD keeps 2.17 in gnu/usr.bin/binutils-2.17, built by a BSD-make
+wrapper that runs GNU configure; NetBSD built its binutils of the
+2000s with BSD-make Makefiles of its own and no configure (NetBSD
+1.5's, 2.9.1, are in gnu/usr.bin/binutils; the later releases' are
+not yet looked at). ar, nm, strip, size and strings can be FreeBSD's
+elftoolchain, BSD-licensed.
+
+Measured before deciding: NetBSD's pcc, built on the host as an
+i386-pc-netbsdelf cross-compiler (it needs -fcommon under GCC 14) and
+pointed at this tree's sysroot, compiles and links bin/cat to an i386
+ELF executable, and all but a handful of files of bin, sbin and libc:
+a `return;' in an int function (gen/setmode.c), a declaration it
+misreads in gen/nlist_elf32.c and one in <rpc/auth.h>, and one
+internal error passing a struct by value (sbin/ping). libkern
+compiles whole. 64-bit division calls __divdi3 and its kin, which
+libc/quad has. Not yet run on the target.
+
+The stages: (1) pcc as a host tool, replacing the GCC specs file
+(deferred.md, *The specs file stands in for a cross-compiler*), the
+tree rebuilt with it; (2) pcc and binutils 2.17 built by that pcc
+and installed on the target; (3) the target rebuilding itself.
+
+**To revisit: the toolchain, for modern C.** pcc reaches C99 and
+parts of C11; the aim is C17 and later, and modern POSIX. Where this
+should end: native BSD tooling -- BSD make, elftoolchain -- and GCC as
+the compiler. NetBSD builds GCC (14.4 today) and binutils with its own
+make framework, external/gpl3/gcc/usr.bin, which is the donor to
+measure then. lld (Apache-2.0) is the permissive alternative to GNU
+ld, as OpenBSD uses on i386. Revisit once the system builds itself.
 
 ## Tier 2 — modern hardware
 

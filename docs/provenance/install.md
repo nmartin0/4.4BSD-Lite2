@@ -899,12 +899,21 @@ own kernel, /vmunix from the set, with the CD driver in it:
 Measured under QEMU 8.2.2 with -accel tcg,one-insn-per-tb=on, for
 the reason in *Installing with the installer*, *Noted, not changed*.
 
-All of it in one command, from a clean tree, as root or under
-fakeroot -- build/release.sh runs the recipes of this file in order,
-from the target root to the CD, and leaves the CD as
-$L2_BUILD/release/i386-cd.iso:
+All of it in one command -- build/release.sh runs the recipes of
+this file in order, from the target root to the CD, and leaves the
+CD as $L2_BUILD/release/i386-cd.iso. As an ordinary user, under
+fakeroot(1), which gives the files the tree's owners without root:
 
-	sh build/release.sh
+	fakeroot sh build/release.sh
 
-Run from a fresh clone with an empty $L2_BUILD, it made a 24 MB CD,
-and that CD installed a blank disk as above.
+or as root, `sh build/release.sh'. It starts from clean each time:
+the objects and the target root under $L2_BUILD are removed first,
+since a second run over a first one's objects stops in libedit, at a
+.depend bmake will not read back. It sets umask 022 itself, because
+mtree, making the install root, stops on the group-writable
+directories a umask of 002 leaves.
+
+Run from a fresh clone as root, it made a 24 MB CD, and that CD
+installed a blank disk as above. Run as an ordinary user under
+fakeroot, umask 002, it made a base set with the same files, modes
+and owners, and its CD installed a blank disk too.

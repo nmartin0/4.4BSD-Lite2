@@ -23,8 +23,9 @@
 #   the CD              *Installing from the CD*: release(7)'s tree
 #                       and mkisofs
 #
-# Run from the top of the tree, as root or under fakeroot(1), for the
-# tree's owners and groups (install.md, *Staging*). Host tools beyond
+# Run from the top of the tree, as root or, as an ordinary user, under
+# fakeroot(1), for the tree's owners and groups (install.md,
+# *Staging*): `fakeroot sh build/release.sh'. Host tools beyond
 # what build/sysroot.sh needs: makefs and mkisofs (Debian's makefs and
 # genisoimage). Output: ${L2_BUILD}/release/, the CD as i386-cd.iso.
 #
@@ -36,6 +37,12 @@
 
 set -e
 
+# The tree's own modes, whatever the caller's umask: 002, the default
+# for users on hosts with per-user groups, leaves directories made here
+# group-writable, and mtree -u, building the install root, then
+# corrects one and stops the build.
+umask 022
+
 [ -f build/release.sh ] || { echo "run from the top of the tree" >&2; exit 1; }
 for t in makefs mkisofs; do
 	command -v $t >/dev/null || { echo "not found: $t" >&2; exit 1; }
@@ -46,7 +53,12 @@ r=$(pwd)
 R=$L2_BUILD/root
 T=$L2_BUILD/tools/bin
 O=$L2_BUILD/release
-rm -rf "$O"
+
+# From clean, as a release is: a second run over the objects of a
+# first stops in libedit, whose .depend -- written by the first run's
+# mkdep -- bmake will not read back. The target root goes too, so the
+# base set holds only what this run installs.
+rm -rf "$O" "$L2_BUILD/obj" "$R"
 mkdir -p "$O"
 
 # the target root, and the host tools
