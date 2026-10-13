@@ -21,6 +21,9 @@
 # See docs/provenance/missing.md for what would be needed to build the
 # three drivers, and which tree has a donor for them.
 #
+# Later: wd is back in, as FreeBSD 2.1.0's wd.c with its ATAPI CD
+# driver, below; fd and wt are still out.
+#
 machine		"i386"
 cpu		"i386"
 # AI-ONLY NOTE: the processor classes, as cpu lines. config turns each
@@ -116,13 +119,25 @@ device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
 # the same reason.
 options		GENERIC
 options		COMCONSOLE
-# AI-ONLY NOTE: wd0 and dk0, which this configuration left out while
-# isa/wd.c could not compile. It compiles now, and wdopen refuses a
-# drive the probe did not find, so a kernel built without a disk
-# attached reports rather than faults. The two lines are
-# GENERIC.i386's :17 and :18 verbatim.
-controller	wd0	at isa? port "IO_WD1" bio irq 14 vector wdintr
-disk		dk0	at wd0 drive 0
+# AI-ONLY NOTE: the disks, from FreeBSD 2.1.0's GENERIC (:40-:49),
+# whose isa/wd.c this tree now carries: the driver is the wdc
+# controller, which probes its own drives, and each drive is a disk
+# under it. wdc1 is the secondary channel, where QEMU's -cdrom puts
+# its ATAPI drive. ATAPI and wcd0 are GENERIC's commented-out lines,
+# taken in. CD9660 is GENERIC's :19, quoted as there. wdopen refuses
+# a drive the probe did not find, so a kernel booted with fewer disks
+# reports rather than faults.
+controller	wdc0	at isa? port "IO_WD1" bio irq 14 vector wdintr
+disk		wd0	at wdc0 drive 0
+disk		wd1	at wdc0 drive 1
+
+controller	wdc1	at isa? port "IO_WD2" bio irq 15 vector wdintr
+disk		wd2	at wdc1 drive 0
+disk		wd3	at wdc1 drive 1
+
+options		ATAPI		#Enable ATAPI support for IDE bus
+device		wcd0		#IDE CD-ROM
+options		"CD9660"	#ISO 9660 Filesystem
 device		com0	at isa? port "IO_COM1" tty irq 4 vector comintr
 device		ne0	at isa? port 0x320 net irq 9 vector neintr
 device we0 at isa? port 0x280 net irq 3 iomem 0xd0000 iosiz 8192 vector weintr

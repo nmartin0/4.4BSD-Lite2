@@ -13,6 +13,7 @@
 # Disks:
 #	wd*	"winchester" disk drives (ST506,IDE,ESDI,RLL,...)
 #	fd*	"floppy" disk drives (3 1/2", 5 1/4")
+#	wcd*	"IDE cdrom disks"
 #
 # Terminal ports:
 #	com*	standard PC COM ports
@@ -91,6 +92,10 @@ wt*)
 	umask 77
 	;;
 
+# AI-ONLY NOTE: units 2 and 3 as well: wd.c is FreeBSD 2.1.0's, which
+# drives two controllers of two disks each, and LINK.i386 configures
+# wd2 and wd3 on the second. Its minors are this script's, unit * 8 +
+# partition. fd shares the entry and is not configured.
 fd*|wd*)
 	umask 2 ; unit=`expr $i : '..\(.*\)'`
 	case $i in
@@ -98,7 +103,7 @@ fd*|wd*)
 	wd*) name=wd; blk=0; chr=3;;
 	esac
 	case $unit in
-	0|1)
+	0|1|2|3)
 		mknod ${name}${unit}a	b $blk `expr $unit '*' 8 + 0`
 		mknod ${name}${unit}b	b $blk `expr $unit '*' 8 + 1`
 		mknod ${name}${unit}c	b $blk `expr $unit '*' 8 + 2`
@@ -117,6 +122,31 @@ fd*|wd*)
 		mknod r${name}${unit}h	c $chr `expr $unit '*' 8 + 7`
 		chgrp operator ${name}${unit}[a-h] r${name}${unit}[a-h]
 		chmod 640 ${name}${unit}[a-h] r${name}${unit}[a-h]
+		;;
+	*)
+		echo bad unit for disk in: $i
+		;;
+	esac
+	umask 77
+	;;
+
+# AI-ONLY NOTE: FreeBSD 2.1.0's i386 MAKEDEV entry, for its
+# isa/wcd.c, which this tree carries; the majors are this tree's
+# conf.c's, block 5 and character 15, where FreeBSD's are 19 and 69.
+# As there, only the c partition: the driver reads the unit from the
+# minor and ignores the partition.
+wcd*)
+	umask 2 ;
+	unit=`expr $i : '...\(.*\)'`
+	blk=5
+	chr=15
+	rm -f wcd$unit? rwcd$unit?
+	case $unit in
+	0|1|2|3)
+		mknod wcd${unit}c  b $blk `expr $unit '*' 8 + 0`
+		mknod rwcd${unit}c c $chr `expr $unit '*' 8 + 0`
+		chgrp operator wcd${unit}[a-h] rwcd${unit}[a-h]
+		chmod 640 wcd${unit}[a-h] rwcd${unit}[a-h]
 		;;
 	*)
 		echo bad unit for disk in: $i

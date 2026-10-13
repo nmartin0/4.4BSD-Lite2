@@ -52,6 +52,14 @@
  * making sure that it does not overlap the bad sector information or any
  * replacement sectors.
  */
+#ifndef _SYS_DKBAD_H_
+#define	_SYS_DKBAD_H_
+
+#define	DKBAD_MAGIC	0x4321		/* normal value for bt_flag */
+#define	DKBAD_MAXBAD	126		/* maximum bad sectors supported */
+#define	DKBAD_NOCYL	0xffff		/* cylinder to mark end of disk table */
+#define	DKBAD_NOTRKSEC	0xffff		/* track/sector to mark end */
+
 struct dkbad {
 	int32_t   bt_csn;		/* cartridge serial number */
 	u_int16_t bt_mbz;		/* unused; should be 0 */
@@ -66,3 +74,24 @@ struct dkbad {
 #define	SSE	1
 #define	BSE	2
 #define	CONT	3
+#ifdef KERNEL
+#include <sys/conf.h>
+
+#define	DKBAD_NOSECT	(-1)		/* sector to mark end of core table */
+
+struct dkbad_intern {
+	daddr_t	bi_maxspare;		/* last spare sector */
+	u_int	bi_nbad;		/* actual dimension of bi_badsect[] */
+	long	bi_bad[DKBAD_MAXBAD + 1];	/* actually usually less */
+};
+
+struct disklabel;
+
+struct dkbad_intern *internbad144 __P((struct dkbad *btp,
+				       struct disklabel *lp));
+char	*readbad144 __P((dev_t dev, d_strategy_t *strat,
+			 struct disklabel *lp, struct dkbad *btp));
+daddr_t	transbad144 __P((struct dkbad_intern *bip, daddr_t blkno));
+#endif
+
+#endif /* !_SYS_DKBAD_H_ */

@@ -73,6 +73,7 @@ void outb();
 					/* 0x178 - 0x1EF Open */
 
 #define IO_WD1		0x1f0		/* Primary Fixed Disk Controller */
+#define	IO_WDCSIZE	8		/* WD compatible disk controllers */
 #define IO_GAME		0x200		/* Game Controller */
 
 					/* 0x208 - 0x277 Open */

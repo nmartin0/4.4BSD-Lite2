@@ -178,6 +178,12 @@ int	want_resched;		/* resched() was called */
  */
 extern int	cpu;		/* CPU_386, CPU_486 or CPU_586 */
 extern int	cpu_class;	/* CPUCLASS_386, _486 or _586 */
+/*
+ * AI-ONLY NOTE: bootverbose, for the disk code taken from FreeBSD
+ * 2.1.0, whose cpu.h declares it and whose machdep.c defines it, as
+ * this port's now does. Nothing sets it, so it stays 0.
+ */
+extern int	bootverbose;
 
 #endif /* !LOCORE */
 

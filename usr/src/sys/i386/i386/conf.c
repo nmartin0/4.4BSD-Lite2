@@ -86,6 +86,18 @@ int	ttselect	__P((dev_t, int, struct proc *));
 	swstrategy, (dev_type_ioctl((*))) enodev, \
 	(dev_type_dump((*))) enodev, 0, 0 }
 
+/* open, close, strategy, ioctl, dump, size: a disk with slices */
+#define	bdev_sdisk_init(c,n) { \
+	dev_init(c,n,open), dev_init(c,n,close), \
+	dev_init(c,n,strategy), dev_init(c,n,ioctl), \
+	dev_init(c,n,dump), dev_size_init(c,n), 0 }
+
+/* open, close, strategy, ioctl: a read-only disk with no dump */
+#define	bdev_rdisk_init(c,n) { \
+	dev_init(c,n,open), dev_init(c,n,close), \
+	dev_init(c,n,strategy), dev_init(c,n,ioctl), \
+	(dev_type_dump((*))) enodev, 0, 0 }
+
 #define	bdev_notdef()	bdev_tape_init(0,no)
 bdev_decl(no);	/* dummy declarations */
 
@@ -94,18 +106,23 @@ bdev_decl(no);	/* dummy declarations */
 #include "wt.h"
 #include "xd.h"
 
+#include "wcd.h"
+
 bdev_decl(wd);
+dev_decl(wcd,open); dev_decl(wcd,close); dev_decl(wcd,strategy);
+dev_decl(wcd,ioctl);
 bdev_decl(Fd);
 bdev_decl(wt);
 bdev_decl(xd);
 
 struct bdevsw	bdevsw[] =
 {
-	bdev_disk_init(NWD,wd),	/* 0: st506/rll/esdi/ide disk */
+	bdev_sdisk_init(NWD,wd),	/* 0: st506/rll/esdi/ide disk */
 	bdev_swap_init(),	/* 1: swap pseudo-device */
 	bdev_disk_init(NFD,Fd),	/* 2: floppy disk */
 	bdev_tape_init(NWT,wt),	/* 3: QIC-24/60/120/150 cartridge tape */
 	bdev_disk_init(NXD,xd),	/* 4: temp alt st506/rll/esdi/ide disk */
+	bdev_rdisk_init(NWCD,wcd),	/* 5: ATAPI CD-ROM */
 };
 
 int	nblkdev = sizeof (bdevsw) / sizeof (bdevsw[0]);
@@ -209,7 +226,12 @@ cdev_decl(log);
 	(dev_type_stop((*))) enodev, (dev_type_reset((*))) nullop, 0, \
 	dev_init(c,n,select), (dev_type_map((*))) enodev, 0 }
 
+#define	wdread		rawread
+#define	wdwrite		rawwrite
 cdev_decl(wd);
+#define	wcdread		rawread
+#define	wcdwrite	rawwrite
+cdev_decl(wcd);
 cdev_decl(Fd);
 cdev_decl(xd);
 cdev_decl(wt);
@@ -245,7 +267,7 @@ struct cdevsw	cdevsw[] =
 	cdev_cn_init(1,cn),		/* 0: virtual console */
 	cdev_ctty_init(1,ctty),		/* 1: controlling terminal */
 	cdev_mm_init(1,mm),		/* 2: /dev/{null,mem,kmem,...} */
-	cdev_disk_init(NWD,wd),		/* 3: st506/rll/esdi/ide disk */
+	cdev_tape_init(NWD,wd),		/* 3: st506/rll/esdi/ide disk */
 	cdev_swap_init(1,sw),		/* 4: /dev/drum (swap pseudo-device) */
 	cdev_tty_init(NPTY,pts),	/* 5: pseudo-tty slave */
 	cdev_ptc_init(NPTY,ptc),	/* 6: pseudo-tty master */
@@ -257,6 +279,7 @@ struct cdevsw	cdevsw[] =
 	cdev_pc_init(1,pc),		/* 12: real console */
 	cdev_notdef(),			/* 13 */
 	cdev_bpf_init(NBPFILTER,bpf),	/* 14: berkeley packet filter */
+	cdev_tape_init(NWCD,wcd),	/* 15: ATAPI CD-ROM */
 };
 
 int	nchrdev = sizeof (cdevsw) / sizeof (cdevsw[0]);

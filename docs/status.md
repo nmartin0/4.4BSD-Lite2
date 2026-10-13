@@ -19,6 +19,10 @@ the install and by its own boot blocks after:
   installed disk boots with no help from the host: boot2 reads
   /vmunix from the root filesystem, the kernel takes its root from
   the boot device, and `-s` at boot2's prompt gives single user.
+- **Disks and a CD.** FreeBSD 2.1.0's IDE and ATAPI drivers: disks
+  on both channels, and an ATAPI CD whose ISO 9660 filesystem mounts
+  with `mount -t cd9660`. The installer runs from a 2.88 MB floppy
+  image (install.md, *Installing with the installer*).
 
 `docs/provenance/install.md` has the procedure and every fault it
 found, each with the commit that answered it; `docs/roadmap.md` has

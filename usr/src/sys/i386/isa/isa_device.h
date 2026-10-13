@@ -51,6 +51,7 @@ struct isa_device {
 	int	id_unit;	/* unit number */
 	int	id_scsiid;	/* scsi id if needed */
 	int	id_alive;	/* device is present */
+	int	id_flags;	/* flags */
 };
 
 /*
@@ -67,4 +68,4 @@ struct isa_driver {
 };
 
 extern struct isa_device isa_devtab_bio[], isa_devtab_tty[], isa_devtab_net[],
-		isa_devtab_null[];
+		isa_devtab_null[], isa_biotab_wdc[];

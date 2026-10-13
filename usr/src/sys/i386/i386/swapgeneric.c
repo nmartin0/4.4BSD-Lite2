@@ -55,7 +55,7 @@
 /*
  * AI-ONLY NOTE: the device counts, which config writes into the
  * build directory and -I. finds. This file is the last in i386 to
- * need them and did not have them; isa/wd.c:43, isa/fd.c:39,
+ * need them and did not have them; isa/wd.c, isa/fd.c:39,
  * isa/com.c:36 and i386/cons.c:56 all include theirs this way, the
  * last of those from another directory, as here.
  */
@@ -64,13 +64,16 @@
 #include <i386/isa/isa_device.h>	/* isa_devtab_bio, for setconf */
 
 /*
- * AI-ONLY NOTE: isa_driver, not driver. isa/wd.c:163 and isa/fd.c
+ * AI-ONLY NOTE: isa_driver, not driver. isa/wd.c and isa/fd.c
  * define these as `struct isa_driver'; the former declaration here
  * said `struct driver', which is hp300's and luna68k's framework and
- * not this port's.
+ * not this port's. wdcdriver, not wddriver: isa/wd.c is FreeBSD
+ * 2.1.0's, whose ISA device is the controller, wdc, and whose disks
+ * hang off it; wdc0 alive is taken to mean wd0. setconf prints
+ * the disk's name, gc_name, rather than the driver's.
  */
 #if NWD > 0
-extern struct isa_driver wddriver;
+extern struct isa_driver wdcdriver;
 #endif
 #if NFD > 0
 extern struct isa_driver fddriver;
@@ -185,7 +188,7 @@ struct	genericconf {
 	dev_t	gc_root;
 } genericconf[] = {
 #if NWD > 0
-	{ (caddr_t)&wddriver,	"wd",	makedev(0, 0),	},
+	{ (caddr_t)&wdcdriver,	"wd",	makedev(0, 0),	},
 #endif
 #if NFD > 0
 	{ (caddr_t)&fddriver,	"fd",	makedev(2, 0),	},
@@ -232,8 +235,7 @@ bad:
 				continue;
 			if (id->id_unit == 0 && id->id_driver ==
 			    (struct isa_driver *)gc->gc_driver) {
-				printf("root on %s0\n",
-				    id->id_driver->name);
+				printf("root on %s0\n", gc->gc_name);
 				goto found;
 			}
 		}

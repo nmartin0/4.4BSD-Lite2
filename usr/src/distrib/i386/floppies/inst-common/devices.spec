@@ -1,16 +1,14 @@
 #	devices.spec -- the device nodes of the install root
 #
 # AI-ONLY NOTE: an mtree specification, read by makefs -F (see
-# Makefile.inc). It is what `sh MAKEDEV std wd0' makes, by
+# Makefile.inc). It is what `sh MAKEDEV std wd0 wd1' makes, by
 # etc/etc.i386/MAKEDEV's own numbers and modes, less std's drum,
 # stdin, stdout, stderr and fd/: nothing the install runs opens them.
 # NetBSD 1.1 ran MAKEDEV into the floppy instead.
 #
-# No wd1. This kernel's wd driver knows one drive -- its
-# configuration makes one isa_device, and wdunit() takes the drive
-# from bits 5 and 6 of the minor -- while MAKEDEV numbers wd1's
-# partitions from 8, which the driver reads as wd0's partition 8, its
-# raw partition. A wd1 here would be wd0.
+# wd1 is here now that isa/wd.c is FreeBSD 2.1.0's, which takes the
+# unit from bits 3-7 of the minor, as MAKEDEV numbers it; Lite2's
+# took it from bits 5 and 6 and read wd1's minors as wd0's.
 
 /set type=dir uname=root gname=wheel mode=0755
 .
@@ -38,5 +36,21 @@ rwd0e	type=char mode=0640 gname=operator device=native,3,4
 rwd0f	type=char mode=0640 gname=operator device=native,3,5
 rwd0g	type=char mode=0640 gname=operator device=native,3,6
 rwd0h	type=char mode=0640 gname=operator device=native,3,7
+wd1a	type=block mode=0640 gname=operator device=native,0,8
+wd1b	type=block mode=0640 gname=operator device=native,0,9
+wd1c	type=block mode=0640 gname=operator device=native,0,10
+wd1d	type=block mode=0640 gname=operator device=native,0,11
+wd1e	type=block mode=0640 gname=operator device=native,0,12
+wd1f	type=block mode=0640 gname=operator device=native,0,13
+wd1g	type=block mode=0640 gname=operator device=native,0,14
+wd1h	type=block mode=0640 gname=operator device=native,0,15
+rwd1a	type=char mode=0640 gname=operator device=native,3,8
+rwd1b	type=char mode=0640 gname=operator device=native,3,9
+rwd1c	type=char mode=0640 gname=operator device=native,3,10
+rwd1d	type=char mode=0640 gname=operator device=native,3,11
+rwd1e	type=char mode=0640 gname=operator device=native,3,12
+rwd1f	type=char mode=0640 gname=operator device=native,3,13
+rwd1g	type=char mode=0640 gname=operator device=native,3,14
+rwd1h	type=char mode=0640 gname=operator device=native,3,15
 ..
 ..

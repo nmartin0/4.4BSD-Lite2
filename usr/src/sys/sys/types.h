@@ -86,9 +86,22 @@ __END_DECLS
 #endif
 
 #ifndef _POSIX_SOURCE
+/*
+ * minor() gives a cookie instead of an index since we don't want to
+ * change the meanings of bits 0-15 or waste time and space shifting
+ * bits 16-31 for devices that don't use them.
+ *
+ * AI-ONLY NOTE: the comment and the mask are FreeBSD 2.1.0's
+ * sys/types.h, which widened minor() for the slice layer this tree
+ * now carries from it: <sys/disklabel.h>'s dkslice() reads the slice
+ * from bits 16-20, and dsinit reads the partition table through the
+ * whole-disk slice, dkmodslice(dev, WHOLE_DISK_SLICE). With an 8-bit
+ * minor every dev reads as slice 0, the compatibility slice, which is
+ * empty until the table is read -- so it was never read.
+ */
 							/* major number */
 #define	major(x)	((int32_t)(((u_int32_t)(x) >> 8) & 0xff))
-#define	minor(x)	((int32_t)((x) & 0xff))		/* minor number */
+#define	minor(x)	((int32_t)((x) & 0xffff00ff))	/* minor number */
 #define	makedev(x,y)	((dev_t)(((x) << 8) | (y)))	/* create dev_t */
 #endif
 

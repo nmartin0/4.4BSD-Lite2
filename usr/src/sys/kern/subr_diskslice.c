@@ -116,7 +116,7 @@ dscheck(bp, ssp)
 		maxsz = sp->ds_size;
 	} else {
 		labelsect = lp->d_partitions[LABEL_PART].p_offset;
-if (labelsect != 0) Debugger("labelsect != 0 in dscheck()");
+if (labelsect != 0) panic("labelsect != 0 in dscheck()");
 		pp = &lp->d_partitions[dkpart(bp->b_dev)];
 		blkno = pp->p_offset + bp->b_blkno;
 		maxsz = pp->p_size;

@@ -110,8 +110,6 @@
 #include <sys/systm.h>
 #include <sys/proc.h>
 #include <sys/malloc.h>
-#include <i386/include/cpufunc.h>
-#include <i386/include/clock.h>
 #include <i386/isa/atapi.h>
 
 #ifdef DEBUG

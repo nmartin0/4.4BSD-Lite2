@@ -180,15 +180,15 @@ as the boot floppy image in floppy emulation.
    and after the base set is extracted names the host and makes
    /dev, pwd.db and termcap.db; the disk then boots by itself, to
    login (install.md, *Installing with the installer*). Left: a
-   medium for the sets. The install kernel reads one disk only --
-   no CD or floppy driver, and a wd driver of one drive -- so today
-   the set is read raw from past the end of the 4.4BSD part of the
-   disk.
+   medium for the sets, which today are read raw from past the end
+   of the 4.4BSD part of the disk.
 4. **The image**: El Torito, the boot image in floppy emulation as
    the BSDs did it first, the sets as ustar files on an ISO 9660
-   filesystem, which Lite2's cd9660 reads. It needs what the kernel
-   lacks: a CD driver -- ATAPI, for QEMU and every PC since -- and
-   options CD9660. A survey of the donors comes first.
+   filesystem, which Lite2's cd9660 reads. The CD driver is in:
+   FreeBSD 2.1.0's IDE and ATAPI drivers with its slice layer, and
+   options CD9660 (imports.md, *The disks*); a mounted ISO 9660 image
+   reads back under QEMU. Left: the image itself, and the installer
+   reading its sets from it.
 
 ## After Tier 1½ — self-hosting
 
@@ -234,7 +234,7 @@ config time. Neither is a performance argument.
   changes with it.
 
 **No storage driver that matches anything.** `wd.c` is an ST-506/IDE
-driver from 1991. No AHCI, no NVMe.
+driver of 1995, FreeBSD 2.1.0's, with ATAPI for CDs; it runs PIO. No AHCI, no NVMe.
 
 **No USB.** On many machines that means no keyboard.
 

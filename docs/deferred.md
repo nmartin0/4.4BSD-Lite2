@@ -276,6 +276,12 @@ So: **per-drive buffer queue stays in `struct buf` through
 buf` itself already uses for `b_hash` and `b_freelist`. NetBSD is
 confirmation; hp300 is the source.
 
+**Superseded.** Lite2's `wd.c` has since been replaced by FreeBSD
+2.1.0's, for its ATAPI CD driver (imports.md, *The disks*). That one
+queues FreeBSD's flattened way described above, moving each drive's
+buffers onto the controller's queue in `wdtab` through `b_actf`; the
+queue question above no longer arises.
+
 ### `GENERIC.i386` is left broken on purpose
 
 `983934d4`, `131c579b`, `adb8a806`

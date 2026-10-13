@@ -385,6 +385,11 @@ So, for when this is picked up again:
 Neither is done. i386/conf/LINK.i386 omits the three so that the rest
 of the kernel can be built and linked meanwhile.
 
+Since then: wd.c was fixed in place and configured, and later replaced
+whole by FreeBSD 2.1.0's -- neither A nor B, but a later release of
+B's donor, chosen for its ATAPI CD driver (imports.md, *The disks*).
+fd.c and wt.c are still out.
+
 ## Machine-specific programs that do not build here
 
 usr.sbin/eeprom is a sparc program. It includes <machine/openpromio.h>,

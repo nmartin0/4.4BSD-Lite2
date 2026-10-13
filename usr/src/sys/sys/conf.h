@@ -42,11 +42,23 @@
  * Definitions of device driver entry switches
  */
 
+#ifndef _SYS_CONF_H_
+#define	_SYS_CONF_H_
+
 struct buf;
 struct proc;
 struct tty;
 struct uio;
 struct vnode;
+
+typedef void d_strategy_t __P((struct buf *));
+typedef int d_open_t __P((dev_t, int, int, struct proc *));
+typedef int d_close_t __P((dev_t, int, int, struct proc *));
+typedef int d_ioctl_t __P((dev_t, int, caddr_t, int, struct proc *));
+typedef int d_dump_t __P((dev_t));
+typedef int d_psize_t __P((dev_t));
+typedef int d_read_t __P((dev_t, struct uio *, int));
+typedef int d_write_t __P((dev_t, struct uio *, int));
 
 /*
  * Types for d_type.
@@ -141,3 +153,5 @@ struct swdevt {
 #ifdef KERNEL
 extern struct swdevt swdevt[];
 #endif
+
+#endif /* !_SYS_CONF_H_ */

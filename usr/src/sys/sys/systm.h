@@ -152,6 +152,7 @@ int	suword __P((void *base, int word));
 int	suiword __P((void *base, int word));
 
 int	hzto __P((struct timeval *tv));
+typedef void (timeout_t)(void *); /* actual timeout function type */
 void	timeout __P((void (*func)(void *), void *arg, int ticks));
 void	untimeout __P((void (*func)(void *), void *arg));
 void	realitexpire __P((void *));

@@ -47,6 +47,9 @@
  */
 
 /* XXX these should be defined per controller (or drive) elsewhere, not here! */
+#ifndef _SYS_DISKLABEL_H_
+#define _SYS_DISKLABEL_H_
+
 #ifdef i386
 #define LABELSECTOR	1			/* sector containing label */
 #define LABELOFFSET	0			/* offset of label in sector */
@@ -61,6 +64,9 @@
 #endif
 
 #define DISKMAGIC	((u_int32_t)0x82564557)	/* The disk magic number */
+#define	LABEL_PART	2		/* partition containing label */
+#define	RAW_PART	2		/* partition containing whole disk */
+#define	SWAP_PART	1		/* partition normally containing swap */
 #ifndef MAXPARTITIONS
 #define	MAXPARTITIONS	8
 #endif
@@ -301,6 +307,33 @@ struct partinfo {
 	struct partition *part;
 };
 
+
+/* DOS partition table -- located in boot block */
+
+#define DOSBBSECTOR	0	/* DOS boot block relative sector number */
+#define DOSPARTOFF	446
+#define NDOSPART	4
+#define	DOSPTYP_386BSD	0xa5	/* 386BSD partition type */
+#define	MBR_PTYPE_FreeBSD 0xa5	/* FreeBSD partition type */
+
+struct dos_partition {
+	unsigned char	dp_flag;	/* bootstrap flags */
+	unsigned char	dp_shd;		/* starting head */
+	unsigned char	dp_ssect;	/* starting sector */
+	unsigned char	dp_scyl;	/* starting cylinder */
+	unsigned char	dp_typ;		/* partition type */
+	unsigned char	dp_ehd;		/* end head */
+	unsigned char	dp_esect;	/* end sector */
+	unsigned char	dp_ecyl;	/* end cylinder */
+	unsigned long	dp_start;	/* absolute starting sector number */
+	unsigned long	dp_size;	/* partition size in sectors */
+};
+
+extern struct dos_partition dos_partitions[NDOSPART];
+
+#define DPSECT(s) ((s) & 0x3f)		/* isolate relevant bits of sector */
+#define DPCYL(c, s) ((c) + (((s) & 0xc0)<<2)) /* and those that are cylinder */
+
 /*
  * Disk-specific ioctls.
  */
@@ -319,6 +352,52 @@ struct partinfo {
 #define DIOCWLABEL	_IOW('d', 109, int)	/* write en/disable label */
 
 #define DIOCSBAD	_IOW('d', 110, struct dkbad)	/* set kernel dkbad */
+#define DIOCSBADSCAN	_IOW('d', 111, int)	/* set badscan mode */
+
+/*
+ * XXX encoding of disk minor numbers, should be elsewhere.
+ *
+ * See <sys/reboot.h> for a possibly better encoding.
+ *
+ * "cpio -H newc" can be used to back up device files with large minor
+ * numbers (but not ones >= 2^31).  Old cpio formats and all tar formats
+ * don't have enough bits, and cpio and tar don't notice the lossage.
+ * There are also some sign extension bugs.
+ */
+
+/*
+       3                   2                   1                   0
+     1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0 9 8 7 6 5 4 3 2 1 0
+    _________________________________________________________________
+    | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | | |
+    -----------------------------------------------------------------
+    |      TYPE           | SLICE   |  MAJOR?       |  UNIT   |PART |
+    -----------------------------------------------------------------
+    |      TYPE     |PART2| SLICE   |  MAJOR?       |  UNIT   |PART | <-soon
+    -----------------------------------------------------------------
+
+	I want 3 more part bits (taken from 'TYPE' (useless as it is) (JRE)
+*/
+#define	dkmakeminor(unit, slice, part) \
+				(((slice) << 16) | ((unit) << 3) | (part))
+#define	dkminor(unit, part)	dkmakeminor((unit), 0, (part))
+#define	dkmodpart(dev, part)	(((dev) & ~(dev_t)7) | (part))
+#define	dkmodslice(dev, slice)	(((dev) & ~(dev_t)0x1f0000) | ((slice) << 16))
+#define	dkpart(dev)		(minor(dev) & 7)
+#define	dkslice(dev)		((minor(dev) >> 16) & 0x1f)
+#define	dktype(dev)       	((minor(dev) >> 21) & 0x7ff)
+#define	dkunit(dev)		((minor(dev) >> 3) & 0x1f)
+
+#ifdef KERNEL
+#include <sys/conf.h>
+
+int	bounds_check_with_label __P((struct buf *bp, struct disklabel *lp,
+				     int wlabel));
+char	*correct_readdisklabel __P((dev_t dev, d_strategy_t *strat,
+				    struct disklabel *lp));
+int	correct_writedisklabel __P((dev_t dev, d_strategy_t *strat,
+				    struct disklabel *lp));
+#endif /* KERNEL */
 
 #endif /* LOCORE */
 
@@ -331,3 +410,4 @@ struct disklabel *getdiskbyname __P((const char *));
 __END_DECLS
 
 #endif
+#endif /* !_SYS_DISKLABEL_H_ */

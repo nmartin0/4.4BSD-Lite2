@@ -38,7 +38,7 @@
  *	$Id: diskslice_machdep.c,v 1.16 1995/08/23 11:43:45 jkh Exp $
  */
 
-#include <stddef.h>
+#define	offsetof(type, member)	((size_t)(&((type *)0)->member))
 #include <sys/param.h>
 #include <sys/buf.h>
 #include <sys/disklabel.h>

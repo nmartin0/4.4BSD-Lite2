@@ -627,6 +627,7 @@ i386_ioconf()
 	 * First print the isa initialization structures
 	 */
 	if (seen_isa) {
+		int seen_wdc = 0;
 
 		fprintf(fp, "/*\n");
 		fprintf(fp, " * ISA devices\n");
@@ -643,6 +644,8 @@ i386_ioconf()
 			fprintf(fp,
 "extern struct isa_driver %sdriver; extern V(%s%d)();\n",
 			    dp->d_name, dp->d_name, dp->d_unit);
+			if (eq(dp->d_name, "wdc"))
+				seen_wdc++;
 		}
 		fprintf(fp, "\nstruct isa_device isa_devtab_bio[] = {\n");
 		fprintf(fp, "\
@@ -657,12 +660,15 @@ i386_ioconf()
 		 fprintf(fp, "{ &%sdriver,  %8.8s,", dp->d_name, dp->d_port);
 			else
 	 fprintf(fp, "{ &%sdriver,     0x%03x,", dp->d_name, dp->d_portn);
-		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d },\n",
+		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d, 0, 0, 0x%x },\n",
 			 	sirq(dp->d_irq), dp->d_drq, dp->d_maddr,
-			 dp->d_msize, dp->d_name, dp->d_unit, dp->d_unit);
+			 dp->d_msize, dp->d_name, dp->d_unit, dp->d_unit,
+			 dp->d_flags);
 		}
 		fprintf(fp, "0\n};\n");
 
+		if (seen_wdc)
+			isa_biotab(fp, "wdc");
 		fprintf(fp, "struct isa_device isa_devtab_tty[] = {\n");
 		fprintf(fp, "\
 /* driver 	iobase	irq   drq     maddr    msiz    intr   unit */\n");
@@ -676,9 +682,10 @@ i386_ioconf()
 		 fprintf(fp, "{ &%sdriver,  %8.8s,", dp->d_name, dp->d_port);
 			else
 	 fprintf(fp, "{ &%sdriver,     0x%03x,", dp->d_name, dp->d_portn);
-		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d },\n",
+		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d, 0, 0, 0x%x },\n",
 			 	sirq(dp->d_irq), dp->d_drq, dp->d_maddr,
-			 dp->d_msize, dp->d_name, dp->d_unit, dp->d_unit);
+			 dp->d_msize, dp->d_name, dp->d_unit, dp->d_unit,
+			 dp->d_flags);
 		}
 		fprintf(fp, "0\n};\n\n");
 
@@ -695,9 +702,10 @@ i386_ioconf()
 		 fprintf(fp, "{ &%sdriver,  %8.8s,", dp->d_name, dp->d_port);
 			else
 	 fprintf(fp, "{ &%sdriver,     0x%03x,", dp->d_name, dp->d_portn);
-		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d },\n",
+		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d, 0, 0, 0x%x },\n",
 			 	sirq(dp->d_irq), dp->d_drq, dp->d_maddr,
-			 dp->d_msize, dp->d_name, dp->d_unit, dp->d_unit);
+			 dp->d_msize, dp->d_name, dp->d_unit, dp->d_unit,
+			 dp->d_flags);
 		}
 		fprintf(fp, "0\n};\n\n");
 
@@ -714,14 +722,44 @@ i386_ioconf()
 		 fprintf(fp, "{ &%sdriver,  %8.8s,", dp->d_name, dp->d_port);
 			else
 	 fprintf(fp, "{ &%sdriver,     0x%03x,", dp->d_name, dp->d_portn);
-		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d },\n",
+		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d, 0, 0, 0x%x },\n",
 			 	sirq(dp->d_irq), dp->d_drq, dp->d_maddr,
-			 dp->d_msize, dp->d_name, dp->d_unit, dp->d_unit);
+			 dp->d_msize, dp->d_name, dp->d_unit, dp->d_unit,
+			 dp->d_flags);
 		}
 		fprintf(fp, "0\n};\n\n");
 	}
 	pseudo_ioconf(fp);
 	(void) fclose(fp);
+}
+
+/*
+ * The drives on a controller that probes its own (wdc): one entry
+ * per drive, carrying the controller's port, irq and interrupt
+ * routine, the drive's unit and flags, and its drive number in
+ * id_scsiid, which the driver reads as id_physid.
+ */
+isa_biotab(fp, table)
+	FILE	*fp;
+	char	*table;
+{
+	register struct device *dp, *mp;
+
+	fprintf(fp, "\nstruct isa_device isa_biotab_%s[] = {\n", table);
+	fprintf(fp, "\
+/* driver 	iobase	irq   drq     maddr    msiz    intr   unit drive alive flags */\n");
+	for (dp = dtab; dp != 0; dp = dp->d_next) {
+		mp = dp->d_conn;
+		if (dp->d_unit == QUES || mp == 0 ||
+		    mp == TO_NEXUS || !eq(mp->d_name, table))
+			continue;
+		fprintf(fp, "{ &%sdriver,  %8.8s,", mp->d_name, mp->d_port);
+		fprintf(fp, " %5.5s, %2d,  C 0x%05X, %5d, V(%s%d),  %2d, %2d, 0, 0x%x },\n",
+			sirq(mp->d_irq), mp->d_drq, mp->d_maddr,
+			mp->d_msize, mp->d_name, mp->d_unit, dp->d_unit,
+			dp->d_drive, dp->d_flags);
+	}
+	fprintf(fp, "0\n};\n\n");
 }
 
 char *

@@ -19,7 +19,11 @@ i386/isa/if_ne.c	optional ne device-driver
 i386/isa/if_we.c	optional we device-driver
 i386/isa/if_apx.c	optional apx device-driver
 i386/isa/if_ec.c	optional ec device-driver
+i386/isa/wd.c		optional wdc
 i386/isa/wd.c		optional wd device-driver
+i386/isa/atapi.c	optional atapi
+i386/isa/wcd.c		optional wcd device-driver
+i386/isa/diskslice_machdep.c	standard
 i386/isa/fd.c		optional fd device-driver
 i386/isa/xd.c		optional xd device-driver
 i386/isa/wt.c		optional wt device-driver

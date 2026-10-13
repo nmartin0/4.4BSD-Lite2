@@ -792,11 +792,24 @@ earlier staging of the root with the tree's current MAKEDEV in it.
 
 ## Noted, not changed
 
-- **The wd driver knows one drive.** Its configuration makes one
-  isa_device, and wdunit() reads the drive from bits 5 and 6 of the
-  minor, where MAKEDEV numbers a second drive's partitions from 8 --
-  partition 8 of drive 0 to the driver, its raw partition. So
-  MAKEDEV's wd1 is wd0, and the install root carries no wd1.
+- **The disk driver is FreeBSD 2.1.0's** (imports.md, *The disks*),
+  which reads drives on both IDE channels and an ATAPI CD on either;
+  the install root carries wd1 as well as wd0. Its probe waits ten
+  seconds for each drive that is not there, so the install kernel
+  takes thirty to forty seconds to configure under QEMU. A disk labelled
+  smaller than the drive, as the label in *Installing with the
+  installer* is, draws `raw partition size != slice size' at each
+  open; the slice layer's notice, and harmless.
+- **QEMU before the fix of April 2024 can stall the boot.** The
+  disk driver waits for its interrupts during autoconfiguration,
+  while `cold`, in loops whose tsleep() only lowers and raises the
+  priority; this port's spl routines end `sti; ret', and QEMU's
+  i386 emulation could then miss an interrupt that became
+  deliverable at that `sti' -- the case in its commit 6a5a63f7,
+  "Give IRQs a chance when resetting HF_INHIBIT_IRQ_MASK", which
+  QEMU 8.2.5 and 9.1 carry and 8.2.2 does not. With such a QEMU,
+  `-accel tcg,one-insn-per-tb=on' avoids it, at a cost in speed.
+  Hardware and KVM take the interrupt.
 - **Configure's ethernet questions** append an ifconfig line to
   netstart, whose own ifconfig lines for ace0, ex0 and the rest are
   Berkeley's template and fail on every boot, as they did before.

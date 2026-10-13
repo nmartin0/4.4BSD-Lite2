@@ -218,6 +218,9 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	release/write_mfs_in_kernel.c	FreeBSD 2.0.5, adapted
 	usr.sbin/crunch			FreeBSD 3.0, adapted
 	distrib/i386/floppies		NetBSD 1.1, adapted
+	i386/isa/wd.c, atapi.c, wcd.c	FreeBSD 2.1.0, adapted
+	the slice layer, 4 files	FreeBSD 2.1.0, 2 lines changed
+	config: isa_biotab		FreeBSD 2.1.0, adapted
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -437,6 +440,87 @@ Configure writing Lite2's netstart and making the password and
 termcap databases through chroot; install.md, *Installing with the
 installer*, has a whole install. The licence is Demetriou's
 four-clause one, with an advertising clause.
+
+**The disks: IDE, an ATAPI CD, and slices.** Lite2's i386 wd.c is
+386BSD's: one controller, one drive, no CD. A CD drive on a PC is an
+ATAPI drive on an IDE channel, and that is all QEMU emulates -- no
+ISA SCSI, Mitsumi, Sony or Panasonic. ATAPI support was written by
+Serge Vakulenko of Cronyx (atapi.c version 1.5 and wcd.c 1.8, both
+of September 1995), and FreeBSD 2.1.0, of November 1995, is the first
+BSD release to carry it. NetBSD's and OpenBSD's ATAPI is Manuel
+Bouyer's, in OpenBSD's tree from June 1996 and in NetBSD 1.3, and is
+written to NetBSD's growth of Torek's new autoconfiguration --
+cfattach, disk_attach, isa_intr_establish, none of which Lite2 has;
+Lite2 carries Torek's cfdriver and config_found, for sparc alone. Taking
+it means converting the i386 port's autoconfiguration first, and then
+some. FreeBSD
+2.1.0's drivers are written to the old i386 one, isa_device and
+isa_driver, which this tree has. So FreeBSD 2.1.0's wd.c, wdreg.h,
+atapi.c, atapi.h and wcd.c are taken, with the two things its wd.c
+cannot be had without: <sys/cdio.h>, and the slice layer --
+kern/subr_diskslice.c, kern/subr_dkbad.c, i386/isa/diskslice_machdep.c
+and <sys/diskslice.h> -- which its wd.c opens, reads and checks every
+transfer through. The import commit is them as shipped; the next
+commit adapts them.
+
+The slice layer reads the MBR's partition table and gives each BSD
+slice its own label. A disk with no table -- this tree's, labelled
+whole by disklabel -B -- is one slice, the whole disk, and the
+compatibility slice that the old minors name, unit * 8 + partition,
+is it. FreeBSD 2.1.0's sys/types.h widened minor() to keep bits 16
+to 31, where dkslice() reads the slice; with Lite2's 8-bit minor()
+every dev reads as the compatibility slice, and dsinit, which reads
+the table through the whole-disk slice, read nothing. Its minor() is
+taken.
+
+Adapted, each change noted or plain at its site. Cut: FreeBSD's
+devconf registration (kern_devconf, never in Lite2), the BIOS
+geometry branch that reads its boot loader's bootinfo, and wd.c's
+optional 32-bit VLB transfer path, whose insl and outsl this port's
+locore.s does not have -- cut rather than written, so the transfers
+are 16-bit, as they are by default in FreeBSD too. wddump declares
+Maxmem itself, which FreeBSD's <machine/md_var.h> declared, and calls
+no cncheckc, which Lite2's console lacks; wdattach fills no dk_names,
+which Lite2 lacks. Taken
+alongside from the same release: GENERIC's controller and disk lines;
+files.i386's and conf/files' entries; the isa_device id_flags field
+and IO_WDCSIZE; <sys/conf.h>'s d_*_t types, <sys/systm.h>'s timeout_t,
+<sys/buf.h>'s b_pblkno and iodone_chain, <sys/disklabel.h>'s
+dos_partition and minor-number macros, <sys/dkbad.h>'s in-core table,
+and ufs_disksubr.c's correct_readdisklabel and correct_writedisklabel;
+MAKEDEV's wcd entry, at this tree's majors; and config's isa_biotab(),
+which writes the per-drive table wd.c walks, in Lite2's isa_device
+layout. conf.c gives wd a close routine, as the slice layer needs to
+count opens, and wcd block major 5 and character 15. Debugger()
+becomes panic() in one check, and diskslice_machdep.c defines
+offsetof as this tree's <stddef.h> does, which the kernel does not
+include. The licences: wd.c is the Regents' (from William Jolitz's
+contribution), atapi.c and wcd.c carry Cronyx's permission notice,
+and the slice files are Bruce Evans's, with the Regents' on the parts
+taken from Berkeley's disk code.
+
+Not changed, and measured: with no drive present, wd.c's probe waits
+out a ten-second timeout -- once for each absent drive, and twice
+more in probing a channel whose master is ATAPI -- so under QEMU, with
+one disk and a CD, autoconfiguration takes about forty seconds, and
+with two disks and a CD about thirty. FreeBSD 2.1.5 ships the same
+wd.c.
+
+Nor this: <sys/dkbad.h> now gives DKBAD_MAGIC as FreeBSD's 0x4321,
+the bt_flag its bad144 writes and subr_dkbad.c checks, while this
+tree's bad144, Lite2's, defines its own as 0, after the header, with
+a warning for the redefinition -- so a table it writes is one the
+kernel declines. Bad-sector forwarding applies only to a label flagged
+D_BADSECT, and nothing here makes one.
+
+Nor these. wd.c takes iostat slots while dk_ndrive is below
+DK_NDRIVE, counting up from 0 as FreeBSD's does; Lite2's kern_clock.c
+starts it at DK_NDRIVE, so the disks keep no statistics -- as Lite2's
+own wd.c kept none. And the wider minor() is a signed int, as in
+FreeBSD: a dev with bit 31 set, which only mknod or a Rock Ridge
+device entry on a mounted CD could make, reads as a negative minor,
+which a driver that checks only `minor(dev) >= N', as tty_pty.c
+does, lets through.
 
 ## E -- a reimplementation of something the Lite cut removed
 

@@ -77,10 +77,6 @@
 #include <sys/proc.h>
 #include <sys/uio.h>
 #include <sys/malloc.h>
-#include <sys/devconf.h>
-#include <machine/bootinfo.h>
-#include <machine/clock.h>
-#include <machine/md_var.h>
 #include <i386/i386/cons.h>
 #include <i386/isa/isa.h>
 #include <i386/isa/isa_device.h>
@@ -88,6 +84,9 @@
 #include <sys/syslog.h>
 #include <sys/dkstat.h>
 #include <vm/vm.h>
+
+extern int Maxmem;
+extern caddr_t CADDR1;
 
 #ifdef ATAPI
 #include <i386/isa/atapi.h>
@@ -99,81 +98,8 @@
 #define	MAXTRANSFER	255	/* max size of transfer in sectors */
 				/* correct max is 256 but some controllers */
 				/* can't handle that in all cases */
-#define WDOPT_32BIT	0x8000
 #define WDOPT_SLEEPHACK	0x4000
 #define WDOPT_MULTIMASK	0x00ff
-
-static int wd_goaway(struct kern_devconf *, int);
-static int wdc_goaway(struct kern_devconf *, int);
-static int wd_externalize(struct proc *, struct kern_devconf *, void *, size_t);
-static int wdc_externalize(struct proc *, struct kern_devconf *, void *, size_t);
-
-/*
- * Templates for the kern_devconf structures used when we attach.
- */
-static struct kern_devconf kdc_wd[NWD] = { {
-	0, 0, 0,		/* filled in by kern_devconf.c */
-	"wd", 0, { MDDT_DISK, 0 },
-	wd_externalize, 0, wd_goaway, DISK_EXTERNALLEN,
-	0,			/* parent */
-	0,			/* parentdata */
-	DC_UNKNOWN,		/* state */
-	"ST506/ESDI/IDE disk",	/* description */
-	DC_CLS_DISK		/* class */
-} };
-
-struct kern_devconf kdc_wdc[NWDC] = { {
-	0, 0, 0,		/* filled in by kern_devconf.c */
-	"wdc", 0, { MDDT_ISA, 0 },
-	isa_generic_externalize, 0, wdc_goaway, ISA_EXTERNALLEN,
-	&kdc_isa0,		/* parent */
-	0,			/* parentdata */
-	DC_UNCONFIGURED,	/* state */
-	"ST506/ESDI/IDE disk controller",
-	DC_CLS_MISC		/* just an ordinary device */
-} };
-
-static inline void
-wd_registerdev(int ctlr, int unit)
-{
-	if(unit != 0)
-		kdc_wd[unit] = kdc_wd[0];
-
-	kdc_wd[unit].kdc_unit = unit;
-	kdc_wd[unit].kdc_parent = &kdc_wdc[ctlr];
-	dev_attach(&kdc_wd[unit]);
-}
-
-static inline void
-wdc_registerdev(struct isa_device *dvp)
-{
-	int unit = dvp->id_unit;
-
-	if(unit != 0)
-		kdc_wdc[unit] = kdc_wdc[0];
-
-	kdc_wdc[unit].kdc_unit = unit;
-	kdc_wdc[unit].kdc_parentdata = dvp;
-	dev_attach(&kdc_wdc[unit]);
-}
-
-static int
-wdc_goaway(struct kern_devconf *kdc, int force)
-{
-	if(force) {
-		dev_detach(kdc);
-		return 0;
-	} else {
-		return EBUSY;	/* XXX fix */
-	}
-}
-
-static int
-wd_goaway(struct kern_devconf *kdc, int force)
-{
-	dev_detach(kdc);
-	return 0;
-}
 
 /*
  * This biotab field doubles as a field for the physical unit number on
@@ -224,7 +150,6 @@ struct disk {
 #define	DKFL_SINGLE	0x00004	/* sector at a time mode */
 #define	DKFL_ERROR	0x00008	/* processing a disk error */
 #define	DKFL_LABELLING	0x00080	/* readdisklabel() in progress */
-#define	DKFL_32BIT	0x00100	/* use 32-bit i/o mode */
 #define	DKFL_MULTI	0x00200	/* use multi-i/o mode */
 #define	DKFL_BADSCAN	0x00400	/* report all errors */
 	struct wdparams dk_params; /* ESDI/IDE drive/controller parameters */
@@ -264,15 +189,6 @@ static timeout_t wdtimeout;
 static int wdunwedge(struct disk *du);
 static int wdwait(struct disk *du, u_char bits_wanted, int timeout);
 
-/*
- * Provide hw.devconf information.
- */
-static int
-wd_externalize(struct proc *p, struct kern_devconf *kdc, void *userp, size_t len)
-{
-	return disk_externalize(wddrives[kdc->kdc_unit]->dk_unit, userp, &len);
-}
-
 struct isa_driver wdcdriver = {
 	wdprobe, wdattach, "wdc",
 };
@@ -295,8 +211,6 @@ wdprobe(struct isa_device *dvp)
 	bzero(du, sizeof *du);
 	du->dk_ctrlr = dvp->id_unit;
 	du->dk_port = dvp->id_iobase;
-
-	wdc_registerdev(dvp);
 
 	/* check if we have registers that work */
 	outb(du->dk_port + wd_sdh, WDSD_IBM);   /* set unit 0 */
@@ -393,8 +307,6 @@ wdattach(struct isa_device *dvp)
 	if (dvp->id_unit >= NWDC)
 		return (0);
 
-	kdc_wdc[dvp->id_unit].kdc_state = DC_UNKNOWN; /* XXX */
-
 	for (wdup = isa_biotab_wdc; wdup->id_driver != 0; wdup++) {
 		if (wdup->id_iobase != dvp->id_iobase)
 			continue;
@@ -435,8 +347,6 @@ wdattach(struct isa_device *dvp)
 			buf[sizeof buf - 1] = '\0';
 			printf("wdc%d: unit %d (wd%d): <%s>",
 			       dvp->id_unit, unit, lunit, buf);
-			if (du->dk_flags & DKFL_32BIT)
-				printf(", 32-bit");
 			if (du->dk_multi > 1)
 				printf(", multi-block-%d", du->dk_multi);
 			if (du->cfg_flags & WDOPT_SLEEPHACK)
@@ -463,9 +373,7 @@ wdattach(struct isa_device *dvp)
 			 */
 			wdtimeout(du);
 
-			wd_registerdev(dvp->id_unit, lunit);
 			if (dk_ndrive < DK_NDRIVE) {
-				sprintf(dk_names[dk_ndrive], "wd%d", lunit);
 				/*
 				 * XXX we don't know the transfer rate of the
 				 * drive.  Guess the maximum ISA rate of
@@ -491,8 +399,7 @@ wdattach(struct isa_device *dvp)
 			if (wddrives[lunit]->dk_ctrlr == dvp->id_unit &&
 			    wddrives[lunit]->dk_unit == unit)
 				goto next;
-		atapi_attach (dvp->id_unit, unit, dvp->id_iobase,
-			&kdc_wdc[dvp->id_unit]);
+		atapi_attach (dvp->id_unit, unit, dvp->id_iobase, 0);
 next:   }
 #endif
 	/*
@@ -866,14 +773,9 @@ loop:
 			du->dk_currentiosize = count;
 	}
 
-	if (du->dk_flags & DKFL_32BIT)
-		outsl(du->dk_port + wd_data,
-		      (void *)((int)bp->b_un.b_addr + du->dk_skip * DEV_BSIZE),
-		      (count * DEV_BSIZE) / sizeof(long));
-	else
-		outsw(du->dk_port + wd_data,
-		      (void *)((int)bp->b_un.b_addr + du->dk_skip * DEV_BSIZE),
-		      (count * DEV_BSIZE) / sizeof(short));
+	outsw(du->dk_port + wd_data,
+	      (void *)((int)bp->b_un.b_addr + du->dk_skip * DEV_BSIZE),
+	      (count * DEV_BSIZE) / sizeof(short));
 	du->dk_bc -= DEV_BSIZE * count;
 	if (du->dk_dkunit >= 0) {
 		/*
@@ -1013,14 +915,9 @@ oops:
 		}
 
 		/* suck in data */
-		if( du->dk_flags & DKFL_32BIT)
-			insl(du->dk_port + wd_data,
-			     (void *)((int)bp->b_un.b_addr + du->dk_skip * DEV_BSIZE),
-					chk / sizeof(long));
-		else
-			insw(du->dk_port + wd_data,
-			     (void *)((int)bp->b_un.b_addr + du->dk_skip * DEV_BSIZE),
-					chk / sizeof(short));
+		insw(du->dk_port + wd_data,
+		     (void *)((int)bp->b_un.b_addr + du->dk_skip * DEV_BSIZE),
+				chk / sizeof(short));
 		du->dk_bc -= chk;
 
 		/* XXX for obsolete fractional sector reads. */
@@ -1425,18 +1322,12 @@ static int
 wdgetctlr(struct disk *du)
 {
 	int	i;
-	char    tb[DEV_BSIZE], tb2[DEV_BSIZE];
+	char    tb[DEV_BSIZE];
 	struct wdparams *wp = NULL;
 	u_long flags = du->cfg_flags;
-again:
+
 	if (wdcommand(du, 0, 0, 0, 0, WDCC_READP) != 0
 	    || wdwait(du, WDCS_READY | WDCS_SEEKCMPLT | WDCS_DRQ, TIMEOUT) != 0) {
-
-		/*
-		 * if we failed on the second try, assume non-32bit
-		 */
-		if( du->dk_flags & DKFL_32BIT)
-			goto failed;
 
 		/* XXX need to check error status after final transfer. */
 		/*
@@ -1455,33 +1346,6 @@ again:
 		    || wdwait(du, WDCS_READY | WDCS_SEEKCMPLT, TIMEOUT) != 0)
 			return (1);
 
-		if (du->dk_unit == bootinfo.bi_n_bios_used) {
-			du->dk_dd.d_secsize = DEV_BSIZE;
-			du->dk_dd.d_nsectors =
-			    bootinfo.bi_bios_geom[du->dk_unit] & 0xff;
-			du->dk_dd.d_ntracks =
-			    ((bootinfo.bi_bios_geom[du->dk_unit] >> 8) & 0xff)
-			    + 1;
-			/* XXX Why 2 ? */
-			du->dk_dd.d_ncylinders =
-			    (bootinfo.bi_bios_geom[du->dk_unit] >> 16) + 2;
-			du->dk_dd.d_secpercyl =
-			    du->dk_dd.d_ntracks * du->dk_dd.d_nsectors;
-			du->dk_dd.d_secperunit =
-			    du->dk_dd.d_secpercyl * du->dk_dd.d_ncylinders;
-#if 0
-			du->dk_dd.d_partitions[WDRAW].p_size =
-				du->dk_dd.d_secperunit;
-			du->dk_dd.d_type = DTYPE_ST506;
-			du->dk_dd.d_subtype |= DSTYPE_GEOMETRY;
-			strncpy(du->dk_dd.d_typename, "Bios geometry",
-				sizeof du->dk_dd.d_typename);
-			strncpy(du->dk_params.wdp_model, "ST506",
-				sizeof du->dk_params.wdp_model);
-#endif
-			bootinfo.bi_n_bios_used ++;
-			return 0;
-		}
 		/*
 		 * Fake minimal drive geometry for reading the MBR.
 		 * readdisklabel() may enlarge it to read the label and the
@@ -1519,27 +1383,7 @@ again:
 
 	/* obtain parameters */
 	wp = &du->dk_params;
-	if (du->dk_flags & DKFL_32BIT)
-		insl(du->dk_port + wd_data, tb, sizeof(tb) / sizeof(long));
-	else
-		insw(du->dk_port + wd_data, tb, sizeof(tb) / sizeof(short));
-
-	/* try 32-bit data path (VLB IDE controller) */
-	if (flags & WDOPT_32BIT) {
-		if (! (du->dk_flags & DKFL_32BIT)) {
-			bcopy(tb, tb2, sizeof(struct wdparams));
-			du->dk_flags |= DKFL_32BIT;
-			goto again;
-		}
-
-		/* check that we really have 32-bit controller */
-		if (bcmp (tb, tb2, sizeof(struct wdparams)) != 0) {
-failed:
-			/* test failed, use 16-bit i/o mode */
-			bcopy(tb2, tb, sizeof(struct wdparams));
-			du->dk_flags &= ~DKFL_32BIT;
-		}
-	}
+	insw(du->dk_port + wd_data, tb, sizeof(tb) / sizeof(short));
 
 	bcopy(tb, wp, sizeof(struct wdparams));
 
@@ -1727,10 +1571,6 @@ wddump(dev_t dev)
 	char   *addr;
 	static int wddoingadump = 0;
 
-	/* Toss any characters present prior to dump. */
-	while (cncheckc())
-		;
-
 	/* Check for acceptable device. */
 	/* XXX should reset to maybe allow du->dk_state < OPEN. */
 	lunit = dkunit(dev);	/* eventually support floppies? */
@@ -1853,14 +1693,9 @@ out:
 					"wddump: timeout waiting for DRQ");
 				return (EIO);
 			}
-			if (du->dk_flags & DKFL_32BIT)
-				outsl(du->dk_port + wd_data,
-				      CADDR1 + ((int)addr & (NBPG - 1)),
-				      DEV_BSIZE / sizeof(long));
-			else
-				outsw(du->dk_port + wd_data,
-				      CADDR1 + ((int)addr & (NBPG - 1)),
-				      DEV_BSIZE / sizeof(short));
+			outsw(du->dk_port + wd_data,
+			      CADDR1 + ((int)addr & (NBPG - 1)),
+			      DEV_BSIZE / sizeof(short));
 			addr += DEV_BSIZE;
 			if ((unsigned)addr % (1024 * 1024) == 0)
 				printf("%ld ", num / (1024 * 1024 / DEV_BSIZE));
@@ -1887,10 +1722,6 @@ out:
 
 		/* Update block count. */
 		blknum = blknext;
-
-		/* Operator aborting dump? */
-		if (cncheckc())
-			return (EINTR);
 	}
 	return (0);
 }
