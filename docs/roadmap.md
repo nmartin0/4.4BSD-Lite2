@@ -162,9 +162,9 @@ as the boot floppy image in floppy emulation.
    `sys/boot/i386`, after the kernel moved to physical 1 MB as every
    descendant's had. An installed disk boots in QEMU with no
    `-kernel`, to `login:`; install.md, *Booting from the disk*.
-   `build/shim` stays for the install recipe, until 2 and 3 replace
-   it.
-2. **An install kernel with its root inside it** -- the miniroot,
+   `build/shim` stayed for the install recipe until 2, 3 and 4
+   replaced it.
+2. ~~**An install kernel with its root inside it**~~ -- the miniroot,
    FreeBSD 2.0.5's MFS-in-kernel boot floppy -- holding sh, the disk
    tools and pax. The mechanism is in: `options MFS_ROOT`, Berkeley's
    mfs_initminiroot, FreeBSD 2.0.5's write_mfs_in_kernel, an image
@@ -179,16 +179,16 @@ as the boot floppy image in floppy emulation.
    blank disk with the boot blocks, makes and populates the root,
    and after the base set is extracted names the host and makes
    /dev, pwd.db and termcap.db; the disk then boots by itself, to
-   login (install.md, *Installing with the installer*). Left: a
-   medium for the sets, which today are read raw from past the end
-   of the 4.4BSD part of the disk.
-4. **The image**: El Torito, the boot image in floppy emulation as
-   the BSDs did it first, the sets as ustar files on an ISO 9660
-   filesystem, which Lite2's cd9660 reads. The CD driver is in:
+   login (install.md, *Installing with the installer*). The sets
+   come from the CD, 4.
+4. ~~**The image**~~: El Torito, the boot image in floppy
+   emulation as NetBSD's tree first describes it, in 1.4, and the
+   set as a ustar file on the ISO 9660 filesystem, which Lite2's
+   cd9660 reads. The CD driver is
    FreeBSD 2.1.0's IDE and ATAPI drivers with its slice layer, and
-   options CD9660 (imports.md, *The disks*); a mounted ISO 9660 image
-   reads back under QEMU. Left: the image itself, and the installer
-   reading its sets from it.
+   options CD9660 (imports.md, *The disks*). The CD boots the install
+   kernel, the installer extracts the set from it, and the disk then
+   boots by itself (install.md, *Installing from the CD*).
 
 ## After Tier 1½ — self-hosting
 

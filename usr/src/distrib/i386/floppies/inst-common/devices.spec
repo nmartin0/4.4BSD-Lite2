@@ -1,7 +1,7 @@
 #	devices.spec -- the device nodes of the install root
 #
 # AI-ONLY NOTE: an mtree specification, read by makefs -F (see
-# Makefile.inc). It is what `sh MAKEDEV std wd0 wd1' makes, by
+# Makefile.inc). It is what `sh MAKEDEV std wd0 wd1 wcd0' makes, by
 # etc/etc.i386/MAKEDEV's own numbers and modes, less std's drum,
 # stdin, stdout, stderr and fd/: nothing the install runs opens them.
 # NetBSD 1.1 ran MAKEDEV into the floppy instead.
@@ -9,6 +9,9 @@
 # wd1 is here now that isa/wd.c is FreeBSD 2.1.0's, which takes the
 # unit from bits 3-7 of the minor, as MAKEDEV numbers it; Lite2's
 # took it from bits 5 and 6 and read wd1's minors as wd0's.
+#
+# wcd0c and rwcd0c, as `sh MAKEDEV wcd0' makes them, for the CD that
+# carries the sets: install.md, *Installing from the CD*.
 
 /set type=dir uname=root gname=wheel mode=0755
 .
@@ -52,5 +55,7 @@ rwd1e	type=char mode=0640 gname=operator device=native,3,12
 rwd1f	type=char mode=0640 gname=operator device=native,3,13
 rwd1g	type=char mode=0640 gname=operator device=native,3,14
 rwd1h	type=char mode=0640 gname=operator device=native,3,15
+wcd0c	type=block mode=0640 gname=operator device=native,5,0
+rwcd0c	type=char mode=0640 gname=operator device=native,15,0
 ..
 ..

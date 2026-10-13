@@ -2,8 +2,10 @@
 
 ## Now: multi-user, installed by itself
 
-On QEMU's `pc` machine, with the kernel loaded by `build/shim` for
-the install and by its own boot blocks after:
+On QEMU's `pc` machine. The first item is the install as it was
+first done, with the kernel loaded by `build/shim` and the system
+copied in by hand; the CD, last, now does it with an installer, and
+the boot blocks load the kernel throughout:
 
 - **Install.** The kernel boots single user from a disk image made by
   the host tools in `build/`, mounts its root read-write, and installs
@@ -21,8 +23,12 @@ the install and by its own boot blocks after:
   the boot device, and `-s` at boot2's prompt gives single user.
 - **Disks and a CD.** FreeBSD 2.1.0's IDE and ATAPI drivers: disks
   on both channels, and an ATAPI CD whose ISO 9660 filesystem mounts
-  with `mount -t cd9660`. The installer runs from a 2.88 MB floppy
-  image (install.md, *Installing with the installer*).
+  with `mount -t cd9660`.
+- **A bootable CD.** El Torito, the 2.88 MB install floppy image in
+  floppy emulation, with the base set on its ISO 9660 filesystem:
+  it boots the install kernel, NetBSD 1.1's installer labels the
+  disk, the set is extracted from the CD, and the disk boots by
+  itself (install.md, *Installing from the CD*).
 
 `docs/provenance/install.md` has the procedure and every fault it
 found, each with the commit that answered it; `docs/roadmap.md` has

@@ -739,13 +739,13 @@ the installer.
 # Installing with the installer
 
 NetBSD 1.1's installer, adapted (kind D in imports.md), now installs
-the system. The sets have to reach it, and this install kernel can
-read one disk and nothing else: no CD driver, no floppy driver, and
-the wd driver knows a single drive. So, until a CD driver is in, the
-base set -- a ustar archive of the staged root, as dist.tar in
-*Multi-user, to a login prompt* -- goes on the target disk past the
-part given to 4.4BSD, and is read from there raw, as that section
-reads it:
+the system. The sets have to reach it. When this was first measured
+the install kernel read one disk and nothing else -- no CD driver, no
+floppy driver, and a wd driver of a single drive -- so the base set,
+a ustar archive of the staged root, as dist.tar in *Multi-user, to a
+login prompt*, went on the target disk past the part given to 4.4BSD
+and was read from there raw, as that section reads it. That still
+works; *Installing from the CD*, below, is the way now:
 
 	dd if=/dev/zero of=disk.img bs=512 count=252000	# 250 x 16 x 63
 	dd if=base.tar of=disk.img bs=512 seek=211680 conv=notrunc
@@ -821,3 +821,80 @@ earlier staging of the root with the tree's current MAKEDEV in it.
   /etc/disktab.preinstall -- as on a NetBSD 1.1 install, for running
   its functions from the installed system. Its /.profile does not:
   the base set's replaces it.
+
+# Installing from the CD
+
+The install medium is now a CD: the floppy image above as its El
+Torito boot image, in 2.88 MB floppy emulation, and the base set as a
+file on its ISO 9660 filesystem. That is the first recipe for an
+i386 CD in NetBSD's tree, the comment heading NetBSD 1.4's
+distrib/i386/floppies/bootfloppy-big/Makefile (1999): a 2.88 MB boot
+floppy image in a release(7) tree, and mkisofs with `-b' naming it
+and `-r' for Rock Ridge. The recipe's tree keeps the image in
+boot.i386/; this one is release(7)'s, as NetBSD 1.4's manual page
+gives a release for a machine -- binary/sets and installation/floppy
+under i386, without the NetBSD-<rel> directory above -- with the set
+under its plain name, since Extract takes a set by its name's prefix:
+
+	sudo apt install genisoimage
+	mkdir -p cd/i386/binary/sets cd/i386/installation/floppy
+	cp base.tar cd/i386/binary/sets/
+	cp floppy.img cd/i386/installation/floppy/boot.fs
+	mkisofs -A "4.4BSD-Lite2 i386" -V LITE2_I386 -r \
+	    -b i386/installation/floppy/boot.fs \
+	    -c i386/installation/floppy/boot.catalog -o cd.iso cd
+	dd if=/dev/zero of=disk.img bs=512 count=252000
+	qemu-system-i386 -cdrom cd.iso -drive file=disk.img,format=raw \
+	    -boot d -nographic
+
+genisoimage is Debian's mkisofs. Not makefs, which made the floppy
+images: its `-t cd9660 -o bootimage=i386;...' gave the boot entry a
+load count of 5760 sectors, the whole image, where mkisofs gives 1,
+and SeaBIOS stopped at `Booting from DVD/CD...'. With 1 it boots:
+
+	Booting from DVD/CD...
+	>> 4.4BSD/i386 BOOT
+	Default: 0:fd(0,a)/vmunix
+	...
+	wdc1: unit 0 (atapi): <QEMU DVD-ROM/2.5+>, removable, accel, dma
+	wcd0: 687Kb/sec, 512Kb cache, audio play, 2 volume levels, ...
+
+The BIOS presents the image as floppy drive 0, so boot2 loads the
+install kernel from it as from a floppy, and the kernel's root is the
+one inside it. The installer then runs as in *Installing with the
+installer*, the same answers, and the set comes from the CD the way
+NetBSD 1.1's installation notes load sets from an NFS mount: mount
+the medium, change to the set's directory, Set_tmp_dir taking that
+directory, Extract:
+
+	# mount -t cd9660 /dev/wcd0c /mnt2
+	# cd /mnt2/i386/binary/sets; ls -l
+	-r--r--r--  1 0  wheel  20623360 Oct 13 04:33 base.tar
+	# Set_tmp_dir
+	What directory should be used to find and/or store installtion
+	files? [/mnt2/i386/binary/sets]
+	# Extract base
+	Would you like to list the files as they're extracted? [n]
+	# cd /; umount /mnt2
+	# Configure
+	...
+	Making the password and termcap databases... done.
+	Making device nodes (may take a while)... done.
+	The kernel, /vmunix, came with the base set.  Halt, remove
+	the install floppy or CD, and boot from the hard drive.
+
+The install root carries wcd0c and rwcd0c for this, and Configure
+now makes wd1 and wcd0 on the new root as well. Booted from the disk,
+with the CD left in, the installed system comes up multi-user on its
+own kernel, /vmunix from the set, with the CD driver in it:
+
+	>> 4.4BSD/i386 BOOT
+	Default: 0:wd(0,a)/vmunix
+	...
+	changing root device to wd0a
+	Automatic boot in progress: starting file system checks.
+	...
+	login: root
+
+Measured under QEMU 8.2.2 with -accel tcg,one-insn-per-tb=on, for
+the reason in *Installing with the installer*, *Noted, not changed*.

@@ -39,16 +39,17 @@
 # /etc/myname and /etc/hostname.<if>, which nothing here reads. So
 # the hostname is written into netstart's line, and the interface's
 # ifconfig line appended to netstart. MAKEDEV makes the nodes the
-# install recipe in docs/provenance/install.md makes -- this tree's
-# MAKEDEV has no `all' -- and the password and termcap databases are
-# made here, through chroot, by the installed system's own pwd_mkdb
-# and cap_mkdb: NetBSD's sets carried them made, and these cannot be
-# made on the build host. The databases come first and MAKEDEV runs
-# in the new root too, from the base set's /dev/MAKEDEV: its chown
-# looks up `bin', which this libc finds only in a pwd.db, and the
-# install root has none. The closing message says the base set
-# carries the kernel, and Configure ends in /, not in the new /dev,
-# so that the new root can be unmounted.
+# install recipe in docs/provenance/install.md makes, with the second
+# disk and the CD the kernel now drives -- this tree's MAKEDEV has no
+# `all' -- and the password and termcap databases are made here,
+# through chroot, by the installed system's own pwd_mkdb and
+# cap_mkdb: NetBSD's sets carried them made, and these cannot be made
+# on the build host. The databases come first and MAKEDEV runs in the
+# new root too, from the base set's /dev/MAKEDEV: its chown looks up
+# `bin', which this libc finds only in a pwd.db, and the install root
+# has none. The closing message says the base set carries the kernel
+# and that the install medium may be a CD, and Configure ends in /,
+# not in the new /dev, so that the new root can be unmounted.
 
 Configure()
 {
@@ -170,13 +171,13 @@ Configure()
 
 	echo	""
 	echo -n	"Making device nodes (may take a while)..."
-	chroot ${ROOT} /bin/sh -c 'cd /dev; sh MAKEDEV std wd0 pty0'
+	chroot ${ROOT} /bin/sh -c 'cd /dev; sh MAKEDEV std wd0 wd1 wcd0 pty0'
 	echo	" done."
 
 	sync
 
 	echo	""
 	echo	"The kernel, /vmunix, came with the base set.  Halt, remove"
-	echo	"the install floppy, and boot from the hard drive."
+	echo	"the install floppy or CD, and boot from the hard drive."
 	cd /
 }
