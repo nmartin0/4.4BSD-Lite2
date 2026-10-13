@@ -44,6 +44,11 @@ set -e
 umask 022
 
 [ -f build/release.sh ] || { echo "run from the top of the tree" >&2; exit 1; }
+# makefs is a system administration tool, so Debian installs it in
+# /usr/sbin, which an ordinary user's PATH need not have; the install
+# root's Makefile runs it by name too.
+PATH=$PATH:/usr/sbin:/sbin
+export PATH
 for t in makefs mkisofs; do
 	command -v $t >/dev/null || { echo "not found: $t" >&2; exit 1; }
 done

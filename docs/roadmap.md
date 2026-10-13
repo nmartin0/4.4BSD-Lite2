@@ -202,15 +202,60 @@ C11 -- as NetBSD carries it in src/external/bsd/pcc (1.2.0.DEVEL,
 20160208, imported 2016-02-09, with BSD-make Makefiles for cpp, ccom
 and the driver); OpenBSD carried an earlier one in usr.bin/pcc from
 2007 to 2012. It emits GNU-syntax assembly and runs the system's `as`
-and `ld`; nothing BSD-licensed assembles and links i386 ELF in C, so
-those come from GNU binutils, as with pcc in both trees, of the GPLv2
-releases (to 2.17). Which tree's is the donor is still to measure:
-OpenBSD keeps 2.17 in gnu/usr.bin/binutils-2.17, built by a BSD-make
-wrapper that runs GNU configure; NetBSD built its binutils of the
-2000s with BSD-make Makefiles of its own and no configure (NetBSD
-1.5's, 2.9.1, are in gnu/usr.bin/binutils; the later releases' are
-not yet looked at). ar, nm, strip, size and strings can be FreeBSD's
-elftoolchain, BSD-licensed.
+and `ld`.
+
+**The assembler, linker and binary tools: NetBSD 5's binutils 2.16.1**
+-- gnu/dist/binutils with the reachover Makefiles of
+gnu/usr.bin/binutils and gnu/lib/lib{bfd,opcodes,iberty}, whose i386
+config headers NetBSD generated ahead (mknative), so it builds with
+BSD make and no GNU configure. GPLv2; i386 ELF; about 126,000 lines
+of bfd, gas, ld and opcodes for i386; and NetBSD 5 is the first branch
+that carries external/bsd/pcc beside it, the pairing pcc was used
+with. Surveyed across all three trees:
+
+	NetBSD   1.0-1.2 gas 1.92 and GNU ld 1 (a.out); 1.4-1.5 2.9.1;
+	         1.6 2.11.2; 2-5 2.14, 2.15, 2.16.1 (GPLv2, reachover);
+	         6 on 2.21.1 to 2.46 (GPLv3, external/gpl3)
+	FreeBSD  3.0-12 contrib/binutils 2.9.1 to 2.17.50 (GPLv2,
+	         reachover, gnu/usr.bin/binutils/*/Makefile.i386);
+	         elftoolchain's nm, size, strings, strip from 11, objcopy
+	         from 12, its own BSD ar from 8; lld and no GNU from 13
+	OpenBSD  2.7 to 2.15, then 2.17 (GPLv2), each built by a
+	         Makefile.bsd-wrapper that runs GNU configure; lld and
+	         clang on i386 from 2018-19
+
+FreeBSD 12's 2.17.50, the last GPLv2 snapshot, is the fallback --
+newer i386 opcodes, about 139,000 lines, Makefiles tied to FreeBSD's
+src.opts.mk. No BSD has shipped a BSD-licensed ELF assembler or
+linker. Later, permissive tools can replace the binary ones: nm and
+size from OpenBSD's usr.bin/nm (BSD, ELF), ar and ranlib from FreeBSD
+8's usr.bin/ar, strip and objcopy from elftoolchain's elfcopy.
+
+**Permissive alternatives looked for, and why not now.**
+
+	OSF Mach 7.3 / MkLinux  gcc and GNU binutils (osfmk makedefs);
+	                        its own tools are ODE, mig and config
+	Apple cctools ld        APSL, Mach-O only; its as is GNU as 1.38
+	Minix 3 / ACK           BSD-3, ANSI C; its own assembler syntax
+	                        and object format, ELF only by aelflod
+	                        after linking; no GNU inline asm -- every
+	                        .s rewritten, no mixing with ELF objects
+	Plan 9 8c/8a/8l         MIT since 2021; 8l writes ELF but links
+	                        only Plan 9 objects, in Plan 9 assembly
+	yasm (-p gas)           BSD; measured: 30 of libc's 31 i386 .s
+	                        files assemble, 29 to the bytes GNU as
+	                        gives, one on VAX-style `0r' floats; the
+	                        kernel's locore.s crashes it, first at
+	                        `.set X,(0x3c0 << 22)' (yasm 1.3.0)
+	elftoolchain ld         BSD-2; measured: links a one-instruction
+	                        program, but a static link against libc
+	                        crashes it or writes an empty file
+	neatcc, scc, cproc+QBE  no inline asm or no i386 target
+	tcc                     LGPL; compiler, assembler and linker in one
+	lld, mold               permissive, but C++, which pcc cannot build
+
+So the one GPL part is as and ld, GPLv2, and a fully permissive chain
+waits on yasm or elftoolchain ld maturing.
 
 Measured before deciding: NetBSD's pcc, built on the host as an
 i386-pc-netbsdelf cross-compiler (it needs -fcommon under GCC 14) and
