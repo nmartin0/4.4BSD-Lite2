@@ -220,6 +220,22 @@ static struct processors all_cores[] =
   {"strongarm",	             FL_MODE26 | FL_MODE32 | FL_FAST_MULT | FL_ARCH4 |            FL_LDSCHED | FL_STRONG },
   {"strongarm110",           FL_MODE26 | FL_MODE32 | FL_FAST_MULT | FL_ARCH4 |            FL_LDSCHED | FL_STRONG },
   {"strongarm1100",          FL_MODE26 | FL_MODE32 | FL_FAST_MULT | FL_ARCH4 |            FL_LDSCHED | FL_STRONG },
+
+  /* Local NetBSD additions.  These switches also appear in gcc 3.x.  They
+     have been added to the NetBSD in-tree 2.95.3 in order to provide for
+     command-line compatibility with gcc 3.x.
+
+     We treat them like other CPUs that 2.95.3 already supports:
+
+     arm10tdmi -> arm9tdmi
+     arm1020t -> arm9tdmi
+
+     xscame -> strongarm
+
+     --thorpej@netbsd.org  */
+  {"arm10tdmi",	                         FL_MODE32 | FL_FAST_MULT | FL_ARCH4 | FL_THUMB | FL_LDSCHED },
+  {"arm1020t",	                         FL_MODE32 | FL_FAST_MULT | FL_ARCH4 | FL_THUMB | FL_LDSCHED },
+  {"xscale",	                         FL_MODE32 | FL_FAST_MULT | FL_ARCH4 |            FL_LDSCHED | FL_STRONG },
   
   {NULL, 0}
 };
@@ -236,6 +252,20 @@ static struct processors all_architectures[] =
   /* Strictly, FL_MODE26 is a permitted option for v4t, but there are no
      implementations that support it, so we will leave it out for now.  */
   {"armv4t",    FL_CO_PROC |             FL_MODE32 | FL_FAST_MULT | FL_ARCH4 | FL_THUMB },
+  /* Local NetBSD additions.  These switches also appear in gcc 3.x.  They
+     have been added to the NetBSD in-tree 2.95.3 in order to provide for
+     command-line compatibility with gcc 3.x.
+
+     We treat them like other ARCHs that 2.95.3 already supports:
+
+     armv5 -> armv4t
+     armv5t -> armv4t
+     armv5te -> armv4t
+
+     --thorpej@netbsd.org  */
+  {"armv5",    FL_CO_PROC |             FL_MODE32 | FL_FAST_MULT | FL_ARCH4 | FL_THUMB },
+  {"armv5t",   FL_CO_PROC |             FL_MODE32 | FL_FAST_MULT | FL_ARCH4 | FL_THUMB },
+  {"armv5te",  FL_CO_PROC |             FL_MODE32 | FL_FAST_MULT | FL_ARCH4 | FL_THUMB },
   {NULL, 0}
 };
 
@@ -281,7 +311,7 @@ arm_override_options ()
       
       if (ptr->string != NULL && ptr->string[0] != '\0')
         {
-	  struct processors * sel;
+	  const struct processors * sel;
 
           for (sel = ptr->processors; sel->name != NULL; sel ++)
             if (streq (ptr->string, sel->name))
@@ -566,7 +596,7 @@ use_return_insn (iscond)
   if (!reload_completed
       || current_function_pretend_args_size
       || current_function_anonymous_args
-      || ((get_frame_size () + current_function_outgoing_args_size != 0)
+      || ((arm_get_frame_size () + current_function_outgoing_args_size != 0)
 	  && !(TARGET_APCS && frame_pointer_needed)))
     return 0;
 
@@ -1343,12 +1373,24 @@ int
 arm_return_in_memory (type)
      tree type;
 {
+  HOST_WIDE_INT size;
+
   if (! AGGREGATE_TYPE_P (type))
     {
       /* All simple types are returned in registers. */
       return 0;
     }
-  else if (int_size_in_bytes (type) > 4)
+
+  size = int_size_in_bytes (type);
+
+  if (TARGET_ATPCS)
+    {
+      /* ATPCS returns aggregate types in memory only if they are
+	 larger than a word (or are variable size).  */
+      return (size < 0 || size > 4);
+    }
+
+  if (size < 0 || size > 4)
     {
       /* All structures/unions bigger than one word are returned in memory. */
       return 1;
@@ -3615,8 +3657,11 @@ arm_reload_in_hi (operands)
      rtx *operands;
 {
   rtx ref = operands[1];
-  rtx base, scratch;
+  rtx base, scratch, scratch2;
   HOST_WIDE_INT offset = 0;
+
+  scratch = gen_rtx_REG (SImode, REGNO (operands[2]));
+  scratch2 = gen_rtx_REG (SImode, REGNO (operands[2]) + 1);
 
   if (GET_CODE (ref) == SUBREG)
     {
@@ -3650,7 +3695,7 @@ arm_reload_in_hi (operands)
   if (GET_CODE (base) == MINUS
       || (GET_CODE (base) == PLUS && GET_CODE (XEXP (base, 1)) != CONST_INT))
     {
-      rtx base_plus = gen_rtx_REG (SImode, REGNO (operands[2]) + 1);
+      rtx base_plus = scratch;
 
       emit_insn (gen_rtx_SET (VOIDmode, base_plus, base));
       base = base_plus;
@@ -3684,7 +3729,7 @@ arm_reload_in_hi (operands)
 
       if (hi != 0)
 	{
-	  rtx base_plus = gen_rtx_REG (SImode, REGNO (operands[2]) + 1);
+	  rtx base_plus = scratch;
 
 	  /* Get the base address; addsi3 knows how to handle constants
 	     that require more than one insn */
@@ -3694,30 +3739,38 @@ arm_reload_in_hi (operands)
 	}
     }
 
-  scratch = gen_rtx_REG (SImode, REGNO (operands[2]));
-  emit_insn (gen_zero_extendqisi2 (scratch,
+  if (GET_CODE (base) != REG)
+    abort ();
+
+  /* Operands[2] may overlap BASE.  Ensure that we don't clobber it in
+     the first load.  */
+  if (REGNO (scratch2) == REGNO (base))
+    {
+      rtx tmp = scratch2;
+      scratch2 = scratch;
+      scratch = tmp;
+    }
+
+  emit_insn (gen_zero_extendqisi2 (scratch2,
 				   gen_rtx_MEM (QImode,
 						plus_constant (base,
 							       offset))));
-  emit_insn (gen_zero_extendqisi2 (gen_rtx_SUBREG (SImode, operands[0], 0),
+  emit_insn (gen_zero_extendqisi2 (scratch,
 				   gen_rtx_MEM (QImode, 
 						plus_constant (base,
 							       offset + 1))));
-  if (! BYTES_BIG_ENDIAN)
-    emit_insn (gen_rtx_SET (VOIDmode, gen_rtx_SUBREG (SImode, operands[0], 0),
-			gen_rtx_IOR (SImode, 
-				     gen_rtx_ASHIFT
-				     (SImode,
-				      gen_rtx_SUBREG (SImode, operands[0], 0),
-				      GEN_INT (8)),
-				     scratch)));
-  else
+  if (BYTES_BIG_ENDIAN)
     emit_insn (gen_rtx_SET (VOIDmode, gen_rtx_SUBREG (SImode, operands[0], 0),
 			    gen_rtx_IOR (SImode, 
-					 gen_rtx_ASHIFT (SImode, scratch,
+					 gen_rtx_ASHIFT (SImode, scratch2,
 							 GEN_INT (8)),
-					 gen_rtx_SUBREG (SImode, operands[0],
-							 0))));
+					 scratch)));
+  else
+    emit_insn (gen_rtx_SET (VOIDmode, gen_rtx_SUBREG (SImode, operands[0], 0),
+			gen_rtx_IOR (SImode, 
+				     gen_rtx_ASHIFT (SImode, scratch,
+						     GEN_INT (8)),
+				     scratch2)));
 }
 
 /* Handle storing a half-word to memory during reload by synthesising as two
@@ -5397,6 +5450,18 @@ output_return_instruction (operand, really_return, reverse)
   return "";
 }
 
+/* Generate a sequence of insns that will generate the correct return
+   address mask depending on the physical architecture that the program
+   is running on.  */
+rtx
+arm_gen_return_addr_mask ()
+{
+  rtx reg = gen_reg_rtx (Pmode);
+
+  emit_insn (gen_return_addr_mask (reg));
+  return reg;
+}
+
 /* Return nonzero if optimizing and the current function is volatile.
    Such functions never return, and many memory cycles can be saved
    by not storing register values that will never be needed again.
@@ -5551,6 +5616,9 @@ output_func_epilogue (f, frame_size)
   rtx operands[3];
   int volatile_func = (optimize > 0
 		       && TREE_THIS_VOLATILE (current_function_decl));
+
+  /* We need to take into account any stack-frame rounding.  */
+  frame_size = arm_get_frame_size ();
 
   if (use_return_insn (FALSE) && return_used_this_function)
     {
@@ -5828,11 +5896,71 @@ emit_sfm (base_reg, count)
   emit_insn (par);
 }
 
+/* Calculate the size of the stack frame, taking into account any
+   padding that is required to ensure stack-alignment.  */
+int arm_get_frame_size ()
+{
+  int regno;
+  
+  int base_size = (get_frame_size () + 3) & ~3;
+  int entry_size = 0;
+  int live_regs_mask = 0;
+  int volatile_func = (optimize > 0
+		       && TREE_THIS_VOLATILE (current_function_decl));
+
+  if (! TARGET_ATPCS)
+    return base_size;
+
+  /* We know that SP will be word aligned on entry, and we must
+     preserve that condition at any subroutine call.  But those are
+     the only constraints.  */
+
+  /* Space for variadic functions.  */
+  if (current_function_pretend_args_size)
+    entry_size += current_function_pretend_args_size;
+
+  if (! volatile_func)
+    {
+      for (regno = 0; regno <= 10; regno++)
+	if (regs_ever_live[regno] && ! call_used_regs[regno])
+	  live_regs_mask |= 1 << regno;
+
+      if (flag_pic && regs_ever_live[PIC_OFFSET_TABLE_REGNUM])
+	live_regs_mask |= 1 << PIC_OFFSET_TABLE_REGNUM;
+
+      if (regs_ever_live[14])
+	live_regs_mask |= 0x4000;
+    }
+
+  if (frame_pointer_needed)
+    live_regs_mask |= 0xD800;
+
+  /* If we have to push any registers, we must also push lr as well.  */
+  if (live_regs_mask)
+    live_regs_mask |= 0x4000;
+
+  for (regno = 0; regno < 16; regno++)
+    if (live_regs_mask & (1 << regno))
+      entry_size += 4;
+
+  if (! volatile_func)
+    {
+      for (regno = 23; regno > 15; regno--)
+	if (regs_ever_live[regno] && ! call_used_regs[regno])
+	  entry_size += 12;
+    }
+
+  if ((entry_size + base_size + current_function_outgoing_args_size) & 7)
+    base_size += 4;
+
+  return base_size;
+}
+
 void
 arm_expand_prologue ()
 {
   int reg;
-  rtx amount = GEN_INT (-(get_frame_size ()
+  rtx amount = GEN_INT (-(arm_get_frame_size ()
 			  + current_function_outgoing_args_size));
   int live_regs_mask = 0;
   int store_arg_regs = 0;

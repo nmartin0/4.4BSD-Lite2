@@ -354,7 +354,7 @@ do {									\
   barrier_align (LABEL_AFTER_BARRIER)
 
 #define LOOP_ALIGN(A_LABEL) \
-  ((! optimize || TARGET_HARWARD || TARGET_SMALLCODE) ? 0 : 2)
+  ((! optimize || TARGET_HARWARD || TARGET_SMALLCODE) ? 0 : sh_loop_align (A_LABEL))
 
 #define LABEL_ALIGN(A_LABEL) \
 (									\
@@ -1681,7 +1681,7 @@ extern struct rtx_def *sh_builtin_saveregs ();
    it uses this information.  Hence, the general register <-> floating point
    register information here is not used for SFmode.  */
 #define REGISTER_MOVE_COST(SRCCLASS, DSTCLASS) \
-  ((((DSTCLASS) == T_REGS) || ((DSTCLASS) == PR_REG)) ? 10		\
+  ((((DSTCLASS) == T_REGS) || ((DSTCLASS) == PR_REGS)) ? 10		\
    : ((((DSTCLASS) == FP0_REGS || (DSTCLASS) == FP_REGS || (DSTCLASS) == DF_REGS) \
        && ((SRCCLASS) == GENERAL_REGS || (SRCCLASS) == R0_REGS))	\
       || (((DSTCLASS) == GENERAL_REGS || (DSTCLASS) == R0_REGS)		\
@@ -1796,10 +1796,10 @@ dtors_section()							\
 }
 
 #define ASM_OUTPUT_REG_PUSH(file, v) \
-  fprintf ((file), "\tmov.l\tr%s,-@r15\n", (v));
+  fprintf ((file), "\tmov.l\tr%d,@-r15\n", (v));
 
 #define ASM_OUTPUT_REG_POP(file, v) \
-  fprintf ((file), "\tmov.l\t@r15+,r%s\n", (v));
+  fprintf ((file), "\tmov.l\t@r15+,r%d\n", (v));
 
 /* The assembler's names for the registers.  RFP need not always be used as
    the Real framepointer; it can also be used as a normal general register.
@@ -2214,3 +2214,5 @@ do {									\
 
 #define SH_DYNAMIC_SHIFT_COST \
   (TARGET_HARD_SH4 ? 1 : TARGET_SH3 ? (TARGET_SMALLCODE ? 1 : 2) : 20)
+
+#define DWARF_LINE_MIN_INSTR_LENGTH 2

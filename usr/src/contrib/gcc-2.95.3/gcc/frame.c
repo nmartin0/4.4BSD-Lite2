@@ -40,6 +40,7 @@ Boston, MA 02111-1307, USA.  */
 #ifndef inhibit_libc
 /* fixproto guarantees these system headers exist. */
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #endif
 
@@ -572,6 +573,10 @@ extract_cie_info (fde *f, struct cie_info *c)
 
   if (strcmp (c->augmentation, "eh") == 0)
     {
+      /* Handle the blank space > 4 byte alignment may have forced. */ 
+      if (sizeof(void *) > 4)
+        p += (sizeof(void *) - 4);
+
       c->eh_ptr = read_pointer (p);
       p += sizeof (void *);
     }

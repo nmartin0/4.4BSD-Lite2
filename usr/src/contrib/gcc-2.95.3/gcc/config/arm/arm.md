@@ -384,6 +384,12 @@
 ;; the operands, and we know that the use of the condition code is
 ;; either GEU or LTU, so we can use the carry flag from the addition
 ;; instead of doing the compare a second time.
+;; XXX RWE: The reload pass of GCC-2.95 makes a mess of these if one of the
+;; arguments is, or is directly derived from, an eliminable register.  In
+;; that case reload will substitue into the PLUS and then canonicalize it
+;; without regard to the the match_dup parts.  Since these are rare, I've
+;; disabled them for now, but they should be OK in 3.x (which manages the
+;; substitution without canonicalization.
 (define_insn "*addsi3_compare_op1"
   [(set (reg:CC_C 24)
 	(compare:CC_C
@@ -392,7 +398,7 @@
 	 (match_dup 1)))
    (set (match_operand:SI 0 "s_register_operand" "=r,r")
 	(plus:SI (match_dup 1) (match_dup 2)))]
-  ""
+  "0"
   "@
    add%?s\\t%0, %1, %2
    sub%?s\\t%0, %1, #%n2"
@@ -406,7 +412,7 @@
 	 (match_dup 2)))
    (set (match_operand:SI 0 "s_register_operand" "=r,r")
 	(plus:SI (match_dup 1) (match_dup 2)))]
-  ""
+  "0"
   "@
    add%?s\\t%0, %1, %2
    sub%?s\\t%0, %1, #%n2"
@@ -418,7 +424,7 @@
 	 (plus:SI (match_operand:SI 0 "s_register_operand" "r,r")
 		  (match_operand:SI 1 "arm_add_operand" "rI,L"))
 	 (match_dup 0)))]
-  ""
+  "0"
   "@
    cmn%?\\t%0, %1
    cmp%?\\t%0, #%n1"
@@ -430,7 +436,7 @@
 	 (plus:SI (match_operand:SI 0 "s_register_operand" "r,r")
 		  (match_operand:SI 1 "arm_add_operand" "rI,L"))
 	 (match_dup 1)))]
-  ""
+  "0"
   "@
    cmn%?\\t%0, %1
    cmp%?\\t%0, #%n1"
@@ -1682,9 +1688,9 @@
 	    (match_operand:SI 3 "arm_rhs_operand" "rI,rI")])
 	  (match_operand:SI 1 "s_register_operand" "0,?r")]))
    (clobber (reg:CC 24))]
-  "GET_CODE (operands[1]) != REG
+  "0 && (GET_CODE (operands[1]) != REG
    || (REGNO(operands[1]) != FRAME_POINTER_REGNUM
-       && REGNO(operands[1]) != ARG_POINTER_REGNUM)"
+       && REGNO(operands[1]) != ARG_POINTER_REGNUM))"
   "*
 {
   enum rtx_code code = GET_CODE (operands[4]);
@@ -4322,6 +4328,29 @@
 }"
 [(set_attr "conds" "use")
  (set_attr "type" "load")])
+
+(define_expand "return_addr_mask"
+  [(set (match_dup 1)
+	(compare:CC_NOOV (unspec [(const_int 0)] 4)
+			 (const_int 0)))
+   (set (match_operand:SI 0 "s_register_operand" "")
+	(if_then_else:SI (eq (match_dup 1) (const_int 0))
+			 (const_int -1)
+			 (const_int 67108860)))] ; 0x03fffffc
+  ""
+  "
+  operands[1] = gen_rtx_REG (CC_NOOVmode, 24);
+  ")
+
+(define_insn "*check_arch2"
+  [(set (match_operand:CC_NOOV 0 "cc_register" "")
+	(compare:CC_NOOV (unspec [(const_int 0)] 4)
+			 (const_int 0)))]
+  ""
+  "teq\\t%|r0, %|r0\;teq\\t%|pc, %|pc"
+  [(set_attr "length" "8")
+   (set_attr "conds" "set")]
+)
 
 ;; Call subroutine returning any type.
 

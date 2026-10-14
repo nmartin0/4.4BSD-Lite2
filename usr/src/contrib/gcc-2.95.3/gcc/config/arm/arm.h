@@ -144,14 +144,23 @@ Unrecognized value in TARGET_CPU_DEFAULT.
 %{march=arm9:-D__ARM_ARCH_4T__} \
 %{march=arm9tdmi:-D__ARM_ARCH_4T__} \
 %{march=strongarm:-D__ARM_ARCH_4__} \
+%{march=strongarm:-D__STRONGARM__} \
 %{march=strongarm110:-D__ARM_ARCH_4__} \
+%{march=strongarm110:-D__STRONGARM__} \
 %{march=strongarm1100:-D__ARM_ARCH_4__} \
+%{march=strongarm1100:-D__STRONGARM__} \
+%{march=xscale:-D__ARM_ARCH_5TE__} \
+%{march=xscale:-D__XSCALE__} \
 %{march=armv2:-D__ARM_ARCH_2__} \
 %{march=armv2a:-D__ARM_ARCH_2__} \
 %{march=armv3:-D__ARM_ARCH_3__} \
 %{march=armv3m:-D__ARM_ARCH_3M__} \
 %{march=armv4:-D__ARM_ARCH_4__} \
 %{march=armv4t:-D__ARM_ARCH_4T__} \
+%{march=armv5:-D__ARM_ARCH_5__} \
+%{march=armv5t:-D__ARM_ARCH_5T__} \
+%{march=armv5e:-D__ARM_ARCH_5E__} \
+%{march=armv5te:-D__ARM_ARCH_5TE__} \
 %{!march=*: \
  %{mcpu=arm2:-D__ARM_ARCH_2__} \
  %{mcpu=arm250:-D__ARM_ARCH_2__} \
@@ -174,8 +183,13 @@ Unrecognized value in TARGET_CPU_DEFAULT.
  %{mcpu=arm9:-D__ARM_ARCH_4T__} \
  %{mcpu=arm9tdmi:-D__ARM_ARCH_4T__} \
  %{mcpu=strongarm:-D__ARM_ARCH_4__} \
+ %{mcpu=strongarm:-D__STRONGARM__} \
  %{mcpu=strongarm110:-D__ARM_ARCH_4__} \
+ %{mcpu=strongarm110:-D__STRONGARM__} \
  %{mcpu=strongarm1100:-D__ARM_ARCH_4__} \
+ %{mcpu=strongarm1100:-D__STRONGARM__} \
+ %{mcpu=xscale:-D__ARM_ARCH_5TE__} \
+ %{mcpu=xscale:-D__XSCALE__} \
  %{!mcpu*:%(cpp_cpu_arch_default)}} \
 "
 
@@ -199,7 +213,9 @@ Unrecognized value in TARGET_CPU_DEFAULT.
 "
 
 /* Default is hard float, which doesn't define anything */
+#ifndef CPP_FLOAT_DEFAULT_SPEC
 #define CPP_FLOAT_DEFAULT_SPEC ""
+#endif
 
 #define CPP_ENDIAN_SPEC "\
 %{mbig-endian: \
@@ -210,7 +226,9 @@ Unrecognized value in TARGET_CPU_DEFAULT.
 "
 
 /* Default is little endian, which doesn't define anything. */
+#ifndef CPP_ENDIAN_DEFAULT_SPEC
 #define CPP_ENDIAN_DEFAULT_SPEC ""
+#endif
 
 #define CC1_SPEC ""
 
@@ -310,6 +328,9 @@ extern const char * target_fp_name;
 function tries to return. */
 #define ARM_FLAG_ABORT_NORETURN (0x8000)
 
+/* Nonzero if we use ATPCS conventions (stack, return-in-mem, etc.)  */
+#define ARM_FLAG_ATPCS (0x10000)
+
 #define TARGET_APCS			(target_flags & ARM_FLAG_APCS_FRAME)
 #define TARGET_POKE_FUNCTION_NAME	(target_flags & ARM_FLAG_POKE)
 #define TARGET_FPE			(target_flags & ARM_FLAG_FPE)
@@ -332,6 +353,7 @@ function tries to return. */
 #define TARGET_LITTLE_WORDS		(target_flags & ARM_FLAG_LITTLE_WORDS)
 #define TARGET_NO_SCHED_PRO		(target_flags & ARM_FLAG_NO_SCHED_PRO)
 #define TARGET_ABORT_NORETURN           (target_flags & ARM_FLAG_ABORT_NORETURN)
+#define TARGET_ATPCS			(target_flags & ARM_FLAG_ATPCS)
 
 /* SUBTARGET_SWITCHES is used to add flags on a per-config basis.
    Bit 31 is reserved.  See riscix.h.  */
@@ -589,6 +611,8 @@ extern int arm_is_6_or_7;
 #define PARM_BOUNDARY  	32
 
 #define STACK_BOUNDARY  32
+
+#define PREFERRED_STACK_BOUNDARY (TARGET_ATPCS ? 64 : 32)
 
 #define FUNCTION_BOUNDARY  32
 
@@ -955,12 +979,12 @@ do {									\
 									\
       if (MODE == DImode || (TARGET_SOFT_FLOAT && MODE == DFmode))	\
 	low = ((val & 0xf) ^ 0x8) - 0x8;				\
-      else if (MODE == SImode || MODE == QImode				\
+      else if (MODE == SImode						\
 	       || (MODE == SFmode && TARGET_SOFT_FLOAT)			\
-	       || (MODE == HImode && ! arm_arch4))			\
+	       || ((MODE == HImode || MODE == QImode) && ! arm_arch4))	\
 	/* Need to be careful, -4096 is not a valid offset */		\
 	low = val >= 0 ? (val & 0xfff) : -((-val) & 0xfff);		\
-      else if (MODE == HImode && arm_arch4)				\
+      else if ((MODE == HImode || MODE == QImode) && arm_arch4)		\
 	/* Need to be careful, -256 is not a valid offset */		\
 	low = val >= 0 ? (val & 0xff) : -((-val) & 0xff);		\
       else if (GET_MODE_CLASS (MODE) == MODE_FLOAT			\
@@ -1252,7 +1276,7 @@ do {									\
   else if ((FROM) == FRAME_POINTER_REGNUM				\
 	   && (TO) == STACK_POINTER_REGNUM)				\
     (OFFSET) = (current_function_outgoing_args_size			\
-		+ ((get_frame_size () + 3) & ~3));			\
+		+ arm_get_frame_size ());				\
   else									\
     {									\
       int regno;							\
@@ -1281,7 +1305,7 @@ do {									\
 	       && (regs_ever_live[14] || saved_hard_reg)) 		\
 	     offset += 4;						\
 	   offset += current_function_outgoing_args_size;		\
-	   (OFFSET) = ((get_frame_size () + 3) & ~3) + offset;		\
+	   (OFFSET) = arm_get_frame_size () + offset;			\
          }								\
     }									\
 }
@@ -2113,12 +2137,16 @@ do {									\
 
 /* Used to mask out junk bits from the return address, such as
    processor state, interrupt status, condition codes and the like.  */
-#define MASK_RETURN_ADDR \
+#define MASK_RETURN_ADDR						\
   /* If we are generating code for an ARM2/ARM3 machine or for an ARM6	\
      in 26 bit mode, the condition codes must be masked out of the	\
      return address.  This does not apply to ARM6 and later processors	\
-     when running in 32 bit mode.  */					\
-  ((!TARGET_APCS_32) ? (GEN_INT (0x03fffffc)) : (GEN_INT (0xffffffff)))
+     when running in 32 bit mode, but if we are not targeting archv4 	\
+     or later, assume this may be ARM2/3 running in 32-bit compatible	\
+     code mode.  */							\
+  ((!TARGET_APCS_32) ? (GEN_INT (0x03fffffc))				\
+   : arm_arch4 ? (GEN_INT (0xffffffff))					\
+   : arm_gen_return_addr_mask ())
 
 /* The remainder of this file is only needed for building the compiler 
    itself, not for the collateral.  */
@@ -2217,6 +2245,7 @@ int    arm_gen_movstrqi PROTO ((Rtx *));
 Rtx    gen_rotated_half_load PROTO ((Rtx));
 Mmode  arm_select_cc_mode RTX_CODE_PROTO ((Rcode, Rtx, Rtx));
 Rtx    gen_compare_reg RTX_CODE_PROTO ((Rcode, Rtx, Rtx, int));
+Rtx    arm_gen_return_addr_mask PROTO ((void));
 void   arm_reload_in_hi PROTO ((Rtx *));
 void   arm_reload_out_hi PROTO ((Rtx *));
 void   arm_reorg PROTO ((Rtx));
@@ -2239,6 +2268,7 @@ int    arm_volatile_func PROTO ((void));
 void   arm_poke_function_name STDIO_PROTO ((FILE *, char *));
 void   output_func_prologue STDIO_PROTO ((FILE *, int));
 void   output_func_epilogue STDIO_PROTO ((FILE *, int));
+int    arm_get_frame_size PROTO ((void));
 void   arm_expand_prologue PROTO ((void));
 void   arm_print_operand STDIO_PROTO ((FILE *, Rtx, int));
 void   arm_final_prescan_insn PROTO ((Rtx));

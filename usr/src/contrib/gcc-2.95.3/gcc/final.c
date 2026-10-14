@@ -942,7 +942,7 @@ insn_current_reference_address (branch)
     return insn_current_address;
   dest = JUMP_LABEL (branch);
   /* BRANCH has no proper alignment chain set, so use SEQ.  */
-  if (INSN_SHUID (branch) < INSN_SHUID (dest))
+  if (INSN_SHUID (seq) < INSN_SHUID (dest))
     {
       /* Forward branch. */
       return (insn_last_address + insn_lengths[seq_uid]
@@ -1117,7 +1117,7 @@ shorten_branches (first)
 	  for (label = insn; label; label = NEXT_INSN (label))
 	    if (GET_CODE (label) == CODE_LABEL)
 	      {
-		log = LOOP_ALIGN (insn);
+		log = LOOP_ALIGN (label);
 		if (max_log < log)
 		  {
 		    max_log = log;
@@ -1244,7 +1244,6 @@ shorten_branches (first)
 	      int align = 1 << log;
 	      int new_address = (insn_current_address + align - 1) & -align;
 	      insn_lengths[uid] = new_address - insn_current_address;
-	      insn_current_address = new_address;
 	    }
 	}
 
@@ -1271,7 +1270,7 @@ shorten_branches (first)
 				 * GET_MODE_SIZE (GET_MODE (body)));
 	  /* Alignment is handled by ADDR_VEC_ALIGN.  */
 	}
-      else if (asm_noperands (body) >= 0)
+      else if (GET_CODE (body) == ASM_INPUT || asm_noperands (body) >= 0)
 	insn_lengths[uid] = asm_insn_count (body) * insn_default_length (insn);
       else if (GET_CODE (body) == SEQUENCE)
 	{
@@ -1291,7 +1290,8 @@ shorten_branches (first)
 	      int inner_uid = INSN_UID (inner_insn);
 	      int inner_length;
 
-	      if (asm_noperands (PATTERN (XVECEXP (body, 0, i))) >= 0)
+	      if (GET_CODE (body) == ASM_INPUT
+		  || asm_noperands (PATTERN (XVECEXP (body, 0, i))) >= 0)
 		inner_length = (asm_insn_count (PATTERN (inner_insn))
 				* insn_default_length (inner_insn));
 	      else

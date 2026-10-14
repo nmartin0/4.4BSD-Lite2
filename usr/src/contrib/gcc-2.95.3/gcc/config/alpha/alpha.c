@@ -275,7 +275,7 @@ override_options ()
 	static int const cache_latency[][4] = 
 	{
 	  { 3, 30, -1 },	/* ev4 -- Bcache is a guess */
-	  { 2, 12, 38 },	/* ev5 -- Bcache from PC164 LMbench numbers */
+	  { 3, 12, 38 },	/* ev5 -- Bcache from PC164 LMbench numbers */
 	  { 3, 13, -1 },	/* ev6 -- Ho hum, doesn't exist yet */
 	};
 
@@ -1597,7 +1597,7 @@ alpha_expand_unaligned_load (tgt, mem, size, ofs, sign)
     {
       emit_move_insn (addr, plus_constant (XEXP (mem, 0), ofs));
       emit_insn (gen_extxl (extl, meml, GEN_INT (size*8), addr));
-      switch (size)
+      switch ((int)size)
 	{
 	case 2:
 	  emit_insn (gen_extwh (exth, memh, addr));
@@ -1659,7 +1659,7 @@ alpha_expand_unaligned_store (dst, src, size, ofs)
       emit_insn (gen_insxh (insh, gen_lowpart (DImode, src),
 			    GEN_INT (size*8), addr));
 
-      switch (size)
+      switch ((int)size)
 	{
 	case 2:
 	  emit_insn (gen_inswl (insl, gen_lowpart (HImode, src), addr));
@@ -1675,7 +1675,7 @@ alpha_expand_unaligned_store (dst, src, size, ofs)
 
   emit_insn (gen_mskxh (dsth, dsth, GEN_INT (size*8), addr));
 
-  switch (size)
+  switch ((int)size)
     {
     case 2:
       emit_insn (gen_mskxl (dstl, dstl, GEN_INT (0xffff), addr));
@@ -3070,7 +3070,7 @@ alpha_initialize_trampoline (tramp, fnaddr, cxt, fnofs, cxtofs, jmpofs)
 
 #ifdef TRANSFER_FROM_TRAMPOLINE
   emit_library_call (gen_rtx (SYMBOL_REF, Pmode, "__enable_execute_stack"),
-		     0, VOIDmode, 1, addr, Pmode);
+		     0, VOIDmode, 1, tramp, Pmode);
 #endif
 
   if (jmpofs >= 0)
@@ -3375,7 +3375,8 @@ alpha_does_function_need_gp ()
 /* Write a version stamp.  Don't write anything if we are running as a
    cross-compiler.  Otherwise, use the versions in /usr/include/stamp.h.  */
 
-#ifdef HAVE_STAMP_H
+#if !defined(CROSS_COMPILE) && !defined(_WIN32) && !defined(__linux__) && \
+    !defined(VMS) && !defined(__NetBSD__)
 #include <stamp.h>
 #endif
 

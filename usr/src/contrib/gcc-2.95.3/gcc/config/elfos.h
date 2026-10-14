@@ -48,6 +48,7 @@ do {				 				\
 
 /* Output #ident as a .ident.  */
 
+#undef ASM_OUTPUT_IDENT
 #define ASM_OUTPUT_IDENT(FILE, NAME) \
   fprintf (FILE, "\t%s\t\"%s\"\n", IDENT_ASM_OP, NAME);
 
@@ -57,7 +58,9 @@ do {				 				\
 
 /* Writing `int' for a bitfield forces int alignment for the structure.  */
 
+#ifndef PCC_BITFIELD_TYPE_MATTERS
 #define PCC_BITFIELD_TYPE_MATTERS 1
+#endif
 
 /* Implicit library calls should use memcpy, not bcopy, etc.  */
 
@@ -91,6 +94,10 @@ do {				 				\
 
 #undef SET_ASM_OP
 #define SET_ASM_OP	".set"
+
+/* We want local labels to start with period if made with asm_fprintf. */
+#undef LOCAL_LABEL_PREFIX
+#define LOCAL_LABEL_PREFIX "."
 
 /* This is how to begin an assembly language file.  Most svr4 assemblers want
    at least a .file directive to come first, and some want to see a .version
@@ -130,7 +137,7 @@ do {				 				\
 #undef ASM_OUTPUT_INTERNAL_LABEL
 #define ASM_OUTPUT_INTERNAL_LABEL(FILE, PREFIX, NUM)			\
 do {									\
-  fprintf (FILE, ".%s%d:\n", PREFIX, NUM);				\
+  fprintf (FILE, "%s%s%d:\n", LOCAL_LABEL_PREFIX, PREFIX, NUM);		\
 } while (0)
 
 /* This is how to store into the string LABEL
@@ -144,7 +151,7 @@ do {									\
 #undef ASM_GENERATE_INTERNAL_LABEL
 #define ASM_GENERATE_INTERNAL_LABEL(LABEL, PREFIX, NUM)			\
 do {									\
-  sprintf (LABEL, "*.%s%d", PREFIX, NUM);				\
+  sprintf (LABEL, "*%s%s%d", LOCAL_LABEL_PREFIX, PREFIX, NUM);		\
 } while (0)
 
 /* Output the label which precedes a jumptable.  Note that for all svr4
@@ -462,6 +469,7 @@ do {								\
 
 /* This is how we tell the assembler that a symbol is weak.  */
 
+#undef ASM_WEAKEN_LABEL
 #define ASM_WEAKEN_LABEL(FILE,NAME) \
   do { fputs ("\t.weak\t", FILE); assemble_name (FILE, NAME); \
        fputc ('\n', FILE); } while (0)

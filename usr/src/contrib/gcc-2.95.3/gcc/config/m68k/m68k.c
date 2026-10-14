@@ -462,7 +462,8 @@ output_function_prologue (stream, size)
 				  -cfa_store_offset + n_regs++ * 4);
 	}
     }
-  if (flag_pic && current_function_uses_pic_offset_table)
+  if (flag_pic && current_function_uses_pic_offset_table &&
+      regs_ever_live[PIC_OFFSET_TABLE_REGNUM])
     {
 #ifdef MOTOROLA
       asm_fprintf (stream, "\t%Olea (%Rpc, %U_GLOBAL_OFFSET_TABLE_@GOTPC), %s\n",
@@ -493,6 +494,9 @@ use_return_insn ()
   for (regno = 0 ; regno < FIRST_PSEUDO_REGISTER ; regno++)
     if (regs_ever_live[regno] && ! call_used_regs[regno])
       return 0;
+
+  if (flag_pic && regs_ever_live[PIC_OFFSET_TABLE_REGNUM])
+    return 0;
   
   return 1;
 }
@@ -2115,7 +2119,7 @@ output_addsi3 (operands)
       /* These insns can result from reloads to access
 	 stack slots over 64k from the frame pointer.  */
       if (GET_CODE (operands[2]) == CONST_INT
-	  && INTVAL (operands[2]) + 0x8000 >= (unsigned) 0x10000)
+	  && INTVAL (operands[2]) + 0x8000 >= (unsigned HOST_WIDE_INT) 0x10000)
         return "move%.l %2,%0\n\tadd%.l %1,%0";
 #ifdef SGS
       if (GET_CODE (operands[2]) == REG)

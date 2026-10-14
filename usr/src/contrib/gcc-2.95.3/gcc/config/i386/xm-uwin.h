@@ -1,6 +1,7 @@
-/* Definitions of target machine for GNU compiler
-   for Alpha NetBSD systems using ELF.
-   Copyright (C) 1998 Free Software Foundation, Inc.
+/* Configuration for GNU C-compiler for hosting on Windows32.
+   using GNU tools and the Windows32 API Library.
+   Copyright (C) 1999 Free Software Foundation, Inc.
+   Contributed by Mumit Khan  <khan@xraylith.wisc.edu>.
 
 This file is part of GNU CC.
 
@@ -17,16 +18,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with GNU CC; see the file COPYING.  If not, write to
 the Free Software Foundation, 59 Temple Place - Suite 330,
-Boston, MA 02111-1307, USA.  */
+Boston, MA 02111-1307, USA. */
 
-#undef TARGET_VERSION
-#define TARGET_VERSION fprintf (stderr, " (Alpha NetBSD/ELF)");
+#ifndef ONLY_INT_FIELD
+#define ONLY_INT_FIELDS 1
+#endif
 
-#undef SUB_CPP_PREDEFINES
-#define SUB_CPP_PREDEFINES "-D__ELF__"
+#ifndef USE_PROTOTYPES
+#define USE_PROTOTYPES 1
+#endif
 
-#undef SUBTARGET_EXTRA_SPECS
-#define SUBTARGET_EXTRA_SPECS \
-{ "elf_dynamic_linker", ELF_DYNAMIC_LINKER },
+/* U/WIN system calls only support '/' */
+#undef DIR_SEPARATOR
+#define DIR_SEPARATOR '/'
+#undef EXECUTABLE_SUFFIX
+#define EXECUTABLE_SUFFIX ".exe"
 
-#define ELF_DYNAMIC_LINKER	"/usr/libexec/ld.elf_so"
+#undef PATH_SEPARATOR
+#define PATH_SEPARATOR ':'
+

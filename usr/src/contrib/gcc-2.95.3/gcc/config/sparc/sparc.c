@@ -142,6 +142,8 @@ int sparc_align_loops;
 int sparc_align_jumps;
 int sparc_align_funcs;
 
+char sparc_hard_reg_printed[8];
+
 struct sparc_cpu_select sparc_select[] =
 {
   /* switch	name,		tune	arch */
@@ -213,8 +215,11 @@ sparc_override_options ()
     /* TEMIC sparclet */
     { "tsc701",     PROCESSOR_TSC701, MASK_ISA, MASK_SPARCLET },
     { "v9",         PROCESSOR_V9, MASK_ISA, MASK_V9 },
-    /* TI ultrasparc */
-    { "ultrasparc", PROCESSOR_ULTRASPARC, MASK_ISA, MASK_V9 },
+    /* TI ultrasparc I, II, IIi */
+    { "ultrasparc", PROCESSOR_ULTRASPARC, MASK_ISA, MASK_V9
+    /* Although insns using %y are deprecated, it is a clear win on current
+       ultrasparcs. */
+    						    |MASK_DEPRECATED_V8_INSNS },
     { 0, 0, 0, 0 }
   };
   struct cpu_table *cpu;
@@ -368,7 +373,7 @@ sparc_override_options ()
   sparc_init_modes ();
 
   if ((profile_flag || profile_block_flag)
-      && sparc_cmodel != CM_MEDLOW)
+      && sparc_cmodel != CM_32 && sparc_cmodel != CM_MEDLOW)
     {
       error ("profiling does not support code models other than medlow");
     }
@@ -3108,6 +3113,32 @@ build_big_number (file, num, reg)
     }
 }
 
+/* Output any necessary .register pseudo-ops.  */
+void
+sparc_output_scratch_registers (file)
+     FILE *file;
+{
+#ifdef HAVE_AS_REGISTER_PSEUDO_OP
+  int i;
+
+  if (TARGET_ARCH32)
+    return;
+
+  /* Check if %g[2367] were used without
+     .register being printed for them already.  */
+  for (i = 2; i < 8; i++)
+    {
+      if (regs_ever_live [i]
+	  && ! sparc_hard_reg_printed [i])
+	{
+	  sparc_hard_reg_printed [i] = 1;
+	  fprintf (file, "\t.register\t%%g%d, #scratch\n", i);
+	}
+      if (i == 3) i = 5;
+    }
+#endif
+}
+
 /* Output code for the function prologue.  */
 
 void
@@ -3116,6 +3147,8 @@ output_function_prologue (file, size, leaf_function)
      int size;
      int leaf_function;
 {
+  sparc_output_scratch_registers (file);
+
   /* Need to use actual_fsize, since we are also allocating
      space for our callee (and our own register save area).  */
   actual_fsize = compute_frame_size (size, leaf_function);
@@ -3618,20 +3651,23 @@ struct function_arg_record_value_parms
 {
   rtx ret;
   int slotno, named, regbase;
-  int nregs, intoffset;
+  unsigned int nregs;
+  int intoffset;
 };
 
 static void function_arg_record_value_3
-	PROTO((int, struct function_arg_record_value_parms *));
+	PROTO((HOST_WIDE_INT, struct function_arg_record_value_parms *));
 static void function_arg_record_value_2
-	PROTO((tree, int, struct function_arg_record_value_parms *));
+	PROTO((tree, HOST_WIDE_INT, struct function_arg_record_value_parms *));
+static void function_arg_record_value_1
+	PROTO((tree, HOST_WIDE_INT, struct function_arg_record_value_parms *));
 static rtx function_arg_record_value
 	PROTO((tree, enum machine_mode, int, int, int));
 
 static void
 function_arg_record_value_1 (type, startbitpos, parms)
      tree type;
-     int startbitpos;
+     HOST_WIDE_INT startbitpos;
      struct function_arg_record_value_parms *parms;
 {
   tree field;
@@ -3659,16 +3695,18 @@ function_arg_record_value_1 (type, startbitpos, parms)
     {
       if (TREE_CODE (field) == FIELD_DECL)
 	{
-	  int bitpos = startbitpos;
+	  HOST_WIDE_INT bitpos = startbitpos;
 	  if (DECL_FIELD_BITPOS (field))
 	    bitpos += TREE_INT_CST_LOW (DECL_FIELD_BITPOS (field));
+
 	  /* ??? FIXME: else assume zero offset.  */
 
 	  if (TREE_CODE (TREE_TYPE (field)) == RECORD_TYPE)
-	    {
-	      function_arg_record_value_1 (TREE_TYPE (field), bitpos, parms);
-	    }
-	  else if (TREE_CODE (TREE_TYPE (field)) == REAL_TYPE
+	    function_arg_record_value_1 (TREE_TYPE (field), bitpos, parms);
+	  else if ((TREE_CODE (TREE_TYPE (field)) == REAL_TYPE
+		    || (TREE_CODE (TREE_TYPE (field)) == COMPLEX_TYPE
+			&& (TREE_CODE (TREE_TYPE (TREE_TYPE (field)))
+			    == REAL_TYPE)))
 	           && TARGET_FPU
 	           && ! packed_p
 	           && parms->named)
@@ -3691,6 +3729,8 @@ function_arg_record_value_1 (type, startbitpos, parms)
 	      /* There's no need to check this_slotno < SPARC_FP_ARG MAX.
 		 If it wasn't true we wouldn't be here.  */
 	      parms->nregs += 1;
+	      if (TREE_CODE (TREE_TYPE (field)) == COMPLEX_TYPE)
+		parms->nregs += 1;
 	    }
 	  else
 	    {
@@ -3705,11 +3745,13 @@ function_arg_record_value_1 (type, startbitpos, parms)
 
 static void 
 function_arg_record_value_3 (bitpos, parms)
-     int bitpos;
+     HOST_WIDE_INT bitpos;
      struct function_arg_record_value_parms *parms;
 {
   enum machine_mode mode;
-  int regno, this_slotno, intslots, intoffset;
+  unsigned int regno;
+  unsigned int startbit, endbit;
+  int this_slotno, intslots, intoffset;
   rtx reg;
 
   if (parms->intoffset == -1)
@@ -3717,7 +3759,9 @@ function_arg_record_value_3 (bitpos, parms)
   intoffset = parms->intoffset;
   parms->intoffset = -1;
 
-  intslots = (bitpos - intoffset + BITS_PER_WORD - 1) / BITS_PER_WORD;
+  startbit = intoffset & -BITS_PER_WORD;
+  endbit = (bitpos + BITS_PER_WORD - 1) & -BITS_PER_WORD;
+  intslots = (endbit - startbit) / BITS_PER_WORD;
   this_slotno = parms->slotno + intoffset / BITS_PER_WORD;
 
   intslots = MIN (intslots, SPARC_INT_ARG_MAX - this_slotno);
@@ -3753,10 +3797,18 @@ function_arg_record_value_3 (bitpos, parms)
   while (intslots > 0);
 }
 
+/* A subroutine of function_arg_record_value.  Traverse the structure
+   recusively and determine how many registers will be required.  */
+
+/* A subroutine of function_arg_record_value.  Traverse the structure
+   recursively and assign bits to floating point registers.  Track which
+   bits in between need integer registers; invoke function_arg_record_value_3
+   to make that happen.  */
+
 static void
 function_arg_record_value_2 (type, startbitpos, parms)
      tree type;
-     int startbitpos;
+     HOST_WIDE_INT startbitpos;
      struct function_arg_record_value_parms *parms;
 {
   tree field;
@@ -3775,7 +3827,7 @@ function_arg_record_value_2 (type, startbitpos, parms)
     {
       if (TREE_CODE (field) == FIELD_DECL)
 	{
-	  int bitpos = startbitpos;
+	  HOST_WIDE_INT bitpos = startbitpos;
 	  if (DECL_FIELD_BITPOS (field))
 	    bitpos += TREE_INT_CST_LOW (DECL_FIELD_BITPOS (field));
 	  /* ??? FIXME: else assume zero offset.  */
@@ -3784,24 +3836,45 @@ function_arg_record_value_2 (type, startbitpos, parms)
 	    {
 	      function_arg_record_value_2 (TREE_TYPE (field), bitpos, parms);
 	    }
-	  else if (TREE_CODE (TREE_TYPE (field)) == REAL_TYPE
+	  else if ((TREE_CODE (TREE_TYPE (field)) == REAL_TYPE
+		    || (TREE_CODE (TREE_TYPE (field)) == COMPLEX_TYPE
+			&& (TREE_CODE (TREE_TYPE (TREE_TYPE (field)))
+			    == REAL_TYPE)))
 	           && TARGET_FPU
 	           && ! packed_p
 	           && parms->named)
 	    {
 	      int this_slotno = parms->slotno + bitpos / BITS_PER_WORD;
+	      int regno;
+	      enum machine_mode mode = DECL_MODE (field);
 	      rtx reg;
 
 	      function_arg_record_value_3 (bitpos, parms);
-
-	      reg = gen_rtx_REG (DECL_MODE (field),
-			         (SPARC_FP_ARG_FIRST + this_slotno * 2
-			          + (DECL_MODE (field) == SFmode
-				     && (bitpos & 32) != 0)));
+	      regno = SPARC_FP_ARG_FIRST + this_slotno * 2
+		      + ((mode == SFmode || mode == SCmode)
+			 && (bitpos & 32) != 0);
+	      switch (mode)
+		{
+		case SCmode: mode = SFmode; break;
+		case DCmode: mode = DFmode; break;
+		case TCmode: mode = TFmode; break;
+		default: break;
+		}
+	      reg = gen_rtx_REG (mode, regno);
 	      XVECEXP (parms->ret, 0, parms->nregs)
 		= gen_rtx_EXPR_LIST (VOIDmode, reg,
 			   GEN_INT (bitpos / BITS_PER_UNIT));
 	      parms->nregs += 1;
+	      if (TREE_CODE (TREE_TYPE (field)) == COMPLEX_TYPE)
+		{
+		  regno += GET_MODE_SIZE (mode) / 4;
+	  	  reg = gen_rtx_REG (mode, regno);
+		  XVECEXP (parms->ret, 0, parms->nregs)
+		    = gen_rtx_EXPR_LIST (VOIDmode, reg,
+			GEN_INT ((bitpos + GET_MODE_BITSIZE (mode))
+				 / BITS_PER_UNIT));
+		  parms->nregs += 1;
+		}
 	    }
 	  else
 	    {
@@ -3812,6 +3885,9 @@ function_arg_record_value_2 (type, startbitpos, parms)
     }
 }
 
+/* Used by function_arg and function_value to implement the complex
+   Sparc64 structure calling conventions.  */
+
 static rtx
 function_arg_record_value (type, mode, slotno, named, regbase)
      tree type;
@@ -3820,7 +3896,7 @@ function_arg_record_value (type, mode, slotno, named, regbase)
 {
   HOST_WIDE_INT typesize = int_size_in_bytes (type);
   struct function_arg_record_value_parms parms;
-  int nregs;
+  unsigned int nregs;
 
   parms.ret = NULL_RTX;
   parms.slotno = slotno;
@@ -3834,10 +3910,12 @@ function_arg_record_value (type, mode, slotno, named, regbase)
 
   if (parms.intoffset != -1)
     {
+      unsigned int startbit, endbit;
       int intslots, this_slotno;
 
-      intslots = (typesize*BITS_PER_UNIT - parms.intoffset + BITS_PER_WORD - 1)
-	/ BITS_PER_WORD;
+      startbit = parms.intoffset & -BITS_PER_WORD;
+      endbit = (typesize*BITS_PER_UNIT + BITS_PER_WORD - 1) & -BITS_PER_WORD;
+      intslots = (endbit - startbit) / BITS_PER_WORD;
       this_slotno = slotno + parms.intoffset / BITS_PER_WORD;
 
       intslots = MIN (intslots, SPARC_INT_ARG_MAX - this_slotno);
@@ -4530,6 +4608,152 @@ output_cbranch (op, label, reversed, annul, noop, insn)
     strcat (string, "\n\tnop");
 
   return string;
+}
+
+/* Emit a library call comparison between floating point X and Y.
+   COMPARISON is the rtl operator to compare with (EQ, NE, GT, etc.).
+   TARGET_ARCH64 uses _Qp_* functions, which use pointers to TFmode
+   values as arguments instead of the TFmode registers themselves,
+   that's why we cannot call emit_float_lib_cmp.  */
+void
+sparc_emit_float_lib_cmp (x, y, comparison)
+     rtx x, y;
+     enum rtx_code comparison;
+{
+  char *qpfunc;
+  rtx slot0, slot1, result, tem, tem2;
+  enum machine_mode mode;
+
+  switch (comparison)
+    {
+    case EQ:
+      qpfunc = (TARGET_ARCH64) ? "_Qp_feq" : "_Q_feq";
+      break;
+
+    case NE:
+      qpfunc = (TARGET_ARCH64) ? "_Qp_fne" : "_Q_fne";
+      break;
+
+    case GT:
+      qpfunc = (TARGET_ARCH64) ? "_Qp_fgt" : "_Q_fgt";
+      break;
+
+    case GE:
+      qpfunc = (TARGET_ARCH64) ? "_Qp_fge" : "_Q_fge";
+      break;
+
+    case LT:
+      qpfunc = (TARGET_ARCH64) ? "_Qp_flt" : "_Q_flt";
+      break;
+
+    case LE:
+      qpfunc = (TARGET_ARCH64) ? "_Qp_fle" : "_Q_fle";
+      break;
+
+      /*    case UNORDERED:
+    case UNGT:
+    case UNLT:
+    case UNEQ:
+    case UNGE:
+    case UNLE:
+    case LTGT:
+      qpfunc = (TARGET_ARCH64) ? "_Qp_cmp" : "_Q_cmp";
+      break;
+      */
+    default:
+      abort();
+      break;
+    }
+
+  if (TARGET_ARCH64)
+    {
+      if (GET_CODE (x) != MEM)
+        {
+          slot0 = assign_stack_temp (TFmode, GET_MODE_SIZE(TFmode), 0);
+          emit_insn (gen_rtx_SET (VOIDmode, slot0, x));
+        }
+      else
+        slot0 = x;
+
+      if (GET_CODE (y) != MEM)
+        {
+          slot1 = assign_stack_temp (TFmode, GET_MODE_SIZE(TFmode), 0);
+          emit_insn (gen_rtx_SET (VOIDmode, slot1, y));
+        }
+      else
+        slot1 = y;
+
+      emit_library_call (gen_rtx_SYMBOL_REF (Pmode, qpfunc), 1,
+                         DImode, 2,
+                         XEXP (slot0, 0), Pmode,
+                         XEXP (slot1, 0), Pmode);
+
+      mode = DImode;
+    }
+  else
+    {
+      emit_library_call (gen_rtx_SYMBOL_REF (Pmode, qpfunc), 1,
+                         SImode, 2,
+                         x, TFmode, y, TFmode);
+
+      mode = SImode;
+    }
+
+
+  /* Immediately move the result of the libcall into a pseudo
+     register so reload doesn't clobber the value if it needs
+     the return register for a spill reg.  */
+  result = gen_reg_rtx (mode);
+  emit_move_insn (result, hard_libcall_value (mode));
+
+  switch (comparison)
+    {
+    default:
+      emit_cmp_insn (result, const0_rtx, NE,
+                     NULL_RTX, mode, 0, 0);
+      break;
+      /*    case ORDERED:
+    case UNORDERED:
+      emit_cmp_insn (result, GEN_INT(3),
+                     (comparison == UNORDERED) ? EQ : NE,
+                     NULL_RTX, mode, 0, 0);
+      break;
+    case UNGT:
+    case UNGE:
+      emit_cmp_insn (result, const1_rtx,
+                     (comparison == UNGT) ? GT : NE,
+                     NULL_RTX, mode, 0, 0);
+      break;
+    case UNLE:
+      emit_cmp_insn (result, const2_rtx, NE,
+                     NULL_RTX, mode, 0, 0);
+      break;
+    case UNLT:
+      tem = gen_reg_rtx (mode);
+      if (TARGET_ARCH32)
+        emit_insn (gen_andsi3 (tem, result, const1_rtx));
+      else
+        emit_insn (gen_anddi3 (tem, result, const1_rtx));
+      emit_cmp_insn (tem, const0_rtx, NE,
+                     NULL_RTX, mode, 0, 0);
+      break;
+    case UNEQ:
+    case LTGT:
+      tem = gen_reg_rtx (mode);
+      if (TARGET_ARCH32)
+        emit_insn (gen_addsi3 (tem, result, const1_rtx));
+      else
+        emit_insn (gen_adddi3 (tem, result, const1_rtx));
+      tem2 = gen_reg_rtx (mode);
+      if (TARGET_ARCH32)
+        emit_insn (gen_andsi3 (tem2, tem, const2_rtx));
+      else
+        emit_insn (gen_anddi3 (tem2, tem, const2_rtx));
+      emit_cmp_insn (tem2, const0_rtx,
+                     (comparison == UNEQ) ? EQ : NE,
+                     NULL_RTX, mode, 0, 0);
+		     break;*/
+    }
 }
 
 /* Return the string to output a conditional branch to LABEL, testing
@@ -5850,6 +6074,8 @@ sparc_flat_output_function_prologue (file, size)
 {
   char *sp_str = reg_names[STACK_POINTER_REGNUM];
   unsigned long gmask = current_frame_info.gmask;
+
+  sparc_output_scratch_registers (file);
 
   /* This is only for the human reader.  */
   fprintf (file, "\t%s#PROLOGUE# 0\n", ASM_COMMENT_START);
