@@ -36,6 +36,9 @@
 #ifndef	_MACHTYPES_H_
 #define	_MACHTYPES_H_
 
+#include <sys/cdefs.h>
+#include <machine/int_types.h>
+
 #if !defined(_ANSI_SOURCE) && !defined(_POSIX_SOURCE)
 typedef struct _physadr {
 	int r[1];
@@ -50,19 +53,6 @@ typedef	unsigned long	vm_offset_t;
 typedef	unsigned long	vm_size_t;
 
 /*
- * Basic integral types.  Omit the typedef if
- * not possible for a machine/compiler combination.
- */
-typedef	__signed char		   int8_t;
-typedef	unsigned char		 u_int8_t;
-typedef	short			  int16_t;
-typedef	unsigned short		u_int16_t;
-typedef	int			  int32_t;
-typedef	unsigned int		u_int32_t;
-typedef	long long		  int64_t;
-typedef	unsigned long long	u_int64_t;
-
-/*
  * AI-ONLY NOTE: register_t is used by <sys/ktrace.h>, <sys/systm.h>
  * and usr.bin/kdump, and this tree defines it for hp300 and sparc and
  * not for i386. The line is this tree's own, copied from
@@ -70,8 +60,10 @@ typedef	unsigned long long	u_int64_t;
  * reads the same and sits in the same place. No BSD of the period has
  * it in an i386 types.h to take instead: NetBSD 1.0's does not define
  * it either. int32_t is what the two architectures here use and is
- * the width of a register on this one.
+ * the width of a register on this one. Spelled int since <stdint.h>
+ * (NetBSD 1.6's), as NetBSD 1.6's i386 types.h has it: int32_t is
+ * now <sys/types.h>'s, after this header.
  */
-typedef	int32_t			register_t;
+typedef	int			register_t;
 
 #endif	/* _MACHTYPES_H_ */

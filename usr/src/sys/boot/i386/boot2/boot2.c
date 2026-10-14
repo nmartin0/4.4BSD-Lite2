@@ -62,9 +62,6 @@
 
 #include <sys/exec_elf.h>
 
-typedef u_int32_t uint32_t;
-typedef u_int8_t uint8_t;
-
 #include <btxv86.h>
 
 #include "lib.h"

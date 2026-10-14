@@ -29,7 +29,7 @@ FILES=	a.out.h ar.h assert.h bitstring.h ctype.h db.h dirent.h disktab.h \
 	utmp.h vis.h
 
 MFILES=	float.h frame.h stdarg.h varargs.h
-LFILES=	errno.h fcntl.h syslog.h termios.h
+LFILES=	errno.h fcntl.h stdint.h syslog.h termios.h
 
 DIRS=arpa protocols
 # AI-ONLY NOTE: isofs and miscfs added. sbin/mountd and

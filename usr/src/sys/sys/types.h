@@ -44,6 +44,52 @@
 /* Machine type dependent parameters. */
 #include <machine/ansi.h>
 #include <machine/types.h>
+#include <machine/int_types.h>
+
+#ifndef	int8_t
+typedef	__int8_t	int8_t;
+#define	int8_t		__int8_t
+#endif
+
+#ifndef	uint8_t
+typedef	__uint8_t	uint8_t;
+#define	uint8_t		__uint8_t
+#endif
+
+#ifndef	int16_t
+typedef	__int16_t	int16_t;
+#define	int16_t		__int16_t
+#endif
+
+#ifndef	uint16_t
+typedef	__uint16_t	uint16_t;
+#define	uint16_t	__uint16_t
+#endif
+
+#ifndef	int32_t
+typedef	__int32_t	int32_t;
+#define	int32_t		__int32_t
+#endif
+
+#ifndef	uint32_t
+typedef	__uint32_t	uint32_t;
+#define	uint32_t	__uint32_t
+#endif
+
+#ifndef	int64_t
+typedef	__int64_t	int64_t;
+#define	int64_t		__int64_t
+#endif
+
+#ifndef	uint64_t
+typedef	__uint64_t	uint64_t;
+#define	uint64_t	__uint64_t
+#endif
+
+typedef	uint8_t		u_int8_t;
+typedef	uint16_t	u_int16_t;
+typedef	uint32_t	u_int32_t;
+typedef	uint64_t	u_int64_t;
 
 #ifndef _POSIX_SOURCE
 typedef	unsigned char	u_char;
