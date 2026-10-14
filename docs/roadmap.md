@@ -106,7 +106,7 @@ not compile, and:
 
 | file | what | what it costs |
 |---|---|---|
-| `kern/sys_process.c` | `ptrace` | debuggers; returns ENOSYS |
+| `kern/sys_process.c` | `ptrace` | debuggers; returns ENOSYS, and its manual page is left out with it |
 
 **What is left before Tier 1 is solid**, in the order proposed:
 

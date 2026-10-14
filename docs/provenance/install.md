@@ -199,10 +199,10 @@ whole of it archived.
 	    usr.bin/xinstall usr.bin/sed usr.bin/tset usr.sbin/sysctl \
 	    usr.sbin/quotaon usr.sbin/accton usr.sbin/timed usr.sbin/lpr \
 	    usr.sbin/inetd usr.sbin/portmap usr.sbin/amd usr.bin/cap_mkdb \
-	    usr.bin/script usr.sbin/pstat usr.bin/awk
+	    usr.bin/script usr.sbin/pstat usr.bin/awk usr.bin/man
 	do
 		(cd usr/src/$d && sh "$r/build/make.sh" \
-		    depend all install NOMAN=noman)
+		    depend all install)
 	done
 	(cd usr/src/share/termcap && sh "$r/build/make.sh" termcap)
 	$L2_BUILD/tools/bin/install -o bin -g bin -m 444 \
@@ -215,7 +215,11 @@ whole of it archived.
 	tar -C $L2_BUILD/root --numeric-owner --format=ustar \
 	    -cf dist.tar .
 
-`NOMAN` because there is no nroff. Run as root, or under fakeroot,
+The manual pages are built and installed with each program, formatted
+by Lite2's own nroff -- groff 1.08, which build/sysroot.sh builds for
+the host -- into /usr/share/man/cat*, and man(1) is in the set to read
+them; until groff was built they were left out with NOMAN, there being
+no nroff. Run as root, or under fakeroot,
 for the tree's owners and groups: build/install.sh, which every
 Makefile's `install' goes through, turns `bin`, `kmem`, `operator`
 and the rest into this tree's numbers, and drops them unprivileged;
@@ -234,10 +238,7 @@ hand, through the same install wrapper, because its Makefile's install
 also wants termcap.db, which cap_mkdb makes, and cap_mkdb is a program
 for the target. It is run on the system below, as pwd_mkdb is. Host
 `ex' is Debian's vim; it runs the script as written.
-Of sbin, all but disklabel is installed: its Makefile formats its
-manual page whatever NOMAN says. reboot's install stops on
-`boot_hp300.0`, and id's on `groups.0`, after the programs themselves
-are in place. `/vmunix` is there for ps,
+`/vmunix` is there for ps,
 kvm_mkdb and savecore, which read the kernel's namelist; the shim
 loads the kernel from the host, so nothing else would put it there.
 

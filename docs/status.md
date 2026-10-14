@@ -34,6 +34,9 @@ the boot blocks load the kernel throughout:
   by binutils 2.11.2, the system's toolchain from contrib/, built on
   the host as a cross toolchain for i386-unknown-bsd4.4elf
   (roadmap.md, *self-hosting*).
+- **Its manual pages.** Every page the installed programs and
+  libraries name -- 789 of them -- formatted by Lite2's own nroff,
+  groff 1.08, and read on the system with man(1).
 
 `docs/provenance/install.md` has the procedure and every fault it
 found, each with the commit that answered it; `docs/roadmap.md` has
@@ -439,14 +442,10 @@ hierarchy from `etc/mtree/4.4BSD.dist`, the headers, three host tools
 startup files.
 
 A program builds against that root. `bin/cat` via
-`sh build/make.sh NOMAN=noman` gives an ELF 32-bit i386 statically
-linked executable.
-
-`NOMAN=noman` is needed unless the host has `nroff`: a program's
-`all` target builds its manual page, and without nroff the build
-stops with `Error code 127` after the binary is already linked.
-`sysroot.sh` passes `NOMAN=noman` for the libraries for this reason;
-nothing passes it for a program, so it is typed by hand.
+`sh build/make.sh` gives an ELF 32-bit i386 statically linked
+executable, and its manual page, cat.0, formatted by the groff
+sysroot.sh builds; before there was one, `NOMAN=noman' left the
+pages out.
 
 Several hundred of Lite2's own compiler warnings remain throughout,
 and `tsort` reports loops among the profiling objects. Neither has
