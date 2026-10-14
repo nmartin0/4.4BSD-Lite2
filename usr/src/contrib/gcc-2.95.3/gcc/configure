@@ -3563,6 +3563,13 @@ for machine in $build $host $target; do
 		tm_file=i386/bsd386.h
 #		tmake_file=t-libc-ok
 		;;
+	i[34567]86-*-bsd4.4elf*)
+		tm_file=i386/bsd44-elf.h
+		tmake_file="t-libc-ok t-netbsd"
+		xm_file="i386/xm-i386.h xm-netbsd.h"
+		gas=yes
+		gnu_ld=yes
+		;;
 	i[34567]86-*-bsd*)
 		tm_file=i386/386bsd.h
 #		tmake_file=t-libc-ok
