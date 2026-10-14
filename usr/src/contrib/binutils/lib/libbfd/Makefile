@@ -27,12 +27,25 @@ DIST=		${NETBSDSRCDIR}/gnu/dist/binutils
 SHLIB_MAJOR=	9
 SHLIB_MINOR=	0
 
+# AI-ONLY NOTE: TO REVISIT -- a stand-in, to be done properly later.
+# libbfd is built without a core-file reader. arch/i386, written by
+# build/mknative-binutils.sh for a host named i386--netbsdelf as NetBSD
+# configures its own, lists NetBSD's, netbsd-core.c with -DNETBSD_CORE,
+# which reads NetBSD's core format and wants its <sys/core.h>; this
+# kernel writes 4.4BSD's. The two are filtered out here, and the
+# generated files left as mknative writes them. bfd's configure gives
+# FreeBSD's i386 ELF the same, no core file (COREFILE='').
+# What is lost: objdump and nm cannot open a core dump.
+# Done properly: a core-file reader for this system's format, or the
+# kernel writing NetBSD's -- deferred.md, *binutils reads no core
+# files*.
 GCPPFLAGS=	${G_archdefs} ${G_DEFS} ${G_INCLUDES} ${G_TDEFAULTS}
 CPPFLAGS+=	-I${.CURDIR}/arch/${BFD_MACHINE_ARCH} -I${DIST}/include -I. \
-		-I${DIST}/bfd ${GCPPFLAGS:M-D*} ${GCPPFLAGS:M-I*:N-I.*}
+		-I${DIST}/bfd ${GCPPFLAGS:M-D*:N-DNETBSD_CORE} \
+		${GCPPFLAGS:M-I*:N-I.*}
 
 GSRCS=		${G_libbfd_la_OBJECTS:libbfd.lo=lib_bfd.lo} \
-		${G_libbfd_la_DEPENDENCIES:M*.lo}
+		${G_libbfd_la_DEPENDENCIES:M*.lo:Nnetbsd-core.lo}
 SRCS=		${GSRCS:.lo=.c}
 
 DPSRCS+=	elf32-target.h elf64-target.h targmatch.h \

@@ -612,8 +612,22 @@ the GPL, and 9, strncmp.c among them, carry no licence.
 
 Measured: with them behind pcc, libc, the startup files, bin, sbin and
 the programs above build, and the kernel, which boots, and those
-programs run on it as they did with the host's as and ld. Not yet:
-the reachover Makefiles building them for the target.
+programs run on it as they did with the host's as and ld.
+
+For the target, NetBSD's reachover Makefiles build them from the
+arch/i386 files mknative-binutils writes. Those imported were NetBSD
+5's, describing NetBSD 5; build/mknative-binutils.sh writes them for
+this system as NetBSD writes them for its own -- its tools/binutils
+`native-binutils' target, configure run with the target's compiler,
+here pcc and the sysroot -- with tools/gcc/mknative.common, which the
+script sources, imported beside it, and libiberty's asprintf,
+vasprintf, basename and insque, which this libc lacks. With them
+every source compiles with pcc for the target, and as, nm, size and
+objdump, linked from them, run on it. One stand-in, marked to be
+done properly later: libbfd is built without a core-file reader,
+NetBSD's wanting NetBSD's <sys/core.h> (deferred.md, *binutils reads
+no core files*). Not yet: the reachover Makefiles themselves run by
+this tree's make, and the programs installed.
 
 The whole release builds so: `L2_CC=pcc sh build/release.sh' compiles
 every library, program and boot block and both kernels with pcc, and

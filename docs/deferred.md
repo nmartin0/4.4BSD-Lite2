@@ -94,6 +94,39 @@ from 4.4BSD-Lite too.
 > backwards, and the reason given at the time — reaching a link sooner
 > — was about momentum rather than authenticity.
 
+### binutils reads no core files
+
+**To revisit: a stand-in, chosen to be done properly later.** The
+commit that makes it: *libbfd: no core-file reader, for now*.
+
+binutils' library, libbfd, opens a crashed program's core file
+through a reader for the system's own core format. The name this
+tree's binutils is configured under, `i386--netbsdelf`, NetBSD's,
+gives NetBSD's reader, `netbsd-core.c`, which reads NetBSD's format
+and wants its `<sys/core.h>`; this kernel writes 4.4BSD's, and has
+no such header. GNU's name for a 4.4BSD i386, `i386-*-bsd*`, gives
+the reader for that format, `trad-core.c` with `hosts/i386bsd.h`,
+but bfd builds a reader only when host and target have one name, and
+that name makes a.out, not ELF, the default; GNU has no name for a
+4.4BSD with ELF. So libbfd is built without one:
+`contrib/binutils/lib/libbfd/Makefile` filters out `netbsd-core.lo`
+and `-DNETBSD_CORE`, under an `AI-ONLY NOTE` that says so, and the
+generated `arch/i386/defs.mk` is left as mknative writes it. FreeBSD's
+i386 ELF binutils has no core reader either -- bfd's configure gives
+it `COREFILE=''`.
+
+What is lost: objdump and nm cannot open a core dump. Nothing in the
+tree reads one yet; a debugger would.
+
+Done properly, either of:
+
+- a reader for this kernel's core format -- `trad-core.c` with a
+  `hosts/` header for it, selected for this system by name, which
+  wants this system to have a name of its own in binutils'
+  `config.sub`, `bfd/configure` and `config.bfd`;
+- or the kernel writing NetBSD's core format, `<sys/core.h>`, which
+  NetBSD's `netbsd-core.c` then reads as it stands.
+
 ### `chrtoblktbl`'s bound is wrong in hp300 and luna68k
 
 Found while writing i386's. `chrtoblk` indexes
