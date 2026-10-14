@@ -543,6 +543,8 @@ extern const bfd_target bfd_elf32_pj_vec;
 extern const bfd_target bfd_elf32_pjl_vec;
 extern const bfd_target bfd_elf32_powerpc_vec;
 extern const bfd_target bfd_elf32_powerpcle_vec;
+extern const bfd_target bfd_elf32_shnbsd_vec;
+extern const bfd_target bfd_elf32_shlnbsd_vec;
 extern const bfd_target bfd_elf32_sh_vec;
 extern const bfd_target bfd_elf32_shblin_vec;
 extern const bfd_target bfd_elf32_shl_vec;
@@ -552,6 +554,7 @@ extern const bfd_target bfd_elf32_tradbigmips_vec;
 extern const bfd_target bfd_elf32_tradlittlemips_vec;
 extern const bfd_target bfd_elf32_us_cris_vec;
 extern const bfd_target bfd_elf32_v850_vec;
+extern const bfd_target bfd_elf32_vax_vec;
 extern const bfd_target bfd_elf64_alpha_vec;
 extern const bfd_target bfd_elf64_big_generic_vec;
 extern const bfd_target bfd_elf64_bigmips_vec;
@@ -615,6 +618,7 @@ extern const bfd_target mcore_pe_big_vec;
 extern const bfd_target mcore_pe_little_vec;
 extern const bfd_target mcore_pei_big_vec;
 extern const bfd_target mcore_pei_little_vec;
+extern const bfd_target mipselnetbsd_vec;
 extern const bfd_target mipslpe_vec;
 extern const bfd_target mipslpei_vec;
 extern const bfd_target newsos3_vec;
@@ -654,6 +658,7 @@ extern const bfd_target tic54x_coff1_vec;
 extern const bfd_target tic54x_coff2_beh_vec;
 extern const bfd_target tic54x_coff2_vec;
 extern const bfd_target tic80coff_vec;
+extern const bfd_target vaxcoff_vec;
 extern const bfd_target vaxnetbsd_vec;
 extern const bfd_target versados_vec;
 extern const bfd_target vms_alpha_vec;
@@ -923,6 +928,7 @@ static const bfd_target * const _bfd_target_vector[] = {
 	&tic54x_coff2_vec,
 	&tic54x_coff2_beh_vec,
 	&tic80coff_vec,
+	&vaxcoff_vec,
 	&vaxnetbsd_vec,
 	&versados_vec,
 #ifdef BFD64

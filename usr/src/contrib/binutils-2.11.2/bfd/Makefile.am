@@ -130,6 +130,7 @@ ALL_MACHINES_CFILES = \
 BFD32_BACKENDS = \
 	aout-adobe.lo \
 	aout-arm.lo \
+	aout-arm32.lo \
 	aout-cris.lo \
 	aout-ns32k.lo \
 	aout-sparcle.lo \
@@ -166,6 +167,7 @@ BFD32_BACKENDS = \
 	coff-u68k.lo \
 	coff-we32k.lo \
 	coff-w65.lo \
+	coff-vax.lo \
 	coff-z8k.lo \
 	cofflink.lo \
 	dwarf1.lo \
@@ -201,8 +203,10 @@ BFD32_BACKENDS = \
 	elf32-ppc.lo \
 	elf32-sh.lo \
 	elf32-sh-lin.lo \
+	elf32-sh-nbsd.lo \
 	elf32-sparc.lo \
 	elf32-v850.lo \
+	elf32-vax.lo \
 	elf32.lo \
 	elflink.lo \
 	epoc-pe-arm.lo \
@@ -268,6 +272,7 @@ BFD32_BACKENDS = \
 BFD32_BACKENDS_CFILES = \
 	aout-adobe.c \
 	aout-arm.c \
+	aout-arm32.c \
 	aout-cris.c \
 	aout-ns32k.c \
 	aout-sparcle.c \
@@ -304,6 +309,7 @@ BFD32_BACKENDS_CFILES = \
 	coff-u68k.c \
 	coff-we32k.c \
 	coff-w65.c \
+	coff-vax.c \
 	coff-z8k.c \
 	cofflink.c \
 	dwarf1.c \
@@ -338,8 +344,10 @@ BFD32_BACKENDS_CFILES = \
 	elf32-ppc.c \
 	elf32-sh.c \
 	elf32-sh-lin.c \
+	elf32-sh-nbsd.c \
 	elf32-sparc.c \
 	elf32-v850.c \
+	elf32-vax.c \
 	elf32.c \
 	elflink.c \
 	epoc-pe-arm.c \
@@ -933,6 +941,9 @@ coff-we32k.lo: coff-we32k.c $(INCDIR)/filenames.h $(INCDIR)/coff/we32k.h \
 coff-w65.lo: coff-w65.c $(INCDIR)/filenames.h $(INCDIR)/bfdlink.h \
   $(INCDIR)/coff/w65.h $(INCDIR)/coff/internal.h libcoff.h \
   coffcode.h coffswap.h
+coff-vax.lo: coff-vax.c $(INCDIR)/filenames.h $(INCDIR)/bfdlink.h \
+  $(INCDIR)/coff/vax.h $(INCDIR)/coff/internal.h libcoff.h \
+  coffcode.h coffswap.h
 coff-z8k.lo: coff-z8k.c $(INCDIR)/filenames.h $(INCDIR)/bfdlink.h \
   $(INCDIR)/coff/z8k.h $(INCDIR)/coff/internal.h libcoff.h \
   coffcode.h coffswap.h
@@ -1063,10 +1074,18 @@ elf32-sh-lin.lo: elf32-sh-lin.c elf32-sh.c $(INCDIR)/filenames.h \
   $(INCDIR)/bfdlink.h elf-bfd.h $(INCDIR)/elf/common.h \
   $(INCDIR)/elf/internal.h $(INCDIR)/elf/external.h $(INCDIR)/elf/sh.h \
   $(INCDIR)/elf/reloc-macros.h elf32-target.h
+elf32-sh-nbsd.lo: elf32-sh-nbsd.c elf32-sh.c $(INCDIR)/filenames.h \
+  $(INCDIR)/bfdlink.h elf-bfd.h $(INCDIR)/elf/common.h \
+  $(INCDIR)/elf/internal.h $(INCDIR)/elf/external.h $(INCDIR)/elf/sh.h \
+  $(INCDIR)/elf/reloc-macros.h elf32-target.h
 elf32-sparc.lo: elf32-sparc.c $(INCDIR)/filenames.h \
   $(INCDIR)/bfdlink.h elf-bfd.h $(INCDIR)/elf/common.h \
   $(INCDIR)/elf/internal.h $(INCDIR)/elf/external.h $(INCDIR)/elf/sparc.h \
   $(INCDIR)/elf/reloc-macros.h $(INCDIR)/opcode/sparc.h \
+  elf32-target.h
+elf32-vax.lo: elf32-vax.c $(INCDIR)/filenames.h $(INCDIR)/bfdlink.h \
+  elf-bfd.h $(INCDIR)/elf/common.h $(INCDIR)/elf/internal.h \
+  $(INCDIR)/elf/external.h $(INCDIR)/elf/vax.h $(INCDIR)/elf/reloc-macros.h \
   elf32-target.h
 elf32-v850.lo: elf32-v850.c $(INCDIR)/filenames.h $(INCDIR)/bfdlink.h \
   elf-bfd.h $(INCDIR)/elf/common.h $(INCDIR)/elf/internal.h \

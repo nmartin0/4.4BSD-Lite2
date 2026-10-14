@@ -310,7 +310,7 @@ static bfd *reldyn_sorting_bfd;
 #else
 #define MIPS_ELF_ADD_DYNAMIC_ENTRY(info, tag, val) \
   (ABI_64_P (elf_hash_table (info)->dynobj)	   \
-   ? (abort (), false)                             \
+   ? (boolean) (abort (), false)		   \
    : bfd_elf32_add_dynamic_entry (info, tag, val))
 #endif
 
@@ -3635,8 +3635,11 @@ ecoff_swap_rpdr_out (abfd, in, ex)
   bfd_h_put_16 (abfd, in->pcreg, (bfd_byte *) ex->p_pcreg);
 
   bfd_h_put_32 (abfd, in->irpss, (bfd_byte *) ex->p_irpss);
+  bfd_h_put_32 (abfd, 0, (bfd_byte *) ex->p_reserved);
 #if 0 /* FIXME */
   ecoff_put_off (abfd, in->exception_info, (bfd_byte *) ex->p_exception_info);
+#else
+  bfd_h_put_32 (abfd, 0, (bfd_byte *) ex->p_exception_info);
 #endif
 }
 
@@ -6554,7 +6557,7 @@ mips_elf_obtain_contents (howto, relocation, input_bfd, contents)
   bfd_byte *location = contents + relocation->r_offset;
 
   /* Obtain the bytes.  */
-  x = bfd_get (8 * bfd_get_reloc_size (howto), input_bfd, location);
+  x = bfd_get (((bfd_vma)(8 * bfd_get_reloc_size (howto))), input_bfd, location);
 
   if ((ELF32_R_TYPE (relocation->r_info) == R_MIPS16_26
        || ELF32_R_TYPE (relocation->r_info) == R_MIPS16_GPREL)
@@ -6973,7 +6976,11 @@ _bfd_mips_elf_relocate_section (output_bfd, info, input_bfd, input_section,
 		  bfd_vma high_bits;
 
 		  if (addend & ((bfd_vma) 1 << 31))
+#ifdef BFD64
 		    sign_bits = ((bfd_vma) 1 << 32) - 1;
+#else
+		    sign_bits = -1;
+#endif
 		  else
 		    sign_bits = 0;
 
@@ -7095,7 +7102,11 @@ _bfd_mips_elf_relocate_section (output_bfd, info, input_bfd, input_section,
 	  bfd_vma high_bits;
 
 	  if (value & ((bfd_vma) 1 << 31))
+#ifdef BFD64
 	    sign_bits = ((bfd_vma) 1 << 32) - 1;
+#else
+	    sign_bits = -1;
+#endif
 	  else
 	    sign_bits = 0;
 

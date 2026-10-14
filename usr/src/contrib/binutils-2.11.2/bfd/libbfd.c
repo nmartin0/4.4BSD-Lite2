@@ -464,6 +464,7 @@ bfd_get_file_window (abfd, offset, size, windowp, writable)
       i->size = real_size;
       windowp->data = (PTR) ((bfd_byte *) i->data + offset2);
       windowp->size = size;
+      i->refcount = 1;
       i->mapped = 1;
       return true;
     }
@@ -556,6 +557,8 @@ bfd_write (ptr, size, nitems, abfd)
       return size;
     }
 
+  if (ptr == 0 && size * nitems == 0)
+    return (0);
   nwrote = fwrite (ptr, 1, (size_t) (size * nitems),
 		   bfd_cache_lookup (abfd));
   if (nwrote > 0)

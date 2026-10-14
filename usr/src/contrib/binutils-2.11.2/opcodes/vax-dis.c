@@ -26,7 +26,8 @@ print_insn_arg PARAMS ((const char *, unsigned char *, bfd_vma,
 			disassemble_info *));
 
 static int
-print_insn_mode PARAMS ((int, unsigned char *, bfd_vma, disassemble_info *));
+print_insn_mode PARAMS ((const char *, int, unsigned char *, bfd_vma,
+			 disassemble_info *));
 
 static char *reg_names[] =
 {
@@ -221,11 +222,12 @@ print_insn_arg (d, p0, addr, info)
       return p - p0;
     }
 
-  return print_insn_mode (arg_len, p0, addr, info);
+  return print_insn_mode (d, arg_len, p0, addr, info);
 }
 
 static int
-print_insn_mode (size, p0, addr, info)
+print_insn_mode (d, size, p0, addr, info)
+     const char *d;
      int size;
      unsigned char *p0;
      bfd_vma addr;		/* PC for this arg to be relative to */
@@ -243,10 +245,13 @@ print_insn_mode (size, p0, addr, info)
     case 0x10:
     case 0x20:
     case 0x30: /* literal mode			$number */
-      (*info->fprintf_func) (info->stream, "$0x%x", mode);
+      if (d[1] == 'd' || d[1] == 'f' || d[1] == 'g' || d[1] == 'h')
+	(*info->fprintf_func) (info->stream, "$0x%x [%c-float]", mode, d[1]);
+      else
+        (*info->fprintf_func) (info->stream, "$0x%x", mode);
       break;
     case 0x40: /* index:			base-addr[Rn] */
-      p += print_insn_mode (size, p0 + 1, addr + 1, info);
+      p += print_insn_mode (d, size, p0 + 1, addr + 1, info);
       (*info->fprintf_func) (info->stream, "[%s]", reg_names[reg]);
       break;
     case 0x50: /* register:			Rn */
@@ -265,8 +270,30 @@ print_insn_mode (size, p0, addr, info)
 
 	  FETCH_DATA (info, p + size);
 	  (*info->fprintf_func) (info->stream, "$0x");
-	  for (i = 0; i < size; i++)
-	    (*info->fprintf_func) (info->stream, "%02x", p[size - i - 1]);
+	  if (d[1] == 'd' || d[1] == 'f' || d[1] == 'g' || d[1] == 'h')
+	    {
+	      int float_word;
+
+	      float_word = p[0] | (p[1] << 8);
+	      if ((d[1] == 'd' || d[1] == 'f')
+		  && (float_word & 0xff80) == 0x8000)
+		{
+		  (*info->fprintf_func) (info->stream, "[invalid %c-float]",
+					 d[1]);
+		}
+	      else
+		{
+	          for (i = 0; i < size; i++)
+		    (*info->fprintf_func) (info->stream, "%02x",
+		                           p[size - i - 1]);
+	          (*info->fprintf_func) (info->stream, " [%c-float]", d[1]);
+		}
+	    }
+	  else
+	    {
+	      for (i = 0; i < size; i++)
+	        (*info->fprintf_func) (info->stream, "%02x", p[size - i - 1]);
+	    }
 	  p += size;
 	}
       else
@@ -284,7 +311,7 @@ print_insn_mode (size, p0, addr, info)
       if (reg == 0xF)
 	(*info->print_address_func) (addr + 2 + NEXTBYTE (p), info);
       else
-	(*info->fprintf_func) (info->stream, "0x%x(%s)", NEXTBYTE (p),
+	(*info->fprintf_func) (info->stream, "%d(%s)", NEXTBYTE (p),
 			       reg_names[reg]);
       break;
     case 0xD0: /* displacement word deferred:	*displ(Rn) */
@@ -293,7 +320,7 @@ print_insn_mode (size, p0, addr, info)
       if (reg == 0xF)
 	(*info->print_address_func) (addr + 3 + NEXTWORD (p), info);
       else
-	(*info->fprintf_func) (info->stream, "0x%x(%s)", NEXTWORD (p),
+	(*info->fprintf_func) (info->stream, "%d(%s)", NEXTWORD (p),
 			       reg_names[reg]);
       break;
     case 0xF0: /* displacement long deferred:	*displ(Rn) */
@@ -302,7 +329,7 @@ print_insn_mode (size, p0, addr, info)
       if (reg == 0xF)
 	(*info->print_address_func) (addr + 5 + NEXTLONG (p), info);
       else
-	(*info->fprintf_func) (info->stream, "0x%x(%s)", NEXTLONG (p),
+	(*info->fprintf_func) (info->stream, "%d(%s)", NEXTLONG (p),
 			       reg_names[reg]);
       break;
     }

@@ -2091,6 +2091,14 @@ coff_set_arch_mach_hook (abfd, filehdr)
       break;
 #endif
 
+#ifdef VAXROMAGIC
+    case VAXRWMAGIC:
+    case VAXROMAGIC:
+      arch = bfd_arch_vax;
+      machine = 0;
+      break;
+#endif
+
 #ifdef WE32KMAGIC
     case WE32KMAGIC:
       arch = bfd_arch_we32k;
@@ -2793,6 +2801,13 @@ coff_set_flags (abfd, magicp, flagsp)
 	*magicp = A29K_MAGIC_BIG;
       else
 	*magicp = A29K_MAGIC_LITTLE;
+      return true;
+      break;
+#endif
+
+#ifdef VAXRWMAGIC
+    case bfd_arch_vax:
+      *magicp = (bfd_get_file_flags(abfd) & WP_TEXT) ? VAXROMAGIC : VAXRWMAGIC;
       return true;
       break;
 #endif
@@ -3791,7 +3806,14 @@ coff_write_object_contents (abfd)
 #if defined(ARM)
 #define __A_MAGIC_SET__
     internal_a.magic = ZMAGIC;
-#endif
+#endif 
+
+#if defined(VAX)
+#define __A_MAGIC_SET__
+    internal_a.magic = (abfd->flags & D_PAGED) ? VAX_AOUTHDR_ZMAGIC :
+    (abfd->flags & WP_TEXT) ? VAX_AOUTHDR_NMAGIC :
+    VAX_AOUTHDR_OMAGIC;
+#endif 
 
 #if defined(PPC_PE)
 #define __A_MAGIC_SET__

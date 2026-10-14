@@ -35,7 +35,7 @@
  * software, derivative works or modified versions, and any portions
  * thereof, and that both notices appear in supporting documentation.
  *
- * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS
+ * CARNEGIE MELLON ALLOWS FREE USE OF THIS SOFTWARE IN ITS "AS IS"
  * CONDITION.  CARNEGIE MELLON DISCLAIMS ANY LIABILITY OF ANY KIND FOR
  * ANY DAMAGES WHATSOEVER RESULTING FROM THE USE OF THIS SOFTWARE.
  *
@@ -5703,10 +5703,10 @@ void
 alpha_handle_align (fragp)
      fragS *fragp;
 {
-  static char const unop[4] = { 0x00, 0x00, 0xe0, 0x2f };
+  static char const unop[4] = { 0x00, 0x00, 0xfe, 0x2f };
   static char const nopunop[8] = {
     0x1f, 0x04, 0xff, 0x47,
-    0x00, 0x00, 0xe0, 0x2f
+    0x00, 0x00, 0xfe, 0x2f
   };
 
   int bytes, fix;

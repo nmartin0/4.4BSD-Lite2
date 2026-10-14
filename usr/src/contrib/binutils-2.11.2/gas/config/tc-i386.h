@@ -495,6 +495,9 @@ arch_entry;
 #ifndef GLOBAL_OFFSET_TABLE_NAME
 #define GLOBAL_OFFSET_TABLE_NAME "_GLOBAL_OFFSET_TABLE_"
 #endif
+#if defined(TE_NetBSD) && defined(OBJ_AOUT)
+#define NBSD_GLOBAL_OFFSET_TABLE_NAME "__GLOBAL_OFFSET_TABLE_"
+#endif
 
 #ifdef BFD_ASSEMBLER
 void i386_validate_fix PARAMS ((struct fix *));

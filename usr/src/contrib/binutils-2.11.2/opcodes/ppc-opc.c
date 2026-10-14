@@ -430,6 +430,11 @@ const struct powerpc_operand powerpc_operands[] =
   /* The SHB field in a VA form instruction. */
 #define SHB UIMM + 1
   { 4, 6, 0, 0, 0 },
+
+  /* The VD or VS field in a VA, VX, VXR or X form instruction. */
+#define TAG SHB + 1
+#define TAG_MASK (0x3 << 21)
+  {2, 21, 0, 0, 0 },
 };
 
 /* The functions used to insert and extract complicated operands.  */
@@ -1157,6 +1162,12 @@ extract_tbr (insn, invalid)
 /* The mask for a VXR form instruction. */
 #define VXR_MASK VXR(0x3f, 0x3ff, 1)
 
+/* An XV form instruction. */
+#define XV(op, xop, to) (X ((op), (xop)) | ((((unsigned long)(to)) & 1) << 25))
+
+/* The mask for a XV form instruction. */
+#define XV_MASK XV(0x3f, 0x3ff, 1)
+
 /* An X form instruction.  */
 #define X(op, xop) (OP (op) | ((((unsigned long)(xop)) & 0x3ff) << 1))
 
@@ -1329,7 +1340,7 @@ extract_tbr (insn, invalid)
 #define PPC405	PPC403
 #define PPC750	PPC
 #define PPC860	PPC
-#define PPCVEC	PPC_OPCODE_ALTIVEC | PPC_OPCODE_ANY
+#define PPCVEC	PPC_OPCODE_ALTIVEC | PPC_OPCODE_ANY | PPC_OPCODE_PPC
 #define	POWER   PPC_OPCODE_POWER | PPC_OPCODE_ANY
 #define	POWER2	PPC_OPCODE_POWER | PPC_OPCODE_POWER2 | PPC_OPCODE_ANY
 #define PPCPWR2	PPC_OPCODE_PPC | PPC_OPCODE_POWER | PPC_OPCODE_POWER2 | PPC_OPCODE_ANY
@@ -1491,6 +1502,8 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 { "nmaclhws.",	XO(4,494,0,1), XO_MASK,	PPC405,		{ RT, RA, RB } },
 { "nmaclhwso",	XO(4,494,1,0), XO_MASK,	PPC405,		{ RT, RA, RB } },
 { "nmaclhwso.",	XO(4,494,1,1), XO_MASK,	PPC405,		{ RT, RA, RB } },
+{ "mfvrsave",  VX(4, 256), VX_MASK,	PPCVEC,		{ VD } },
+{ "mtvrsave",  VX(4, 256), VX_MASK,	PPCVEC,		{ VD } },
 { "mfvscr",  VX(4, 1540), VX_MASK,	PPCVEC,		{ VD } },
 { "mtvscr",  VX(4, 1604), VX_MASK,	PPCVEC,		{ VD } },
 { "vaddcuw", VX(4,  384), VX_MASK,	PPCVEC,		{ VD, VA, VB } },
@@ -3200,6 +3213,16 @@ const struct powerpc_opcode powerpc_opcodes[] = {
 
 { "dcbz",    X(31,1014), XRT_MASK,	PPC,		{ RA, RB } },
 { "dclz",    X(31,1014), XRT_MASK,	PPC,		{ RA, RB } },
+
+{ "dst",     XV(31,342,0), XV_MASK,	PPCVEC,		{ RA, RB, TAG } },
+{ "dstt",    XV(31,342,1), XV_MASK,	PPCVEC,		{ RA, RB, TAG } },
+{ "dstst",   XV(31,374,0), XV_MASK,	PPCVEC,		{ RA, RB, TAG } },
+{ "dststt",  XV(31,374,1), XV_MASK,	PPCVEC,		{ RA, RB, TAG } },
+
+{ "dss",     XV(31,822,0), XV_MASK|RA_MASK|RB_MASK,
+					PPCVEC,		{ TAG } },
+{ "dssall",  XV(31,822,1), XV_MASK|RA_MASK|RB_MASK|TAG_MASK,
+					PPCVEC,		{ 0 } },
 
 { "lvebx",   X(31,   7), X_MASK,	PPCVEC,		{ VD, RA, RB } },
 { "lvehx",   X(31,  39), X_MASK,	PPCVEC,		{ VD, RA, RB } },

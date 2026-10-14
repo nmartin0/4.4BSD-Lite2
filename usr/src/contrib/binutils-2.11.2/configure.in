@@ -592,6 +592,9 @@ case "${target}" in
     # newlib is not 64 bit ready
     noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
+  sh*-*-netbsd*)
+    noconfigdirs="$noconfigdirs"
+    ;;
   sh*-*-pe|mips*-*-pe|*arm-wince-pe)
     noconfigdirs="$noconfigdirs target-libjava target-libffi target-zlib"
     noconfigdirs="$noconfigdirs target-boehm-gc target-qthreads target-examples"
@@ -624,6 +627,11 @@ case "${target}" in
     if [ x${is_cross_compiler} != xno ] ; then
 	   target_configdirs="${target_configdirs} target-bsp target-cygmon"
     fi
+    ;;
+  arm*-*-netbsdelf*)
+    ;;
+  arm-*-netbsd*) # (a.out)
+    noconfigdirs="$noconfigdirs ld"
     ;;
   arm-*-oabi*)
     noconfigdirs="$noconfigdirs target-libgloss target-libffi"
@@ -766,6 +774,10 @@ case "${target}" in
   i[3456]86-*-beos*)
      noconfigdirs="$noconfigdirs gdb target-newlib target-libgloss"
      ;;
+  i[3456]86-*-netbsdelf*) ;;
+  i[3456]86-*-netbsd*) # (a.out)
+    noconfigdirs="$noconfigdirs ld"
+    ;;
  m68hc11-*-*|m6811-*-*|m68hc12-*-*|m6812-*-*)
     noconfigdirs="$noconfigdirs target-libiberty target-librx target-libg++ target-libstdc++ target-libio target-libf2c target-libchill target-zlib target-libobjc"
     ;;
@@ -779,6 +791,11 @@ case "${target}" in
 	   target_configdirs="${target_configdirs} target-bsp target-cygmon"
     fi
     ;;
+  m68k-*-netbsdelf*) ;;
+  m68k-*-netbsd* | m68k4k-*-netbsd*) # (a.out)
+    noconfigdirs="$noconfigdirs gas ld"
+    ;;
+  m680[01]0-*-netbsdelf*) ;;
   mn10200-*-*)
     noconfigdirs="$noconfigdirs target-libffi"
     if [ x${is_cross_compiler} != xno ] ; then
@@ -790,6 +807,9 @@ case "${target}" in
     if [ x${is_cross_compiler} != xno ] ; then
 	   target_configdirs="${target_configdirs} target-bsp target-libstub target-cygmon"
     fi
+    ;;
+  ns32k-*-netbsd*)
+    noconfigdirs="$noconfigdirs gas ld"
     ;;
   powerpc-*-aix*)
     # copied from rs6000-*-* entry
@@ -852,6 +872,9 @@ case "${target}" in
   mips*-*-bsd*)
     noconfigdirs="$noconfigdirs gprof target-libgloss target-libffi"
     ;;
+  mips*-*-netbsd*)
+    noconfigdirs="$noconfigdirs target-libgloss target-libffi"
+    ;;
   mipstx39-*-*)
     noconfigdirs="$noconfigdirs gprof target-libffi"   # same as generic mips
     target_configdirs="${target_configdirs} target-bsp target-libstub target-cygmon"
@@ -895,6 +918,10 @@ case "${target}" in
            use_gnu_ld=no
     fi
     ;;
+  sparc-*-netbsdelf*) ;;
+  sparc-*-netbsd*) # (a.out)
+    noconfigdirs="$noconfigdirs ld"
+    ;;
   v810-*-*)
     noconfigdirs="$noconfigdirs bfd binutils gas gcc gdb ld ${libstdcxx_version} opcodes target-libgloss target-libffi"
     ;;
@@ -909,6 +936,9 @@ case "${target}" in
     ;;
   vax-*-vms)
     noconfigdirs="$noconfigdirs bfd binutils gdb ld target-newlib opcodes target-libgloss target-libffi"
+    ;;
+  vax-*-netbsd* | vax1k-*-netbsd*)
+    noconfigdirs="$noconfigdirs target-newlib target-libgloss"
     ;;
   vax-*-*)
     noconfigdirs="$noconfigdirs target-newlib target-libgloss target-libffi"

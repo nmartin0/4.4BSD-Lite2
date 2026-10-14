@@ -110,6 +110,8 @@ ALL_EMULATIONS = \
 	earmcoff.o \
 	earmelf.o \
 	earmelf_linux.o \
+	earmelf_nbsd.o \
+	earmelfb_nbsd.o \
 	earmelf_oabi.o \
 	earmnbsd.o \
 	earmpe.o \
@@ -151,6 +153,9 @@ ALL_EMULATIONS = \
 	eelf32ppc.o \
 	eelf32ppclinux.o \
 	eelf32ppcsim.o \
+	eelf32shlunx.o \
+	eelf32shunx.o \
+	eelf32vax.o \
 	eelf_i386.o \
 	eelf_i386_be.o \
 	eelf_i386_chaos.o \
@@ -192,6 +197,7 @@ ALL_EMULATIONS = \
 	em68kaux.o \
 	em68kcoff.o \
 	em68kelf.o \
+	em68kelfnbsd.o \
 	em68klinux.o \
 	em68klynx.o \
 	em68knbsd.o \
@@ -219,9 +225,13 @@ ALL_EMULATIONS = \
 	eshelf.o \
 	eshelf_linux.o \
 	eshlelf_linux.o \
+	eshelf_nbsd.o \
+	eshlelf_nbsd.o \
 	eshl.o \
 	eshlelf.o \
+	eshlunx.o \
 	eshpe.o \
+	eshunx.o \
 	esparcaout.o \
 	esparclinux.o \
 	esparclynx.o \
@@ -235,6 +245,7 @@ ALL_EMULATIONS = \
 	etic80coff.o \
 	evanilla.o \
 	evax.o \
+	evaxnbsd.o \
 	evsta.o \
 	ew65.o \
 	ez8001.o \
@@ -245,6 +256,7 @@ ALL_64_EMULATIONS = \
 	eelf_x86_64.o \
 	eelf64_sparc.o \
 	eelf64alpha.o \
+	eelf64alpha_nbsd.o \
 	eelf64bmip.o \
 	eelf64btsmip.o \
 	eelf64ltsmip.o \
@@ -334,6 +346,12 @@ earmelf_linux.c: $(srcdir)/emulparams/armelf_linux.sh \
   $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/armelf.em \
   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} armelf_linux "$(tdir_armelf_linux)"
+earmelf_nbsd.c: $(srcdir)/emulparams/armelf_nbsd.sh \
+  $(srcdir)/emultempl/armelf.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} armelf_nbsd "$(tdir_armelf_nbsd)"
+earmelfb_nbsd.c: $(srcdir)/emulparams/armelfb_nbsd.sh \
+  $(srcdir)/emultempl/armelf.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} armelfb_nbsd "$(tdir_armelfb_nbsd)"
 earmaoutb.c:	$(srcdir)/emulparams/armaoutb.sh \
   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/armaout.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} armaoutb "$(tdir_armaoutb)"
@@ -486,6 +504,9 @@ eelf32i370.c: $(srcdir)/emulparams/elf32i370.sh \
 eelf64alpha.c: $(srcdir)/emulparams/elf64alpha.sh \
   $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} elf64alpha "$(tdir_elf64alpha)"
+eelf64alpha_nbsd.c: $(srcdir)/emulparams/elf64alpha_nbsd.sh \
+  $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} elf64alpha_nbsd "$(tdir_elf64alpha_nbsd)"
 eelf64hppa.c: $(srcdir)/emulparams/elf64hppa.sh \
   $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} elf64hppa "$(tdir_elf64hppa)"
@@ -633,6 +654,10 @@ em68kelf.c: $(srcdir)/emulparams/m68kelf.sh \
   $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/m68kelf.em \
   $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} m68kelf "$(tdir_m68kelf)"
+em68kelfnbsd.c: $(srcdir)/emulparams/m68kelfnbsd.sh \
+  $(srcdir)/emultempl/elf32.em $(srcdir)/emultempl/m68kelf.em \
+  $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} m68kelfnbsd "$(tdir_m68kelfnbsd)"
 em68klinux.c: $(srcdir)/emulparams/m68klinux.sh \
   $(srcdir)/emultempl/linux.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} m68klinux "$(tdir_m68klinux)"
@@ -720,6 +745,12 @@ eshelf_linux.c: $(srcdir)/emulparams/shelf_linux.sh \
 eshlelf_linux.c: $(srcdir)/emulparams/shlelf_linux.sh \
   $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} shlelf_linux "$(tdir_shlelf_linux)"
+eshelf_nbsd.c: $(srcdir)/emulparams/shelf_nbsd.sh \
+  $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} shelf_nbsd "$(tdir_shelf_nbsd)"
+eshlelf_nbsd.c: $(srcdir)/emulparams/shlelf_nbsd.sh \
+  $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} shlelf_nbsd "$(tdir_shlelf_nbsd)"
 eshlelf.c: $(srcdir)/emulparams/shlelf.sh \
   $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} shlelf "$(tdir_shlelf)"
@@ -729,6 +760,21 @@ eshl.c: $(srcdir)/emulparams/shl.sh \
 eshpe.c: $(srcdir)/emulparams/shpe.sh \
   $(srcdir)/emultempl/pe.em $(srcdir)/scripttempl/pe.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} shpe "$(tdir_shl)"
+eshunx.c: $(srcdir)/emulparams/shunx.sh \
+  $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/sh.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} shunx "$(tdir_shunx)"
+eshlunx.c: $(srcdir)/emulparams/shlunx.sh \
+  $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/shunx.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} shlunx "$(tdir_shlunx)"
+eelf32shunx.c: $(srcdir)/emulparams/elf32shunx.sh \
+  $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} elf32shunx "$(tdir_elf32shunx)"
+eelf32shlunx.c: $(srcdir)/emulparams/elf32shlunx.sh \
+  $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} elf32shlunx "$(tdir_elf32shlunx)"
+eelf32vax.c: $(srcdir)/emulparams/elf32vax.sh \
+  $(srcdir)/emultempl/elf32.em $(srcdir)/scripttempl/elf.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} elf32vax "$(tdir_elf32vax)"
 esparcaout.c: $(srcdir)/emulparams/sparcaout.sh \
   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} sparcaout "$(tdir_sparcaout)"
@@ -768,6 +814,9 @@ evanilla.c: $(srcdir)/emulparams/vanilla.sh \
 evax.c: $(srcdir)/emulparams/vax.sh \
   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} vax "$(tdir_vax)"
+evaxnbsd.c: $(srcdir)/emulparams/vaxnbsd.sh \
+  $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
+	${GENSCRIPTS} vaxnbsd "$(tdir_vax)"
 evsta.c: $(srcdir)/emulparams/vsta.sh \
   $(srcdir)/emultempl/generic.em $(srcdir)/scripttempl/aout.sc ${GEN_DEPENDS}
 	${GENSCRIPTS} vsta "$(tdir_vsta)"

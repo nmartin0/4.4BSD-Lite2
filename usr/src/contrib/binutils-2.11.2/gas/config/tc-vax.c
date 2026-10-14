@@ -23,6 +23,11 @@
 
 #include "vax-inst.h"
 #include "obstack.h"		/* For FRAG_APPEND_1_CHAR macro in "frags.h" */
+#include "subsegs.h"
+
+#ifdef OBJ_ELF
+#include "elf/vax.h"
+#endif
 
 /* These chars start a comment anywhere in a source file (except inside
    another comment */
@@ -58,10 +63,24 @@ LITTLENUM_TYPE big_operand_bits[VIT_MAX_OPERANDS][SIZE_OF_LARGE_NUMBER];
 FLONUM_TYPE float_operand[VIT_MAX_OPERANDS];
 /* Above is made to point into big_operand_bits by md_begin().  */
 
+#ifndef OBJ_VMS
+#ifdef OBJ_AOUT
+#define GLOBAL_OFFSET_TABLE_NAME	"__GLOBAL_OFFSET_TABLE_"
+#define PROCEDURE_LINKAGE_TABLE_NAME	"__PROCEDURE_LINKAGE_TABLE_"
+#endif
+#ifdef OBJ_ELF
+#define GLOBAL_OFFSET_TABLE_NAME	"_GLOBAL_OFFSET_TABLE_"
+#define PROCEDURE_LINKAGE_TABLE_NAME	"_PROCEDURE_LINKAGE_TABLE_"
+#endif
+symbolS *GOT_symbol;		/* Pre-defined "_GLOBAL_OFFSET_TABLE_" */
+symbolS *PLT_symbol;		/* Pre-defined "_PROCEDURE_LINKAGE_TABLE_" */
+#endif
+
 int flag_hash_long_names;	/* -+ */
 int flag_one;			/* -1 */
 int flag_show_after_trunc;	/* -H */
 int flag_no_hash_mixed_case;	/* -h NUM */
+int flag_want_pic;		/* -k */
 
 /*
  * For VAX, relative addresses of "just the right length" are easy.
@@ -231,7 +250,7 @@ const pseudo_typeS md_pseudo_table[] =
   {"ffloat", float_cons, 'f'},
   {"gfloat", float_cons, 'g'},
   {"hfloat", float_cons, 'h'},
-  {0},
+  {NULL, NULL, 0},
 };
 
 #define STATE_PC_RELATIVE		(1)
@@ -288,6 +307,23 @@ md_number_to_chars (con, value, nbytes)
 /* Fix up some data or instructions after we find out the value of a symbol
    that they reference.  */
 
+#ifdef BFD_ASSEMBLER
+int				/* Knows about order of bytes in address. */
+md_apply_fix (fixP, valP)
+     fixS *fixP;
+     valueT *valP;
+{
+#ifdef OBJ_ELF
+  if (((fixP->fx_addsy == NULL && fixP->fx_subsy == NULL)
+       && fixP->fx_r_type != BFD_RELOC_32_PLT_PCREL
+       && fixP->fx_r_type != BFD_RELOC_32_GOT_PCREL)
+      || fixP->fx_r_type == NO_RELOC)
+#endif
+    number_to_chars_littleendian (fixP->fx_where + fixP->fx_frag->fr_literal,
+				  (valueT) *valP, fixP->fx_size);
+  return 0;
+}
+#else
 void				/* Knows about order of bytes in address.  */
 md_apply_fix (fixP, value)
      fixS *fixP;
@@ -296,6 +332,7 @@ md_apply_fix (fixP, value)
   number_to_chars_littleendian (fixP->fx_where + fixP->fx_frag->fr_literal,
 				(valueT) value, fixP->fx_size);
 }
+#endif /* not BFD_ASSEMBLER */
 
 long
 md_chars_to_number (con, nbytes)
@@ -319,6 +356,8 @@ md_assemble (instruction_string)
 {
   /* Non-zero if operand expression's segment is not known yet.  */
   int is_undefined;
+  /* Non-zero if operand expression's segment is absolute. */
+  int is_absolute;
 
   int length_code;
   char *p;
@@ -369,7 +408,7 @@ md_assemble (instruction_string)
    */
   if ((goofed = (*v.vit_error)) != 0)
     {
-      as_warn (_("Ignoring statement due to \"%s\""), v.vit_error);
+      as_fatal (_("Ignoring statement due to \"%s\""), v.vit_error);
     }
   /*
    * We need to use expression() and friends, which require us to diddle
@@ -388,7 +427,7 @@ md_assemble (instruction_string)
     {				/* for each operand */
       if (operandP->vop_error)
 	{
-	  as_warn (_("Ignoring statement because \"%s\""), operandP->vop_error);
+	  as_fatal (_("Aborting because statement has \"%s\""), operandP->vop_error);
 	  goofed = 1;
 	}
       else
@@ -435,7 +474,7 @@ md_assemble (instruction_string)
 	       * instruction operands.
 	       */
 	      need_pass_2 = 1;
-	      as_warn (_("Can't relocate expression"));
+	      as_fatal (_("Can't relocate expression"));
 	      break;
 
 	    case O_big:
@@ -613,7 +652,7 @@ md_assemble (instruction_string)
 	    }
 	  if (input_line_pointer != operandP->vop_expr_end + 1)
 	    {
-	      as_warn ("Junk at end of expression \"%s\"", input_line_pointer);
+	      as_fatal ("Junk at end of expression \"%s\"", input_line_pointer);
 	      goofed = 1;
 	    }
 	  operandP->vop_expr_end[1] = c_save;
@@ -656,7 +695,13 @@ md_assemble (instruction_string)
       this_add_number = expP->X_add_number;
       this_add_symbol = expP->X_add_symbol;
       to_seg = *segP;
+#ifdef BFD_ASSEMBLER
+      is_undefined = (to_seg == undefined_section);
+      is_absolute = (to_seg == absolute_section);
+#else
       is_undefined = (to_seg == SEG_UNKNOWN);
+      is_absolute = (to_seg == SEG_ABSOLUTE);
+#endif
       at = operandP->vop_mode & 1;
       length = (operandP->vop_short == 'b'
 		? 1 : (operandP->vop_short == 'w'
@@ -725,16 +770,20 @@ md_assemble (instruction_string)
 	      /*
 	       * --- SEG FLOAT MAY APPEAR HERE ----
 	       */
-	      if (to_seg == SEG_ABSOLUTE)
+	      if (is_absolute)
 		{
 		  if (nbytes)
 		    {
 		      know (!(opcode_as_number & VIT_OPCODE_SYNTHETIC));
 		      p = frag_more (nbytes);
 		      /* Conventional relocation.  */
-		      fix_new (frag_now, p - frag_now->fr_literal,
-			       nbytes, &abs_symbol, this_add_number,
-			       1, NO_RELOC);
+		      fix_new (frag_now, p - frag_now->fr_literal, nbytes,
+#ifdef BFD_ASSEMBLER
+			       section_symbol (absolute_section),
+#else
+			       &abs_symbol,
+#endif
+			       this_add_number, 1, NO_RELOC);
 		    }
 		  else
 		    {
@@ -810,15 +859,19 @@ md_assemble (instruction_string)
 		}
 	      else
 		{
-		  /* to_seg != now_seg && to_seg != SEG_UNKNOWN && to_Seg != SEG_ABSOLUTE */
+		  /* to_seg != now_seg && !is_undefinfed && !is_absolute */
 		  if (nbytes > 0)
 		    {
 		      /* Pc-relative. Conventional relocation.  */
 		      know (!(opcode_as_number & VIT_OPCODE_SYNTHETIC));
 		      p = frag_more (nbytes);
-		      fix_new (frag_now, p - frag_now->fr_literal,
-			       nbytes, &abs_symbol, this_add_number,
-			       1, NO_RELOC);
+		      fix_new (frag_now, p - frag_now->fr_literal, nbytes,
+#ifdef BFD_ASSEMBLER
+			       section_symbol (absolute_section),
+#else
+			       &abs_symbol,
+#endif
+			       this_add_number, 1, NO_RELOC);
 		    }
 		  else
 		    {
@@ -909,7 +962,7 @@ md_assemble (instruction_string)
 		|| operandP->vop_access == 'w');
 	  if (operandP->vop_short == 's')
 	    {
-	      if (to_seg == SEG_ABSOLUTE)
+	      if (is_absolute)
 		{
 		  if (this_add_number >= 64)
 		    {
@@ -948,10 +1001,22 @@ md_assemble (instruction_string)
 		      if (length == 0)
 			{
 			  know (operandP->vop_short == ' ');
-			  p = frag_var (rs_machine_dependent, 10, 2,
+#ifndef OBJ_VMS
+			  if (S_IS_EXTERNAL (this_add_symbol)
+#ifdef OBJ_ELF
+			      || S_IS_WEAK (this_add_symbol)
+#endif
+			      )
+			    p = frag_var (rs_machine_dependent, 10, 2,
+			       ENCODE_RELAX (STATE_PC_RELATIVE, STATE_UNDF),
+					  this_add_symbol, this_add_number,
+					  opcode_low_byteP);
+			  else
+#endif
+			    p = frag_var (rs_machine_dependent, 10, 2,
 			       ENCODE_RELAX (STATE_PC_RELATIVE, STATE_BYTE),
-					this_add_symbol, this_add_number,
-					opcode_low_byteP);
+					  this_add_symbol, this_add_number,
+					  opcode_low_byteP);
 			  know (operandP->vop_mode == 10 + at);
 			  *p = at << 4;
 			  /* At is the only context we need to carry
@@ -974,7 +1039,7 @@ md_assemble (instruction_string)
 		    {		/* to_seg != now_seg */
 		      if (this_add_symbol == NULL)
 			{
-			  know (to_seg == SEG_ABSOLUTE);
+			  know (is_absolute);
 			  /* Do @#foo: simpler relocation than foo-.(pc) anyway.  */
 			  p = frag_more (5);
 			  p[0] = VAX_ABSOLUTE_MODE;	/* @#...  */
@@ -989,7 +1054,14 @@ md_assemble (instruction_string)
 			  /* {@}{q^}other_seg */
 			  know ((length == 0 && operandP->vop_short == ' ')
 			     || (length > 0 && operandP->vop_short != ' '));
-			  if (is_undefined)
+			  if (is_undefined
+#ifndef OBJ_VMS
+#ifdef OBJ_ELF
+			      || S_IS_WEAK(this_add_symbol)
+#endif
+			      || S_IS_EXTERNAL(this_add_symbol)
+#endif
+			      )
 			    {
 			      /*
 			       * We have a SEG_UNKNOWN symbol. It might
@@ -999,7 +1071,7 @@ md_assemble (instruction_string)
 			      p = frag_var (rs_machine_dependent, 5, 2,
 			       ENCODE_RELAX (STATE_PC_RELATIVE, STATE_UNDF),
 					    this_add_symbol, this_add_number,
-					    0);
+					    opcode_low_byteP);
 			      p[0] = at << 4;
 			    }
 			  else
@@ -1037,7 +1109,7 @@ md_assemble (instruction_string)
 			     one case.  */
 			}
 		      if (length == 0
-			  && to_seg == SEG_ABSOLUTE && (expP->X_op != O_big)
+			  && is_absolute && (expP->X_op != O_big)
 			  && operandP->vop_mode == 8	/* No '@'.  */
 			  && this_add_number < 64)
 			{
@@ -1053,8 +1125,15 @@ md_assemble (instruction_string)
 			  know (nbytes);
 			  p = frag_more (nbytes + 1);
 			  know (operandP->vop_reg == 0xF);
+#ifndef OBJ_VMS
+			  if (flag_want_pic && operandP->vop_mode == 8
+				&& this_add_symbol != NULL)
+			    {
+			      as_warn (_("Symbol used as immediate operand in PIC mode."));
+			    }
+#endif
 			  p[0] = (operandP->vop_mode << 4) | 0xF;
-			  if ((to_seg == SEG_ABSOLUTE) && (expP->X_op != O_big))
+			  if ((is_absolute) && (expP->X_op != O_big))
 			    {
 			      /*
 			       * If nbytes > 4, then we are scrod. We
@@ -1109,7 +1188,7 @@ md_assemble (instruction_string)
 			    || (length > 0 && operandP->vop_short != ' '));
 		      if (length == 0)
 			{
-			  if (to_seg == SEG_ABSOLUTE)
+			  if (is_absolute)
 			    {
 			      long test;
 
@@ -1131,7 +1210,7 @@ md_assemble (instruction_string)
 		      know (operandP->vop_reg >= 0);
 		      p[0] = operandP->vop_reg
 			| ((at | "?\12\14?\16"[length]) << 4);
-		      if (to_seg == SEG_ABSOLUTE)
+		      if (is_absolute)
 			{
 			  md_number_to_chars (p + 1, this_add_number, length);
 			}
@@ -1159,21 +1238,99 @@ md_estimate_size_before_relax (fragP, segment)
 {
   if (RELAX_LENGTH (fragP->fr_subtype) == STATE_UNDF)
     {
-      if (S_GET_SEGMENT (fragP->fr_symbol) != segment)
+      if (S_GET_SEGMENT (fragP->fr_symbol) != segment
+#ifndef OBJ_VMS
+#ifdef OBJ_ELF
+	  || S_IS_WEAK (fragP->fr_symbol)
+#endif
+	  || S_IS_EXTERNAL (fragP->fr_symbol)
+#endif
+	  )
 	{
 	  /* Non-relaxable cases.  */
+	  int reloc_type = NO_RELOC;
 	  char *p;
 	  int old_fr_fix;
 
 	  old_fr_fix = fragP->fr_fix;
 	  p = fragP->fr_literal + old_fr_fix;
+#ifndef OBJ_VMS
+	  /* If this is to an undefined symbol, then if it's an indirect
+	     reference indicate that is can mutated into a GLOB_DAT or
+	     JUMP_SLOT by the loader.  We restrict ourselves to no offset
+	     due to a limitation in the NetBSD linker.  */
+#ifdef OBJ_AOUT
+	  if ((p[0] & 0x10) == 0 && !fragP->fr_offset && !flag_want_pic)
+	    {
+	      reloc_type = NO_RELOC2;
+	    }
+#endif
+	  if (GOT_symbol == NULL)
+	    GOT_symbol = symbol_find (GLOBAL_OFFSET_TABLE_NAME);
+	  if (PLT_symbol == NULL)
+	    PLT_symbol = symbol_find (PROCEDURE_LINKAGE_TABLE_NAME);
+	  if ((GOT_symbol == NULL || fragP->fr_symbol != GOT_symbol)
+	      && (PLT_symbol == NULL || fragP->fr_symbol != PLT_symbol)
+	      && fragP->fr_symbol != NULL
+	      && flag_want_pic
+	      && (!S_IS_DEFINED (fragP->fr_symbol)
+#ifdef OBJ_ELF
+	          || S_IS_WEAK (fragP->fr_symbol)
+#endif
+	          || S_IS_EXTERNAL (fragP->fr_symbol)))
+	    {
+	      if (p[0] & 0x10)
+		{
+		  if (flag_want_pic)
+		    as_fatal ("PIC reference to %s is indirect.\n",
+			      S_GET_NAME (fragP->fr_symbol));
+		}
+	      else
+		{
+	
+		  if (((unsigned char *) fragP->fr_opcode)[0] == VAX_CALLS
+		      || ((unsigned char *) fragP->fr_opcode)[0] == VAX_CALLG
+#ifdef BFD_ASSEMBLER
+		      || S_IS_FUNCTION (fragP->fr_symbol)
+#endif
+		      )
+		    {
+#ifdef BFD_ASSEMBLER
+		      reloc_type = BFD_RELOC_32_PLT_PCREL;
+#else
+		      reloc_type = RELOC_JMP_TBL;
+#endif
+		    }
+		  else if (fragP->fr_opcode[0] == VAX_JSB
+		      || fragP->fr_opcode[0] == VAX_JMP)
+		    {
+#ifdef BFD_ASSEMBLER
+		      reloc_type = BFD_RELOC_32_PLT_PCREL;
+#else
+		      reloc_type = RELOC_JMP_SLOT;
+#endif
+		    }
+		  else
+		    {
+#ifdef OBJ_AOUT
+		      if (fragP->fr_offset)
+#endif
+#ifdef BFD_ASSEMBLER
+			reloc_type = BFD_RELOC_32_GOT_PCREL;
+#else
+			reloc_type = RELOC_GLOB_DAT;
+#endif
+		    }
+		}
+	    }
+#endif
 	  switch (RELAX_STATE (fragP->fr_subtype))
 	    {
 	    case STATE_PC_RELATIVE:
 	      p[0] |= VAX_PC_RELATIVE_MODE;	/* Preserve @ bit.  */
 	      fragP->fr_fix += 1 + 4;
 	      fix_new (fragP, old_fr_fix + 1, 4, fragP->fr_symbol,
-		       fragP->fr_offset, 1, NO_RELOC);
+		       fragP->fr_offset, 1, reloc_type);
 	      break;
 
 	    case STATE_CONDITIONAL_BRANCH:
@@ -1266,11 +1423,19 @@ md_estimate_size_before_relax (fragP, segment)
  * Out:	Any fixSs and constants are set up.
  *	Caller will turn frag into a ".space 0".
  */
+#ifdef BFD_ASSEMBLER
+void
+md_convert_frag (headers, seg, fragP)
+     bfd *headers ATTRIBUTE_UNUSED;
+     segT seg ATTRIBUTE_UNUSED;
+     fragS *fragP;
+#else
 void
 md_convert_frag (headers, seg, fragP)
      object_headers *headers;
      segT seg;
      fragS *fragP;
+#endif
 {
   char *addressP;		/* -> _var to change.  */
   char *opcodeP;		/* -> opcode char(s) to change.  */
@@ -1278,10 +1443,6 @@ md_convert_frag (headers, seg, fragP)
   /* Added to fr_fix: incl. ALL var chars.  */
   symbolS *symbolP;
   long where;
-  long address_of_var;
-  /* Where, in file space, is _var of *fragP? */
-  long target_address = 0;
-  /* Where, in file space, does addr point? */
 
   know (fragP->fr_type == rs_machine_dependent);
   where = fragP->fr_fix;
@@ -1289,43 +1450,46 @@ md_convert_frag (headers, seg, fragP)
   opcodeP = fragP->fr_opcode;
   symbolP = fragP->fr_symbol;
   know (symbolP);
-  target_address = S_GET_VALUE (symbolP) + fragP->fr_offset;
-  address_of_var = fragP->fr_address + where;
 
   switch (fragP->fr_subtype)
     {
 
     case ENCODE_RELAX (STATE_PC_RELATIVE, STATE_BYTE):
       know (*addressP == 0 || *addressP == 0x10);	/* '@' bit.  */
-      addressP[0] |= 0xAF;	/* Byte displacement.  */
-      addressP[1] = target_address - (address_of_var + 2);
+      addressP[0] |= 0xAF;	/* Byte displacement. */
+      fix_new (fragP, fragP->fr_fix + 1, 1, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 2;
       break;
 
     case ENCODE_RELAX (STATE_PC_RELATIVE, STATE_WORD):
       know (*addressP == 0 || *addressP == 0x10);	/* '@' bit.  */
-      addressP[0] |= 0xCF;	/* Word displacement.  */
-      md_number_to_chars (addressP + 1, target_address - (address_of_var + 3), 2);
+      addressP[0] |= 0xCF;	/* Word displacement. */
+      fix_new (fragP, fragP->fr_fix + 1, 2, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 3;
       break;
 
     case ENCODE_RELAX (STATE_PC_RELATIVE, STATE_LONG):
       know (*addressP == 0 || *addressP == 0x10);	/* '@' bit.  */
-      addressP[0] |= 0xEF;	/* Long word displacement.  */
-      md_number_to_chars (addressP + 1, target_address - (address_of_var + 5), 4);
+      addressP[0] |= 0xEF;	/* Long word displacement. */
+      fix_new (fragP, fragP->fr_fix + 1, 4, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 5;
       break;
 
     case ENCODE_RELAX (STATE_CONDITIONAL_BRANCH, STATE_BYTE):
-      addressP[0] = target_address - (address_of_var + 1);
+      fix_new (fragP, fragP->fr_fix, 1, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 1;
       break;
 
     case ENCODE_RELAX (STATE_CONDITIONAL_BRANCH, STATE_WORD):
       opcodeP[0] ^= 1;		/* Reverse sense of test.  */
       addressP[0] = 3;
-      addressP[1] = VAX_BRB + VAX_WIDEN_WORD;
-      md_number_to_chars (addressP + 2, target_address - (address_of_var + 4), 2);
+      addressP[1] = VAX_BRW;
+      fix_new (fragP, fragP->fr_fix + 2, 2, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 4;
       break;
 
@@ -1334,30 +1498,35 @@ md_convert_frag (headers, seg, fragP)
       addressP[0] = 6;
       addressP[1] = VAX_JMP;
       addressP[2] = VAX_PC_RELATIVE_MODE;
-      md_number_to_chars (addressP + 3, target_address - (address_of_var + 7), 4);
+      fix_new (fragP, fragP->fr_fix + 3, 4, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 7;
       break;
 
     case ENCODE_RELAX (STATE_ALWAYS_BRANCH, STATE_BYTE):
-      addressP[0] = target_address - (address_of_var + 1);
+      fix_new (fragP, fragP->fr_fix, 1, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 1;
       break;
 
     case ENCODE_RELAX (STATE_ALWAYS_BRANCH, STATE_WORD):
       opcodeP[0] += VAX_WIDEN_WORD;	/* brb -> brw, bsbb -> bsbw */
-      md_number_to_chars (addressP, target_address - (address_of_var + 2), 2);
+      fix_new (fragP, fragP->fr_fix, 2, fragP->fr_symbol, fragP->fr_offset,
+	       1, NO_RELOC);
       extension = 2;
       break;
 
     case ENCODE_RELAX (STATE_ALWAYS_BRANCH, STATE_LONG):
       opcodeP[0] += VAX_WIDEN_LONG;	/* brb -> jmp, bsbb -> jsb */
       addressP[0] = VAX_PC_RELATIVE_MODE;
-      md_number_to_chars (addressP + 1, target_address - (address_of_var + 5), 4);
+      fix_new (fragP, fragP->fr_fix + 1, 4, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 5;
       break;
 
     case ENCODE_RELAX (STATE_COMPLEX_BRANCH, STATE_WORD):
-      md_number_to_chars (addressP, target_address - (address_of_var + 2), 2);
+      fix_new (fragP, fragP->fr_fix, 2, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 2;
       break;
 
@@ -1368,12 +1537,14 @@ md_convert_frag (headers, seg, fragP)
       addressP[3] = 6;
       addressP[4] = VAX_JMP;
       addressP[5] = VAX_PC_RELATIVE_MODE;
-      md_number_to_chars (addressP + 6, target_address - (address_of_var + 10), 4);
+      fix_new (fragP, fragP->fr_fix + 6, 4, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 10;
       break;
 
     case ENCODE_RELAX (STATE_COMPLEX_HOP, STATE_BYTE):
-      addressP[0] = target_address - (address_of_var + 1);
+      fix_new (fragP, fragP->fr_fix, 1, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 1;
       break;
 
@@ -1382,7 +1553,8 @@ md_convert_frag (headers, seg, fragP)
       addressP[1] = VAX_BRB;
       addressP[2] = 3;
       addressP[3] = VAX_BRW;
-      md_number_to_chars (addressP + 4, target_address - (address_of_var + 6), 2);
+      fix_new (fragP, fragP->fr_fix + 4, 2, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 6;
       break;
 
@@ -1392,7 +1564,8 @@ md_convert_frag (headers, seg, fragP)
       addressP[2] = 6;
       addressP[3] = VAX_JMP;
       addressP[4] = VAX_PC_RELATIVE_MODE;
-      md_number_to_chars (addressP + 5, target_address - (address_of_var + 9), 4);
+      fix_new (fragP, fragP->fr_fix + 5, 4, fragP->fr_symbol,
+	       fragP->fr_offset, 1, NO_RELOC);
       extension = 9;
       break;
 
@@ -1427,6 +1600,8 @@ md_ri_to_chars (the_bytes, ri)
 
 #endif /* comment */
 
+#ifdef OBJ_AOUT
+#ifndef BFD_ASSEMBLER
 void
 tc_aout_fix_to_chars (where, fixP, segment_address_in_file)
      char *where;
@@ -1439,7 +1614,8 @@ tc_aout_fix_to_chars (where, fixP, segment_address_in_file)
    */
 
   static const unsigned char nbytes_r_length[] = {42, 0, 1, 42, 2};
-  long r_symbolnum;
+  int r_symbolnum;
+  int r_flags;
 
   know (fixP->fx_addsy != NULL);
 
@@ -1450,14 +1626,62 @@ tc_aout_fix_to_chars (where, fixP, segment_address_in_file)
   r_symbolnum = (S_IS_DEFINED (fixP->fx_addsy)
 		 ? S_GET_TYPE (fixP->fx_addsy)
 		 : fixP->fx_addsy->sy_number);
+  r_flags = (fixP->fx_pcrel ? 1 : 0)
+      | (!S_IS_DEFINED (fixP->fx_addsy) ? 8 : 0)	/* extern */
+      | ((nbytes_r_length[fixP->fx_size] & 3) << 1);
 
-  where[6] = (r_symbolnum >> 16) & 0x0ff;
-  where[5] = (r_symbolnum >> 8) & 0x0ff;
-  where[4] = r_symbolnum & 0x0ff;
-  where[7] = ((((!S_IS_DEFINED (fixP->fx_addsy)) << 3) & 0x08)
-	      | ((nbytes_r_length[fixP->fx_size] << 1) & 0x06)
-	      | (((fixP->fx_pcrel << 0) & 0x01) & 0x0f));
+#if 0
+  r_flags |= ((!S_IS_DEFINED(fixP->fx_addsy)
+      && fixP->fx_pcrel
+      && fixP->fx_addsy != GOT_symbol
+      && fixP->fx_addsy != PLT_symbol
+      && flags_want_pic) ? 0x10 : 0);
+#endif
+	
+  switch (fixP->fx_r_type) {
+	case NO_RELOC:
+		break;
+	case NO_RELOC2:
+		if (r_flags & 8)
+		    r_flags |= 0x80;		/* setting the copy bit */
+						/*   says we can convert */
+						/*   to gotslot if needed */
+		break;
+	case RELOC_32:
+		if (flag_want_pic && S_IS_EXTERNAL(fixP->fx_addsy)) {
+			r_symbolnum = fixP->fx_addsy->sy_number;  
+			r_flags |= 8;		/* set extern bit */
+		}
+		break;
+	case RELOC_JMP_SLOT:
+		if (flag_want_pic) {
+			r_flags |= 0x20;	/* set jmptable */
+			r_flags &= ~0x08;	/* clear extern bit */
+		}
+		break;
+	case RELOC_JMP_TBL:
+		if (flag_want_pic) {
+			r_flags |= 0x20;	/* set jmptable */
+			r_flags |= 0x08;	/* set extern bit */
+		}
+		break;
+	case RELOC_GLOB_DAT:
+		if (flag_want_pic) {
+			r_flags |= 0x10;	/* set baserel bit */
+			r_symbolnum = fixP->fx_addsy->sy_number;
+			if (S_IS_EXTERNAL(fixP->fx_addsy))
+				r_flags |= 8;	/* set extern bit */
+		}
+		break;
+  }
+
+  where[4] = (r_symbolnum >>  0) & 0xff;
+  where[5] = (r_symbolnum >>  8) & 0xff;
+  where[6] = (r_symbolnum >> 16) & 0xff;
+  where[7] = r_flags;
 }
+#endif /* !BFD_ASSEMBLER */
+#endif /* OBJ_AOUT */
 
 /*
  *       BUGS, GRIPES,  APOLOGIA, etc.
@@ -1972,12 +2196,34 @@ main ()
 #define PC (15)
 
 int				/* return -1 or 0:15 */
-vax_reg_parse (c1, c2, c3)	/* 3 chars of register name */
-     char c1, c2, c3;		/* c3 == 0 if 2-character reg name */
+vax_reg_parse (c1, c2, c3, c4)	/* 3 chars of register name */
+     char c1, c2, c3, c4;	/* c3 == 0 if 2-character reg name */
 {
   int retval;		/* return -1:15 */
 
   retval = -1;
+
+#ifdef OBJ_ELF
+  if (c1 != '%')	/* register prefixes are mandatory for ELF */
+    return retval;
+  c1 = c2;
+  c2 = c3;
+  c3 = c4;
+#endif
+#ifdef OBJ_VMS
+  if (c4 != 0)		/* register prefixes are not allowed under VMS */
+    return retval;
+#endif
+#ifdef OBJ_AOUT
+  if (c1 == '%')	/* register prefixes are optional under a.out */
+    {
+      c1 = c2;
+      c2 = c3;
+      c3 = c4;
+    }
+  else if (c3 && c4)	/* can't be 4 characters long.  */
+    return retval;
+#endif
 
   if (isupper (c1))
     c1 = tolower (c1);
@@ -2385,9 +2631,11 @@ vip_op (optext, vopP)
 	   * name error. So again we don't need to check for early '\0'.
 	   */
 	  if (q[3] == ']')
-	    ndx = vax_reg_parse (q[1], q[2], 0);
+	    ndx = vax_reg_parse (q[1], q[2], 0, 0);
 	  else if (q[4] == ']')
-	    ndx = vax_reg_parse (q[1], q[2], q[3]);
+	    ndx = vax_reg_parse (q[1], q[2], q[3], 0);
+	  else if (q[5] == ']')
+	    ndx = vax_reg_parse (q[1], q[2], q[3], q[4]);
 	  else
 	    ndx = -1;
 	  /*
@@ -2440,9 +2688,11 @@ vip_op (optext, vopP)
 	       * name error. So again we don't need to check for early '\0'.
 	       */
 	      if (q[3] == ')')
-		reg = vax_reg_parse (q[1], q[2], 0);
+		reg = vax_reg_parse (q[1], q[2], 0, 0);
 	      else if (q[4] == ')')
-		reg = vax_reg_parse (q[1], q[2], q[3]);
+		reg = vax_reg_parse (q[1], q[2], q[3], 0);
+	      else if (q[5] == ')')
+		reg = vax_reg_parse (q[1], q[2], q[3], q[4]);
 	      else
 		reg = -1;
 	      /*
@@ -2512,8 +2762,11 @@ vip_op (optext, vopP)
 		q--;
 	      /* reverse over whitespace, but don't */
 	      /* run back over *p */
-	      if (q > p && q < p + 3)	/* room for Rn or Rnn exactly? */
-		reg = vax_reg_parse (p[0], p[1], q < p + 2 ? 0 : p[2]);
+	      /* room for Rn or Rnn (include prefix) exactly? */
+	      if (q > p && q < p + 4)
+		reg = vax_reg_parse (p[0], p[1],
+		  q < p + 2 ? 0 : p[2],
+		  q < p + 3 ? 0 : p[3]);
 	      else
 		reg = -1;	/* always comes here if no register at all */
 	      /*
@@ -3062,9 +3315,10 @@ const int md_reloc_size = 8;	/* Size of relocation record */
 void
 md_create_short_jump (ptr, from_addr, to_addr, frag, to_symbol)
      char *ptr;
-     addressT from_addr, to_addr;
-     fragS *frag;
-     symbolS *to_symbol;
+     addressT from_addr;
+     addressT to_addr ATTRIBUTE_UNUSED;
+     fragS *frag ATTRIBUTE_UNUSED;
+     symbolS *to_symbol ATTRIBUTE_UNUSED;
 {
   valueT offset;
 
@@ -3080,7 +3334,8 @@ md_create_short_jump (ptr, from_addr, to_addr, frag, to_symbol)
 void
 md_create_long_jump (ptr, from_addr, to_addr, frag, to_symbol)
      char *ptr;
-     addressT from_addr, to_addr;
+     addressT from_addr ATTRIBUTE_UNUSED;
+     addressT to_addr;
      fragS *frag;
      symbolS *to_symbol;
 {
@@ -3096,7 +3351,7 @@ md_create_long_jump (ptr, from_addr, to_addr, frag, to_symbol)
 #ifdef OBJ_VMS
 CONST char *md_shortopts = "d:STt:V+1h:Hv::";
 #else
-CONST char *md_shortopts = "d:STt:V";
+CONST char *md_shortopts = "d:STt:VkK";
 #endif
 struct option md_longopts[] = {
   {NULL, no_argument, NULL, 0}
@@ -3161,6 +3416,13 @@ md_parse_option (c, arg)
       break;
 #endif
 
+#ifndef OBJ_VMS
+    case 'K':
+    case 'k':
+      flag_want_pic = 1;
+      break;			/* -pic, Position Independent Code */
+#endif
+
     default:
       return 0;
     }
@@ -3196,7 +3458,7 @@ VMS options:\n\
 
 symbolS *
 md_undefined_symbol (name)
-     char *name;
+     char *name ATTRIBUTE_UNUSED;
 {
   return 0;
 }
@@ -3204,7 +3466,7 @@ md_undefined_symbol (name)
 /* Round up a section size to the appropriate boundary.  */
 valueT
 md_section_align (segment, size)
-     segT segment;
+     segT segment ATTRIBUTE_UNUSED;
      valueT size;
 {
   return size;			/* Byte alignment is fine */
@@ -3212,12 +3474,107 @@ md_section_align (segment, size)
 
 /* Exactly what point is a PC-relative offset relative TO?
    On the vax, they're relative to the address of the offset, plus
-   its size. (??? Is this right?  FIXME-SOON) */
+   its size. */
 long
 md_pcrel_from (fixP)
      fixS *fixP;
 {
   return fixP->fx_size + fixP->fx_where + fixP->fx_frag->fr_address;
 }
+
+#ifdef OBJ_AOUT
+#ifndef BFD_ASSEMBLER
+void
+tc_headers_hook(headers)
+     object_headers *headers;
+{
+  N_SET_INFO(headers->header, OMAGIC, M_VAX, flag_want_pic ? 0x40 : 0);
+  headers->header.a_info = htonl(headers->header.a_info);
+}
+#endif
+#endif
+
+#ifdef BFD_ASSEMBLER
+arelent *
+tc_gen_reloc (section, fixp)
+     asection *section ATTRIBUTE_UNUSED;
+     fixS *fixp;
+{
+  arelent *reloc;
+  bfd_reloc_code_real_type code;
+
+  if (fixp->fx_tcbit)
+    abort();
+
+  if (fixp->fx_r_type != BFD_RELOC_NONE)
+    {
+      code = fixp->fx_r_type;
+
+      if (fixp->fx_pcrel)
+	{
+	  switch (code)
+	    {
+	    case BFD_RELOC_8_PCREL:
+	    case BFD_RELOC_16_PCREL:
+	    case BFD_RELOC_32_PCREL:
+	    case BFD_RELOC_8_GOT_PCREL:
+	    case BFD_RELOC_16_GOT_PCREL:
+	    case BFD_RELOC_32_GOT_PCREL:
+	    case BFD_RELOC_8_GOTOFF:
+	    case BFD_RELOC_16_GOTOFF:
+	    case BFD_RELOC_32_GOTOFF:
+	    case BFD_RELOC_8_PLT_PCREL:
+	    case BFD_RELOC_16_PLT_PCREL:
+	    case BFD_RELOC_32_PLT_PCREL:
+	    case BFD_RELOC_8_PLTOFF:
+	    case BFD_RELOC_16_PLTOFF:
+	    case BFD_RELOC_32_PLTOFF:
+	      break;
+	    default:
+	      as_bad_where (fixp->fx_file, fixp->fx_line,
+			    _("Cannot make %s relocation PC relative"),
+			    bfd_get_reloc_code_name (code));
+	    }
+	}
+    }
+  else
+    {
+#define F(SZ,PCREL)		(((SZ) << 1) + (PCREL))
+      switch (F (fixp->fx_size, fixp->fx_pcrel))
+	{
+#define MAP(SZ,PCREL,TYPE)	case F(SZ,PCREL): code = (TYPE); break
+	  MAP (1, 0, BFD_RELOC_8);
+	  MAP (2, 0, BFD_RELOC_16);
+	  MAP (4, 0, BFD_RELOC_32);
+	  MAP (1, 1, BFD_RELOC_8_PCREL);
+	  MAP (2, 1, BFD_RELOC_16_PCREL);
+	  MAP (4, 1, BFD_RELOC_32_PCREL);
+	default:
+	  abort ();
+	}
+    }
+#undef F
+#undef MAP
+
+  reloc = (arelent *) xmalloc (sizeof (arelent));
+  reloc->sym_ptr_ptr = (asymbol **) xmalloc (sizeof (asymbol *));
+  *reloc->sym_ptr_ptr = symbol_get_bfdsym (fixp->fx_addsy);
+  reloc->address = fixp->fx_frag->fr_address + fixp->fx_where;
+#ifndef OBJ_ELF
+  if (fixp->fx_pcrel)
+    reloc->addend = fixp->fx_addnumber;
+  else
+    reloc->addend = 0;
+#else
+  reloc->addend = fixp->fx_offset;
+#endif
+
+  reloc->howto = bfd_reloc_type_lookup (stdoutput, code);
+  assert (reloc->howto != 0);
+
+  return reloc;
+}
+
+#endif	/* BFD_ASSEMBLER */
 
 /* end of tc-vax.c */
