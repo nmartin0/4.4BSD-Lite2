@@ -563,8 +563,17 @@ lib/libc/gen/setmode.c's compress_mode returns void, as NetBSD's from
 `return' in an int function; and sbin/ping includes <arpa/inet.h>, as
 NetBSD 1.1's does, and pr_addr takes a struct in_addr, as FreeBSD
 3.0's does, since pcc, optimizing, cannot compile passing
-*(struct in_addr *)&l. Not yet: the kernel, and pcc building itself
-on the target.
+*(struct in_addr *)&l.
+
+The kernel builds with it too, `L2_CC=pcc sh build/kernel.sh', and
+boots: root on wd0, the CD mounted, the programs above run under it.
+That took genassym compiled and not run (kern/genassym.sh, above),
+seven constructs pcc refuses changed as later BSDs had changed them,
+the descriptor structures packed whole as NetBSD's from 1.2, and one
+change to pcc itself: pass1.h's SZMASK made an empty mask for a size
+of 0, where it shifted by -1 and ORed a bitfield store that begins a
+byte into the old value (the commit says how that was found). Not
+yet: pcc building itself on the target.
 
 ## E -- a reimplementation of something the Lite cut removed
 

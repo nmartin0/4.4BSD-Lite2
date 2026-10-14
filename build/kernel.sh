@@ -137,9 +137,9 @@ done
 # not -- mkdep above all, which the kernel Makefile runs to work out
 # what to rebuild when a header changes. Without this the host's is
 # used, and on a Linux host that is OpenBSD's mkdep.gcc.sh, which
-# does not produce the program dependency `assym.s: genassym' needs.
-# assym.s then goes stale and locore.s assembles against constants
-# the C half no longer uses.
+# did not produce the dependency assym.s's generator needs. assym.s
+# then goes stale and locore.s assembles against constants the C half
+# no longer uses.
 PATH="$TOOLS:$PATH"
 export PATH
 [ -d "$ROOT/usr/include" ] || die "no headers in $ROOT -- run build/sysroot.sh first"
@@ -151,6 +151,14 @@ COMPILE=$S/compile/$config
 
 KCC="gcc -m32 -std=gnu89 -fno-zero-initialized-in-bss -fcommon -fno-stack-protector -fno-pic"
 KCC="$KCC -ffreestanding -nostdinc"
+# L2_CC=pcc: the target's own compiler, as build/make.sh takes it.
+# It makes i386 code, puts uninitialised variables in common and
+# initialised ones in .data, and has no stack protector or PIC unless
+# asked, so of the settings above it needs only these.
+if [ "${L2_CC:-}" = pcc ]; then
+	[ -x "$TOOLS/pcc" ] || die "no pcc in $TOOLS -- run build/sysroot.sh first"
+	KCC="$TOOLS/pcc -std=gnu89 -ffreestanding -nostdinc"
+fi
 KCPP="cpp -m32 -traditional-cpp -nostdinc"
 
 # 1. config
@@ -207,6 +215,15 @@ kmake() {
 # before this point either checks a prerequisite or rewrites the
 # Makefile and cannot touch an object.
 rm -f "$COMPILE/vmunix"
+
+# The objects of one compiler are up to date to make after a switch to
+# the other, so a kernel would be linked from the first one's. The
+# compiler is recorded beside them, and a change empties the
+# directory of objects first.
+if [ "$(cat "$COMPILE/.kcc" 2>/dev/null)" != "$KCC" ]; then
+	rm -f "$COMPILE"/*.o "$COMPILE/assym.s"
+	printf '%s\n' "$KCC" > "$COMPILE/.kcc"
+fi
 
 say "make depend"
 kmake depend >/dev/null

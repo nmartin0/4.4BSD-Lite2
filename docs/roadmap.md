@@ -272,7 +272,8 @@ libc/quad has. Not yet run on the target.
 
 Done: pcc in contrib/pcc, built on the host as a cross-compiler and
 chosen by L2_CC=pcc; with it, libc, the startup files, bin, sbin and
-eleven more programs build, and run on the target (imports.md, *The C
+eleven more programs build, and run on the target; and the kernel,
+`L2_CC=pcc sh build/kernel.sh', which boots (imports.md, *The C
 compiler: pcc*).
 
 The stages: (1) pcc as a host tool, replacing the GCC specs file
