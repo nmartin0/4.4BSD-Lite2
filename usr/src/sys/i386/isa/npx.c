@@ -124,11 +124,11 @@ npxinit(control) {
 	load_cr0(rcr0() & ~CR0_EM);	/* stop emulating */
 #ifdef INTEL_COMPAT
 	asm ("	finit");
-	asm("	fldcw %0" : : "g" (control));
-	asm("	fnsave %0 " : : "g" (curpcb->pcb_savefpu) );
+	asm("	fldcw %0" : : "m" (control));
+	asm("	fnsave %0 " : "=m" (curpcb->pcb_savefpu) );
 #else
 	asm("fninit");
-	asm("	fnsave %0 " : : "g" (curpcb->pcb_savefpu) );
+	asm("	fnsave %0 " : "=m" (curpcb->pcb_savefpu) );
 #endif
 	load_cr0(rcr0() | CR0_EM);	/* start emulating */
 
@@ -156,7 +156,7 @@ npxintr(frame)
 		 * sync state in process context structure, in advance 
 		 * of debugger/process looking for it.
 		 */
-		asm("fnsave %0" :: "g" (npxproc->p_addr->u_pcb.pcb_savefpu));
+		asm("fnsave %0" : "=m" (npxproc->p_addr->u_pcb.pcb_savefpu));
 		psignal(npxproc, SIGFPE);
 
 		/* clear the exception so we can catch others like it */
@@ -175,9 +175,9 @@ npxdna()
 	load_cr0(rcr0() & ~CR0_EM);	/* stop emulating */
 	if (npxproc != curproc) {
 		if (npxproc)
-			asm(" fnsave %0 "::"g"
+			asm(" fnsave %0 " : "=m"
 			    (npxproc->p_addr->u_pcb.pcb_savefpu));
-		asm("	frstor %0 " : : "g" (curpcb->pcb_savefpu));
+		asm("	frstor %0 " : : "m" (curpcb->pcb_savefpu));
 		npxproc = curproc;
 	}
 	return (1);

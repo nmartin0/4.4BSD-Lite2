@@ -666,6 +666,7 @@ dumpsys()
 	DELAY(1000);
 }
 
+void
 microtime(tvp)
 	register struct timeval *tvp;
 {

@@ -345,7 +345,7 @@ in_setpeeraddr(inp, nam)
  *
  * Must be called at splnet.
  */
-int
+void
 in_pcbnotify(head, dst, fport_arg, laddr, lport_arg, cmd, notify)
 	struct inpcb *head;
 	struct sockaddr *dst;

@@ -318,7 +318,7 @@ dev_pager_putpage(pager, mlist, npages, sync)
 		       pager, mlist, npages, sync);
 #endif
 	if (pager == NULL)
-		return;
+		return (FALSE);
 	panic("dev_pager_putpage called");
 }
 

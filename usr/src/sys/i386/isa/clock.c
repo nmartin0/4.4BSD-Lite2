@@ -419,6 +419,7 @@ gettick()
 	return ((hi << 8) | lo);
 }
 
+void
 delay(n)
 	int n;
 {
