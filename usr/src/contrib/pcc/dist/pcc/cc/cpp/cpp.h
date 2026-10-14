@@ -223,6 +223,7 @@ void line(void);
 void pushfile(const usch *fname, const usch *fn, int idx, void *incs);
 void prtline(int nl);
 int yylex(void);
+void yyunmac(void);
 void cunput(int);
 int yyparse(void);
 void putch(int);

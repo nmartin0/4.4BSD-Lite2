@@ -1017,6 +1017,24 @@ pb:	*--inp = c2;
 }
 
 /*
+ * Leave the expansion yylex() read a #include's name from, if it read
+ * it from a macro, for the line it was on, before the file is pushed:
+ * otherwise lb is still set, and the end of the file pushed pops it
+ * -- the input put back is the #include's line, not the file's -- and
+ * the end of that line frees it again.
+ */
+void
+yyunmac(void)
+{
+	if (lb) {
+		pend = lpend, pbeg = lpbeg, inp = linp;
+		ifiles->infil = lif;
+		bufree(lb);
+		lb = 0;
+	}
+}
+
+/*
  * A new file included.
  * If ifiles == NULL, this is the first file and already opened (stdin).
  */

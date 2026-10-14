@@ -903,6 +903,7 @@ include(void)
 	if (yylex() != STRING)
 		error("bad #include");
 	readinc = 0;
+	yyunmac();
 	ob = yynode.nd_ob;
 	ob->buf[ob->cptr-1] = 0; /* last \" */
 
@@ -946,6 +947,7 @@ include_next(void)
 	if (yylex() != STRING)
 		error("bad #include_next");
 	readinc = 0;
+	yyunmac();
 	ob = yynode.nd_ob;
 	ob->buf[ob->cptr-1] = 0; /* last \" */
 
