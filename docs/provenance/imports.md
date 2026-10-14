@@ -546,9 +546,8 @@ give way to NetBSD's for the i386, `unix' and `i386' are predefined as
 this tree's own contrib/gcc-2.3.3 predefines them (config/i386bsd.h),
 since Lite2's sources test them, and __LiteBSD__ goes. Built on the
 build host by build/sysroot.sh, as NetBSD's tools/pcc builds it --
-from the file lists of pcc's own Makefiles, with the host's as and ld
-for the i386 behind it until binutils are built here too -- and
-chosen for a build by L2_CC=pcc. The licences are Magnusson's
+from the file lists of pcc's own Makefiles, with the binutils below
+behind it -- and chosen for a build by L2_CC=pcc. The licences are Magnusson's
 two-clause BSD and Caldera's four-clause on what descends from the
 Unix pcc.
 
@@ -574,6 +573,41 @@ change to pcc itself: pass1.h's SZMASK made an empty mask for a size
 of 0, where it shifted by -1 and ORed a bitfield store that begins a
 byte into the old value (the commit says how that was found). Not
 yet: pcc building itself on the target.
+
+**The assembler, linker and binary tools: binutils 2.16.1.** NetBSD
+5's, from the netbsd-5-2 branch (7b6754bd5c75, November 2015), in
+contrib/binutils as contrib/pcc is laid out: dist for
+gnu/dist/binutils, GNU binutils 2.16.1 of June 2005 with NetBSD's
+changes; lib and usr.bin for NetBSD's reachover Makefiles,
+gnu/lib/lib{bfd,opcodes,iberty} and gnu/usr.bin/binutils, with their
+arch/i386 headers; and tools/binutils' mknative-binutils, which wrote
+them. Why these, against FreeBSD's 2.17.50, OpenBSD's 2.17 and the
+permissive alternatives, is in roadmap.md, *self-hosting*.
+
+Cut to as, ld, ar, ranlib, nm, size, strip, objcopy, objdump and
+readelf for i386 ELF: dist keeps the files a build of those for
+--target=i386--netbsdelf opens -- measured by tracing every file the
+configure and the make opened -- with the licences, the READMEs and
+the programs' manual pages, 441 files and 13 MB of NetBSD's 92 MB.
+Gone: the other targets' back ends, opcode tables and emulations, the
+testsuites, translations, Texinfo manuals, gprof, intl and the CGEN
+cpu descriptions; and addr2line, c++filt and strings, whose sources
+stay but are not built (Lite2 has its own strings).
+
+Built on the build host by build/sysroot.sh, as NetBSD's
+tools/binutils builds it: GNU configure and GNU make, the programs
+named i386--netbsdelf-as and so on in tools/bin, with a sysroot given
+at run time and libraries under =/usr/lib, as NetBSD's tools/binutils
+configures them today. With L2_CC=pcc, pcc assembles and links with
+them, and build/make.sh and build/kernel.sh give them to the Makefiles
+as AS, LD and the kernel's NM. The licence is the GPL, version 2
+(dist/COPYING; libiberty, mostly the LGPL, dist/COPYING.LIB): the one
+GPL part of the toolchain.
+
+Measured: with them behind pcc, libc, the startup files, bin, sbin and
+the programs above build, and the kernel, which boots, and those
+programs run on it as they did with the host's as and ld. Not yet:
+the reachover Makefiles building them for the target.
 
 ## E -- a reimplementation of something the Lite cut removed
 

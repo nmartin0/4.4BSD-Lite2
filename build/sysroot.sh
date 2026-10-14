@@ -138,7 +138,7 @@ case "$L2_BUILD" in
 esac
 ROOT="$L2_BUILD/root"
 
-pkgs="bmake mtree-netbsd pax universal-ctags flex m4"
+pkgs="bmake mtree-netbsd pax universal-ctags flex m4 make"
 missing=
 # flex is here because config's scanner is generated from lang.l below.
 # It was used without being checked for, so a host without it got past
@@ -146,7 +146,7 @@ missing=
 # build, with flex's own "not found" and nothing naming the package.
 # m4 and objcopy are for the boot blocks: btx.s goes through m4.
 for t in bmake mtree pax ctags flex m4 gcc cpp as ld ar ranlib nm tsort \
-    objcopy; do
+    objcopy make; do
 	command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
 done
 if [ -n "$missing" ]; then
@@ -278,6 +278,44 @@ $HOSTCC -w -include "$REPO_ROOT/build/elf-host.h" -o "$TOOLS/crunchide" \
     "$C/crunchide/crunchide.c" "$C/crunchide/exec_elf32.c"
 ln -sf "$(command -v bmake)" "$TOOLS/make"
 
+# binutils, the target's assembler, linker and object tools
+# (contrib/binutils, NetBSD 5's 2.16.1), built here for the i386 as
+# NetBSD's tools/binutils builds them: GNU configure for
+# --target=i386--netbsdelf, NetBSD's own name for the i386, without
+# NLS; with a sysroot, given at run time -- pcc passes ld the
+# --sysroot it is given -- and the libraries under it, as NetBSD's
+# tools/binutils configures them today; and every program named with
+# the target in front, so nothing
+# on the PATH make.sh gives shadows the host's own as and ld, which
+# GCC still uses. Only the programs this tree keeps are made, and they
+# are copied in rather than installed, which would want makeinfo.
+# The sources are C89 of 2005: -fcommon and -w, as for pcc, and
+# --disable-werror, since GCC 14 warns where GCC 4 did not. GNU make,
+# not bmake: these are configure's Makefiles.
+B=$SRC/contrib/binutils/dist
+bdir="$L2_BUILD/tools/binutils.build"
+BT=i386--netbsdelf
+rm -rf "$bdir"
+mkdir -p "$bdir"
+cd "$bdir"
+CC="$HOSTCC -fcommon -w" sh "$B/configure" --target=$BT --disable-nls \
+    --disable-werror --with-sysroot --with-lib-path="=/usr/lib" \
+    >configure.log 2>&1 ||
+	{ tail configure.log >&2; exit 1; }
+gmake=$(command -v gmake || command -v make)
+"$gmake" -j"$(nproc)" MAKEINFO=true all-gas all-ld configure-binutils \
+    >make.log 2>&1 || { tail make.log >&2; exit 1; }
+"$gmake" -C binutils -j"$(nproc)" MAKEINFO=true ar ranlib nm-new size \
+    strip-new objcopy objdump readelf >>make.log 2>&1 ||
+	{ tail make.log >&2; exit 1; }
+cp gas/as-new "$TOOLS/$BT-as"
+cp ld/ld-new "$TOOLS/$BT-ld"
+cp binutils/nm-new "$TOOLS/$BT-nm"
+cp binutils/strip-new "$TOOLS/$BT-strip"
+for t in ar ranlib size objcopy objdump readelf; do
+	cp "binutils/$t" "$TOOLS/$BT-$t"
+done
+
 # pcc, the target's C compiler (contrib/pcc, NetBSD's), built here as
 # a cross-compiler: ccom and pcpp, its compiler proper and
 # preprocessor, into tools/libexec, and the driver as tools/bin/pcc.
@@ -286,8 +324,7 @@ ln -sf "$(command -v bmake)" "$TOOLS/make"
 # with its os/litebsd target and its include/config.h, as
 # build/sysroot.sh builds config and crunchgen. mkext runs here to
 # write the table of instructions ccom is compiled with. As and ld
-# are the host's, for the i386, through the two wrappers below, until
-# the target's own binutils are built here too. CROSS_COMPILING, as
+# are the target's, from binutils above. CROSS_COMPILING, as
 # pcc's configure defines it when build and target differ, keeps
 # softfloat from checking its arithmetic against this machine's.
 # pcc's sources are C99,
@@ -301,9 +338,6 @@ pdir="$L2_BUILD/tools/pcc.build"
 LX="$L2_BUILD/tools/libexec"
 rm -rf "$pdir"
 mkdir -p "$pdir" "$LX"
-printf '#!/bin/sh\nexec as --32 "$@"\n' > "$LX/i386-as"
-printf '#!/bin/sh\nexec ld -m elf_i386 "$@"\n' > "$LX/i386-ld"
-chmod 755 "$LX/i386-as" "$LX/i386-ld"
 pver=$(sed -n 's/^PCC_VERSION=//p' "$P/Makefile.inc")
 pdate=$(sed -n 's/^PCC_DATESTAMP=//p' "$P/Makefile.inc")
 PCPP="-DGCC_COMPAT -DPCC_DEBUG -D_ISOC99_SOURCE -Dos_litebsd -Dmach_i386"
@@ -341,7 +375,7 @@ $PCC_CC $PCPP "$VERS" -I. -I"$D/mip" -I"$D/cc/cpp" -o "$LX/pcpp" \
 $PCC_CC $PCPP "$VERS" -DTARGOS=\"litebsd\" -DTARGMACH=\"i386\" \
     -DLIBEXECDIR=\"$LX/\" -DINCLUDEDIR=\"/usr/include/\" \
     -DCPPROGNAME=\"pcpp\" -DPREPROCESSOR=\"pcpp\" \
-    -DASSEMBLER=\"$LX/i386-as\" -DLINKER=\"$LX/i386-ld\" \
+    -DASSEMBLER=\"$TOOLS/$BT-as\" -DLINKER=\"$TOOLS/$BT-ld\" \
     -I"$D/cc/driver" -I"$D/mip" -I"$D/os/litebsd" -I"$D/arch/i386" \
     -DTARGSTR=\"i386--litebsd\" \
     -o "$TOOLS/pcc" "$D/cc/cc/cc.c" "$D/cc/driver/strlist.c" \

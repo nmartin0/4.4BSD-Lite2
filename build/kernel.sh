@@ -159,6 +159,16 @@ if [ "${L2_CC:-}" = pcc ]; then
 	[ -x "$TOOLS/pcc" ] || die "no pcc in $TOOLS -- run build/sysroot.sh first"
 	KCC="$TOOLS/pcc -std=gnu89 -ffreestanding -nostdinc"
 fi
+# and its assembler, linker and nm, contrib/binutils, i386 only; nm
+# reads genassym.o for kern/genassym.sh.
+KAS="as --32"
+KLD="ld -m elf_i386"
+KNM=nm
+if [ "${L2_CC:-}" = pcc ]; then
+	KAS="$TOOLS/i386--netbsdelf-as"
+	KLD="$TOOLS/i386--netbsdelf-ld"
+	KNM="$TOOLS/i386--netbsdelf-nm"
+fi
 KCPP="cpp -m32 -traditional-cpp -nostdinc"
 
 # 1. config
@@ -189,7 +199,7 @@ say "libkern.a: $(ar t "$COMPILE/libkern.a" | wc -l) members"
 # 3. depend, then the kernel
 kmake() {
 	( cd "$COMPILE" && MAKEOBJDIRPREFIX='' bmake -m "$MK" \
-	    CC="$KCC" CPP="$KCPP" AS="as --32" LD="ld -m elf_i386" "$@" )
+	    CC="$KCC" CPP="$KCPP" AS="$KAS" LD="$KLD" NM="$KNM" "$@" )
 }
 
 # AI-ONLY NOTE: the old kernel goes before anything can produce an
@@ -218,11 +228,11 @@ rm -f "$COMPILE/vmunix"
 
 # The objects of one compiler are up to date to make after a switch to
 # the other, so a kernel would be linked from the first one's. The
-# compiler is recorded beside them, and a change empties the
-# directory of objects first.
-if [ "$(cat "$COMPILE/.kcc" 2>/dev/null)" != "$KCC" ]; then
+# compiler and assembler are recorded beside them, and a change
+# empties the directory of objects first.
+if [ "$(cat "$COMPILE/.kcc" 2>/dev/null)" != "$KCC $KAS" ]; then
 	rm -f "$COMPILE"/*.o "$COMPILE/assym.s"
-	printf '%s\n' "$KCC" > "$COMPILE/.kcc"
+	printf '%s\n' "$KCC $KAS" > "$COMPILE/.kcc"
 fi
 
 say "make depend"

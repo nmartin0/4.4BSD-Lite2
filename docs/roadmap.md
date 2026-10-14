@@ -274,11 +274,14 @@ Done: pcc in contrib/pcc, built on the host as a cross-compiler and
 chosen by L2_CC=pcc; with it, libc, the startup files, bin, sbin and
 eleven more programs build, and run on the target; and the kernel,
 `L2_CC=pcc sh build/kernel.sh', which boots (imports.md, *The C
-compiler: pcc*).
+compiler: pcc*). Then binutils 2.16.1 in contrib/binutils, built on
+the host beside pcc and used by it as its as and ld; ar, ranlib, nm
+and strip in the Makefiles are still the host's (imports.md, *The
+assembler, linker and binary tools*).
 
 The stages: (1) pcc as a host tool, replacing the GCC specs file
 (deferred.md, *The specs file stands in for a cross-compiler*), the
-tree rebuilt with it; (2) pcc and binutils 2.17 built by that pcc
+tree rebuilt with it; (2) pcc and binutils 2.16.1 built by that pcc
 and installed on the target; (3) the target rebuilding itself.
 
 **To revisit: the toolchain, for modern C.** pcc reaches C99 and

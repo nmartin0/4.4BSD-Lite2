@@ -319,6 +319,12 @@ HOSTCC="cc -std=gnu89"
 YACC="byacc"
 AS="as --32"
 LD="ld -m elf_i386"
+# and with it the target's assembler and linker, contrib/binutils as
+# build/sysroot.sh builds them; i386 only, so without --32 and -m.
+if [ "${L2_CC:-}" = pcc ]; then
+	AS="$TOOLS/i386--netbsdelf-as"
+	LD="$TOOLS/i386--netbsdelf-ld"
+fi
 export LC_ALL MACHINE MAKEFLAGS DESTDIR MAKEOBJDIRPREFIX PATH
 export LIBMODE CC CPP AS LD HOSTCC YACC
 
