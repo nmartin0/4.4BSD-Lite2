@@ -79,10 +79,10 @@ for d in bin sbin libexec/getty usr.bin/login usr.bin/passwd \
     usr.bin/xinstall usr.bin/sed usr.bin/tset usr.sbin/sysctl \
     usr.sbin/quotaon usr.sbin/accton usr.sbin/timed usr.sbin/lpr \
     usr.sbin/inetd usr.sbin/portmap usr.sbin/amd usr.bin/cap_mkdb \
-    usr.bin/script usr.sbin/pstat usr.bin/awk
+    usr.bin/script usr.sbin/pstat usr.bin/awk usr.bin/man
 do
 	(cd usr/src/$d && sh "$r/build/make.sh" \
-	    depend all install NOMAN=noman) ||
+	    depend all install) ||
 	    echo "release.sh: $d: install stopped (see the note above)" >&2
 done
 (cd usr/src/share/termcap && sh "$r/build/make.sh" termcap)

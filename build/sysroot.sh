@@ -67,7 +67,9 @@
 #      (contrib/), built for this machine as a cross toolchain for
 #      i386-unknown-bsd4.4elf, in ${L2_BUILD}/tools, as NetBSD 1.6's
 #      tools/toolchain built the same releases. Everything after it
-#      is compiled with it.
+#      is compiled with it. And groff 1.08 (contrib/), Lite2's nroff,
+#      which formats the manual pages every Makefile installs, built
+#      with GCC 2.95.3's g++, and the tree's own macros beside it.
 #
 #   4. The libraries named in $libs, by their own all and install
 #      targets, in that order: libc, libutil, libterm, libcurses,
@@ -345,6 +347,13 @@ CC="$GCC_HOSTCC" sh "$B/configure" --build=$GHOST --host=$GHOST \
 
 G=$SRC/contrib/gcc-2.95.3
 gdir="$L2_BUILD/tools/gcc-2.95.3.build"
+# GCC's generated sources -- the parsers bison writes, configure -- are
+# in the release beside what they are generated from, and make rebuilds
+# one, into contrib/, whenever its source looks newer. Out of git that
+# is a matter of checkout order, so they are given their proper order
+# first by GCC's own contrib/egcs_update --touch, which exists for a
+# tree checked out of version control. It changes times, not contents.
+(cd "$G" && sh contrib/egcs_update --touch >/dev/null)
 printf '%s\n' "sysroot.sh: GCC 2.95.3 for $GT -> $GPFX"
 rm -rf "$gdir"
 mkdir -p "$gdir"
@@ -365,13 +374,93 @@ PATH="$GPFX/bin:$PATH" "$gmake" -C gcc MAKEINFO=true cpp \
 # as plain `cpp', ahead of the host's; it goes under the target's name.
 install -m 755 gcc/cpp "$GPFX/bin/$GT-cpp"
 
+# groff, for the manual pages: Lite2's Makefiles format each page with
+# `nroff -man' into the .0 file installed under /usr/share/man/cat*,
+# and Lite2's nroff is groff 1.08's (contrib/groff-1.08), so that is
+# built here for this machine, as NetBSD 1.6's tools/groff builds its
+# tree's groff for its build.
+#
+# groff 1.08 is C++ of 1993, and no C++ compiler of today takes it:
+# it uses a loop variable after its `for', as C++ allowed until 1995,
+# and declares functions with no return type. GCC 2.95.3's g++ does,
+# given -fno-for-scope and -fpermissive, so the tree's own GCC is
+# built a second time, as a C++ compiler for this machine -- an
+# i686-pc-linux-gnu compiler, with the host's assembler and linker
+# told --32 -- and groff compiled with it, as Lite2 compiled groff
+# with its GCC. Only its compiler proper and libgcc are built; groff
+# uses none of libstdc++. It links against the host's 32-bit C
+# library, wherever the host GCC finds it.
+HG=$SRC/contrib/gcc-2.95.3
+hgdir="$L2_BUILD/tools/gcc-2.95.3-host.build"
+printf '%s\n' "sysroot.sh: GCC 2.95.3's g++ for this machine, for groff"
+rm -rf "$hgdir"
+mkdir -p "$hgdir/w"
+printf '#!/bin/sh\nexec as --32 "$@"\n' > "$hgdir/w/as"
+printf '#!/bin/sh\nexec ld -m elf_i386 "$@"\n' > "$hgdir/w/ld"
+chmod 755 "$hgdir/w/as" "$hgdir/w/ld"
+cd "$hgdir"
+CC="$GCC_HOSTCC" sh "$HG/configure" --build=$GHOST --host=$GHOST \
+    --target=$GHOST --with-as="$hgdir/w/as" --with-ld="$hgdir/w/ld" \
+    --enable-languages=c++ --disable-nls >configure.log 2>&1 ||
+	{ tail configure.log >&2; exit 1; }
+"$gmake" -j"$(nproc)" MAKEINFO=true all-gcc >make.log 2>&1 ||
+	{ tail make.log >&2; exit 1; }
+lib32=$(dirname "$(gcc -m32 -print-file-name=crt1.o)")
+HOSTCXX="$hgdir/gcc/xgcc -B$hgdir/gcc/ -B$lib32/ -L$lib32"
+HOSTCXX="$HOSTCXX -w -fno-for-scope -fpermissive"
+
+# groff itself, by its own configure and Makefiles, in a copy of its
+# directory: groff 1.08 configures and builds in its source directory,
+# and this tree's copy is configured for the target. Only what nroff
+# needs: troff, grotty and the groff driver, with tbl, eqn and soelim,
+# which pages are sometimes run through, the ascii and latin1 devices,
+# and the macro packages. _XOPEN_SOURCE=500 keeps glibc from declaring
+# strsignal, which groff 1.08 defines itself, as a libc of its day did
+# not.
+GR=$SRC/contrib/groff-1.08
+grdir="$L2_BUILD/tools/groff-1.08.build"
+printf '%s\n' "sysroot.sh: groff 1.08 for this machine -> $GPFX"
+rm -rf "$grdir"
+cp -R "$GR" "$grdir"
+cd "$grdir"
+grsub='LIBDIRS=libgroff libdriver'
+grsub2='CCPROGDIRS=groff troff tbl eqn grotty soelim'
+CC="$HOSTCC -m32 -w" CCC="$HOSTCXX" sh ./configure --prefix="$GPFX" \
+    >configure.log 2>&1 || { tail configure.log >&2; exit 1; }
+mkdir -p "$GPFX/bin" "$GPFX/share/tmac" "$GPFX/share/groff_font" \
+    "$GPFX/share/man/cat1" "$GPFX/share/man/cat5" "$GPFX/share/man/cat7"
+for t in all install; do
+	"$gmake" CCC="$HOSTCXX -D_XOPEN_SOURCE=500" YACC=byacc \
+	    "$grsub" "$grsub2" CPROGDIRS= DEVDIRS="devascii devlatin1" \
+	    OTHERDIRS="tmac nroff" $t >>make.log 2>&1 ||
+		{ tail make.log >&2; exit 1; }
+done
+# and the tree's own macros, as share/tmac's Makefile installs them:
+# -mdoc's files through its strip.sed, and tmac.andoc, which Lite2's
+# `nroff -man' reads as tmac.an and which picks -mdoc or groff's -man
+# by what the page is written in; and tmac.e and tmac.s. (The
+# Makefile names a tmac.r too, which Lite2 does not have.) They name
+# /usr/share/tmac, the system's macro directory, in their .so
+# requests; here that is the tools directory's.
+TM=$SRC/share/tmac
+GTM="$GPFX/share/tmac"
+for f in doc doc-ditroff doc-common doc-nroff doc-syms; do
+	sed -f "$TM/strip.sed" "$TM/$f" | sed "s|/usr/share/tmac/|$GTM/|" \
+	    > "$GTM/tmac.$f"
+done
+sed "s|/usr/share/tmac/|$GTM/|" "$TM/tmac.andoc" > "$GTM/tmac.andoc"
+cp "$GTM/tmac.andoc" "$GTM/tmac.an"
+for f in tmac.e tmac.s; do
+	cp "$TM/$f" "$GTM/$f"
+done
+
 for lib in $libs; do
 	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
 	cd "$SRC/lib/$lib"
 	# depend first: Lite2's libraries hang generated headers off the
 	# .depend target -- libedit makes six that way -- and without it
 	# make compiles before they exist.
-	sh "$REPO_ROOT/build/make.sh" depend all install NOMAN=noman
+	sh "$REPO_ROOT/build/make.sh" depend all install
 done
 
 printf '%s\n' "sysroot.sh: startup files -> $ROOT/usr/lib"
