@@ -306,17 +306,18 @@ BSD `makefile` that configures GNU's sources for the machine and runs
 GNU's own Makefiles under the system's make. The target is
 `i386-unknown-bsd4.4elf`, this system's own name, not NetBSD's.
 
-Done: the 2.95.3 pair imported, with NetBSD 1.6's changes. Measured
-before going further: built on the host as a cross toolchain (as a
-32-bit host program; GCC 2.95.3's config.sub predates x86_64), it
-compiles and links a program against this tree's libc and startup
-files, once <machine/stdarg.h> and <machine/ansi.h> give GCC 2.95 the
-`char *` va_list NetBSD 1.6's headers give it.
+Done: the 2.95.3 pair imported, with NetBSD 1.6's changes, and this
+system added to both as i386-unknown-bsd4.4elf; built on the host by
+build/sysroot.sh as a cross toolchain, and used for everything:
+`sh build/release.sh' compiles every library, program, boot block and
+both kernels with it, and the CD installs a system that comes up
+multi-user (imports.md, *The toolchain*). pcc and binutils 2.16.1,
+the host GCC's specs file and L2_CC are gone with it.
 
-Next, in order: this system as a target in both; the host build in
-`build/`, and the release built with it; README.BSD and the makefile,
-and the system rebuilding its own compiler; then the 4.2.1 pair the
-same way; then contrib/pcc and contrib/binutils (2.16.1) removed.
+Next, in order: README.BSD and the makefile in each directory, and
+the system rebuilding its own compiler -- which wants make, share/mk
+and the rest of a build environment in the release; then the 4.2.1
+pair the same way.
 
 **Later: GCC's other languages.** GCC 2.95.3 is imported whole, with
 its C++, Objective C, Fortran 77, CHILL and Java front ends. C comes

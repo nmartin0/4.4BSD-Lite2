@@ -221,7 +221,8 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	i386/isa/wd.c, atapi.c, wcd.c	FreeBSD 2.1.0, adapted
 	the slice layer, 4 files	FreeBSD 2.1.0, 2 lines changed
 	config: isa_biotab		FreeBSD 2.1.0, adapted
-	contrib/pcc			NetBSD's framework, pcc 20220331, adapted
+	contrib/gcc-2.95.3		GNU's release, NetBSD 1.6's changes, a target
+	contrib/binutils-2.11.2		GNU's release, NetBSD 1.6's changes, a target
 	kern/genassym.sh, sys/assym.h	FreeBSD 5.0, unmodified
 
 The csu files are ELF startup code, which did not exist in 1995 and
@@ -524,128 +525,59 @@ device entry on a mounted CD could make, reads as a negative minor,
 which a driver that checks only `minor(dev) >= N', as tty_pty.c
 does, lets through.
 
-**The C compiler: pcc.** The Portable C Compiler, Anders Magnusson's
-revival of Johnson's, as NetBSD carries it in src/external/bsd/pcc --
-its Makefiles, its include/config.h, and dist/pcc for pcc's sources
--- with dist/pcc the last snapshot upstream made, 20220331, put in the
-way NetBSD's prepare-import.sh puts one in, where NetBSD's own is of
-20160208. The choice of compiler, and of NetBSD's tree over
-OpenBSD's 2007-2012 usr.bin/pcc, is in roadmap.md, *self-hosting*;
-the later snapshot, for the fixes upstream made after NetBSD's import
--- wrong code from `||' and `&&' with constant operands, the x87 stack
-left unpopped, an internal error passing a struct from an old-style
-parameter -- is in the import commit. The snapshot is a CVS checkout
-of pcc's repository as Debian and Ubuntu redistribute it,
-pcc_1.2.0~DEVEL+20220331.orig.tar.gz; pcc.ludd.ltu.se is gone.
+**The toolchain: GCC 2.95.3 and binutils 2.11.2.** What 4.4BSD built
+itself with was GNU's -- sys.mk's `CC ?= gcc', contrib/gcc-2.3.3 and
+contrib/gas-1.38, GNU ld in usr.bin/ld -- and so is this: the pair
+NetBSD 1.6 built itself with, in contrib/gcc-2.95.3 and
+contrib/binutils-2.11.2 as Lite2's contrib/ holds its own GNU
+programs, one directory per release, named for its version. Why these
+two, and why GNU's at all, is in roadmap.md, *self-hosting*.
 
-Its target is pcc's os/litebsd, written for Serge Vakulenko's
-4.4BSD-Lite on MIPS, made a target for this i386 -- the nearest of
-pcc's systems to this one, static and crt0-based, where NetBSD's
-names a dynamic linker and crt files this csu has not. Its MIPS lines
-give way to NetBSD's for the i386, `unix' and `i386' are predefined as
-this tree's own contrib/gcc-2.3.3 predefines them (config/i386bsd.h),
-since Lite2's sources test them, and __LiteBSD__ goes. Built on the
-build host by build/sysroot.sh, as NetBSD's tools/pcc builds it --
-from the file lists of pcc's own Makefiles, with the binutils below
-behind it -- and chosen for a build by L2_CC=pcc. The licences are Magnusson's
-two-clause BSD and Caldera's four-clause on what descends from the
-Unix pcc.
+Each came in as three kinds of commit. GNU's release, whole and
+untouched: gcc-2.95.3.tar.gz, whose MD5 is the one GNU's md5sum.txt
+gives it, and binutils-2.11.2.tar.gz, every file of which matches the
+release's own md5.sum and, but for the CGEN sources and the md5.sum,
+the 2.11.2a re-release that GNU's key signs. Then NetBSD's changes,
+as its netbsd-1-6 branch last had them, recovered by comparing its
+gnu/dist/toolchain with each release, file by file and byte for byte
+(the commit messages say how a file of NetBSD's single tree of GCC,
+binutils and gdb was assigned to one release or the other): GCC's,
+"2.95.3 20010315 (release) (NetBSD nb3)", 78 files changed, 18 added
+and 6 removed; binutils', "2.11.2nb1", 114 changed and 30 added. Then
+this tree's own, each its own commit: the system's name,
+i386-unknown-bsd4.4elf, in bfd, gas, ld and GCC, where GCC's
+i386/bsd44-elf.h takes NetBSD's i386 ELF definitions whole -- the
+csu and the header types are NetBSD 1.6's -- and changes only the
+names predefined (__BSD_4_4__, as GCC's own m68k/hp3bsd44.h has them)
+and the link, static; struct relax_type moved in gas as binutils 2.16
+moved it, for the build host's compiler; and bfd/po's two lists the
+release left out. The licence is the GPL, version 2, with the LGPL or
+GCC's runtime exception on the libraries, file by file.
 
-Measured: built so, it compiles libc, the startup files, bin, sbin
-and eleven more of the staging list's programs; with that libc
-and those startup files, on the target, 64-bit division and modulus,
-float arithmetic, strtol and atof give the right answers, and sh,
-csh, ls, ps, df, date, id, sed, awk, find, wc, head and ping run
-correctly. Two sources needed what later BSDs had already done:
-lib/libc/gen/setmode.c's compress_mode returns void, as NetBSD's from
-1.2 and FreeBSD's by 2.2.8 declare it, since pcc refuses its bare
-`return' in an int function; and sbin/ping includes <arpa/inet.h>, as
-NetBSD 1.1's does, and pr_addr takes a struct in_addr, as FreeBSD
-3.0's does, since pcc, optimizing, cannot compile passing
-*(struct in_addr *)&l.
+Built on the build host by build/sysroot.sh as a cross toolchain, the
+way NetBSD 1.6's tools/toolchain built it, and used for everything:
+every library and program of the release, the startup files, the
+boot blocks and both kernels, with the CD it makes installing a
+system that comes up multi-user. Four things in the tree outside
+contrib/ needed GCC 2.95: <machine/stdarg.h> and <machine/ansi.h>
+give it a char * va_list as NetBSD 1.6's do; tip's signal handlers
+take the int their prototypes say; and lib/csu and boot2 lost flags
+that were for GCC 14. Not yet: the system building the toolchain
+itself, by a README.BSD and makefile in each directory, as Lite2
+built contrib/gcc-2.3.3.
 
-The kernel builds with it too, `L2_CC=pcc sh build/kernel.sh', and
-boots: root on wd0, the CD mounted, the programs above run under it.
-That took genassym compiled and not run (kern/genassym.sh, above),
-seven constructs pcc refuses changed as later BSDs had changed them,
-the descriptor structures packed whole as NetBSD's from 1.2, and one
-change to pcc itself: pass1.h's SZMASK made an empty mask for a size
-of 0, where it shifted by -1 and ORed a bitfield store that begins a
-byte into the old value (the commit says how that was found). Not
-yet: pcc building itself on the target.
-
-**The assembler, linker and binary tools: binutils 2.16.1.** NetBSD
-5's, from the netbsd-5-2 branch (7b6754bd5c75, November 2015), in
-contrib/binutils as contrib/pcc is laid out: dist for
-gnu/dist/binutils, GNU binutils 2.16.1 of June 2005 with NetBSD's
-changes; lib and usr.bin for NetBSD's reachover Makefiles,
-gnu/lib/lib{bfd,opcodes,iberty} and gnu/usr.bin/binutils, with their
-arch/i386 headers; and tools/binutils' mknative-binutils, which wrote
-them. Why these, against FreeBSD's 2.17.50, OpenBSD's 2.17 and the
-permissive alternatives, is in roadmap.md, *self-hosting*.
-
-Cut to as, ld, ar, ranlib, nm, size, strip, objcopy, objdump and
-readelf for i386 ELF: dist keeps the files a build of those for
---target=i386--netbsdelf opens -- measured by tracing every file the
-configure and the make opened, on a Linux build host -- and the six
-more that NetBSD's reachover Makefiles name for its native i386 build
-and that trace could not see: libiberty's mempcpy, mkstemps, stpcpy,
-stpncpy and strncmp, which glibc supplied, and bfd's netbsd-core.c,
-NetBSD's core-file reader, which a cross-build leaves out. With the
-licences, the READMEs and the programs' manual pages, 447 files and
-13 MB of NetBSD's 92 MB. Gone: the other targets' back ends, opcode
-tables and emulations, the testsuites, translations, gprof, intl,
-the CGEN cpu descriptions, the Texinfo manuals but as.texinfo and
-ld.texinfo, which the build reads, and addr2line, c++filt and
-strings, sources and Makefiles both (Lite2 has its own strings).
-
-Built on the build host by build/sysroot.sh, as NetBSD's
-tools/binutils builds it: GNU configure and GNU make, the programs
-named i386--netbsdelf-as and so on in tools/bin, with a sysroot given
-at run time and libraries under =/usr/lib, as NetBSD's tools/binutils
-configures them today. With L2_CC=pcc, pcc assembles and links with
-them, and build/make.sh and build/kernel.sh give them to the Makefiles
-as AS, LD and the kernel's NM. The licence is the GPL, version 2
-(dist/COPYING), the one GPL part of the toolchain; of libiberty's 48
-files, 20 are under the LGPL, version 2 (dist/COPYING.LIB), 19 under
-the GPL, and 9, strncmp.c among them, carry no licence.
-
-Measured: with them behind pcc, libc, the startup files, bin, sbin and
-the programs above build, and the kernel, which boots, and those
-programs run on it as they did with the host's as and ld.
-
-For the target, NetBSD's reachover Makefiles build them from the
-arch/i386 files mknative-binutils writes. Those imported were NetBSD
-5's, describing NetBSD 5; build/mknative-binutils.sh writes them for
-this system as NetBSD writes them for its own -- its tools/binutils
-`native-binutils' target, configure run with the target's compiler,
-here pcc and the sysroot -- with tools/gcc/mknative.common, which the
-script sources, imported beside it, and libiberty's asprintf,
-vasprintf, basename and insque, which this libc lacks. With them
-every source compiles with pcc for the target, and as, nm, size and
-objdump, linked from them, run on it. One stand-in, marked to be
-done properly later: libbfd is built without a core-file reader,
-NetBSD's wanting NetBSD's <sys/core.h> (deferred.md, *binutils reads
-no core files*). Not yet: the reachover Makefiles themselves run by
-this tree's make, and the programs installed.
-
-The whole release builds so: `L2_CC=pcc sh build/release.sh' compiles
-every library, program and boot block and both kernels with pcc, and
-assembles and links them with these, and the CD it writes installs as install.md's *Installing from the CD*
-has it; the installed system comes up multi-user on its own kernel
-to a login. That took one more change to pcc, pcpp's `#include' of a
-macro, which amd uses (the commit has it), and getrpcent, more and
-tip given the function types pcc requires, as NetBSD declares them.
-amd's fsinfo does not build with pcc, as it does not with GCC: its
-declaration of strdup conflicts with <string.h>'s, and release.sh
-installs amd without it.
-
-The host's tools still have a part in that build. GCC's preprocessor,
-make.sh's CPP, `cpp -traditional-cpp', puts libc's assembly through
--- thirty files, each plain and profiled -- and the kernels' locore.s;
-ar, ranlib, nm and strip in the Makefiles are the host's GNU ones; and
-mkdep runs the host's compiler. pcc's own preprocessor in CPP, and
-contrib/binutils' ar, ranlib, nm and strip, are next.
+**Removed: pcc and binutils 2.16.1.** The toolchain first chosen, for
+its licence: pcc 20220331 in NetBSD's framework, with a target made
+from pcc's os/litebsd, and NetBSD 5's binutils 2.16.1 cut to the
+i386 ELF tools, with NetBSD's reachover Makefiles. With them the
+whole release built and its CD installed a system that booted
+(from commit 42744e41 on). They were removed once GCC 2.95.3 did
+the same. What they changed outside contrib/ stays, since each change
+was one a later BSD had made: setmode.c's compress_mode returning
+void, ping's pr_addr taking a struct in_addr, genassym compiled and
+not run (kern/genassym.sh), the i386 descriptor structures packed
+whole, and getrpcent, more and tip given the function types NetBSD
+gives them.
 
 ## E -- a reimplementation of something the Lite cut removed
 

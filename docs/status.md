@@ -29,6 +29,11 @@ the boot blocks load the kernel throughout:
   it boots the install kernel, NetBSD 1.1's installer labels the
   disk, the set is extracted from the CD, and the disk boots by
   itself (install.md, *Installing from the CD*).
+- **Its own compiler.** All of it -- libraries, programs, boot
+  blocks, kernels -- compiled by GCC 2.95.3 and assembled and linked
+  by binutils 2.11.2, the system's toolchain from contrib/, built on
+  the host as a cross toolchain for i386-unknown-bsd4.4elf
+  (roadmap.md, *self-hosting*).
 
 `docs/provenance/install.md` has the procedure and every fault it
 found, each with the commit that answered it; `docs/roadmap.md` has

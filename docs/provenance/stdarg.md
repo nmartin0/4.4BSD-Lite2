@@ -160,6 +160,19 @@ kernel's `printf` passes a `va_list` *through* a `va_list` for its
 construction while `va_list` was spelled `char *` and now is not, so
 it is noted here rather than left to be found.
 
+## And for GCC 2.95, the pointer again
+
+The builtins came with GCC 2.96. GCC 2.95.3, the system's compiler
+since, has no `__builtin_va_list`, so the header now gives it what
+NetBSD 1.6's i386 `<machine/stdarg.h>` gave the same compiler: a
+`char *` va_list, started by `__builtin_next_arg(last)` and stepped
+by `__va_size`. That is not Berkeley's form back again. Berkeley's
+took the address of the last named parameter, which is what failed
+above; `__builtin_next_arg` is the compiler saying where the
+variable arguments begin, as GCC's own `<stdarg.h>` for the i386 had
+it then. `<machine/ansi.h>`'s `_BSD_VA_LIST_` follows, by the same
+test of the GCC version that `<sys/cdefs.h>` uses for `__restrict`.
+
 ## Which files, and which ports
 
 Lite2 ships **three** real `machine/stdarg.h` files; every other port

@@ -96,36 +96,21 @@ from 4.4BSD-Lite too.
 
 ### binutils reads no core files
 
-**To revisit: a stand-in, chosen to be done properly later.** The
-commit that makes it: *libbfd: no core-file reader, for now*.
+**Superseded, and to be measured.** The stand-in this recorded --
+libbfd built without a core-file reader, because NetBSD's name for
+the system gave NetBSD's reader and GNU had no name for a 4.4BSD on
+ELF -- went with contrib/binutils, NetBSD 5's 2.16.1. The first way
+of doing it properly that this entry named is what replaced it: the
+system has a name of its own, `i386-unknown-bsd4.4elf`, in
+`config.bfd` and the configure scripts of contrib/binutils-2.11.2,
+and for a host of that name bfd's configure keeps choosing what it
+chooses for any i386 `*-bsd*` host, `trad-core.c` with
+`hosts/i386bsd.h`, written for 386BSD and BSD/386, whose `struct
+user` is 4.4BSD's.
 
-binutils' library, libbfd, opens a crashed program's core file
-through a reader for the system's own core format. The name this
-tree's binutils is configured under, `i386--netbsdelf`, NetBSD's,
-gives NetBSD's reader, `netbsd-core.c`, which reads NetBSD's format
-and wants its `<sys/core.h>`; this kernel writes 4.4BSD's, and has
-no such header. GNU's name for a 4.4BSD i386, `i386-*-bsd*`, gives
-the reader for that format, `trad-core.c` with `hosts/i386bsd.h`,
-but bfd builds a reader only when host and target have one name, and
-that name makes a.out, not ELF, the default; GNU has no name for a
-4.4BSD with ELF. So libbfd is built without one:
-`contrib/binutils/lib/libbfd/Makefile` filters out `netbsd-core.lo`
-and `-DNETBSD_CORE`, under an `AI-ONLY NOTE` that says so, and the
-generated `arch/i386/defs.mk` is left as mknative writes it. FreeBSD's
-i386 ELF binutils has no core reader either -- bfd's configure gives
-it `COREFILE=''`.
-
-What is lost: objdump and nm cannot open a core dump. Nothing in the
-tree reads one yet; a debugger would.
-
-Done properly, either of:
-
-- a reader for this kernel's core format -- `trad-core.c` with a
-  `hosts/` header for it, selected for this system by name, which
-  wants this system to have a name of its own in binutils'
-  `config.sub`, `bfd/configure` and `config.bfd`;
-- or the kernel writing NetBSD's core format, `<sys/core.h>`, which
-  NetBSD's `netbsd-core.c` then reads as it stands.
+The build host's cross binutils is not such a host and has no reader,
+as no cross binutils does. Whether trad-core reads this kernel's core
+files is to be measured when binutils is built on the system itself.
 
 ### `chrtoblktbl`'s bound is wrong in hp300 and luna68k
 
@@ -350,7 +335,7 @@ line 974."
 
 ## 4. Build-system compromises with a named exit
 
-### The specs file stands in for a cross-compiler
+### ~~The specs file stands in for a cross-compiler~~ FIXED
 
 `9e6bb751`
 
@@ -358,9 +343,11 @@ line 974."
 > and then `-B` suffices. This is a stand-in for a cross-compiler and
 > goes away when there is one.
 
-Chosen over teaching Lite2's rules to cross-link as **NetBSD 10's
-`bsd.prog.mk`** does, "because it leaves the tree untouched and needs
-no unpicking later".
+There is one: GCC 2.95.3 and binutils 2.11.2, built by
+build/sysroot.sh for i386-unknown-bsd4.4elf, which find the target's
+headers, startup files and libraries in the root by themselves,
+through their sys-include and lib. The specs file, and the host
+GCC's flags around it, are gone from build/make.sh.
 
 ### `YACC` still names the packaged byacc
 
