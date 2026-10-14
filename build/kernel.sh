@@ -37,23 +37,17 @@
 #   3. make depend, then make, with bmake reading this tree's own
 #      share/mk.
 #
-# THE KERNEL'S COMPILER SETTINGS ARE THIS PROJECT'S OWN. No BSD of
-# this period cross-compiled a kernel, so there is no donor line for
-# any of them; each is here because a build on this host needed it,
-# and each is named rather than buried:
+# THE COMPILER is the system's, GCC 2.95.3 and binutils 2.11.2, as
+# build/sysroot.sh builds them and build/make.sh gives them to the
+# userland. Of the kernel's settings two are this project's, because
+# the kernel is built against no C library and no installed headers:
 #
-#   -m32, as --32, ld -m elf_i386   this is a 32-bit i386 kernel and
-#       the host compiler is not.
-#   -std=gnu89 -fno-zero-initialized-in-bss   as the userland carries it: GCC 14 makes an implicit
-#       function declaration an error rather than a warning.
-#   -fcommon   GCC has defaulted to -fno-common since 10, and this
-#       kernel declares variables in headers.
-#   -fno-stack-protector, -fno-pic   undo distribution GCC's
-#       defaults, which a freestanding kernel cannot satisfy.
 #   -ffreestanding   there is no hosted C library here.
-#   -nostdinc   the host's headers must not be reachable.
-#   -traditional-cpp for assembly, as NetBSD 1.5's COMPILE.S does, so
-#       this tree's /**/ pasting works.
+#   -nostdinc   the kernel's headers are its own, under ${S}, and the
+#       target root's must not be reached by default.
+#
+# Assembly goes through the compiler's cpp, traditional, as the
+# userland's does, so this tree's /**/ pasting works.
 #
 # The kernel Makefile sets AS, CC, CPP and LD with `=' rather than
 # `?=', so they are passed on bmake's command line, where they beat a
@@ -74,9 +68,9 @@
 # settled decision; it is what compiles, it is confined to this one
 # archive, and it is said here rather than left to be rediscovered.
 #
-# HOST TOOLS: bmake and flex, besides GCC and binutils. The sysroot
-# must have been built first -- build/sysroot.sh -- for the headers
-# and for config itself.
+# HOST TOOLS: bmake and flex, and the host's ar, ranlib and nm. The
+# sysroot must have been built first -- build/sysroot.sh -- for the
+# headers, the toolchain and config itself.
 #
 # WHAT IT DOES NOT DO: it does not link a bootable image. The link
 # runs and reports what is still undefined; docs/status.md records
@@ -123,7 +117,7 @@ MK=$SRC/usr/src/share/mk
 
 pkgs="bmake flex"
 missing=
-for t in bmake flex gcc cpp as ld ar ranlib nm; do
+for t in bmake flex ar ranlib nm; do
 	command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
 done
 [ -z "$missing" ] || {
@@ -149,27 +143,14 @@ CONFDIR=$S/$MACHINE/conf
 [ -f "$CONFDIR/$config" ] || die "no such configuration: $CONFDIR/$config"
 COMPILE=$S/compile/$config
 
-KCC="gcc -m32 -std=gnu89 -fno-zero-initialized-in-bss -fcommon -fno-stack-protector -fno-pic"
-KCC="$KCC -ffreestanding -nostdinc"
-# L2_CC=pcc: the target's own compiler, as build/make.sh takes it.
-# It makes i386 code, puts uninitialised variables in common and
-# initialised ones in .data, and has no stack protector or PIC unless
-# asked, so of the settings above it needs only these.
-if [ "${L2_CC:-}" = pcc ]; then
-	[ -x "$TOOLS/pcc" ] || die "no pcc in $TOOLS -- run build/sysroot.sh first"
-	KCC="$TOOLS/pcc -std=gnu89 -ffreestanding -nostdinc"
-fi
-# and its assembler, linker and nm, contrib/binutils, i386 only; nm
-# reads genassym.o for kern/genassym.sh.
-KAS="as --32"
-KLD="ld -m elf_i386"
-KNM=nm
-if [ "${L2_CC:-}" = pcc ]; then
-	KAS="$TOOLS/i386--netbsdelf-as"
-	KLD="$TOOLS/i386--netbsdelf-ld"
-	KNM="$TOOLS/i386--netbsdelf-nm"
-fi
-KCPP="cpp -m32 -traditional-cpp -nostdinc"
+GT=i386-unknown-bsd4.4elf
+[ -x "$TOOLS/$GT-gcc" ] || die "no $GT-gcc in $TOOLS -- run build/sysroot.sh first"
+KCC="$TOOLS/$GT-gcc -ffreestanding -nostdinc"
+KCPP="$TOOLS/$GT-cpp -traditional -nostdinc"
+KAS="$TOOLS/$GT-as"
+KLD="$TOOLS/$GT-ld"
+# and its nm, which kern/genassym.sh reads genassym.o with.
+KNM="$TOOLS/$GT-nm"
 
 # 1. config
 say "config $config -> $COMPILE"

@@ -9,16 +9,10 @@
 #		-- the first sector from one file, the next 7680 bytes from
 #		the other, with the label's sector left as the other's
 #		first 512 bytes -- is the layout boot2.ldr reserves.
-#   CFLAGS	-falign-*=1 for -malign-*=0, the spelling GCC has used
-#		since; -fno-reorder-functions, without which GCC puts
-#		main() in .text.startup, ahead of btxcsu's _start, and
-#		BTX enters main with __base never set; -ffreestanding,
-#		-fno-asynchronous-unwind-tables, so no .eh_frame is
-#		linked into a binary that must fit in 7680 bytes; and
-#		-Wno-array-bounds, since GCC 12 and later take PTOV(),
-#		an address computed from a constant, for an access
-#		through a null pointer. -elf and -fforce-addr go: this
-#		GCC makes nothing but ELF and no longer has the other.
+#   CFLAGS	FreeBSD 4.1's, which its GCC 2.95.2 compiled boot2 with
+#		and this tree's GCC 2.95.3 takes as they are, but -elf:
+#		FreeBSD's GCC made a.out or ELF and was told which, and
+#		this one makes only ELF.
 #   dd		bs=7680 conv=sync for obs=7680 conv=osync: GNU dd has no
 #		osync, and the two pad the one block the same way.
 #   install	written out with install(1), as this tree's
@@ -48,15 +42,13 @@ BTX=	${.CURDIR}/../btx
 ORG1=	0x7c00
 ORG2=	0x1000
 
-CFLAGS=	-ffreestanding -I${.CURDIR}/../btx/lib -I. \
-	-Os -fno-builtin -fno-reorder-functions \
-	-fno-asynchronous-unwind-tables -fdata-sections \
-	-falign-functions=1 -falign-jumps=1 -falign-loops=1 -mrtd \
+CFLAGS=	-I${.CURDIR}/../btx/lib -I. \
+	-Os -fno-builtin -fforce-addr -fdata-sections \
+	-malign-functions=0 -malign-jumps=0 -malign-loops=0 -mrtd \
 	-mpreferred-stack-boundary=2 \
 	-Wall -Waggregate-return -Wbad-function-cast -Wcast-align \
 	-Wmissing-declarations -Wmissing-prototypes -Wnested-externs \
-	-Wpointer-arith -Wshadow -Wstrict-prototypes -Wwrite-strings \
-	-Wno-array-bounds
+	-Wpointer-arith -Wshadow -Wstrict-prototypes -Wwrite-strings
 
 LDFLAGS=-nostdlib -static -N
 

@@ -81,84 +81,25 @@
 #		target: bin/sh compiles mkinit, mknodes and mksyntax and
 #		runs them to generate source.
 #   CC, CPP, AS, LD
-#		the settings below. Lite2 defaults all four with ?=, so
-#		these take effect and a command-line assignment wins.
+#		the system's compiler, preprocessor, assembler and
+#		linker: GCC 2.95.3 and binutils 2.11.2, from
+#		contrib/gcc-2.95.3 and contrib/binutils-2.11.2, which
+#		build/sysroot.sh builds for this machine as a cross
+#		toolchain for i386-unknown-bsd4.4elf. Lite2 defaults all
+#		four with ?=, so these take effect and a command-line
+#		assignment wins.
 #
-# THE COMPILER SETTINGS, each answering a measured failure
+# THE COMPILER
 #
-#   -m32	32-bit i386.
-#   -std=gnu89	GCC 14 treats an implicit function declaration as an
-#		error; 14 of 40 sampled libc sources use one, sleep.c
-#		among them, which calls sigvec without <sys/signal.h>
-#		declaring it. GCC 13 only warns, so an older host hides
-#		this.
-#   -fno-stack-protector -fno-pic
-#		distribution GCC defaults to both; they leave
-#		__stack_chk_fail_local and _GLOBAL_OFFSET_TABLE_
-#		unresolved.
-#   -fcommon	stdio/glue.h defines __sglue in a header; without this
-#		fwalk.o and findfp.o both define it.
-#   -fno-builtin	a libc implements the functions GCC has built-in
-#		knowledge of, and GCC pattern-matches an
-#		implementation back into a call to itself. At -O2 it
-#		compiles stdlib/calloc.c --
-#
-#			size *= num;
-#			if (p = malloc(size))
-#				bzero(p, size);
-#			return(p);
-#
-#		-- into calloc(size * num, 1) and tail-jumps to
-#		calloc's own entry:
-#
-#			mov    0x8(%esp),%eax
-#			imul   0x4(%esp),%eax
-#			movl   $0x1,0x8(%esp)
-#			mov    %eax,0x4(%esp)
-#			jmp    805d500 <calloc>
-#
-#		Four instructions and no way out. /sbin/init reached
-#		calloc and never returned: five samples of EIP three
-#		seconds apart all read 0x805d500, with no page-fault
-#		storm to explain it. The flag restores the calls the
-#		source asks for -- objdump -r then shows R_386_PC32
-#		relocations against malloc and bzero. Scanning all 478
-#		objects of the built libc.a found calloc the only one
-#		affected, but the flag is applied to the whole library
-#		because that is what a libc needs: the next function
-#		GCC learns about would do the same.
-#   -nostdinc -isystem ROOT/usr/include
-#		the target root's headers, never the host's.
-#   -static	Lite2 has no shared libraries.
-#   -specs=	which startup files and C library to link; see below.
-#   --sysroot=ROOT
-#		"the system is here, not /". NetBSD 10 passes
-#		--sysroot=${DESTDIR}, FreeBSD 13 --sysroot=${WORLDTMP}.
-#   -Wl,-nostdlib
-#		stop the linker searching the directories built into it.
-#		Without it a program asking for -lutil silently linked
-#		the host's /lib32/libutil.a. NetBSD 10's bsd.prog.mk
-#		passes it too.
-#   CPP	for assembly: -traditional-cpp, as NetBSD 1.5's COMPILE.S
-#		preprocesses assembly, so Lite2's /**/ pasting works, and
-#		-I rather than -isystem, which puts a line marker inside
-#		an instruction using a system header's macro.
-#
-# THE SPECS FILE
-#
-# Written to ${L2_BUILD}/build.specs each run. A specs file is how GCC
-# is told which startup files and libraries to link. The recipe is
-# GCC's own NetBSD ELF target definition -- crt0.o, gcrt0.o when
-# profiling, crtbegin.o first, crtend.o last, -lc or -lc_p -- with full
-# paths into the target root, because the host compiler's own search
-# path holds its crtbegin.o, crti.o and libc.a and it finds those
-# first: measured, a plain link took the host's crti.o, crtbeginT.o and
-# glibc.
-#
-# No BSD uses a specs file: they build a compiler for their target, and
-# then -B alone suffices, as NetBSD 10's bsd.prog.mk does. Measured
-# here, -B does not suffice with a host compiler. This file is a
-# stand-in for a cross-compiler and goes away when there is one.
+# Lite2's sys.mk says CC ?= gcc, and this is that, built here to make
+# the target's code. It needs no flags: it makes i386 ELF, puts
+# uninitialised variables in common, and links statically, and it
+# finds the target's headers, startup files and libraries in the root
+# by itself, through the sys-include and lib that sysroot.sh points
+# there. Assembly goes through its cpp, traditional, as Lite2's
+# /usr/bin/cpp ran GCC's (usr.bin/cpp/cpp.sh) -- for the /**/ pasting
+# Lite2's assembly does -- and with the names GCC predefines for the
+# target: __ELF__, which lib/libc/i386/SYS.h tests, among them.
 #
 # WHAT IT DOES NOT DO
 #
@@ -169,9 +110,9 @@
 #   here; share/mk ends such an entry, and 72 of them are reported and
 #   skipped.
 #
-# HOST TOOLS: bmake, and GCC with 32-bit support --
+# HOST TOOLS: bmake, and the toolchain build/sysroot.sh builds --
 #
-#	sudo apt install bmake lib32gcc-14-dev
+#	sudo apt install bmake
 #
 set -e
 
@@ -220,36 +161,11 @@ command -v bmake >/dev/null 2>&1 || {
 	exit 1
 }
 
-libgcc=$(gcc -m32 -print-libgcc-file-name 2>/dev/null || true)
-[ -f "$libgcc" ] || {
-	printf '%s\n' "make.sh: no 32-bit libgcc.a for gcc; install with" >&2
-	printf '%s\n' "  sudo apt install lib32gcc-14-dev" >&2
-	exit 1
-}
-
 ROOT="$L2_BUILD/root"
 OBJ="$L2_BUILD/obj"
 TOOLS="$L2_BUILD/tools/bin"
-SPECS="$L2_BUILD/build.specs"
 
 mkdir -p "$L2_BUILD"
-cat > "$SPECS" <<SPECSEOF
-*startfile:
-%{pg:$ROOT/usr/lib/gcrt0.o} %{!pg:%{p:$ROOT/usr/lib/gcrt0.o} %{!p:$ROOT/usr/lib/crt0.o}} $ROOT/usr/lib/crtbegin.o
-
-*endfile:
-$ROOT/usr/lib/crtend.o
-
-*lib:
-%{!p:%{!pg:-lc}} %{p:-lc_p} %{pg:-lc_p}
-
-*libgcc:
-$libgcc
-
-*link_libgcc:
--L$ROOT/usr/lib
-
-SPECSEOF
 
 # bmake uses MAKEOBJDIRPREFIX only for a directory that already exists,
 # and builds in the source directory otherwise, so the one for this
@@ -295,36 +211,19 @@ LIBOWN="$BINOWN"
 LIBGRP="$BINGRP"
 export BINOWN BINGRP LIBOWN LIBGRP
 LIBMODE=644
-CC="gcc -m32 -std=gnu89 -fcommon -fno-builtin -fno-stack-protector -fno-pic"
-CC="$CC -static"
-CC="$CC -specs=$SPECS --sysroot=$ROOT -Wl,-nostdlib"
-CC="$CC -nostdinc -isystem $ROOT/usr/include"
-# L2_CC=pcc: the target's own compiler instead, contrib/pcc as
-# build/sysroot.sh builds it for this machine -- its driver knows the
-# target's startup files, libraries and headers under --sysroot, so
-# none of the above stands in for them. -static and -std=gnu89 as
-# above: pcc otherwise says C11 in __STDC_VERSION__, and code that
-# tests it -- the scanners host flex writes, for one -- then looks
-# for C99 headers this tree does not have.
-if [ "${L2_CC:-}" = pcc ]; then
-	CC="$TOOLS/pcc --sysroot=$ROOT -static -std=gnu89"
-fi
-CPP="cpp -m32 -traditional-cpp -nostdinc -I$ROOT/usr/include"
+GT=i386-unknown-bsd4.4elf
+CC="$TOOLS/$GT-gcc"
+CPP="$TOOLS/$GT-cpp -traditional"
+AS="$TOOLS/$GT-as"
+LD="$TOOLS/$GT-ld"
 # The few programs a build runs on this machine rather than the
-# target: -std=gnu89 for the same reason the target compiler has it.
+# target: -std=gnu89, because GCC 14 treats an implicit function
+# declaration as an error, which these sources of 1993 make.
 HOSTCC="cc -std=gnu89"
 # byacc, not bison: this tree's grammars use the old yacc form
 # `rule = { action }', which Berkeley yacc accepts and bison 3.8
 # rejects. NetBSD builds its own as nbyacc for the same reason.
 YACC="byacc"
-AS="as --32"
-LD="ld -m elf_i386"
-# and with it the target's assembler and linker, contrib/binutils as
-# build/sysroot.sh builds them; i386 only, so without --32 and -m.
-if [ "${L2_CC:-}" = pcc ]; then
-	AS="$TOOLS/i386--netbsdelf-as"
-	LD="$TOOLS/i386--netbsdelf-ld"
-fi
 export LC_ALL MACHINE MAKEFLAGS DESTDIR MAKEOBJDIRPREFIX PATH
 export LIBMODE CC CPP AS LD HOSTCC YACC
 

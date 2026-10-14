@@ -63,6 +63,12 @@
 #      nblorder, and builds its own yacc as nbyacc. Each carries its
 #      reasoning at its site below.
 #
+#      Then the system's toolchain, binutils 2.11.2 and GCC 2.95.3
+#      (contrib/), built for this machine as a cross toolchain for
+#      i386-unknown-bsd4.4elf, in ${L2_BUILD}/tools, as NetBSD 1.6's
+#      tools/toolchain built the same releases. Everything after it
+#      is compiled with it.
+#
 #   4. The libraries named in $libs, by their own all and install
 #      targets, in that order: libc, libutil, libterm, libcurses,
 #      libedit, libl, libcompat, libm, libkvm, libtelnet and
@@ -104,10 +110,11 @@
 #   the root a program is built against, and building one is a
 #   separate run of build/make.sh in its own directory.
 #
-# HOST TOOLS: bmake, mtree, pax, ctags, flex and m4, besides GCC and
-# binutils --
+# HOST TOOLS: bmake, mtree, pax, ctags, flex and m4, GNU make, and a
+# GCC that builds 32-bit programs, for the toolchain --
 #
-#	sudo apt install bmake mtree-netbsd pax universal-ctags flex m4
+#	sudo apt install bmake mtree-netbsd pax universal-ctags flex m4 \
+#	    make gcc-multilib
 #
 set -e
 
@@ -138,17 +145,20 @@ case "$L2_BUILD" in
 esac
 ROOT="$L2_BUILD/root"
 
-pkgs="bmake mtree-netbsd pax universal-ctags flex m4 make"
+pkgs="bmake mtree-netbsd pax universal-ctags flex m4 make gcc-multilib"
 missing=
 # flex is here because config's scanner is generated from lang.l below.
 # It was used without being checked for, so a host without it got past
 # this point and failed two hundred lines later, inside the config
 # build, with flex's own "not found" and nothing naming the package.
 # m4 and objcopy are for the boot blocks: btx.s goes through m4.
-for t in bmake mtree pax ctags flex m4 gcc cpp as ld ar ranlib nm tsort \
+for t in bmake mtree pax ctags flex m4 gcc ar ranlib nm tsort \
     objcopy make; do
 	command -v "$t" >/dev/null 2>&1 || missing="$missing $t"
 done
+# and 32-bit support in the host's GCC, for the toolchain below.
+[ -f "$(gcc -m32 -print-libgcc-file-name 2>/dev/null)" ] ||
+	missing="$missing gcc-multilib"
 if [ -n "$missing" ]; then
 	printf '%s\n' "sysroot.sh: not found:$missing" >&2
 	printf '%s\n' "  sudo apt install $pkgs" >&2
@@ -278,108 +288,82 @@ $HOSTCC -w -include "$REPO_ROOT/build/elf-host.h" -o "$TOOLS/crunchide" \
     "$C/crunchide/crunchide.c" "$C/crunchide/exec_elf32.c"
 ln -sf "$(command -v bmake)" "$TOOLS/make"
 
-# binutils, the target's assembler, linker and object tools
-# (contrib/binutils, NetBSD 5's 2.16.1), built here for the i386 as
-# NetBSD's tools/binutils builds them: GNU configure for
-# --target=i386--netbsdelf, NetBSD's own name for the i386, without
-# NLS; with a sysroot, given at run time -- pcc passes ld the
-# --sysroot it is given -- and the libraries under it, as NetBSD's
-# tools/binutils configures them today; and every program named with
-# the target in front, so nothing
-# on the PATH make.sh gives shadows the host's own as and ld, which
-# GCC still uses. Only the programs this tree keeps are made, and they
-# are copied in rather than installed, which would want makeinfo.
-# The sources are C89 of 2005: -fcommon and -w, as for pcc, and
-# --disable-werror, since GCC 14 warns where GCC 4 did not. GNU make,
-# not bmake: these are configure's Makefiles.
-B=$SRC/contrib/binutils/dist
-bdir="$L2_BUILD/tools/binutils.build"
-BT=i386--netbsdelf
+# binutils and GCC, the system's assembler, linker and C compiler
+# (contrib/binutils-2.11.2 and contrib/gcc-2.95.3), built here as a
+# cross toolchain for i386-unknown-bsd4.4elf, the way NetBSD 1.6's
+# tools/toolchain built the same two releases for its own build: GNU
+# configure with --prefix in the tools directory, no NLS, binutils
+# first so that GCC is built with the target's as and ld. Each program
+# is installed under the target's name, i386-unknown-bsd4.4elf-gcc and
+# so on, and also, as GNU installs a cross toolchain, by its plain
+# name in tools/i386-unknown-bsd4.4elf/bin, where the GCC driver looks
+# for as and ld.
+#
+# The target's headers and libraries are where GCC and ld of this age
+# look for a cross target's: tools/i386-unknown-bsd4.4elf/sys-include
+# and .../lib, here symbolic links to the root's usr/include and
+# usr/lib. So libgcc is compiled against this tree's headers, the
+# driver finds crt0.o and the rest there, ld finds -lc there, and what
+# is installed in the root later is seen without rebuilding either.
+# ld's scripts, which binutils would install into that lib, go beside
+# it instead; ld has them compiled in and does not read them.
+#
+# Built as 32-bit programs, as they were when these were current:
+# GCC 2.95.3's config.sub has no x86_64, so the build and host are
+# named i686-pc-linux-gnu and the host compiler given -m32. With it,
+# the flags these sources of 2001 need from a compiler of today:
+# -std=gnu89 (HOSTCC), -fcommon, -w; and _FORTIFY_SOURCE off, which
+# Ubuntu's GCC turns on and which stops ar at its first archive: bfd's
+# archive.c writes each header field with sprintf, whose terminating
+# NUL runs one byte into the next field, which is written next. GNU
+# make, not bmake: these are configure's Makefiles. makeinfo is not
+# run, and so not the manuals' install targets either.
+GT=i386-unknown-bsd4.4elf
+GHOST=i686-pc-linux-gnu
+GPFX="$L2_BUILD/tools"
+# shellcheck disable=SC2086  # HOSTCC carries its own flags
+GCC_HOSTCC="$HOSTCC -m32 -fcommon -w -O2 -U_FORTIFY_SOURCE -D_FORTIFY_SOURCE=0"
+gmake=$(command -v gmake || command -v make)
+mkdir -p "$GPFX/$GT"
+ln -sfn "$ROOT/usr/include" "$GPFX/$GT/sys-include"
+ln -sfn "$ROOT/usr/lib" "$GPFX/$GT/lib"
+
+B=$SRC/contrib/binutils-2.11.2
+bdir="$L2_BUILD/tools/binutils-2.11.2.build"
+printf '%s\n' "sysroot.sh: binutils 2.11.2 for $GT -> $GPFX"
 rm -rf "$bdir"
 mkdir -p "$bdir"
 cd "$bdir"
-CC="$HOSTCC -fcommon -w" sh "$B/configure" --target=$BT --disable-nls \
-    --disable-werror --with-sysroot --with-lib-path="=/usr/lib" \
-    >configure.log 2>&1 ||
+CC="$GCC_HOSTCC" sh "$B/configure" --build=$GHOST --host=$GHOST \
+    --target=$GT --prefix="$GPFX" --disable-nls >configure.log 2>&1 ||
 	{ tail configure.log >&2; exit 1; }
-gmake=$(command -v gmake || command -v make)
-"$gmake" -j"$(nproc)" MAKEINFO=true all-gas all-ld configure-binutils \
+"$gmake" -j"$(nproc)" MAKEINFO=true all-gas all-ld all-binutils \
     >make.log 2>&1 || { tail make.log >&2; exit 1; }
-"$gmake" -C binutils -j"$(nproc)" MAKEINFO=true ar ranlib nm-new size \
-    strip-new objcopy objdump readelf >>make.log 2>&1 ||
-	{ tail make.log >&2; exit 1; }
-cp gas/as-new "$TOOLS/$BT-as"
-cp ld/ld-new "$TOOLS/$BT-ld"
-cp binutils/nm-new "$TOOLS/$BT-nm"
-cp binutils/strip-new "$TOOLS/$BT-strip"
-for t in ar ranlib size objcopy objdump readelf; do
-	cp "binutils/$t" "$TOOLS/$BT-$t"
-done
+"$gmake" MAKEINFO=true scriptdir="$GPFX/$GT" \
+    install-gas install-ld install-binutils \
+    >install.log 2>&1 || { tail install.log >&2; exit 1; }
 
-# pcc, the target's C compiler (contrib/pcc, NetBSD's), built here as
-# a cross-compiler: ccom and pcpp, its compiler proper and
-# preprocessor, into tools/libexec, and the driver as tools/bin/pcc.
-# This is NetBSD's tools/pcc in purpose -- the compiler built for the
-# build machine -- by the file lists of contrib/pcc's own Makefiles,
-# with its os/litebsd target and its include/config.h, as
-# build/sysroot.sh builds config and crunchgen. mkext runs here to
-# write the table of instructions ccom is compiled with. As and ld
-# are the target's, from binutils above. CROSS_COMPILING, as
-# pcc's configure defines it when build and target differ, keeps
-# softfloat from checking its arithmetic against this machine's.
-# pcc's sources are C99,
-# so -std=gnu99 where the tree's host tools take gnu89; -fcommon,
-# because they define variables in headers; and _DEFAULT_SOURCE, since
-# include/config.h, written for a NetBSD host, says strlcat and ffs are
-# there, and glibc declares them only so (strlcat from glibc 2.38).
-P=$SRC/contrib/pcc
-D=$P/dist/pcc
-pdir="$L2_BUILD/tools/pcc.build"
-LX="$L2_BUILD/tools/libexec"
-rm -rf "$pdir"
-mkdir -p "$pdir" "$LX"
-pver=$(sed -n 's/^PCC_VERSION=//p' "$P/Makefile.inc")
-pdate=$(sed -n 's/^PCC_DATESTAMP=//p' "$P/Makefile.inc")
-PCPP="-DGCC_COMPAT -DPCC_DEBUG -D_ISOC99_SOURCE -Dos_litebsd -Dmach_i386"
-PCPP="$PCPP -DHOST_LITTLE_ENDIAN -DTARGET_LITTLE_ENDIAN -DCROSS_COMPILING"
-PCPP="$PCPP -I$P/include -I$D/common"
-VERS="-DVERSSTR=\"pcc $pver $pdate for i386--litebsd\""
-PCC_CC="$HOSTCC -std=gnu99 -fcommon -w -D_DEFAULT_SOURCE"
-cd "$pdir"
-# shellcheck disable=SC2086
-$PCC_CC -DMKEXT $PCPP -I"$D/mip" -I"$D/arch/i386" -o mkext \
-    "$D/mip/mkext.c" "$D/arch/i386/table.c" "$D/mip/common.c"
-./mkext
-"$TOOLS/yacc" -d "$D/cc/ccom/cgram.y"
-mv y.tab.c cgram.c
-mv y.tab.h cgram.h
-flex -o scan.c "$D/cc/ccom/scan.l"
-# shellcheck disable=SC2086
-$PCC_CC $PCPP "$VERS" \
-    -I. -I"$D/mip" -I"$D/os/litebsd" -I"$D/arch/i386" -I"$D/cc/ccom" \
-    -o "$LX/ccom" cgram.c scan.c \
-    "$D/cc/ccom/optim.c" "$D/cc/ccom/pftn.c" "$D/cc/ccom/trees.c" \
-    "$D/cc/ccom/inline.c" "$D/cc/ccom/symtabs.c" \
-    "$D/cc/ccom/gcc_compat.c" "$D/cc/ccom/init.c" "$D/arch/i386/local.c" \
-    "$D/arch/i386/code.c" "$D/cc/ccom/stabs.c" "$D/cc/ccom/builtins.c" \
-    "$D/mip/match.c" "$D/mip/reader.c" "$D/mip/optim2.c" "$D/mip/regs.c" \
-    "$D/arch/i386/local2.c" "$D/arch/i386/order.c" \
-    "$D/arch/i386/table.c" "$D/mip/common.c" "$D/cc/ccom/main.c" \
-    external.c "$D/common/unicode.c" "$D/common/compat.c" \
-    "$D/common/softfloat.c" "$D/cc/ccom/dwarf.c"
-# shellcheck disable=SC2086
-$PCC_CC $PCPP "$VERS" -I. -I"$D/mip" -I"$D/cc/cpp" -o "$LX/pcpp" \
-    "$D/cc/cpp/cpc.c" "$D/cc/cpp/cpp.c" "$D/cc/cpp/token.c" \
-    "$D/common/compat.c"
-# shellcheck disable=SC2086
-$PCC_CC $PCPP "$VERS" -DTARGOS=\"litebsd\" -DTARGMACH=\"i386\" \
-    -DLIBEXECDIR=\"$LX/\" -DINCLUDEDIR=\"/usr/include/\" \
-    -DCPPROGNAME=\"pcpp\" -DPREPROCESSOR=\"pcpp\" \
-    -DASSEMBLER=\"$TOOLS/$BT-as\" -DLINKER=\"$TOOLS/$BT-ld\" \
-    -I"$D/cc/driver" -I"$D/mip" -I"$D/os/litebsd" -I"$D/arch/i386" \
-    -DTARGSTR=\"i386--litebsd\" \
-    -o "$TOOLS/pcc" "$D/cc/cc/cc.c" "$D/cc/driver/strlist.c" \
-    "$D/cc/driver/xalloc.c" "$D/common/compat.c"
+G=$SRC/contrib/gcc-2.95.3
+gdir="$L2_BUILD/tools/gcc-2.95.3.build"
+printf '%s\n' "sysroot.sh: GCC 2.95.3 for $GT -> $GPFX"
+rm -rf "$gdir"
+mkdir -p "$gdir"
+cd "$gdir"
+PATH="$GPFX/bin:$PATH" CC="$GCC_HOSTCC" sh "$G/configure" \
+    --build=$GHOST --host=$GHOST --target=$GT --prefix="$GPFX" \
+    --with-gnu-as --with-gnu-ld --enable-languages=c --disable-nls \
+    >configure.log 2>&1 || { tail configure.log >&2; exit 1; }
+PATH="$GPFX/bin:$PATH" "$gmake" -j"$(nproc)" MAKEINFO=true all-gcc \
+    >make.log 2>&1 || { tail make.log >&2; exit 1; }
+PATH="$GPFX/bin:$PATH" "$gmake" -C gcc MAKEINFO=true cpp \
+    >>make.log 2>&1 || { tail make.log >&2; exit 1; }
+(cd gcc && PATH="$GPFX/bin:$PATH" "$gmake" MAKEINFO=true \
+    install-common install-headers install-libgcc install-driver) \
+    >install.log 2>&1 || { tail install.log >&2; exit 1; }
+# and cpp, the preprocessor as a command, which the Makefiles run as a
+# filter on assembly. GCC's own install-cpp would put it in tools/bin
+# as plain `cpp', ahead of the host's; it goes under the target's name.
+install -m 755 gcc/cpp "$GPFX/bin/$GT-cpp"
 
 for lib in $libs; do
 	printf '%s\n' "sysroot.sh: $lib -> $ROOT/usr/lib"
