@@ -98,6 +98,18 @@
 #endif	/* !(__STDC__ || __cplusplus) */
 
 /*
+ * C99's restrict, for <inttypes.h>: the keyword itself in C99, GCC's
+ * own __restrict from 2.92, and nothing before; NetBSD 1.6's
+ * <sys/cdefs.h>, written with this file's test of the GCC version.
+ */
+#if defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#define	__restrict	restrict
+#elif !defined(__GNUC__) || __GNUC__ < 2 || \
+	(__GNUC__ == 2 && __GNUC_MINOR__ < 92)
+#define	__restrict	/* delete __restrict when not supported */
+#endif
+
+/*
  * GCC1 and some versions of GCC2 declare dead (non-returning) and
  * pure (no side effects) functions using "volatile" and "const";
  * unfortunately, these then cause warnings under "-ansi -pedantic".
