@@ -103,11 +103,17 @@
  * region_descriptor. Where a structure in sys/i386 describes a
  * hardware format, check FreeBSD before NetBSD: someone there met a
  * compiler that stopped packing and fixed it.
+ *
+ * Later: the whole structure is packed, as NetBSD's segments.h has
+ * it from revision 1.22 (December 1995, so 1.2 and not 1.1) -- this,
+ * gate_descriptor and region_descriptor -- for pcc, the compiler that
+ * was found: it ignores `packed' on a member and honours it on a
+ * structure. Measured, initialising one descriptor of each: pcc and
+ * GCC lay down the same eight and six bytes, and the right ones.
  */
 struct	segment_descriptor	{
 	unsigned sd_lolimit:16 ;	/* segment extent (lsb) */
-	unsigned sd_lobase:24 __attribute__ ((packed));
-					/* segment base address (lsb) */
+	unsigned sd_lobase:24 ;		/* segment base address (lsb) */
 	unsigned sd_type:5 ;		/* segment type */
 	unsigned sd_dpl:2 ;		/* segment descriptor priority level */
 	unsigned sd_p:1 ;		/* segment descriptor present */
@@ -116,7 +122,7 @@ struct	segment_descriptor	{
 	unsigned sd_def32:1 ;		/* default 32 vs 16 bit size */
 	unsigned sd_gran:1 ;		/* limit granularity (byte/page units)*/
 	unsigned sd_hibase:8 ;		/* segment base address  (msb) */
-} ;
+} __attribute__((packed));
 
 /*
  * Gate descriptors (e.g. indirect descriptors)
@@ -130,7 +136,7 @@ struct	gate_descriptor	{
 	unsigned gd_dpl:2 ;		/* segment descriptor priority level */
 	unsigned gd_p:1 ;		/* segment descriptor present */
 	unsigned gd_hioffset:16 ;	/* gate offset (msb) */
-} ;
+} __attribute__((packed));
 
 /*
  * Generic descriptor
@@ -256,6 +262,10 @@ extern sdtossd() ;	/* to encode a sd */
  * reads. Someone meeting a compiler that did not pack is the likely
  * reason FreeBSD's carries the attribute at all.
  *
+ * Later: packed as a whole structure, as NetBSD's from 1.2, which
+ * pcc honours where it ignores the member's attribute; see
+ * segment_descriptor. Both compilers then put rd_base at offset 2.
+ *
  * This is the other half of the defect `lgdt(gdt, sizeof(gdt)-1)'
  * was: someone changed the calling convention to take a descriptor,
  * wrote locore.s and declared r_gdt and r_idt, and finished neither
@@ -264,8 +274,8 @@ extern sdtossd() ;	/* to encode a sd */
  */
 struct region_descriptor {
 	unsigned rd_limit:16 ;		/* segment extent */
-	unsigned rd_base:32 __attribute__ ((packed));	/* base address  */
-};
+	unsigned rd_base:32 ;		/* base address  */
+} __attribute__((packed));
 
 /*
  * Segment Protection Exception code bits
