@@ -277,7 +277,8 @@ eleven more programs build, and run on the target; and the kernel,
 compiler: pcc*). Then binutils 2.16.1 in contrib/binutils, built on
 the host beside pcc and used by it as its as and ld; ar, ranlib, nm
 and strip in the Makefiles are still the host's (imports.md, *The
-assembler, linker and binary tools*).
+assembler, linker and binary tools*). With them, the whole release
+builds with `L2_CC=pcc', and its CD installs a system that boots.
 
 The stages: (1) pcc as a host tool, replacing the GCC specs file
 (deferred.md, *The specs file stands in for a cross-compiler*), the

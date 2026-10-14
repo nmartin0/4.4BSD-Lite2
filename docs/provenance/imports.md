@@ -609,6 +609,18 @@ the programs above build, and the kernel, which boots, and those
 programs run on it as they did with the host's as and ld. Not yet:
 the reachover Makefiles building them for the target.
 
+The whole release builds so: `L2_CC=pcc sh build/release.sh' compiles
+every library, program and boot block and both kernels with pcc, and
+assembles and links them with these -- no GCC anywhere in it -- and
+the CD it writes installs as install.md's *Installing from the CD*
+has it; the installed system comes up multi-user on its own kernel
+to a login. That took one more change to pcc, pcpp's `#include' of a
+macro, which amd uses (the commit has it), and getrpcent, more and
+tip given the function types pcc requires, as NetBSD declares them.
+amd's fsinfo does not build with pcc, as it does not with GCC: its
+declaration of strdup conflicts with <string.h>'s, and release.sh
+installs amd without it.
+
 ## E -- a reimplementation of something the Lite cut removed
 
 	lib/libcompat/4.3/regex.c   93 lines	NetBSD 1.0
