@@ -587,12 +587,17 @@ permissive alternatives, is in roadmap.md, *self-hosting*.
 Cut to as, ld, ar, ranlib, nm, size, strip, objcopy, objdump and
 readelf for i386 ELF: dist keeps the files a build of those for
 --target=i386--netbsdelf opens -- measured by tracing every file the
-configure and the make opened -- with the licences, the READMEs and
-the programs' manual pages, 441 files and 13 MB of NetBSD's 92 MB.
-Gone: the other targets' back ends, opcode tables and emulations, the
-testsuites, translations, Texinfo manuals, gprof, intl and the CGEN
-cpu descriptions; and addr2line, c++filt and strings, whose sources
-stay but are not built (Lite2 has its own strings).
+configure and the make opened, on a Linux build host -- and the six
+more that NetBSD's reachover Makefiles name for its native i386 build
+and that trace could not see: libiberty's mempcpy, mkstemps, stpcpy,
+stpncpy and strncmp, which glibc supplied, and bfd's netbsd-core.c,
+NetBSD's core-file reader, which a cross-build leaves out. With the
+licences, the READMEs and the programs' manual pages, 447 files and
+13 MB of NetBSD's 92 MB. Gone: the other targets' back ends, opcode
+tables and emulations, the testsuites, translations, gprof, intl,
+the CGEN cpu descriptions, the Texinfo manuals but as.texinfo and
+ld.texinfo, which the build reads, and addr2line, c++filt and
+strings, sources and Makefiles both (Lite2 has its own strings).
 
 Built on the build host by build/sysroot.sh, as NetBSD's
 tools/binutils builds it: GNU configure and GNU make, the programs
@@ -601,8 +606,9 @@ at run time and libraries under =/usr/lib, as NetBSD's tools/binutils
 configures them today. With L2_CC=pcc, pcc assembles and links with
 them, and build/make.sh and build/kernel.sh give them to the Makefiles
 as AS, LD and the kernel's NM. The licence is the GPL, version 2
-(dist/COPYING; libiberty, mostly the LGPL, dist/COPYING.LIB): the one
-GPL part of the toolchain.
+(dist/COPYING), the one GPL part of the toolchain; of libiberty's 48
+files, 20 are under the LGPL, version 2 (dist/COPYING.LIB), 19 under
+the GPL, and 9, strncmp.c among them, carry no licence.
 
 Measured: with them behind pcc, libc, the startup files, bin, sbin and
 the programs above build, and the kernel, which boots, and those
@@ -611,8 +617,7 @@ the reachover Makefiles building them for the target.
 
 The whole release builds so: `L2_CC=pcc sh build/release.sh' compiles
 every library, program and boot block and both kernels with pcc, and
-assembles and links them with these -- no GCC anywhere in it -- and
-the CD it writes installs as install.md's *Installing from the CD*
+assembles and links them with these, and the CD it writes installs as install.md's *Installing from the CD*
 has it; the installed system comes up multi-user on its own kernel
 to a login. That took one more change to pcc, pcpp's `#include' of a
 macro, which amd uses (the commit has it), and getrpcent, more and
@@ -620,6 +625,13 @@ tip given the function types pcc requires, as NetBSD declares them.
 amd's fsinfo does not build with pcc, as it does not with GCC: its
 declaration of strdup conflicts with <string.h>'s, and release.sh
 installs amd without it.
+
+The host's tools still have a part in that build. GCC's preprocessor,
+make.sh's CPP, `cpp -traditional-cpp', puts libc's assembly through
+-- thirty files, each plain and profiled -- and the kernels' locore.s;
+ar, ranlib, nm and strip in the Makefiles are the host's GNU ones; and
+mkdep runs the host's compiler. pcc's own preprocessor in CPP, and
+contrib/binutils' ar, ranlib, nm and strip, are next.
 
 ## E -- a reimplementation of something the Lite cut removed
 
