@@ -129,7 +129,7 @@ clr_linenum()
 /*
  * Calculate the gap for an entry.
  */
-static
+static void
 calcgap(p)
 	register struct linenum *p;
 {

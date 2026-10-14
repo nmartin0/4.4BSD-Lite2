@@ -332,6 +332,7 @@ if (len == 0) len = 1;
 	return (0);
 }
 
+static void
 t3000_write(fd, cp, n)
 int fd;
 char *cp;
@@ -355,6 +356,7 @@ int n;
 }
 
 #ifdef DEBUG
+static void
 t3000_verbose_read()
 {
 	int n = 0;
@@ -381,6 +383,7 @@ static napms = 50; /* Give the t3000 50 milliseconds between characters */
 
 static int ringring;
 
+static void
 t3000_nap()
 {
 

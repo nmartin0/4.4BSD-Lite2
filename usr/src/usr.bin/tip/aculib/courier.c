@@ -306,6 +306,7 @@ coursync()
 	return (0);
 }
 
+static void
 cour_write(fd, cp, n)
 int fd;
 char *cp;
@@ -328,6 +329,7 @@ int n;
 }
 
 #ifdef DEBUG
+static void
 cour_verbose_read()
 {
 	int n = 0;
@@ -354,6 +356,7 @@ static napms = 50; /* Give the courier 50 milliseconds between characters */
 
 static int ringring;
 
+static void
 cour_nap()
 {
 	

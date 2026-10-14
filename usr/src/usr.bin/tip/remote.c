@@ -66,7 +66,7 @@ static char	*db_array[3] = { _PATH_REMOTE, 0, 0 };
 
 #define cgetflag(f)	(cgetcap(bp, f, ':') != NULL)
 
-static
+static void
 getremcap(host)
 	register char *host;
 {
