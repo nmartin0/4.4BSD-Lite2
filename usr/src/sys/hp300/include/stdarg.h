@@ -66,11 +66,37 @@
  * which the compiler now rejects outright at compile time.
  */
 
+/*
+ * GCC before 2.96 has no __builtin_va_list.  For it, va_list is a
+ * pointer again, but started where the compiler says the variable
+ * arguments begin, by __builtin_next_arg, not from the address of the
+ * last named parameter: NetBSD 1.6's <machine/stdarg.h> for the i386,
+ * which it built with GCC 2.95.3, written with <sys/cdefs.h>'s test of
+ * the GCC version.
+ */
+#if defined(__GNUC__) && (__GNUC__ > 2 || \
+	(__GNUC__ == 2 && __GNUC_MINOR__ >= 96))
 typedef __builtin_va_list va_list;
 
 #define	va_start(ap, last)	__builtin_va_start((ap), (last))
 #define	va_arg(ap, type)	__builtin_va_arg((ap), type)
 #define	va_end(ap)		__builtin_va_end((ap))
 #define	__va_copy(dst, src)	__builtin_va_copy((dst), (src))
+#else
+typedef char *va_list;
+
+#define	__va_size(type) \
+	(((sizeof(type) + sizeof(long) - 1) / sizeof(long)) * sizeof(long))
+
+#define	va_start(ap, last) \
+	((ap) = (va_list)__builtin_next_arg(last))
+
+#define	va_arg(ap, type) \
+	(*(type *)(void *)((ap) += __va_size(type), (ap) - __va_size(type)))
+
+#define	va_end(ap)
+
+#define	__va_copy(dst, src)	((dst) = (src))
+#endif
 
 #endif /* !_STDARG_H_ */
