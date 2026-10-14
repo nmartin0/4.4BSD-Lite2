@@ -130,7 +130,8 @@ t3000_abort()
 }
 
 static void
-sigALRM()
+sigALRM(dummy)
+	int dummy;
 {
 	printf("\07timeout waiting for reply\n");
 	timeout = 1;
@@ -412,7 +413,8 @@ t3000_nap()
 }
 
 static void
-t3000_napx()
+t3000_napx(dummy)
+	int dummy;
 {
         ringring = 1;
 }

@@ -131,7 +131,8 @@ cour_abort()
 }
 
 static void
-sigALRM()
+sigALRM(dummy)
+	int dummy;
 {
 	printf("\07timeout waiting for reply\n");
 	timeout = 1;
@@ -385,7 +386,8 @@ cour_nap()
 }
 
 static void
-cour_napx()
+cour_napx(dummy)
+	int dummy;
 {
         ringring = 1;
 }

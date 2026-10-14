@@ -187,7 +187,8 @@ expect(cp)
 }
 
 static void
-alarmtr()
+alarmtr(dummy)
+	int dummy;
 {
 	longjmp(Sjbuf, 1);
 }
