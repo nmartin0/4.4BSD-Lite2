@@ -74,6 +74,14 @@ ${PSEUDO}: ${.CURDIR}/${MACHINE}/SYS.h \
 	@${LD} -x -r ${.PREFIX}.po
 	@mv a.out ${.PREFIX}.po
 
+# AI-ONLY NOTE: as FreeBSD 2.0's list has it. ptrace.0 is not named:
+# its source, ptrace.2, is not in 4.4BSD-Lite2, which cut it with the
+# body of ptrace itself (sys/kern/sys_process.c: `Body deleted', and
+# ENOSYS), and a page for a call this kernel does not make would
+# describe another system; NetBSD 1.1's, which is in the public domain,
+# goes in with the call. And Lite2's list named munmap.0 to quotactl.0
+# a second time, on a line of its own, which installs each of those
+# pages twice; the line goes.
 MAN2+=	accept.0 access.0 acct.0 adjtime.0 bind.0 brk.0 chdir.0 chflags.0 \
 	chmod.0 chown.0 chroot.0 close.0 connect.0 dup.0 execve.0 _exit.0 \
 	fcntl.0 flock.0 fork.0 fsync.0 getdirentries.0 getdtablesize.0 \
@@ -83,8 +91,7 @@ MAN2+=	accept.0 access.0 acct.0 adjtime.0 bind.0 brk.0 chdir.0 chflags.0 \
 	intro.0 ioctl.0 kill.0 ktrace.0 link.0 listen.0 lseek.0 \
 	mkdir.0 mkfifo.0 mknod.0 madvise.0 mincore.0 mlock.0 mmap.0 \
 	mount.0 mprotect.0 msync.0 munmap.0 \
-	nfssvc.0 open.0 pathconf.0 pipe.0 profil.0 ptrace.0 quotactl.0 \
-	munmap.0 nfssvc.0 open.0 pipe.0 profil.0 ptrace.0 quotactl.0 \
+	nfssvc.0 open.0 pathconf.0 pipe.0 profil.0 quotactl.0 \
 	read.0 readlink.0 reboot.0 recv.0 rename.0 revoke.0 rmdir.0 \
 	select.0 send.0 setgroups.0 setpgid.0 setsid.0 setuid.0 shutdown.0 \
 	sigaction.0 sigpending.0 sigprocmask.0 sigreturn.0 sigaltstack.0 \
