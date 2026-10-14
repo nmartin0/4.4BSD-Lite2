@@ -647,7 +647,20 @@ void dwarf_end(void);
 #endif
 
 /* Generate a bitmask from a given type size */
-#define SZMASK(y) ((((1LL << ((y)-1))-1) << 1) | 1)
+/*
+ * AI-ONLY NOTE: an empty mask for a size of 0. The expression below
+ * shifts by -1 then, which C leaves undefined; on an x86 build host
+ * the count is taken modulo 64 and the mask comes out all ones.
+ * wrualfld asks for SZMASK(off) to keep the bits before a field that
+ * straddles bytes, and off is 0 for one that starts a byte, so every
+ * store to such a field in a packed structure -- i386's descriptor
+ * tables, here -- ORed the new value into the old instead of
+ * replacing it: setidt, called twice for an interrupt vector, left a
+ * handler address that was neither. Measured on this tree's kernel,
+ * built by pcc: the first disk interrupt jumped into the middle of
+ * the next vector's code. The one line changed is this macro.
+ */
+#define SZMASK(y) ((y) == 0 ? 0 : ((((1LL << ((y)-1))-1) << 1) | 1))
 
 /*
  * finction specifiers.
