@@ -199,13 +199,13 @@ usr.bin/ld, GNU ld 1.x, are a.out tools; all C89. So this began with
 a decision: which compiler, assembler and linker, from where, and
 whether the first stage is a cross-build from the host.
 
-**Decided: pcc now, to reach a self-hosting system soonest.** The
-Portable C Compiler -- BSD-licensed, about 1.5 MB, C99 with parts of
-C11 -- as NetBSD carries it in src/external/bsd/pcc (1.2.0.DEVEL,
-20160208, imported 2016-02-09, with BSD-make Makefiles for cpp, ccom
-and the driver); OpenBSD carried an earlier one in usr.bin/pcc from
-2007 to 2012. It emits GNU-syntax assembly and runs the system's `as`
-and `ld`.
+**Decided first, and superseded below: pcc, to reach a self-hosting
+system soonest.** The Portable C Compiler -- BSD-licensed, about 1.5
+MB, C99 with parts of C11 -- as NetBSD carries it in
+src/external/bsd/pcc (1.2.0.DEVEL, 20160208, imported 2016-02-09, with
+BSD-make Makefiles for cpp, ccom and the driver); OpenBSD carried an
+earlier one in usr.bin/pcc from 2007 to 2012. It emits GNU-syntax
+assembly and runs the system's `as` and `ld`.
 
 **The assembler, linker and binary tools: NetBSD 5's binutils 2.16.1**
 -- gnu/dist/binutils with the reachover Makefiles of
@@ -285,13 +285,74 @@ The stages: (1) pcc as a host tool, replacing the GCC specs file
 tree rebuilt with it; (2) pcc and binutils 2.16.1 built by that pcc
 and installed on the target; (3) the target rebuilding itself.
 
-**To revisit: the toolchain, for modern C.** pcc reaches C99 and
-parts of C11; the aim is C17 and later, and modern POSIX. Where this
-should end: native BSD tooling -- BSD make, elftoolchain -- and GCC as
-the compiler. NetBSD builds GCC (14.4 today) and binutils with its own
-make framework, external/gpl3/gcc/usr.bin, which is the donor to
-measure then. lld (Apache-2.0) is the permissive alternative to GNU
-ld, as OpenBSD uses on i386. Revisit once the system builds itself.
+**Superseded: the GNU toolchain, as 4.4BSD itself used.** pcc was
+chosen for its licence. Asked what Lite2 actually used, the tree
+answers plainly: sys.mk says `CC ?= gcc`, contrib/gcc-2.3.3 and
+contrib/gas-1.38 are GNU's, usr.bin/ld is GNU ld, and the 4.4BSD
+setup notes (share/doc/smm/01.setup/3.t) list "Replacement of pcc
+with gcc suite" among the release's changes. So the toolchain is GNU's
+again, GPL and all, in two generations:
+
+	contrib/gcc-2.95.3, contrib/binutils-2.11.2   the system's cc, as,
+	        ld: NetBSD 1.6's pair, "2.95.3 (NetBSD nb3)", "2.11.2nb1"
+	contrib/gcc-4.2.1, contrib/binutils-2.15      beside it, for newer
+	        C: FreeBSD 7.0 and 8.0's pair, GCC's C compiler only
+
+Each is GNU's release, whole and untouched, with the donor BSD's
+changes committed on top as a separate commit, recovered by comparing
+the donor's tree with the release. Each builds the way Lite2 built
+contrib/gcc-2.3.3 and contrib/gdb-4.7.LBL: a README.BSD and a small
+BSD `makefile` that configures GNU's sources for the machine and runs
+GNU's own Makefiles under the system's make. The target is
+`i386-unknown-bsd4.4elf`, this system's own name, not NetBSD's.
+
+Done: the 2.95.3 pair imported, with NetBSD 1.6's changes. Measured
+before going further: built on the host as a cross toolchain (as a
+32-bit host program; GCC 2.95.3's config.sub predates x86_64), it
+compiles and links a program against this tree's libc and startup
+files, once <machine/stdarg.h> and <machine/ansi.h> give GCC 2.95 the
+`char *` va_list NetBSD 1.6's headers give it.
+
+Next, in order: this system as a target in both; the host build in
+`build/`, and the release built with it; README.BSD and the makefile,
+and the system rebuilding its own compiler; then the 4.2.1 pair the
+same way; then contrib/pcc and contrib/binutils (2.16.1) removed.
+
+**Later: GCC's other languages.** GCC 2.95.3 is imported whole, with
+its C++, Objective C, Fortran 77, CHILL and Java front ends. C comes
+first, then C++, which Lite2's own groff and libg++ are written in.
+Fortran
+(g77, libf2c) and Java (gcc/java; its runtime, libgcj, was a separate
+release) are to be taken up once C builds the system.
+
+## Ports
+
+**Decided: FreeBSD's ports framework, as of 1997.** Jordan Hubbard's
+bsd.port.mk (public domain), from FreeBSD 2.2.2's ports.tgz on
+archive.freebsd.org (May 1997), the earliest copy that survives
+whole: /usr/ports, packages installed under /usr/local and recorded
+in /var/db/pkg, as hier(7) in this tree already describes those
+directories. Measured: both its 1995 and 1997 frameworks run under
+Lite2's make, and NetBSD's pkgsrc of the 1.6 era does not (it needs
+NetBSD's make and bsd.own.mk). The 1997 framework over the 1995 one:
+24 new documented variables and four dropped, eight more targets,
+and each installed package recording which others need it
+(+REQUIRED_BY), so that pkg_delete can tell what is still in use.
+
+What it needs that the release does not yet carry: make and
+/usr/share/mk in the base set, and tr, sort, patch, xargs, cksum,
+gzip, mtree and ftp; and from FreeBSD 2.2, pkg_install (pkg_add,
+pkg_create, pkg_delete, pkg_info), md5, fetch and a tar that reads
+gzip.
+
+**Deferred: removing a program together with what it pulled in.**
+Installing a port installs its dependencies with it; removing one
+removes that package alone, as in FreeBSD at the time, and leftover
+dependencies are removed by hand, newest first. pkg_cutleaves (Stefan
+Walter, 2003; the 2006 version uses plain pkg_delete) is the period
+tool that does this, as a port: it needs Perl 5, which FreeBSD 2.2's
+ports tree carries as lang/perl5 (the base system has Perl 4.036, in
+contrib/perl-4.036). To be taken up after the framework is in.
 
 ## Tier 2 — modern hardware
 
