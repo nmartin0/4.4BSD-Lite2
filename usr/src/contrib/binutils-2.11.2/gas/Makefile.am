@@ -328,6 +328,7 @@ OBJ_FORMAT_HFILES = \
 TARG_ENV_HFILES = \
 	config/te-386bsd.h \
 	config/te-aux.h \
+	config/te-bsd44.h \
 	config/te-delta.h \
 	config/te-delt88.h \
 	config/te-dpx2.h \

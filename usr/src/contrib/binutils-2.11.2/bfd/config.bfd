@@ -343,6 +343,9 @@ case "${targ}" in
     targ_defvec=i386dynix_vec
     targ_underscore=yes
     ;;
+  i[3456]86-*-bsd4.4elf*)
+    targ_defvec=bfd_elf32_i386_vec
+    ;;
   i[3456]86-*-bsd*)
     targ_defvec=i386bsd_vec
     targ_underscore=yes
