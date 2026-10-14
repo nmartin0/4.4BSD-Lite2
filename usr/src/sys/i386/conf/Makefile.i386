@@ -174,16 +174,21 @@ af.o uipc_proto.o locore.o: Makefile
 # depend on maxusers
 assym.s: Makefile
 
-assym.s: genassym
-	./genassym >assym.s
+# AI-ONLY NOTE: genassym.c is compiled and not run; kern/genassym.sh
+# reads its constants back with nm. The rules are FreeBSD 5.0's
+# kern.post.mk's, with this file's flags for the compile; and depend
+# records genassym.o's headers, without mkdep -p, which was for the
+# program.
+assym.s: $S/kern/genassym.sh genassym.o
+	NM=${NM} sh $S/kern/genassym.sh genassym.o > ${.TARGET}
 
-genassym:
-	${CC} ${INCLUDES} ${IDENT} ${PARAM} -Di386 -o genassym \
+genassym.o: ${I386}/i386/genassym.c
+	${CC} -c ${INCLUDES} ${IDENT} ${PARAM} -Di386 \
 	    ${I386}/i386/genassym.c
 
 depend: assym.s param.c vnode_if.h
 	mkdep ${COPTS} ${CFILES} ioconf.c param.c
-	mkdep -a -p ${INCLUDES} ${IDENT} ${PARAM} ${I386}/i386/genassym.c
+	mkdep -a ${INCLUDES} ${IDENT} ${PARAM} ${I386}/i386/genassym.c
 
 links:
 	egrep '#if' ${CFILES} | sed -f $S/conf/defines | \

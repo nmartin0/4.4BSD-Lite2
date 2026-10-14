@@ -222,6 +222,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	the slice layer, 4 files	FreeBSD 2.1.0, 2 lines changed
 	config: isa_biotab		FreeBSD 2.1.0, adapted
 	contrib/pcc			NetBSD's framework, pcc 20220331, adapted
+	kern/genassym.sh, sys/assym.h	FreeBSD 5.0, unmodified
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.

@@ -70,126 +70,127 @@ static char sccsid[] = "@(#)genassym.c	8.2 (Berkeley) 9/23/93";
 #include <machine/pmap.h>
 #include <sys/user.h>
 
-main()
-{
-	struct proc *p = (struct proc *)0;
-	struct vmmeter *vm = (struct vmmeter *)0;
-	struct user *up = (struct user *)0;
-	struct rusage *rup = (struct rusage *)0;
-	struct uprof *uprof = (struct uprof *)0;
-	struct vmspace *vms = (struct vmspace *)0;
-	vm_map_t map = (vm_map_t)0;
-	pmap_t pmap = (pmap_t)0;
-	struct pcb *pcb = (struct pcb *)0;
-	register unsigned i;
+/*
+ * AI-ONLY NOTE: ASSYM rather than printf, as FreeBSD 5.0's genassym.c
+ * has it, for kern/genassym.sh, which reads the values back out of
+ * this file's object with nm: this file is compiled and not run, so
+ * a compiler for the target need not make programs the build machine
+ * can run. Each `&p->p_forw' of Lite2's became an offsetof() of the
+ * same member, as FreeBSD's are written; offsetof is defined as this
+ * tree's <stddef.h> defines it, which the kernel cannot include, and
+ * as FreeBSD 2.1.0's diskslice_machdep.c, in this tree, defines it
+ * for itself.
+ */
+#include <sys/assym.h>
 
-	printf("#define\tI386_CR3PAT %d\n", I386_CR3PAT);
-	/*
-	 * AI-ONLY NOTE: MD_EIP and MD_ESP, the byte offsets of
-	 * md_regs[sEIP] and md_regs[sESP].
-	 *
-	 * i386/locore.s builds the frame it lrets to user with and
-	 * needs both out of it. It named them 11*4 and 9*4, which are
-	 * the only raw structure offsets in that file: everything else
-	 * goes through this program, PCB_ONFAULT and PCB_CR3 among
-	 * them. <machine/reg.h> is already included above, so the
-	 * indices are in scope and the arithmetic belongs here rather
-	 * than in the assembly, where a change to reg.h would not reach
-	 * it.
-	 */
-	printf("#define\tMD_EIP %d\n", sEIP * sizeof(int));
-	printf("#define\tMD_ESP %d\n", sESP * sizeof(int));
-	printf("#define\tUDOT_SZ %d\n", sizeof(struct user));
-	printf("#define\tP_FORW %d\n", &p->p_forw);
-	printf("#define\tP_BACK %d\n", &p->p_back);
-	printf("#define\tP_VMSPACE %d\n", &p->p_vmspace);
-	printf("#define\tVM_PMAP %d\n", &vms->vm_pmap);
-	printf("#define\tP_ADDR %d\n", &p->p_addr);
-	printf("#define\tP_PRIORITY %d\n", &p->p_priority);
-	printf("#define\tP_STAT %d\n", &p->p_stat);
-	printf("#define\tP_WCHAN %d\n", &p->p_wchan);
-	printf("#define\tP_FLAG %d\n", &p->p_flag);
-	printf("#define\tP_PID %d\n", &p->p_pid);
-	printf("#define\tSSLEEP %d\n", SSLEEP);
-	printf("#define\tSRUN %d\n", SRUN);
-	printf("#define\tV_SWTCH %d\n", &vm->v_swtch);
-	printf("#define\tV_TRAP %d\n", &vm->v_trap);
-	printf("#define\tV_SYSCALL %d\n", &vm->v_syscall);
-	printf("#define\tV_INTR %d\n", &vm->v_intr);
-	printf("#define\tV_SOFT %d\n", &vm->v_soft);
-	printf("#define\tV_FAULTS %d\n", &vm->v_faults);
-	printf("#define\tUPAGES %d\n", UPAGES);
-	printf("#define\tHIGHPAGES %d\n", HIGHPAGES);
-	printf("#define\tCLSIZE %d\n", CLSIZE);
-	printf("#define\tNBPG %d\n", NBPG);
-	printf("#define\tUPTDI 0x%x\n", UPTDI);
-	printf("#define\tPTDPTDI 0x%x\n", PTDPTDI);
-	printf("#define\tKPTDI_FIRST 0x%x\n", KPTDI_FIRST);
-	printf("#define\tKPTDI_LAST 0x%x\n", KPTDI_LAST);
-	printf("#define\tNKPDE %d\n", NKPDE);
-	printf("#define\tPD_SHIFT %d\n", PD_SHIFT);
-	printf("#define\tNPTEPG %d\n", NPTEPG);
-	printf("#define\tPGSHIFT %d\n", PGSHIFT);
-	printf("#define\tPDRSHIFT %d\n", PDRSHIFT);
-	printf("#define\tSYSPTSIZE %d\n", SYSPTSIZE);
-	printf("#define\tUSRPTSIZE %d\n", USRPTSIZE);
-	printf("#define\tUSRIOSIZE %d\n", USRIOSIZE);
+#define	offsetof(type, member)	((size_t)(&((type *)0)->member))
+
+ASSYM(I386_CR3PAT, I386_CR3PAT);
+
+/*
+ * AI-ONLY NOTE: MD_EIP and MD_ESP, the byte offsets of
+ * md_regs[sEIP] and md_regs[sESP].
+ *
+ * i386/locore.s builds the frame it lrets to user with and
+ * needs both out of it. It named them 11*4 and 9*4, which are
+ * the only raw structure offsets in that file: everything else
+ * goes through this file, PCB_ONFAULT and PCB_CR3 among
+ * them. <machine/reg.h> is already included above, so the
+ * indices are in scope and the arithmetic belongs here rather
+ * than in the assembly, where a change to reg.h would not reach
+ * it.
+ */
+ASSYM(MD_EIP, sEIP * sizeof(int));
+ASSYM(MD_ESP, sESP * sizeof(int));
+ASSYM(UDOT_SZ, sizeof(struct user));
+ASSYM(P_FORW, offsetof(struct proc, p_forw));
+ASSYM(P_BACK, offsetof(struct proc, p_back));
+ASSYM(P_VMSPACE, offsetof(struct proc, p_vmspace));
+ASSYM(VM_PMAP, offsetof(struct vmspace, vm_pmap));
+ASSYM(P_ADDR, offsetof(struct proc, p_addr));
+ASSYM(P_PRIORITY, offsetof(struct proc, p_priority));
+ASSYM(P_STAT, offsetof(struct proc, p_stat));
+ASSYM(P_WCHAN, offsetof(struct proc, p_wchan));
+ASSYM(P_FLAG, offsetof(struct proc, p_flag));
+ASSYM(P_PID, offsetof(struct proc, p_pid));
+ASSYM(SSLEEP, SSLEEP);
+ASSYM(SRUN, SRUN);
+ASSYM(V_SWTCH, offsetof(struct vmmeter, v_swtch));
+ASSYM(V_TRAP, offsetof(struct vmmeter, v_trap));
+ASSYM(V_SYSCALL, offsetof(struct vmmeter, v_syscall));
+ASSYM(V_INTR, offsetof(struct vmmeter, v_intr));
+ASSYM(V_SOFT, offsetof(struct vmmeter, v_soft));
+ASSYM(V_FAULTS, offsetof(struct vmmeter, v_faults));
+ASSYM(UPAGES, UPAGES);
+ASSYM(HIGHPAGES, HIGHPAGES);
+ASSYM(CLSIZE, CLSIZE);
+ASSYM(NBPG, NBPG);
+ASSYM(UPTDI, UPTDI);
+ASSYM(PTDPTDI, PTDPTDI);
+ASSYM(KPTDI_FIRST, KPTDI_FIRST);
+ASSYM(KPTDI_LAST, KPTDI_LAST);
+ASSYM(NKPDE, NKPDE);
+ASSYM(PD_SHIFT, PD_SHIFT);
+ASSYM(NPTEPG, NPTEPG);
+ASSYM(PGSHIFT, PGSHIFT);
+ASSYM(PDRSHIFT, PDRSHIFT);
+ASSYM(SYSPTSIZE, SYSPTSIZE);
+ASSYM(USRPTSIZE, USRPTSIZE);
+ASSYM(USRIOSIZE, USRIOSIZE);
 #ifdef SYSVSHM
-	printf("#define\tSHMMAXPGS %d\n", SHMMAXPGS);
+ASSYM(SHMMAXPGS, SHMMAXPGS);
 #endif
-	printf("#define\tUSRSTACK %d\n", USRSTACK);
-	printf("#define\tMSGBUFPTECNT %d\n", btoc(sizeof (struct msgbuf)));
-	printf("#define\tNMBCLUSTERS %d\n", NMBCLUSTERS);
-	printf("#define\tMCLBYTES %d\n", MCLBYTES);
-	printf("#define\tPCB_LINK %d\n", &pcb->pcb_tss.tss_link);
-	printf("#define\tPCB_ESP0 %d\n", &pcb->pcb_tss.tss_esp0);
-	printf("#define\tPCB_SS0 %d\n", &pcb->pcb_tss.tss_ss0);
-	printf("#define\tPCB_ESP1 %d\n", &pcb->pcb_tss.tss_esp1);
-	printf("#define\tPCB_SS1 %d\n", &pcb->pcb_tss.tss_ss1);
-	printf("#define\tPCB_ESP2 %d\n", &pcb->pcb_tss.tss_esp2);
-	printf("#define\tPCB_SS2 %d\n", &pcb->pcb_tss.tss_ss2);
-	printf("#define\tPCB_CR3 %d\n", &pcb->pcb_tss.tss_cr3);
-	printf("#define\tPCB_EIP %d\n", &pcb->pcb_tss.tss_eip);
-	printf("#define\tPCB_EFLAGS %d\n", &pcb->pcb_tss.tss_eflags);
-	printf("#define\tPCB_EAX %d\n", &pcb->pcb_tss.tss_eax);
-	printf("#define\tPCB_ECX %d\n", &pcb->pcb_tss.tss_ecx);
-	printf("#define\tPCB_EDX %d\n", &pcb->pcb_tss.tss_edx);
-	printf("#define\tPCB_EBX %d\n", &pcb->pcb_tss.tss_ebx);
-	printf("#define\tPCB_ESP %d\n", &pcb->pcb_tss.tss_esp);
-	printf("#define\tPCB_EBP %d\n", &pcb->pcb_tss.tss_ebp);
-	printf("#define\tPCB_ESI %d\n", &pcb->pcb_tss.tss_esi);
-	printf("#define\tPCB_EDI %d\n", &pcb->pcb_tss.tss_edi);
-	printf("#define\tPCB_ES %d\n", &pcb->pcb_tss.tss_es);
-	printf("#define\tPCB_CS %d\n", &pcb->pcb_tss.tss_cs);
-	printf("#define\tPCB_SS %d\n", &pcb->pcb_tss.tss_ss);
-	printf("#define\tPCB_DS %d\n", &pcb->pcb_tss.tss_ds);
-	printf("#define\tPCB_FS %d\n", &pcb->pcb_tss.tss_fs);
-	printf("#define\tPCB_GS %d\n", &pcb->pcb_tss.tss_gs);
-	printf("#define\tPCB_LDT %d\n", &pcb->pcb_tss.tss_ldt);
-	printf("#define\tPCB_IOOPT %d\n", &pcb->pcb_tss.tss_ioopt);
-	printf("#define\tNKMEMCLUSTERS %d\n", NKMEMCLUSTERS);
-	printf("#define\tU_PROF %d\n", &up->u_stats.p_prof);
-	printf("#define\tU_PROFSCALE %d\n", &up->u_stats.p_prof.pr_scale);
-	printf("#define\tPR_BASE %d\n", &uprof->pr_base);
-	printf("#define\tPR_SIZE %d\n", &uprof->pr_size);
-	printf("#define\tPR_OFF %d\n", &uprof->pr_off);
-	printf("#define\tPR_SCALE %d\n", &uprof->pr_scale);
-	printf("#define\tRU_MINFLT %d\n", &rup->ru_minflt);
-	printf("#define\tPCB_FLAGS %d\n", &pcb->pcb_flags);
-	printf("#define\tPCB_SAVEFPU %d\n", &pcb->pcb_savefpu);
-	printf("#define\tFP_WASUSED %d\n", FP_WASUSED);
-	printf("#define\tFP_NEEDSSAVE %d\n", FP_NEEDSSAVE);
-	printf("#define\tFP_NEEDSRESTORE %d\n", FP_NEEDSRESTORE);
-	printf("#define\tFP_USESEMC %d\n", FP_USESEMC);
-	printf("#define\tPCB_SAVEEMC %d\n", &pcb->pcb_saveemc);
-	printf("#define\tPCB_CMAP2 %d\n", &pcb->pcb_cmap2);
-	printf("#define\tPCB_SIGC %d\n", pcb->pcb_sigc);
-	printf("#define\tPCB_IML %d\n", &pcb->pcb_iml);
-	printf("#define\tPCB_ONFAULT %d\n", &pcb->pcb_onfault);
+ASSYM(USRSTACK, USRSTACK);
+ASSYM(MSGBUFPTECNT, btoc(sizeof (struct msgbuf)));
+ASSYM(NMBCLUSTERS, NMBCLUSTERS);
+ASSYM(MCLBYTES, MCLBYTES);
+ASSYM(PCB_LINK, offsetof(struct pcb, pcb_tss.tss_link));
+ASSYM(PCB_ESP0, offsetof(struct pcb, pcb_tss.tss_esp0));
+ASSYM(PCB_SS0, offsetof(struct pcb, pcb_tss.tss_ss0));
+ASSYM(PCB_ESP1, offsetof(struct pcb, pcb_tss.tss_esp1));
+ASSYM(PCB_SS1, offsetof(struct pcb, pcb_tss.tss_ss1));
+ASSYM(PCB_ESP2, offsetof(struct pcb, pcb_tss.tss_esp2));
+ASSYM(PCB_SS2, offsetof(struct pcb, pcb_tss.tss_ss2));
+ASSYM(PCB_CR3, offsetof(struct pcb, pcb_tss.tss_cr3));
+ASSYM(PCB_EIP, offsetof(struct pcb, pcb_tss.tss_eip));
+ASSYM(PCB_EFLAGS, offsetof(struct pcb, pcb_tss.tss_eflags));
+ASSYM(PCB_EAX, offsetof(struct pcb, pcb_tss.tss_eax));
+ASSYM(PCB_ECX, offsetof(struct pcb, pcb_tss.tss_ecx));
+ASSYM(PCB_EDX, offsetof(struct pcb, pcb_tss.tss_edx));
+ASSYM(PCB_EBX, offsetof(struct pcb, pcb_tss.tss_ebx));
+ASSYM(PCB_ESP, offsetof(struct pcb, pcb_tss.tss_esp));
+ASSYM(PCB_EBP, offsetof(struct pcb, pcb_tss.tss_ebp));
+ASSYM(PCB_ESI, offsetof(struct pcb, pcb_tss.tss_esi));
+ASSYM(PCB_EDI, offsetof(struct pcb, pcb_tss.tss_edi));
+ASSYM(PCB_ES, offsetof(struct pcb, pcb_tss.tss_es));
+ASSYM(PCB_CS, offsetof(struct pcb, pcb_tss.tss_cs));
+ASSYM(PCB_SS, offsetof(struct pcb, pcb_tss.tss_ss));
+ASSYM(PCB_DS, offsetof(struct pcb, pcb_tss.tss_ds));
+ASSYM(PCB_FS, offsetof(struct pcb, pcb_tss.tss_fs));
+ASSYM(PCB_GS, offsetof(struct pcb, pcb_tss.tss_gs));
+ASSYM(PCB_LDT, offsetof(struct pcb, pcb_tss.tss_ldt));
+ASSYM(PCB_IOOPT, offsetof(struct pcb, pcb_tss.tss_ioopt));
+ASSYM(NKMEMCLUSTERS, NKMEMCLUSTERS);
+ASSYM(U_PROF, offsetof(struct user, u_stats.p_prof));
+ASSYM(U_PROFSCALE, offsetof(struct user, u_stats.p_prof.pr_scale));
+ASSYM(PR_BASE, offsetof(struct uprof, pr_base));
+ASSYM(PR_SIZE, offsetof(struct uprof, pr_size));
+ASSYM(PR_OFF, offsetof(struct uprof, pr_off));
+ASSYM(PR_SCALE, offsetof(struct uprof, pr_scale));
+ASSYM(RU_MINFLT, offsetof(struct rusage, ru_minflt));
+ASSYM(PCB_FLAGS, offsetof(struct pcb, pcb_flags));
+ASSYM(PCB_SAVEFPU, offsetof(struct pcb, pcb_savefpu));
+ASSYM(FP_WASUSED, FP_WASUSED);
+ASSYM(FP_NEEDSSAVE, FP_NEEDSSAVE);
+ASSYM(FP_NEEDSRESTORE, FP_NEEDSRESTORE);
+ASSYM(FP_USESEMC, FP_USESEMC);
+ASSYM(PCB_SAVEEMC, offsetof(struct pcb, pcb_saveemc));
+ASSYM(PCB_CMAP2, offsetof(struct pcb, pcb_cmap2));
+ASSYM(PCB_SIGC, offsetof(struct pcb, pcb_sigc));
+ASSYM(PCB_IML, offsetof(struct pcb, pcb_iml));
+ASSYM(PCB_ONFAULT, offsetof(struct pcb, pcb_onfault));
 
-	printf("#define\tB_READ %d\n", B_READ);
-	printf("#define\tENOENT %d\n", ENOENT);
-	printf("#define\tEFAULT %d\n", EFAULT);
-	printf("#define\tENAMETOOLONG %d\n", ENAMETOOLONG);
-	exit(0);
-}
+ASSYM(B_READ, B_READ);
+ASSYM(ENOENT, ENOENT);
+ASSYM(EFAULT, EFAULT);
+ASSYM(ENAMETOOLONG, ENAMETOOLONG);
