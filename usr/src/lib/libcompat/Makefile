@@ -10,12 +10,12 @@ AINC=	-I${.CURDIR}/../libc/${MACHINE}
 	${.CURDIR}/regexp
 
 # compat 4.1 sources
-# AI-ONLY NOTE: this tree ships none of the 4.1 sources -- lib/compat/4.1
-# holds five manual pages and no code -- so none is named here. NetBSD
-# 1.0 and OpenBSD 1996 name gtty.c, ftime.c and stty.c, the three they
-# have, and comment the rest out; the same practice, applied to what is
-# in this tree.
-SRCS=
+# AI-ONLY NOTE: 4.4BSD-Lite2 ships none of the 4.1 sources --
+# lib/compat/4.1 held five manual pages and no code. gtty.c, ftime.c
+# and stty.c are NetBSD 1.0's, Christopher Demetriou's of 1994, named
+# here as NetBSD 1.0 names them; getpw, vlimit and vtimes have pages
+# and no code, as there.
+SRCS=	gtty.c ftime.c stty.c
 
 .if (${MACHINE} == "vax")
 SRCS+=	reset.s
