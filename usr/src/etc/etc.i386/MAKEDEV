@@ -4,6 +4,7 @@
 #
 
 # Device "make" file.  Valid arguments:
+#	all	makes all known devices, including local devices.
 #	std	standard devices
 #	local	configuration specific devices
 #
@@ -16,7 +17,8 @@
 #	wcd*	"IDE cdrom disks"
 #
 # Terminal ports:
-#	com*	standard PC COM ports
+#	com*	standard PC COM ports			(XXX)
+#	tty*	alias for PC COM ports, this is what the system really wants
 #
 # Pseudo terminals:
 #	pty*	set of 16 master and slave pseudo terminals
@@ -38,6 +40,16 @@ umask 77
 for i
 do
 case $i in
+
+# AI-ONLY NOTE: `all', which Berkeley's MAKEDEVs for every port lack,
+# in the form NetBSD 1.0's, FreeBSD 2.0's and OpenBSD's i386 MAKEDEV
+# give it: MAKEDEV again, naming every device this system configures
+# (sys/i386/conf/GENERIC.i386), and `local'. The installer runs it, as
+# NetBSD 1.1's did. Each name still works by itself.
+all)
+	sh MAKEDEV std fd0 fd1 wd0 wd1 wd2 wd3 wcd0 wt0 tty0 pty0
+	sh MAKEDEV local
+	;;
 
 std)
 	mknod console		c 0 0
@@ -93,9 +105,10 @@ wt*)
 	;;
 
 # AI-ONLY NOTE: units 2 and 3 as well: wd.c is FreeBSD 2.1.0's, which
-# drives two controllers of two disks each, and LINK.i386 configures
+# drives two controllers of two disks each, and GENERIC.i386 configures
 # wd2 and wd3 on the second. Its minors are this script's, unit * 8 +
-# partition. fd shares the entry and is not configured.
+# partition. fd shares the entry; its minors say the drive type too,
+# so fd0a is a 1.44 MB disk and fd0c a 1.2 MB one (i386/isa/fd.c).
 fd*|wd*)
 	umask 2 ; unit=`expr $i : '..\(.*\)'`
 	case $i in
@@ -155,19 +168,18 @@ wcd*)
 	umask 77
 	;;
 
-com*)
-	unit=`expr $i : 'dca\(.*\)'`
-	case $unit in
-	1)
-		mknod com1 c 8 0
-		;;
-	2)
-		mknod com1 c 8 1
-		;;
-	*)
-		echo bad unit for com in: $i
-		;;
-	esac
+# AI-ONLY NOTE: the serial ports as tty00 and up, at major 8 and the
+# unit as minor: NetBSD 1.0's entry, unchanged, which FreeBSD 1.0 and
+# 1.1.5 and OpenBSD's first tree make the same way, and the names
+# Berkeley's own /etc/ttys gives the serial lines on every port. The
+# entry it replaces, Jolitz's of 1991, matched the unit against
+# `dca', hp300's driver name, so it made nothing at all, and its
+# second case would have remade com1.
+com*|tty*)					# (XXX -- com should die)
+	unit=`expr $i : '...\(.*\)'`
+	rm -f com$unit tty0$unit
+	mknod tty0$unit c 8 $unit
+	chown uucp.wheel tty0$unit
 	;;
 
 # AI-ONLY NOTE: ttyXX at character major 5 and ptyXX at 6, where this

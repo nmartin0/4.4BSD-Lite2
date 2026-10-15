@@ -38,10 +38,10 @@
 # interface with an ifconfig line of its own; NetBSD's read
 # /etc/myname and /etc/hostname.<if>, which nothing here reads. So
 # the hostname is written into netstart's line, and the interface's
-# ifconfig line appended to netstart. MAKEDEV makes the nodes the
-# install recipe in docs/provenance/install.md makes, with the second
-# disk and the CD the kernel now drives -- this tree's MAKEDEV has no
-# `all' -- and the password and termcap databases are made here,
+# ifconfig line appended to netstart. `MAKEDEV all' makes the
+# device nodes, as NetBSD 1.1's Configure has it; this tree's MAKEDEV
+# has an `all' for it, naming what the kernel drives. And the
+# password and termcap databases are made here,
 # through chroot, by the installed system's own pwd_mkdb and
 # cap_mkdb: NetBSD's sets carried them made, and these cannot be made
 # on the build host. The databases come first and MAKEDEV runs in the
@@ -171,7 +171,7 @@ Configure()
 
 	echo	""
 	echo -n	"Making device nodes (may take a while)..."
-	chroot ${ROOT} /bin/sh -c 'cd /dev; sh MAKEDEV std wd0 wd1 wcd0 pty0'
+	chroot ${ROOT} /bin/sh -c 'cd /dev; sh MAKEDEV all'
 	echo	" done."
 
 	sync
