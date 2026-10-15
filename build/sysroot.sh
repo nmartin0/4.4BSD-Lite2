@@ -437,7 +437,11 @@ CC="$GCC_HOSTCC" sh "$HG/configure" --build=$GHOST --host=$GHOST \
     --target=$GHOST --with-as="$hgdir/w/as" --with-ld="$hgdir/w/ld" \
     --enable-languages=c++ --disable-nls >configure.log 2>&1 ||
 	{ tail configure.log >&2; exit 1; }
-"$gmake" -j"$(nproc)" MAKEINFO=true all-gcc >make.log 2>&1 ||
+# One job at a time: libgcc2's C++ members (new.o and the rest) are
+# compiled with cc1plus, and GCC 2.95's Makefile does not say so, so
+# under -j they can start before cc1plus exists ("installation
+# problem, cannot exec `cc1plus'"), as a release build here once did.
+"$gmake" MAKEINFO=true all-gcc >make.log 2>&1 ||
 	{ tail make.log >&2; exit 1; }
 lib32=$(dirname "$(gcc -m32 -print-file-name=crt1.o)")
 HOSTCXX="$hgdir/gcc/xgcc -B$hgdir/gcc/ -B$lib32/ -L$lib32"
