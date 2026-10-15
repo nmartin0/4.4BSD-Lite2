@@ -78,6 +78,54 @@
 #define	sESP	(11)
 #define	sSS	(12)
 
+/*
+ * AI-ONLY NOTE: struct reg and struct fpreg, which procfs_regs.c,
+ * procfs_fpregs.c and ptrace's PT_GETREGS family read and write, and
+ * which i386 never defined. struct reg is the one Pendry's i386
+ * procfs code was written against -- NetBSD's reg.h as cgd left it
+ * on 22 December 1993, a fortnight before that code was committed --
+ * in the order of ipcreg[] below, Berkeley's own list of the
+ * registers a debugger is shown. struct fpreg is FreeBSD 2.1.0's,
+ * the 387's save area; nothing fills it yet (docs/deferred.md).
+ */
+
+/*
+ * Registers accessible to ptrace(2) and /proc/$pid/regs.
+ * procfs_machdep.c fills these from whichever frame,
+ * trap or syscall, the process entered the kernel on.
+ */
+struct reg {
+	unsigned int	r_es;
+	unsigned int	r_ds;
+	unsigned int	r_edi;
+	unsigned int	r_esi;
+	unsigned int	r_ebp;
+	unsigned int	r_ebx;
+	unsigned int	r_edx;
+	unsigned int	r_ecx;
+	unsigned int	r_eax;
+	unsigned int	r_eip;
+	unsigned int	r_cs;
+	unsigned int	r_eflags;
+	unsigned int	r_esp;
+	unsigned int	r_ss;
+};
+
+/*
+ * Register set accessible via /proc/$pid/fpregs.
+ */
+struct fpreg {
+	/*
+	 * XXX should get struct from npx.h.  Here we give a slightly
+	 * simplified struct.  This may be too much detail.  Perhaps
+	 * an array of unsigned longs is best.
+	 */
+	unsigned long	fpr_env[7];
+	unsigned char	fpr_acc[8][10];
+	unsigned long	fpr_ex_sw;
+	unsigned char	fpr_pad[64];
+};
+
 #define	PC	sEIP
 #define	SP	sESP
 #define	PS	sEFLAGS

@@ -35,6 +35,18 @@
 
 /*
  * Machine dependent trace commands.
- *
- * None for the i386 at this time.
  */
+
+/*
+ * AI-ONLY NOTE: the four register requests NetBSD (from January
+ * 1994), FreeBSD 2.2 and OpenBSD all define for the i386, at the same
+ * numbers; these lines are FreeBSD 2.2's, whose kern/sys_process.c
+ * handles them through procfs_doregs and procfs_dofpregs. Berkeley's
+ * line here read `None for the i386 at this time.' The floating-point
+ * pair answers EOPNOTSUPP until the FPU's state can be saved on demand
+ * (docs/deferred.md).
+ */
+#define PT_GETREGS      (PT_FIRSTMACH + 1)
+#define PT_SETREGS      (PT_FIRSTMACH + 2)
+#define PT_GETFPREGS    (PT_FIRSTMACH + 3)
+#define PT_SETFPREGS    (PT_FIRSTMACH + 4)

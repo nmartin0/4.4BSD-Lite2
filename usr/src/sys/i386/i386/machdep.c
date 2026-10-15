@@ -541,6 +541,78 @@ sigreturn(p, uap, retval)
 	return(EJUSTRETURN);
 }
 
+/*
+ * AI-ONLY NOTE: ptrace(2)'s two machine-dependent functions, from
+ * FreeBSD 2.1.0's and 2.2's i386/machdep.c, as kern/sys_process.c is
+ * FreeBSD 2.2's; FreeBSD's comment below. Changed for this port: it
+ * saves two kinds of frame, and the pcb's FM_TRAP says which md_regs
+ * points at, so the frame's size and the offsets of %eip, %cs and the
+ * flags follow it; and the flags are checked with PSL_USERSTATIC, as
+ * sigreturn and procfs_write_regs check them, where FreeBSD had
+ * EFLAGS_SECURE. Writes to the user area are confined to the register
+ * frame and the FPU save area, as FreeBSD confines them: anywhere
+ * else the pcb holds the kernel's own state, and a tracer could write
+ * a privilege into its child's.
+ */
+
+/*
+ * The registers are in the frame; the frame is in the user area of
+ * the process in question; when the process is active, the registers
+ * are in "the kernel stack"; when it's not, they're still there, but
+ * things get flipped around.  So, since p->p_md.md_regs is the whole address
+ * of the register set, take its offset from the kernel stack, and
+ * index into the user block.  Don't you just *love* virtual memory?
+ * (I'm starting to think seymour is right...)
+ */
+#define	TF_REGP(p)	((int *) \
+			 ((char *)(p)->p_addr \
+			  + ((char *)(p)->p_md.md_regs - (char *)kstack)))
+#define	TF_TRAP(p)	((p)->p_addr->u_pcb.pcb_flags & FM_TRAP)
+
+int
+ptrace_set_pc(p, addr)
+	struct proc *p;
+	unsigned int addr;
+{
+	TF_REGP(p)[TF_TRAP(p) ? tEIP : sEIP] = addr;
+	return (0);
+}
+
+int ptrace_write_u(p, off, data)
+	struct proc *p;
+	vm_offset_t off;
+	int data;
+{
+	int frame_copy[sizeof(struct trapframe) / sizeof(int)];
+	vm_offset_t min;
+	int *tp, trap, size;
+
+	/*
+	 * Privileged kernel state is scattered all over the user area.
+	 * Only allow write access to parts of regs and to fpregs.
+	 */
+	trap = TF_TRAP(p);
+	size = trap ? sizeof(struct trapframe) : sizeof(struct syscframe);
+	min = (char *)p->p_md.md_regs - (char *)kstack;
+	if (off >= min && off <= min + size - sizeof(int)) {
+		tp = TF_REGP(p);
+		bcopy(tp, frame_copy, size);
+		frame_copy[(off - min) / sizeof(int)] = data;
+		if (((frame_copy[trap ? tEFLAGS : sEFLAGS] ^
+		    tp[trap ? tEFLAGS : sEFLAGS]) & PSL_USERSTATIC) != 0 ||
+		    ISPL(frame_copy[trap ? tCS : sCS]) != SEL_UPL)
+			return (EINVAL);
+		*(int*)((char *)p->p_addr + off) = data;
+		return (0);
+	}
+	min = (char *)&p->p_addr->u_pcb.pcb_savefpu - (char *)p->p_addr;
+	if (off >= min && off <= min + sizeof(struct save87) - sizeof(int)) {
+		*(int*)((char *)p->p_addr + off) = data;
+		return (0);
+	}
+	return (EFAULT);
+}
+
 int	waittime = -1;
 
 boot(arghowto)
