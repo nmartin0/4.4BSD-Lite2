@@ -51,10 +51,17 @@ options		SWAPPAGER
 options		VNODEPAGER
 options		DEVPAGER
 # AI-ONLY NOTE: kernfs, for /kern, which the installer's profile
-# mounts, and from which it shows the boot messages again. The line is this tree's hp300 and pmax GENERIC
-# configurations', `options KERNFS # kernel data-structure
-# filesystem'; NetBSD 1.1's i386 GENERIC carries it as well.
+# mounts, and from which it shows the boot messages again. The line
+# is this tree's hp300 and pmax GENERIC configurations', `options
+# KERNFS # kernel data-structure filesystem'; NetBSD 1.1's i386
+# GENERIC carries it as well.
 options		KERNFS
+# AI-ONLY NOTE: procfs, for /proc, which mount_procfs(8) in the
+# release mounts and which this port could not build until it had the
+# register hooks (i386/i386/procfs_machdep.c). The line is hp300
+# GENERIC's; NetBSD 1.1's, FreeBSD 2.0's and OpenBSD's i386 GENERIC of
+# the period all carry it.
+options		PROCFS		# /proc filesystem
 
 # AI-ONLY NOTE: root and swap on whichever disk the kernel finds at
 # boot (options GENERIC, below), where Berkeley's said `root on dk0
