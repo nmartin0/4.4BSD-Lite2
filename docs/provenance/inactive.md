@@ -85,3 +85,5 @@ cannot trace a process on this port, because the machine-dependent
 half is unwritten and `trace_req` is a stub --
 `docs/provenance/procfs.md` has that audit. Adoption by the
 descendants is evidence about the design, not about this tree.
+(Since then both are written, and /proc traces a process on the i386:
+procfs.md, *Since*.)

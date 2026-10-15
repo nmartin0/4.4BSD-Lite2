@@ -200,6 +200,10 @@ will want the tree's own config built the same way, which is the
 natural moment. The spelling ftpcmd.y now has is right under either
 yacc, so nothing has to be undone when that happens.
 
+Since then: done (acb899a0). YACC is the tree's own yacc and lex its
+flex 2.5.2, every grammar and scanner outside contrib/ was rebuilt
+with them, and ftpcmd.y's yylex is static again.
+
 ## Games
 
 Thirty of the forty-four in games/ build. The fourteen that do not are
@@ -388,7 +392,8 @@ of the kernel can be built and linked meanwhile.
 Since then: wd.c was fixed in place and configured, and later replaced
 whole by FreeBSD 2.1.0's -- neither A nor B, but a later release of
 B's donor, chosen for its ATAPI CD driver (imports.md, *The disks*).
-fd.c and wt.c are still out.
+fd.c and wt.c are configured in GENERIC.i386, and the floppy reads
+and writes; LINK.i386 is gone (4928f76c, 8b16f38c, f2975f92).
 
 ## Machine-specific programs that do not build here
 
@@ -417,6 +422,10 @@ from both releases.
 Nothing can run until these exist. They are not to be taken from XNU
 or Rhapsody, which keep the UNIX System Laboratories notice on the
 same files (see precedent.md); NetBSD 1.0 is the BSD-licensed donor.
+
+Since then: all but tty_subr.c's ndqb and hil_subr.c, which this build
+does not compile, are filled from NetBSD 1.0 and 1.2 and FreeBSD
+2.2; sys_process.c, the last, with ptrace (a56c2f9b).
 
 ### Why not 386BSD 0.1, which is closer
 

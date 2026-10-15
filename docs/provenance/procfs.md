@@ -148,3 +148,32 @@ Three things, none of which is "the hole is filled":
   `procfs_sstep`. Both routed `ptrace` through procfs's interface,
   which is evidence about how the two were meant to fit together --
   and the place to look when `trace_req` is written.
+
+## Since: both, as the descendants did it
+
+`ptrace` is FreeBSD 2.2's `sys_process.c` (`a56c2f9b`), and it settles
+the question the audit left open the way NetBSD 1.0 and FreeBSD 2.0
+both did: `trace_req` returns 1. ptrace's continue and procfs's both
+make the process runnable, and the loop in `issignal` lets it go; a
+traced process that takes a signal still stops, because `issignal`
+stops it before `trace_req` is asked. ptrace reaches the registers and
+memory through procfs's own functions -- `procfs_domem`,
+`procfs_doregs`, `procfs_sstep` -- so `procfs_mem.c`, `procfs_regs.c`
+and `procfs_fpregs.c` are standard, as in NetBSD 1.0 and FreeBSD 2.2.
+The one hook ptrace needs that procfs has not, setting the PC, is
+FreeBSD's `ptrace_set_pc`, in `i386/i386/machdep.c`.
+
+`i386/i386/procfs_machdep.c` is Pendry's own i386 file -- the
+`procfs_i386.c` that Berkeley's hp300 and pmax files cite -- as NetBSD
+committed it in January 1994, under these same names. Two things it
+and the audit did not see: i386 saves two frame layouts, trap and
+system call, and the pcb's `FM_TRAP` says which `md_regs` points at,
+so the hooks read it, as Lite2's own gdb does; and `md_regs` is an
+address in `kstack`, where only the running process's user area is
+mapped, so the frame of a stopped process is found at the same offset
+in its own `p_addr`, as Pendry's code already did and Berkeley's hp300
+copy does not (deferred.md, *The other ports cannot link ptrace yet*).
+
+Measured on i386: ptrace's requests, PT_GETREGS and PT_SETREGS, and
+/proc/N/regs read on a process stopped in a system call and after one
+step, and written.

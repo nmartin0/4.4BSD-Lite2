@@ -39,24 +39,23 @@ was superseded in 1993, its DES has been breakable for decades,
 OpenBSD ships none today, FreeBSD 13's login has none, NetBSD 10 uses
 Heimdal.
 
-### Programs that still do not build
+### ~~Programs that still do not build~~ FIXED
 
-| program | why | commit |
+**Done.** Every program directory the Makefiles name for the i386
+builds: 341 of them, in one pass, with the release's compiler. What
+this entry listed went one of two ways.
+
+| program | now | commit |
 |---|---|---|
-| `libexec/kpasswdd` | is Kerberos | `ece8f3da` |
-| `usr.bin/vacation` | `${LIBDBM}` names a library this tree does not build; its dbm is inside libc as `ndbm.o`. NetBSD 1.0 and FreeBSD 2.0.5 carry the same stale dependency | `7dc30e7d` |
-| `usr.bin/pascal` | stops on `libcpats.c`, a source absent here and from 4.4BSD-Lite | `02feb631` |
-| `usr.sbin/eeprom` | includes `<machine/openpromio.h>`, sparc only | `b1e714d4` |
-| `usr.bin/vmstat.sparc` | a sparc program | `b1e714d4` |
-| 14 of 44 games | see below | `74b0fa86`, `1e9f5155` |
+| `usr.bin/vacation` | links against libc's dbm, not the `${LIBDBM}` no tree built | `7ea2cfc4` |
+| 13 games | gtty and stty from NetBSD 1.0's libcompat; generators built with `${HOSTCC}`; the compiler's own fixes | `3f74e1ef`, `4adeaafe` and before |
+| `libexec/kpasswdd` | named only with `KERBEROS`, as the rest of Kerberos is | `16d88945` |
+| `games/ching` | not named: the cut took the program and left its helpers | `16d88945` |
+| `games/xneko`, `games/xroach` | named only when X11's headers are in the root, where Lite2 installs contrib/X11R5 | `16d88945` |
+| `usr.bin/pascal`, `usr.sbin/eeprom`, `usr.bin/vmstat.sparc` | not named for the i386: VAX and Tahoe, and sparc | `b1e714d4` |
 
-The fourteen games, each reason read from that program's own build
-log: two build a generator and run it, **three pass
-`-fwritable-strings`** (no modern GCC has it), two call `exit` with no
-argument, two pass the wrong type to `log`, one declares a static
-function inside another, one wants `gtty` from libcompat's absent 4.1
-sources, two want X11 headers, one wants nroff. `games/ching` has no
-`ching.6` here or in 4.4BSD-Lite.
+Twenty-two named directories are absent, the Lite cut's (the next
+entry). X11R5 is to come with contrib/X11R5.
 
 ### Sources and directories named but absent
 
@@ -72,8 +71,10 @@ AT&T-derived tools (`bc`, `dc`, `spell`, `learn`, `struct`,
 rewrites (`ed`, `expr`, `at`, `cron`, `sa`), plus `compress`, dropped
 for the LZW patent rather than the licence.
 
-`lib/libcompat` lost thirteen of twenty-two sources. `4.1` holds five
-manual pages and no code at all; `4.3` is missing `ecvt.c`, `gcvt.c`,
+`lib/libcompat` lost thirteen of twenty-two sources. `4.1` held five
+manual pages and no code at all -- `gtty`, `stty` and `ftime` are
+NetBSD 1.0's now (`3f74e1ef`), and `getpw`, `vlimit` and `vtimes`
+keep their pages and have no code, as there; `4.3` is missing `ecvt.c`, `gcvt.c`,
 `sibuf.c`, `sobuf.c`, `strout.c`. **`ecvt` and `gcvt` are POSIX** —
 this is a conformance hole, not just a missing file. `regex.c` was
 restored from NetBSD 1.0 (`fd425062`), and `b8596dbf` found that it is
@@ -236,7 +237,14 @@ names. Declined only because the kernel symbol could not be verified
 without a running kernel — a condition that lifts the moment one
 boots.
 
-### The kernel has no local disk
+### ~~The kernel has no local disk~~ FIXED
+
+**Done**, all three: `wd` is FreeBSD 2.1.0's (imports.md, *The
+disks*), and `fd` and `wt` are Berkeley's, in `GENERIC.i386`. The
+floppy reads and writes after three corrections from FreeBSD 2.0,
+whose fd.c and isa.c are these files' descendants (`4928f76c`); `wt` drops a `delay()` of its own that the
+kernel's now duplicates (`8b16f38c`), and probes nothing on QEMU,
+which has no QIC-02 tape. What follows is the record as it stood.
 
 `adb8a806`, `4326a65b`
 
@@ -300,7 +308,12 @@ queues FreeBSD's flattened way described above, moving each drive's
 buffers onto the controller's queue in `wdtab` through `b_actf`; the
 queue question above no longer arises.
 
-### `GENERIC.i386` is left broken on purpose
+### ~~`GENERIC.i386` is left broken on purpose~~ FIXED
+
+**Done** (`f2975f92`): `GENERIC.i386` is corrected, each line from a
+configuration Berkeley, FreeBSD or NetBSD wrote, and builds and boots;
+`LINK.i386` is gone. It has `PROCFS` since ptrace (`a1b09daf`). The
+record as it stood:
 
 `983934d4`, `131c579b`, `adb8a806`
 
@@ -314,7 +327,11 @@ pager. `LINK.i386` carries the corrections; `GENERIC.i386` is left
 1992". **NFS, DEBUG and DIAGNOSTIC were left out of `LINK.i386`**
 deliberately.
 
-### The DIAGNOSTIC build does not compile
+### ~~The DIAGNOSTIC build does not compile~~ FIXED
+
+**Done** (`99f245e0`): `struct ctldebug` and `syncprt` under the
+option that uses them, as FreeBSD 2.0 has them; a DIAGNOSTIC kernel
+boots multi-user. The record as it stood:
 
 `6a81e5fe`
 
@@ -349,7 +366,12 @@ headers, startup files and libraries in the root by themselves,
 through their sys-include and lib. The specs file, and the host
 GCC's flags around it, are gone from build/make.sh.
 
-### `YACC` still names the packaged byacc
+### ~~`YACC` still names the packaged byacc~~ FIXED
+
+**Done** (`acb899a0`): `YACC` is the tree's own yacc and `lex` the
+tree's flex 2.5.2, both built into the tools directory; every grammar
+and scanner outside contrib/ was regenerated and its program built,
+and `ftpcmd.y`'s `yylex` is static again. The record as it stood:
 
 `fbd2592b`, `74b0fa86`, `dc51dc50`
 
@@ -367,6 +389,19 @@ outside `contrib/`, each regenerated under a different yacc and
 verified. `fbd2592b` settles the only question that would otherwise
 block it — `ftpcmd.y`'s non-static `yylex` "is right under either"
 yacc — so nothing has to be reverted first.
+
+### The kernel relies on common symbols -- to be fixed with the GCC upgrade
+
+`build/kernel.sh`; roadmap.md, Tier 1, item 5
+
+101 globals are tentatively defined in more than one kernel object,
+from headers that say `int nbuf;` without `extern`. GCC 2.95.3
+merges them, as every compiler of the period did. GCC 10 and later
+default to `-fno-common` and refuse the link. **Before any newer GCC
+builds the kernel, each header gets an `extern` and each symbol one
+definition**, as the BSDs did when GCC 10 changed the default.
+Meanwhile `build/kernel.sh` stops a kernel in which a common symbol
+became code, the `mmap` fault's class.
 
 ### The kernel is linked without a linker script
 
@@ -412,8 +447,41 @@ only because `locore.o` is first and `start` is its first symbol.
   `_waittime` and `_printf` rather than going through `_C_LABEL`. Both
   are invoked only from commented-out lines.
 - **`i386/stand/boot.c:122`** reads `struct exec` and accepts only
-  `a_magic` 0407/0410/0413. Nothing in this tree can load the ELF
-  kernel it now builds.
+  `a_magic` 0407/0410/0413. The ELF kernel is loaded by FreeBSD 4.1's
+  boot1 and boot2 instead (`sys/boot/i386`); i386/stand is Berkeley's
+  and stays as it was.
+- **The other ports cannot link ptrace yet**, and are left as
+  Berkeley shipped them while they are deferred. With `ptrace`
+  (`a56c2f9b`), `procfs_mem.c`, `procfs_regs.c` and `procfs_fpregs.c`
+  are standard, so every port needs the procfs register hooks and
+  FreeBSD's `ptrace_set_pc` and `ptrace_write_u`. When each is taken
+  up: hp300 and pmax have the hooks, but hp300's read `md_regs`, an
+  address in `kstack`, which for a process not running is the reader's
+  own frame -- NetBSD 1.0's m68k code finds it at the same offset in
+  the target's `p_addr` -- and hp300's `procfs_sstep` sets `PSL_T`
+  whether asked to set it or clear it, and its `procfs_write_regs`
+  checks no status bits; luna68k and news3400 have no hooks, and share
+  hp300's and pmax's frames; sparc's `files.sparc` names
+  `sparc/sparc/sys_process.c`, which the Lite cut removed.
+- **The FPU registers are not given out.** `PT_GETFPREGS` and
+  /proc's fpregs answer `EOPNOTSUPP`. Lite2's `npx.c` does not save
+  the FPU at context switch -- `locore.s` calls an `npxsave` under an
+  option nothing defines, and there is no such function -- so a
+  stopped process's FPU state can still be in the chip. When `npx`
+  can save on demand (FreeBSD 2.0's `npx.c` has `npxsave`), the hooks
+  are FreeBSD 2.1.0's `procfs_read_fpregs` and `procfs_write_fpregs`,
+  with NetBSD 1.1's and OpenBSD's flush of a live FPU first -- done
+  with the save area's size, where theirs copies `sizeof` a pointer.
+  `struct fpreg` is already FreeBSD 2.1.0's.
+- **Changes made for GCC 14 are kept** for the newer compilers to
+  come, though GCC 2.95.3 does not need all of them. Each says so in
+  its `AI-ONLY NOTE`; `grep -rl 'GCC 14' usr/src` lists the files. fpr's
+  `gettext` is one: Berkeley's original compiles under 2.95.3.
+- **`fdopen` prints a line every time the floppy is opened**, a
+  debugging printf Berkeley left in `i386/isa/fd.c`.
+- **The serial ports have no dial-out devices.** MAKEDEV makes tty00
+  and up, as NetBSD 1.0 does; OpenBSD's later cua00, at minor 128 and
+  up, needs callout support Lite2's com.c has not got.
 
 ## 6. Things established that change how the rest reads
 

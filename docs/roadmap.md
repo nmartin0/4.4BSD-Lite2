@@ -16,70 +16,63 @@ compiling under a modern GCC. Measured against the tree as it stands:
 
 | | done | total |
 |---|---|---|
-| program directories that build | 302 | 320 |
-| libraries built by `sysroot.sh` | 11 | 13 |
-| kernel sources compiled | 138 | 853 |
-| kernel configurations that build | 1 | 2 (i386) |
+| program directories that build | 341 | 341 |
+| libraries built by `sysroot.sh` | 13 | 13 |
+| kernel sources compiled | 166 | 853 |
+| kernel configurations that build | 1 | 1 (i386) |
 | ports whose kernel has ever been compiled | 1 | 8 |
 | kernels that link | **1** | — |
 | kernels that run | **1** | — |
 
-So the userland restoration is substantially done and the kernel one
-is not. What remains:
+So the userland restoration is done for the i386, and the kernel one
+is done for the i386 alone. What was listed here, and what remains:
 
 **~~The kernel link.~~ Done.** The four symbols — `chrtoblk`, `fuswintr`,
 `suswintr`, `wddriver`, plus `memset` on a gcc 14 host. Models for
-each in `docs/status.md`. `libkern.a` is built by nothing.
+each in `docs/status.md`. `libkern.a` is built by `build/kernel.sh`.
 
-**`GENERIC.i386` does not build.** It names a `cn0` console no driver
-provides and selects no filesystem or pager. `LINK.i386` carries the
-corrections; Berkeley's own ARGO and BLITZ configs have the corrected
-console line, so fixing GENERIC would be kind A — Berkeley's code
-corrected to Berkeley's own intent.
+**~~`GENERIC.i386` does not build.~~ Done** (`f2975f92`). Corrected
+line by line from configurations Berkeley, FreeBSD and NetBSD wrote,
+with the floppy and tape as Berkeley's had them; it builds, boots and
+installs, and `LINK.i386`, its stand-in, is gone.
 
-**The DIAGNOSTIC build does not compile.** `6a81e5fe`: `debug1` has an
-incomplete type in `vfs_subr.c`. A whole build configuration is
-broken and nothing tracks it.
+**~~The DIAGNOSTIC build does not compile.~~ Done** (`99f245e0`), as
+FreeBSD 2.0's headers have it; a DIAGNOSTIC kernel boots multi-user.
 
-**`wd` is in `LINK.i386` and carries the root; `fd` and `wt` are
-not.** `fd.c` still has the `b_actf`/`b_actb` sites recorded here
-before, and `wt.c` fails on a static declaration following a
-non-static one. Neither is needed to boot from disk.
+**~~`fd` and `wt` are not configured.~~ Done.** `wd` is FreeBSD
+2.1.0's; `fd` reads and writes after three corrections (`4928f76c`);
+`wt` is configured and has no hardware on QEMU to find.
 
-**Seven ports have never been compiled at all** — hp300 (74 sources),
+**Seven ports have never been compiled at all. DEFERRED by the
+maintainer's decision (2026-10-14): not needed soon; the i386 comes
+first.** — hp300 (74 sources),
 luna68k (59), sparc (55), pmax (48), news3400 (57), vax (61), tahoe
 (161). Whether 4.5BSD keeps them is an open question, but "4.4BSD-Lite2
-compiles under modern GCC" is not true of the tree until they do or
-are removed deliberately.
+compiles" is not true of the tree until they do or are removed
+deliberately. Each wants a cross toolchain for its processor; GCC
+2.95.3 has m68k, sparc, mips and vax and no longer has the tahoe.
+Lite2 itself cut vax's and tahoe's `include` directories.
 
-**`libresolv` and `liby` are not built.** Every other library in
-`lib/` is.
+**~~`libresolv` and `liby` are not built.~~ Done** (`63b740be`). The
+root has every library `lib/Makefile` names but libmp and libplot,
+whose directories the Lite cut removed.
 
-**18 program directories still fail**, each for a reason already
-recorded: `usr.bin/pascal` (`libcpats.c` absent from Lite and Lite2),
-`usr.bin/vacation` (`${LIBDBM}`, a library that does not exist — its
-dbm is `ndbm.o` inside libc), `usr.bin/vmstat.sparc` and
-`usr.sbin/eeprom` (sparc-only), `libexec/kpasswdd` (is Kerberos), and
-13 games — three wanting `-fwritable-strings`, two calling `exit` with
-no argument, two passing the wrong type to `log`, two building a
-generator and running it, two wanting X11 headers, one declaring a
-static function inside another, one wanting `gtty` from libcompat's
-absent 4.1 sources.
+**~~18 program directories still fail.~~ Done**: every directory
+named for the i386 builds, and what cannot build here is no longer
+named (deferred.md, *Programs that still do not build*). X11's two
+games wait on contrib/X11R5.
 
-**A build-ordering defect, found while measuring this and recorded in
-no commit.** Eight directories fail a first `make.sh NOMAN=noman
-depend all` and succeed on a second, with no change between the runs:
+**~~A build-ordering defect.~~ Gone.** Eight directories failed a
+first `make.sh NOMAN=noman depend all` and succeeded on a second.
+Measured again with the system's own compiler, each of the eight --
 `sbin/disklabel`, `sbin/restore`, `sbin/route`, `usr.bin/lorder`,
-`usr.bin/pagesize`, `usr.bin/shar`, `usr.sbin/arp`, `games/phantasia`.
-Cause not yet established. Until it is, any sweep of the tree
-undercounts, and the counts in this file were taken from a second
-pass for that reason.
+`usr.bin/pagesize`, `usr.bin/shar`, `usr.sbin/arp`, `games/phantasia`
+-- builds on a first pass into an empty object directory. The cause
+was not established; it went with the host compiler.
 
-**`YACC` still names the packaged byacc** although `sysroot.sh` has
-built this tree's own into `tools/bin` since `dc51dc50` and `make.sh`
-puts that directory first on `PATH`. One line. It would let
-`libexec/ftpd/ftpcmd.y` stand as Berkeley wrote it, since its `static`
-on `yylex` was dropped only to satisfy byacc.
+**~~`YACC` still names the packaged byacc.~~ Done** (`acb899a0`): the
+tree's own yacc and flex build it, and `ftpcmd.y` stands as Berkeley
+wrote it.
 
 ## Tier 1 — boot on QEMU's legacy machine
 
@@ -101,12 +94,9 @@ device; `pmap_remove` on the self-map.
 1.0), accounting (`kern_acct.c`), raw I/O (`kern_physio.c`) and the
 resource maps swap allocates from (`subr_rmap.c`, NetBSD 1.2). Still
 `Body deleted`: `tty_subr.c`'s ndqb, stubbed again deliberately
-(its own note says why), `hp/dev/hil_subr.c`, which this build does
-not compile, and:
-
-| file | what | what it costs |
-|---|---|---|
-| `kern/sys_process.c` | `ptrace` | debuggers; returns ENOSYS, and its manual page is left out with it |
+(its own note says why), and `hp/dev/hil_subr.c`, which this build
+does not compile. `ptrace` (`kern/sys_process.c`) is FreeBSD 2.2's,
+on Lite2's procfs hooks, with its manual page (`a56c2f9b`).
 
 **What is left before Tier 1 is solid**, in the order proposed:
 
@@ -129,19 +119,29 @@ not compile, and:
    checkalias. Do not remove /dev/wd0a.
 4½. ~~**awk.**~~ Kernighan's own, version 20121220: MAKEDEV's pty
    and fd cases run, and ptys and fd/ are made at install.
-5. **`-fno-common`.** The `mmap` fault (install.md, fault 10) was a
-   common symbol resolved to a function. GCC has defaulted to
-   `-fno-common` since 10; this tree passes `-fcommon` because 1990s
-   code declares the same global in several files. Measured: 332
-   common symbols in the kernel's objects, 101 of them tentatively
-   defined in more than one -- `nbuf`, `bufpages` and `nswbuf` in some
-   sixty each, from headers that say `int nbuf;` without `extern`.
-   Moving to `-fno-common` means an `extern` in each of those headers
-   and one definition apiece; not done. What is done:
-   `build/kernel.sh` now refuses a kernel in which any common symbol
-   is a text symbol, the exact class of the `mmap` fault, and was
-   seen to refuse one with that fault put back.
-6. **`ptrace`**, for gdb. Lower: nothing in the boot path needs it.
+5. **`-fno-common`. DEFERRED TO THE GCC UPGRADE -- must be done
+   before any compiler newer than GCC 2.95.3 builds the kernel.**
+   The `mmap` fault (install.md, fault 10) was a common symbol
+   resolved to a function. GCC 2.95.3, the system's compiler now,
+   defaults to `-fcommon`, as every BSD kernel of the period was
+   built, so nothing is needed under it. GCC 10 and later default to
+   `-fno-common`, and the planned move to newer compilers (the GCC
+   4.2.1 pair below, and later ones) will meet it: 101 symbols are
+   tentatively defined in more than one kernel object -- `nbuf`,
+   `bufpages` and `nswbuf` in some sixty each, from headers that say
+   `int nbuf;` -- and each needs an `extern` in its header and one
+   definition, as the BSDs did when GCC 10 changed the default.
+   Until then `build/kernel.sh` refuses a kernel in which any common
+   symbol is a text symbol, the exact class of the `mmap` fault.
+6. ~~**`ptrace`**~~, for gdb. FreeBSD 2.2's `sys_process.c`, which
+   keeps Lite2's whole request set, on Lite2's procfs hooks; i386's
+   hooks are Pendry's own, for both of this port's frame kinds, and
+   the register requests are the PT_GETREGS family all three
+   descendants define (`a56c2f9b`); its manual page is FreeBSD 2.2's.
+   `GENERIC.i386` has `PROCFS` (`a1b09daf`). The FPU registers wait
+   (deferred.md). Found and closed with it: a process could raise its
+   IOPL through sigreturn (`f19baeb2`) and use most I/O ports outright
+   (`579fed2d`).
 7. ~~**`ps_strings`.**~~ execve fills it in, and kvm_argv bounds
    addresses by USRSTACK; `ps -ax` shows every command's arguments.
    Left: `ps -e` on init shows a garbage environment -- init has none,
@@ -317,7 +317,31 @@ the host GCC's specs file and L2_CC are gone with it.
 Next, in order: README.BSD and the makefile in each directory, and
 the system rebuilding its own compiler -- which wants make, share/mk
 and the rest of a build environment in the release; then the 4.2.1
-pair the same way.
+pair the same way. The kernel must be made to build with `-fno-common`
+before any of the newer pairs compiles it (Tier 1, item 5).
+
+**Next: the whole tree on the CD.** The base set is still the
+forty-odd directories install.md's recipe first staged: no grep, no
+mkfifo, no make. Decided (2026-10-14): the whole tree, installed by
+Berkeley's own top-level `make build`, as one base set, as Lite2
+intended -- grep is Lite2's own, Woods' egrep. A first run, with the
+top-level Makefile in FreeBSD 2.0's `${.CURDIR}` form and kerberosIV
+behind KERBEROS, goes to the end with about sixty directories failing:
+tools run on the build host that must be built for it (strfile, zic,
+cap_mkdb, chflags), documents installed from the object directory,
+`chown user.group`, the games' links, and every directory in
+contrib/, some of which (gcc-2.3.3, gas-1.38, gdb-4.7.LBL) have no
+i386 build at all.
+
+**Later, and noted: a test framework and a kernel debugger.** Lite2
+has tests but no framework to run them: Berkeley's db test driver,
+sed.test, the m4 and libterm/libedit test programs, and sys/tests
+(benchmarks, filesystem tests, Sun's Connectathon NFS suite). NetBSD
+1.0's regress/ (1994) is the period's framework, wrapped around
+Berkeley's own db test; OpenBSD kept regress/ to this day; NetBSD and
+FreeBSD later moved to ATF and Kyua. Lite2 has no ddb -- only kgdb
+stubs, and kadb named in the configurations with its sources cut --
+and ddb, CMU Mach's via 386BSD, is in NetBSD 1.0 and FreeBSD 2.0.
 
 **Later: GCC's other languages.** GCC 2.95.3 is imported whole, with
 its C++, Objective C, Fortran 77, CHILL and Java front ends. C comes

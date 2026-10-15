@@ -37,6 +37,22 @@ the boot blocks load the kernel throughout:
 - **Its manual pages.** Every page the installed programs and
   libraries name -- 789 of them -- formatted by Lite2's own nroff,
   groff 1.08, and read on the system with man(1).
+- **The floppy, the tape, and the configuration Berkeley wrote.**
+  The kernel is GENERIC.i386, corrected, with fd0 and wt0 as
+  Berkeley's had them; the floppy reads and writes. A DIAGNOSTIC
+  kernel builds and boots.
+- **Debugging.** ptrace(2), FreeBSD 2.2's, on Lite2's procfs: traced
+  processes stop at exec and on signals, are read, written, stepped
+  one instruction at a time, continued, attached to and detached, and
+  their registers read and set with PT_GETREGS, PT_SETREGS and
+  PT_READ_U; and /proc, mounted with mount_procfs, gives each
+  process's registers.
+- **Protection.** A process can no longer raise its own I/O
+  privilege through sigreturn or a tracer's register writes, nor use
+  I/O ports at all.
+- **Every program.** All 341 program directories named for the
+  i386 build, in one pass, against all thirteen libraries, with the
+  tree's own yacc and lex generating its grammars and scanners.
 
 `docs/provenance/install.md` has the procedure and every fault it
 found, each with the commit that answered it; `docs/roadmap.md` has
@@ -518,7 +534,7 @@ after Lite2.
 ### How the kernel is built
 
 `build/kernel.sh`, which takes a configuration name and defaults to
-`LINK.i386`. It runs `config`, builds `libkern.a`, then `make depend`
+`LINK.i386` (`GENERIC.i386` since `f2975f92`, LINK.i386 gone). It runs `config`, builds `libkern.a`, then `make depend`
 and `make`, and reports the object count and whether the link
 completed.
 

@@ -108,7 +108,7 @@ history; no other system is needed to justify them.
   locore.s: movw and %al		this file already writes movw
 					correctly six times; four lines
 					had slipped.
-  LINK.i386: console is pc0		Berkeley's ARGO and BLITZ
+  GENERIC.i386: console is pc0		Berkeley's ARGO and BLITZ
 					configurations carry this line
 					character for character.
   libcompat, usr.bin: SRCS and SUBDIR	named only what the release
@@ -183,6 +183,28 @@ copied, and the commit names it with its release.
     NetBSD 1.0's intr.c; FreeBSD 2.0 stops at five per irq. Berkeley's
     took ffs() of the number as if it were a mask and logged every
     one -- seventeen thousand lines on the console during one install.
+  i386 fd.c: Sense Interrupt after reset, recalibrate and seek, and
+    the status judged by its interrupt code alone, FreeBSD 2.0's
+    fd.c; nec765.h's ST0 fields, FreeBSD 2.0's
+  i386 isa.c, pmap.c: isa_dmastart, isa_dmadone, isa_dmarangecheck
+    and isaphysmem in place of at_dma, FreeBSD 2.0's (NetBSD 1.0 and
+    OpenBSD 1995 carry the same); ic/i8237.h, FreeBSD 2.0's
+  i386 machdep.c: the TSS's I/O map past its end, NetBSD 1.0 and
+    FreeBSD 2.0
+  sysctl.h, vfs_syscalls.c: debug1 and syncprt under DIAGNOSTIC,
+    FreeBSD 2.0
+  amd fsinfo: no strdup declaration of its own, NetBSD 1.3
+  tn3270: generators built with HOSTCC and found by .OBJDIR, NetBSD 1.1
+  fpr: gettext defined void, NetBSD 1.4
+  i386 psl.h: PSL_MBZ, PSL_USERSET, PSL_USERCLR, NetBSD 1.0 and
+    FreeBSD 2.0; PSL_USERSTATIC and sigreturn's test of the flags,
+    OpenBSD 1995
+  top-level Makefile: kerberosIV only with KERBEROS, as NetBSD 1.0
+  i386 MAKEDEV: `all', NetBSD 1.0, FreeBSD 2.0 and OpenBSD; the serial
+    ports as tty0N, NetBSD 1.0's entry (FreeBSD 1.x and OpenBSD 1995
+    alike), where Berkeley's matched hp300's `dca' and made nothing
+  vnode_if.src, link(2), nfsrv_link, union_link: vop_link takes the
+    directory first, FreeBSD 2.2 and 3.0
 
 ## C -- our judgement, no donor line
 
@@ -223,6 +245,14 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	config: isa_biotab		FreeBSD 2.1.0, adapted
 	contrib/gcc-2.95.3		GNU's release, NetBSD 1.6's changes, a target
 	contrib/binutils-2.11.2		GNU's release, NetBSD 1.6's changes, a target
+	lib/libcompat/4.1: gtty, stty, ftime	NetBSD 1.0
+	usr.bin/m4/m4.1			NetBSD 1.0
+	kern/sys_process.c		FreeBSD 2.2, adapted
+	i386/i386/procfs_machdep.c	Pendry, as NetBSD had it (Jan 1994), adapted
+	i386 machdep.c: ptrace_set_pc, ptrace_write_u	FreeBSD 2.2, adapted
+	i386 ptrace.h: PT_GETREGS family	FreeBSD 2.2
+	i386 reg.h: struct reg, NetBSD (1993); struct fpreg, FreeBSD 2.1.0
+	lib/libc/sys/ptrace.2		FreeBSD 2.2, adapted
 	kern/genassym.sh, sys/assym.h	FreeBSD 5.0, unmodified
 
 The csu files are ELF startup code, which did not exist in 1995 and
@@ -687,22 +717,18 @@ is that code coming back rather than another system's arriving.
 
 ## G -- ours
 
-build/make.sh, build/sysroot.sh, the generated specs file,
-lib/csu/i386_elf/Makefile, sys/i386/conf/LINK.i386, and everything
-under docs/. See precedent.md for the inventory and for what is
+build/make.sh, build/sysroot.sh, build/kernel.sh, build/release.sh,
+lib/csu/i386_elf/Makefile, and everything under docs/. The generated
+specs file and sys/i386/conf/LINK.i386 were ours and are gone. See precedent.md for the inventory and for what is
 claimed over them.
 
 ## What was not done, and what it costs
 
 These are refusals, not omissions. Each one gives up something.
 
-  The i386 disk, floppy and tape drivers
-	wd.c and fd.c use the 4.3BSD names for the driver queue against
-	a struct buf that has not had them since before 4.4BSD-Lite.
-	Ten sites, with FreeBSD 2.0.5 -- the same 386BSD lineage -- as
-	a model.
-	Cost: no disk, floppy or tape. A kernel that cannot mount a
-	root filesystem from a local disk.
+  The i386 disk, floppy and tape drivers -- since done
+	wd.c is FreeBSD 2.1.0's (kind D); fd.c and wt.c are Berkeley's,
+	corrected (kind B), and configured in GENERIC.i386.
 
   The interrupt architecture
 	Every other tree moved these vectors out of config into a
@@ -715,7 +741,9 @@ These are refusals, not omissions. Each one gives up something.
   libcompat's 4.1 routines
 	ftime, getpw, gtty, stty, tell, vlimit, vtimes, all marked
 	proprietary in Berkeley's tree and removed by the Lite cut.
-	Cost: games/trek does not build, wanting gtty.
+	gtty, stty and ftime are NetBSD 1.0's now (kind D), and the five
+	games that wanted them build.
+	Cost: getpw, vlimit and vtimes, as in NetBSD 1.0.
 
   The twenty-five programs the SUBDIR lists name
 	ed, expr, bc, dc, spell, learn, at, cron, sa, compress and the
@@ -724,8 +752,9 @@ These are refusals, not omissions. Each one gives up something.
 	(kind E above), because MAKEDEV cannot make a disk without it.
 	Cost: no editor, no calculator, no scheduler, no compression.
 
-  usr.bin/vacation's libdbm and the fourteen games
-	Cost: those programs.
+  usr.bin/vacation's libdbm and the fourteen games -- since done
+	vacation links libc's dbm; the games build, but ching, whose
+	program the cut took, and xneko and xroach, until X11R5.
 
   Kerberos, in eleven Makefiles
 	4.4BSD-Lite2 turns Kerberos on unconditionally. There is no
