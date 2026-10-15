@@ -73,13 +73,14 @@
 #
 #   4. The libraries named in $libs, by their own all and install
 #      targets, in that order: libc, libutil, libterm, libcurses,
-#      libedit, libl, libcompat, libm, libkvm, libtelnet and
-#      librpc/rpc. Some of what each is for: libutil is named in
-#      LDADD by twelve programs here; libterm builds libtermcap.a;
-#      libedit also installs histedit.h; libl is the lex run-time,
-#      whose sources this tree ships with no Makefile until now.
-#      Each was built and checked before being added; the rest of
-#      lib/ follows the same way.
+#      libedit, libl, libcompat, libm, libkvm, libtelnet,
+#      librpc/rpc, libresolv and liby. Some of what each is for:
+#      libutil is named in LDADD by twelve programs here; libterm
+#      builds libtermcap.a; libedit also installs histedit.h; libl is
+#      the lex run-time, whose sources this tree ships with no
+#      Makefile until now; liby is yacc's main and yyerror. That is
+#      every library lib/Makefile names but libmp and libplot, which
+#      the Lite cut removed.
 #
 #      The compiler, assembler and linker settings, the object
 #      directory, the target root and the install owner all come from
@@ -107,10 +108,9 @@
 #   or under fakeroot, it is the tree's own -- bin, kmem, operator --
 #   as numbers from etc/master.passwd and etc/group.
 #
-#   Not the whole of lib/. Eleven libraries are built; the rest are
-#   added one at a time as each is tried. Nor any program: this fills
-#   the root a program is built against, and building one is a
-#   separate run of build/make.sh in its own directory.
+#   Not any program: this fills the root a program is built against,
+#   and building one is a separate run of build/make.sh in its own
+#   directory.
 #
 # HOST TOOLS: bmake, mtree, pax, ctags, flex and m4, GNU make, and a
 # GCC that builds 32-bit programs, for the toolchain --
@@ -176,7 +176,7 @@ HOSTCC=${HOSTCC:-"cc -std=gnu89"}
 # The libraries to build, in order. Each was built and checked before
 # being added; the rest of lib/ follows as each is tried.
 libs="libc libutil libterm libcurses libedit libl libcompat"
-libs="$libs libm libkvm libtelnet librpc/rpc"
+libs="$libs libm libkvm libtelnet librpc/rpc libresolv liby"
 
 mkdir -p "$ROOT"
 
