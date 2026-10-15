@@ -1150,14 +1150,14 @@ wtlinit()
 }
 
 /*
- * delay i microseconds
+ * AI-ONLY NOTE: wt's own delay(), which was here, is gone. It said
+ * "delay i microseconds" and looped DELAY(1000) i times -- i
+ * milliseconds -- and its callers pass microseconds: delay(1000000)
+ * says "delay one second", delay(20) waits for the controller. The
+ * kernel now has delay() itself, in microseconds, behind DELAY
+ * (<machine/param.h>), which is what these calls ask for, and two
+ * definitions of it cannot link.
  */
-delay(i)
-register int i;
-{
-	while (i-- > 0)
-		DELAY(1000);
-}
 
 wtsize()
 {
