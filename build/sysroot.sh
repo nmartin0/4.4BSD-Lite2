@@ -221,7 +221,19 @@ install -m 755 "$SRC/usr.bin/lorder/lorder.sh" "$TOOLS/lorder"
 # `HOST_SRCDIR=usr.bin/mkdep'. Same reasoning -- when you are not
 # self-hosting, every tool that shapes the output comes from the tree
 # rather than the machine underneath.
-install -m 755 "$SRC/usr.bin/mkdep/mkdep.sh" "$TOOLS/mkdep"
+#
+# And the compiler it runs is the target's: mkdep sets its own PATH,
+# /bin:/usr/bin and the rest, and runs `cc -M', which on the system is
+# the system's compiler and here would be the host's, reading the
+# host's headers -- glibc's <varargs.h> and <regexp.h> refuse to be
+# read at all. So the copy here puts the tools directory's
+# i386-unknown-bsd4.4elf/bin, where the target's cc is, first in that
+# PATH, as NetBSD's nbmkdep is given the target's compiler.
+sed "s|^PATH=/bin:|PATH=$L2_BUILD/tools/i386-unknown-bsd4.4elf/bin:/bin:|" \
+    "$SRC/usr.bin/mkdep/mkdep.sh" > "$TOOLS/mkdep"
+chmod 755 "$TOOLS/mkdep"
+grep -q "^PATH=$L2_BUILD/tools/" "$TOOLS/mkdep" ||
+	{ echo "sysroot.sh: mkdep's PATH not found to set" >&2; exit 1; }
 
 # yacc, built from this tree with the host compiler. The packaged byacc
 # reads these grammars, but what it writes declares `extern int
@@ -373,6 +385,10 @@ PATH="$GPFX/bin:$PATH" "$gmake" -C gcc MAKEINFO=true cpp \
 # filter on assembly. GCC's own install-cpp would put it in tools/bin
 # as plain `cpp', ahead of the host's; it goes under the target's name.
 install -m 755 gcc/cpp "$GPFX/bin/$GT-cpp"
+# and cc, the name Lite2's own scripts give the compiler -- mkdep runs
+# `cc -M' -- beside gcc, as, ld and the rest in the tools directory's
+# $GT/bin, which mkdep's PATH starts with (above).
+ln -sf gcc "$GPFX/$GT/bin/cc"
 
 # groff, for the manual pages: Lite2's Makefiles format each page with
 # `nroff -man' into the .0 file installed under /usr/share/man/cat*,

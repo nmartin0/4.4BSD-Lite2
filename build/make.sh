@@ -199,6 +199,9 @@ MACHINE=i386
 MAKEFLAGS="-m $MKDIR${MAKEFLAGS:+ $MAKEFLAGS}"
 DESTDIR="$ROOT"
 MAKEOBJDIRPREFIX="$OBJ"
+# the host's own cc, by its full path, for HOSTCC below.
+hostcc=$(command -v cc)
+GT=i386-unknown-bsd4.4elf
 PATH="$TOOLS:$PATH"
 if [ "$(id -u)" -ne 0 ]; then
 	BINOWN=$(id -un)
@@ -211,15 +214,17 @@ LIBOWN="$BINOWN"
 LIBGRP="$BINGRP"
 export BINOWN BINGRP LIBOWN LIBGRP
 LIBMODE=644
-GT=i386-unknown-bsd4.4elf
 CC="$TOOLS/$GT-gcc"
 CPP="$TOOLS/$GT-cpp -traditional"
 AS="$TOOLS/$GT-as"
 LD="$TOOLS/$GT-ld"
 # The few programs a build runs on this machine rather than the
 # target: -std=gnu89, because GCC 14 treats an implicit function
-# declaration as an error, which these sources of 1993 make.
-HOSTCC="cc -std=gnu89"
+# declaration as an error, which these sources of 1993 make; and -m32,
+# so that a generator that writes binary data writes it as the target
+# reads it -- games/monop's initdeck writes longs and structures with
+# pointers in them into cards.pck, which monop reads back on the i386.
+HOSTCC="$hostcc -m32 -std=gnu89"
 # byacc, not bison: this tree's grammars use the old yacc form
 # `rule = { action }', which Berkeley yacc accepts and bison 3.8
 # rejects. NetBSD builds its own as nbyacc for the same reason.
