@@ -1219,6 +1219,20 @@ init386(first) { extern ssdtosd(), lgdt(), lidt(), lldt(), etext;
 	proc0.p_addr->u_pcb.pcb_tss.tss_esp0 = (int) kstack + UPAGES*NBPG;
 	proc0.p_addr->u_pcb.pcb_tss.tss_ss0 = GSEL(GDATA_SEL, SEL_KPL) ;
 	_gsel_tss = GSEL(GPROC0_SEL, SEL_KPL);
+
+	/*
+	 * AI-ONLY NOTE: the I/O permission map put past the end of the
+	 * TSS, so that a user process may use no port at all: NetBSD
+	 * 1.0's and FreeBSD 2.0's line, the same in both, before the
+	 * same ltr. Left at zero, the map began at the TSS's first byte,
+	 * and the processor read permission bits from the TSS's own
+	 * fields, nearly all zero: any process could read and write
+	 * most ports. Measured before: an ordinary program read ports
+	 * 0x60 and 0x80. Each process's TSS is a copy of this one.
+	 */
+	((struct i386tss *)gdt_segs[GPROC0_SEL].ssd_base)->tss_ioopt =
+		(sizeof(tss))<<16;
+
 	ltr(_gsel_tss);
 
 	/* make a call gate to reenter kernel with */
