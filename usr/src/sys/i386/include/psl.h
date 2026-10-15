@@ -64,9 +64,35 @@
  */
 #define	PSL_AC		0x00040000	/* alignment checking */
 #define	PSL_ID		0x00200000	/* identification bit */
+/*
+ * AI-ONLY NOTE: the virtual-8086 interrupt flags, bits 19 and 20, for
+ * PSL_USERSTATIC below; OpenBSD's psl.h as first imported (1995).
+ */
+#define	PSL_VIF		0x00080000	/* virtual interrupt enable flag */
+#define	PSL_VIP		0x00100000	/* virtual interrupt pending flag */
 
-#define	PSL_MBZ		0xfffc7fb7	/* must be zero bits */
+/*
+ * AI-ONLY NOTE: PSL_MBZ, PSL_USERSET and PSL_USERCLR are NetBSD 1.0's
+ * (machine/psl.h, lines 65 to 68), less PSL_VIP and PSL_VIF in
+ * PSL_USERCLR, as FreeBSD 2.0's. Lite2's marked the carry, interrupt and
+ * other live flags as must-be-zero, required IOPL 3 of a user process
+ * and forbade it interrupts -- the reverse of the flags a user
+ * process runs with here, PSL_I set and IOPL 0 (0x286 is typical).
+ * Nothing read them until procfs_write_regs, which then refused
+ * every process's own flags.
+ */
+#define	PSL_MBZ		0xffc08028	/* must be zero bits */
 #define	PSL_MBO		0x00000002	/* must be one bits */
 
-#define	PSL_USERSET	(PSL_IOPL)
-#define	PSL_USERCLR	(PSL_I|PSL_NT)
+#define	PSL_USERSET	(PSL_MBO | PSL_I)
+#define	PSL_USERCLR	(PSL_MBZ | PSL_NT | PSL_VM)
+
+/*
+ * AI-ONLY NOTE: the bits a process may never change, whatever it
+ * asks: OpenBSD's PSL_USERSTATIC, as in its first tree (October 1995,
+ * NetBSD-current of that month) and still in its 2.4, without VM86.
+ * sigreturn, the /proc register hooks and ptrace's PT_WRITE_U refuse
+ * new flags that differ from the process's own in any of these.
+ */
+#define	PSL_USERSTATIC	(PSL_MBO | PSL_MBZ | PSL_I | PSL_IOPL | PSL_NT | \
+			 PSL_VM | PSL_VIF | PSL_VIP)

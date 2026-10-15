@@ -518,11 +518,16 @@ sigreturn(p, uap, retval)
 	scp = fp->sf_scp;
 	if (useracc((caddr_t)scp, sizeof (*scp), 0) == 0)
 		return(EINVAL);
-#ifdef notyet
-	if ((scp->sc_ps & PSL_MBZ) != 0 || (scp->sc_ps & PSL_MBO) != PSL_MBO) {
+	/*
+	 * AI-ONLY NOTE: the flags are checked, as OpenBSD's sigreturn
+	 * checks them (PSL_USERSTATIC, <machine/psl.h>), where Lite2 had
+	 * a test under `#ifdef notyet' and took whatever sc_ps held. A
+	 * process could raise its own IOPL to 3 that way, and then do
+	 * port I/O. This sigcontext carries no %cs, so OpenBSD's
+	 * selector test has nothing to look at here.
+	 */
+	if (((scp->sc_ps ^ regs[sEFLAGS]) & PSL_USERSTATIC) != 0)
 		return(EINVAL);
-	}
-#endif
 	if (scp->sc_onstack & 01)
 		p->p_sigacts->ps_sigstk.ss_flags |= SA_ONSTACK;
 	else
