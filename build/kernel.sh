@@ -14,7 +14,7 @@
 # build/make.sh adds them for the userland.
 #
 # WHAT IT DOES, for the configuration named on the command line
-# (default LINK.i386) --
+# (default GENERIC.i386) --
 #
 #   1. config, from ${L2_BUILD}/tools/bin, run in
 #      usr/src/sys/${MACHINE}/conf. It writes the build directory at
@@ -90,7 +90,7 @@ die() { printf '%s: %s\n' "$progname" "$*" >&2; exit 1; }
 # make LINK.i386'. That was harmless only while the make's status was
 # discarded; the moment it stopped being discarded it deleted the
 # kernel and failed.
-config=${1:-LINK.i386}
+config=${1:-GENERIC.i386}
 [ $# -eq 0 ] || shift
 MACHINE=${MACHINE:-i386}
 

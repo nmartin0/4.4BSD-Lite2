@@ -2,8 +2,27 @@
 # GENERIC System -- distribution
 # @(#)GENERIC.i386	8.1 6/11/93
 #
+# AI-ONLY NOTE: Berkeley's GENERIC.i386 did not build: it named a
+# console driver the 1992 reorganisation had renamed, no filesystem,
+# and disk drivers that had never compiled against <sys/buf.h>. It is
+# corrected below, each change with its reason, and builds and boots;
+# LINK.i386, which stood in for it while it did not, is gone. Every
+# line added is one Berkeley wrote in another of their configurations
+# or one FreeBSD or NetBSD wrote for this machine, as each note says.
+#
 machine		"i386"
 cpu		"i386"
+# AI-ONLY NOTE: the processor classes, as cpu lines. config turns each
+# into a -D (mkmakefile.c:164), which is how I386_CPU reaches the
+# copyout in locore.s: with it, the page-walk for the 386 is compiled
+# in and skipped at run time on anything newer; without it, that code
+# is not in the kernel at all. NetBSD 1.0's i386 configurations write
+# exactly these three lines, and nothing else here spells them.
+# The cpu "i386" above stays: this tree's sources test -Di386 widely
+# and NetBSD's do not, having replaced it with these.
+cpu		"I386_CPU"
+cpu		"I486_CPU"
+cpu		"I586_CPU"
 ident		GENERIC
 timezone	8 dst
 maxusers	2
@@ -11,23 +30,126 @@ options		INET
 options		"TCP_COMPAT_42"
 options		"COMPAT_43"
 
-config		vmunix	root on dk0 swap on dk0
+# AI-ONLY NOTE: the filesystem and the pagers, which Berkeley's
+# GENERIC.i386 did not name. Its three options above were the whole of it, so
+# config selects no filesystem at all: ufs/ffs/ffs_vnops.c is
+# `optional ffs' in sys/conf/files and vm/vnode_pager.c is `optional
+# vnodepager', and neither was built. The kernel link wanted
+# ffs_vnodeop_opv_desc, ffs_specop_opv_desc, vnode_pager_umount and
+# vnode_pager_uncache, which are in those two files.
+#
+# Every line here is one Berkeley wrote in a configuration of their
+# own. FFS and MFS come from their ARGO and BLITZ i386
+# configurations, which read `options FFS MFS INET NFS "COMPAT_43"
+# "TCP_COMPAT_42"'; the three pagers come from this tree's own
+# hp300 GENERIC, which reads `options SWAPPAGER VNODEPAGER
+# DEVPAGER'. NFS and the debug options ARGO also carries are left
+# out: they add subsystems rather than completing this one.
+options		FFS
+options		MFS
+options		SWAPPAGER
+options		VNODEPAGER
+options		DEVPAGER
+# AI-ONLY NOTE: kernfs, for /kern, which the installer's profile
+# mounts, and from which it shows the boot messages again. The line is this tree's hp300 and pmax GENERIC
+# configurations', `options KERNFS # kernel data-structure
+# filesystem'; NetBSD 1.1's i386 GENERIC carries it as well.
+options		KERNFS
+
+# AI-ONLY NOTE: root and swap on whichever disk the kernel finds at
+# boot (options GENERIC, below), where Berkeley's said `root on dk0
+# swap on dk0', a name the disk driver here no longer has.
+config		vmunix	swap on generic
 
 controller	isa0
-controller	wd0	at isa? port "IO_WD1" bio irq 14 vector wdintr
-disk		dk0	at wd0 drive 0
+
+# AI-ONLY NOTE: pc0 and pcrint, where Berkeley's GENERIC.i386 said cn0
+# and cnrint. In 1991 the console driver really was called cn and lived in
+# i386/isa/cons.c, and files.i386 said `optional cn device-driver'.
+# The 1992 reorganisation made i386/i386/cons.c the machine-independent
+# layer, standard rather than optional, and moved the hardware driver
+# to i386/isa/pccons.c as `optional pc device-driver'. GENERIC.i386 was
+# not followed through, so it still asked for a driver that no longer
+# exists: nothing in this tree defines cndriver, while pccons.c defines
+# pcdriver and its handler is pcrint.
+#
+# The line below is Berkeley's own. Their ARGO and BLITZ configurations
+# were updated at the rename and read exactly this; GENERIC.i386 and
+# CIRCE were missed. The Lite releases ship only GENERIC.i386, so the
+# corrected form is not in this tree -- it is in the CSRG history.
+device		pc0	at isa? port "IO_KBD" tty irq 1 vector pcrint
+device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
+# AI-ONLY NOTE: COMCONSOLE, so the console is com0 and not the VGA
+# display. cninit in i386/i386/cons.c:74 probes every entry in
+# constab and keeps the highest priority; i386/i386/cons.h gives
+# CN_DEAD 0, CN_NORMAL 1, CN_INTERNAL 2, CN_REMOTE 3. pccnprobe sets
+# CN_INTERNAL unconditionally, and comcnprobe sets CN_NORMAL unless
+# COMCONSOLE is defined, in which case CN_REMOTE and the serial port
+# wins. The mechanism and the comment -- "Force a serial port
+# console" -- are Berkeley's; nothing in the sources changes.
+#
+# Needed because everything we can observe of this kernel arrives
+# over the serial line: build/shim runs QEMU with -nographic, which
+# wires COM1 to stdout, and the VGA text buffer goes nowhere. Without
+# this the kernel has a console and we cannot see it.
+#
+# It costs nothing to try. comcnprobe already sets com_addr[CONUNIT]
+# to CONADDR, which isa/comreg.h:112 gives as 0x3f8 -- COM1, the port
+# the shim writes its own output to. comcninit calls cominit, which
+# is outb to the UART registers and nothing else, so it needs no
+# interrupt, no device attach and no autoconfiguration; and
+# comcnputc polls LSR_TXRDY with a timeout rather than waiting on an
+# interrupt. cninit runs at the top of init386, before
+# isa_defaultirq, and none of that path depends on either.
+# AI-ONLY NOTE: GENERIC, so that i386/i386/autoconf.c calls setconf()
+# and the kernel searches for its own root device. setroot(), the
+# alternative, decodes a bootdev the loader passes, and build/shim
+# passes none. hp300's and pmax's GENERIC configurations define it for
+# the same reason.
+options		GENERIC
+options		COMCONSOLE
+# AI-ONLY NOTE: the disks, from FreeBSD 2.1.0's GENERIC (:40-:49),
+# where Berkeley's said `controller wd0 ... disk dk0 at wd0 drive 0':
+# whose isa/wd.c this tree now carries: the driver is the wdc
+# controller, which probes its own drives, and each drive is a disk
+# under it. wdc1 is the secondary channel, where QEMU's -cdrom puts
+# its ATAPI drive. ATAPI and wcd0 are GENERIC's commented-out lines,
+# taken in. CD9660 is GENERIC's :19, quoted as there. wdopen refuses
+# a drive the probe did not find, so a kernel booted with fewer disks
+# reports rather than faults.
+controller	wdc0	at isa? port "IO_WD1" bio irq 14 vector wdintr
+disk		wd0	at wdc0 drive 0
+disk		wd1	at wdc0 drive 1
+
+controller	wdc1	at isa? port "IO_WD2" bio irq 15 vector wdintr
+disk		wd2	at wdc1 drive 0
+disk		wd3	at wdc1 drive 1
+
+options		ATAPI		#Enable ATAPI support for IDE bus
+device		wcd0		#IDE CD-ROM
+options		"CD9660"	#ISO 9660 Filesystem
+# The floppy, Berkeley's lines: fd.c's driver is the controller, and
+# its drives are disks under it.
 controller	fd0	at isa? port "IO_FD1" bio irq 6 drq 2 vector fdintr
 disk		dk4	at fd0 drive 0
 disk		dk5	at fd0 drive 1
-
-device		cn0	at isa? port "IO_KBD" tty irq 1 vector cnrint
-device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
 device		com0	at isa? port "IO_COM1" tty irq 4 vector comintr
 device		ne0	at isa? port 0x320 net irq 9 vector neintr
 device we0 at isa? port 0x280 net irq 3 iomem 0xd0000 iosiz 8192 vector weintr
-device		wt0	at isa? port 0x300 net irq 5 drq 1 vector wtintr
+# AI-ONLY NOTE: the Wangtek tape, Berkeley's line but for its class:
+# Berkeley's said `net', which would block the tape's interrupt with
+# the network's; a tape is a block device, and FreeBSD 2.0.5's GENERIC
+# gives the same driver `bio'.
+device		wt0	at isa? port 0x300 bio irq 5 drq 1 vector wtintr
 
 pseudo-device	loop
 pseudo-device	ether
 pseudo-device	sl	1
-
+# AI-ONLY NOTE: pseudo-terminals, which Berkeley's GENERIC.i386 left out and
+# every other port's GENERIC configuration in this tree carries --
+# hp300's and pmax's as `pseudo-device pty 64', sparc's with no count.
+# tty_pty.c and conf.c's slots 5 and 6 are already here; without the
+# line NPTY is 0 and /etc/rc's `chmod 666 /dev/tty[pqrs]*' finds
+# nothing, nor does script(1), telnetd or rlogind. 16 is one MAKEDEV
+# class, pty0.
+pseudo-device	pty	16

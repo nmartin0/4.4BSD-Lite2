@@ -91,16 +91,16 @@ done
     "$R/usr/share/misc/termcap"
 (cd usr/src/sys/boot/i386 && sh "$r/build/make.sh" all install)
 sh build/kernel.sh
-install -m 755 usr/src/sys/compile/LINK.i386/vmunix "$R/vmunix"
+install -m 755 usr/src/sys/compile/GENERIC.i386/vmunix "$R/vmunix"
 sh build/distribution.sh "$R"
 tar -C "$R" --numeric-owner --format=ustar -cf "$O/base.tar" .
 
 # the install kernel: install.md, *A root inside the kernel*
 c=usr/src/sys/i386/conf
-sed -e 's/^ident[[:space:]]*LINK/ident		INSTALL/' \
+sed -e 's/^ident[[:space:]]*GENERIC/ident		INSTALL/' \
     -e '/^options[[:space:]]*GENERIC/d' \
     -e 's/^config[[:space:]].*/config		vmunix	root on wd0 swap on wd0/' \
-    $c/LINK.i386 > $c/INSTALL
+    $c/GENERIC.i386 > $c/INSTALL
 printf 'options\t\t"MFS_ROOT=1600"\n' >> $c/INSTALL
 sh build/kernel.sh INSTALL
 rm -f $c/INSTALL

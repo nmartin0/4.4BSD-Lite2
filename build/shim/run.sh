@@ -15,7 +15,7 @@
 set -e
 d=$(cd "$(dirname "$0")" && pwd)
 SRC=$(cd "$d/../.." && pwd)
-K=${K:-$SRC/usr/src/sys/compile/LINK.i386/vmunix}
+K=${K:-$SRC/usr/src/sys/compile/GENERIC.i386/vmunix}
 [ -f "$K" ] || { echo "no kernel at $K -- run build/kernel.sh first" >&2; exit 1; }
 for t in gcc ld qemu-system-i386; do
 	command -v $t >/dev/null || { echo "not found: $t" >&2; exit 1; }
