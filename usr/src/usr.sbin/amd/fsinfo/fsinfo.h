@@ -88,7 +88,11 @@ typedef char *voidp;
 
 extern char* strchr P((Const char*, int)); /* C */
 extern char* strrchr P((Const char*, int)); /* C */
-extern char *strdup P((char*)); /* C */
+/*
+ * AI-ONLY NOTE: strdup is <string.h>'s, which says const char *; this
+ * file's own declaration said char *, and wherever both were seen the
+ * compiler refused the pair. NetBSD 1.3's fsinfo.h drops the line.
+ */
 extern void fatal();
 extern void warning();
 extern void error();
