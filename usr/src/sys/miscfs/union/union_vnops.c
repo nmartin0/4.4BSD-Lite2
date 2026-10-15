@@ -953,8 +953,8 @@ union_remove(ap)
 int
 union_link(ap)
 	struct vop_link_args /* {
-		struct vnode *a_vp;
 		struct vnode *a_tdvp;
+		struct vnode *a_vp;
 		struct componentname *a_cnp;
 	} */ *ap;
 {
@@ -1002,7 +1002,7 @@ union_link(ap)
 	un->un_flags |= UN_KLOCK;
 	vput(ap->a_tdvp);
 
-	return (VOP_LINK(vp, tdvp, cnp));
+	return (VOP_LINK(tdvp, vp, cnp));
 }
 
 int

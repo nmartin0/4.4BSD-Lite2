@@ -251,12 +251,20 @@ vop_remove {
 };
 
 #
-#% link		vp	U U U
+# AI-ONLY NOTE: the directory first, as FreeBSD 2.2's vnode_if.src
+# has it, and FreeBSD 3.0's, which took in Lite2: the first vnode
+# chooses the filesystem, and with the file first a link to a device
+# or a fifo went to specfs or fifofs, whose link is a bad operation,
+# and `ln /dev/null x' panicked the kernel. link(2) and the NFS
+# server pass the directory first to match, and WILLRELE marks the
+# vnode ufs_link releases, the directory, not the file link(2) does.
+#
 #% link		tdvp	L U U
+#% link		vp	U U U
 #
 vop_link {
-	IN WILLRELE struct vnode *vp;
-	IN struct vnode *tdvp;
+	IN WILLRELE struct vnode *tdvp;
+	IN struct vnode *vp;
 	IN struct componentname *cnp;
 };
 

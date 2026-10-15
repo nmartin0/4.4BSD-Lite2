@@ -2006,7 +2006,7 @@ out:
 	if (!error) {
 		nqsrv_getl(vp, ND_WRITE);
 		nqsrv_getl(xp, ND_WRITE);
-		error = VOP_LINK(vp, nd.ni_dvp, &nd.ni_cnd);
+		error = VOP_LINK(nd.ni_dvp, vp, &nd.ni_cnd);
 	} else {
 		VOP_ABORTOP(nd.ni_dvp, &nd.ni_cnd);
 		if (nd.ni_dvp == nd.ni_vp)

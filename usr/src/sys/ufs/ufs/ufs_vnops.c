@@ -682,8 +682,8 @@ out:
 int
 ufs_link(ap)
 	struct vop_link_args /* {
-		struct vnode *a_vp;
 		struct vnode *a_tdvp;
+		struct vnode *a_vp;
 		struct componentname *a_cnp;
 	} */ *ap;
 {

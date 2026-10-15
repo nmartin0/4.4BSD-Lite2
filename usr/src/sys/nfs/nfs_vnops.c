@@ -1612,8 +1612,8 @@ nfs_renamerpc(fdvp, fnameptr, fnamelen, tdvp, tnameptr, tnamelen, cred, proc)
 int
 nfs_link(ap)
 	struct vop_link_args /* {
-		struct vnode *a_vp;
 		struct vnode *a_tdvp;
+		struct vnode *a_vp;
 		struct componentname *a_cnp;
 	} */ *ap;
 {
