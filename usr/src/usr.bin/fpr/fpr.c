@@ -53,7 +53,9 @@ static char sccsid[] = "@(#)fpr.c	8.1 (Berkeley) 6/6/93";
  * 'gettext'". This line is NetBSD 1.4's, the earliest release with
  * it; the contemporaries all leave the function undeclared. NetBSD
  * 10 renames the function to get_text instead, which is the surer
- * fix and a larger one, and is not done here.
+ * fix and a larger one, and is not done here. The definition says
+ * void too, as NetBSD 1.4's does; GCC 2.95 will not have the two
+ * differ.
  */
 void gettext __P((void));
 
@@ -221,6 +223,7 @@ init()
 
 
 
+void
 gettext()
 {
   register int i;
