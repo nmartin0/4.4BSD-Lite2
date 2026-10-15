@@ -243,6 +243,24 @@ grep -q "^PATH=$L2_BUILD/tools/" "$TOOLS/mkdep" ||
 # shellcheck disable=SC2086  # HOSTCC carries its own flags
 $HOSTCC -w -o "$TOOLS/yacc" "$SRC"/usr.bin/yacc/*.c
 
+# lex, which is flex 2.5.2 in this tree (contrib/flex-2.5.2), built
+# from it for the same reason as yacc: the host's flex, 2.6, defines
+# yylineno in every scanner it writes, which amd's fsinfo, written for
+# a lex that did not, defines itself. Built as flex's own Makefile
+# builds it -- parse.y through yacc, the scan.c it ships, its skel.c
+# -- by this machine's compiler, into the build directory.
+fdir="$L2_BUILD/tools/flex.build"
+F=$SRC/contrib/flex-2.5.2
+rm -rf "$fdir"
+mkdir -p "$fdir"
+(cd "$fdir" && "$TOOLS/yacc" -d "$F/parse.y" &&
+    sed '/extern char.*malloc/d' y.tab.c > parse.c && mv y.tab.h parse.h)
+# shellcheck disable=SC2086  # HOSTCC carries its own flags
+$HOSTCC -w -I"$fdir" -I"$F" -o "$TOOLS/lex" "$fdir/parse.c" \
+    "$F/ccl.c" "$F/dfa.c" "$F/ecs.c" "$F/gen.c" "$F/main.c" "$F/misc.c" \
+    "$F/nfa.c" "$F/scan.c" "$F/skel.c" "$F/sym.c" "$F/tblcmp.c" \
+    "$F/yylex.c"
+
 # config, for the kernel: the build runs it, so it is built for this
 # machine, with the yacc above and the host lex. Three things the host
 # needs and 4.4BSD did not: -fcommon, because config.h declares

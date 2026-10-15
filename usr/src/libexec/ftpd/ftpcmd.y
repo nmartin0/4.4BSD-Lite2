@@ -806,22 +806,7 @@ static struct tab *
 		 lookup __P((struct tab *, char *));
 static void	 sizecmd __P((char *));
 static void	 toolong __P((int));
-/*
- * AI-ONLY NOTE: not static, here or at the definition below. What
- * yacc writes declares `extern int yylex(void);', and a static
- * definition after that is what GCC 14 rejects. NetBSD 1.6 writes
- * both sites without static, and usr.sbin/config.new/gram.y in this
- * tree declares `int yylex __P((void));' the same way; twelve of the
- * fourteen yacc files here declare it not at all. This file was the
- * only one that said static.
- *
- * The clash is a property of the yacc being used, not of this file:
- * 4.4BSD-Lite2's own usr.bin/yacc never declares yylex, so under it
- * static was correct. Building that yacc as a host tool, as NetBSD
- * does with nbyacc, would let this file stand unmodified; see
- * docs/provenance/missing.md. This spelling is right under either.
- */
-int	 yylex __P((void));
+static int	 yylex __P((void));
 
 static struct tab *
 lookup(p, cmd)
@@ -929,7 +914,7 @@ toolong(signo)
 	dologout(1);
 }
 
-int
+static int
 yylex()
 {
 	static int cpos, state;

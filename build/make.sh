@@ -225,10 +225,15 @@ LD="$TOOLS/$GT-ld"
 # reads it -- games/monop's initdeck writes longs and structures with
 # pointers in them into cards.pck, which monop reads back on the i386.
 HOSTCC="$hostcc -m32 -std=gnu89"
-# byacc, not bison: this tree's grammars use the old yacc form
-# `rule = { action }', which Berkeley yacc accepts and bison 3.8
-# rejects. NetBSD builds its own as nbyacc for the same reason.
-YACC="byacc"
+# yacc and lex are the tree's own, which sysroot.sh builds into the
+# tools directory, first on the PATH: usr.bin/yacc, and flex 2.5.2
+# from contrib/. The host's would do for most grammars, but each
+# writes what this tree's sources do not expect -- byacc declares
+# yylex, which ftpd's ftpcmd.y defines static; flex 2.6 defines
+# yylineno, which amd's fsinfo defines itself -- and with the tree's
+# own both stand as Berkeley wrote them. NetBSD builds its own the
+# same way, as nbyacc and nblex.
+YACC="yacc"
 export LC_ALL MACHINE MAKEFLAGS DESTDIR MAKEOBJDIRPREFIX PATH
 export LIBMODE CC CPP AS LD HOSTCC YACC
 
