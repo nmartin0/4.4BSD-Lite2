@@ -6,4 +6,8 @@ CFLAGS+=-I${.CURDIR}/.. -I.
 NOMAN=	noman
 .PATH:	${.CURDIR}/../../api
 
+# AI-ONLY NOTE: run during the build, so made for the machine doing the
+# build, with ${HOSTCC}; NetBSD 1.6 builds these tools as HOSTPROGs.
+CC=	${HOSTCC}
+
 .include <bsd.prog.mk>
