@@ -108,7 +108,30 @@ static int fd_status[7];
 	make sure bounce buffer for DMA is aligned since the DMA chip
 	doesn't roll over properly over a 64k boundary
 */
-extern struct buf *dma_bounce[];
+/*
+ * AI-ONLY NOTE: isa_dmastart and isa_dmadone (isa.c) keep the bounce
+ * buffers now, FreeBSD 2.0's, in place of at_dma's dma_bounce.
+ */
+
+/*
+ * AI-ONLY NOTE: Sense Interrupt Status until the controller has no
+ * more to report, as FreeBSD 2.0's fd.c does in RECALCOMPLETE and
+ * SEEKCOMPLETE: `do ... while ((st0 & NE7_ST0_IC) == NE7_ST0_IC_RC)'.
+ * Until an interrupt is sensed the controller holds its line up, and
+ * the next command completes with no new edge for the 8259 to see;
+ * after a reset it reports a ready change for each of four drives.
+ */
+static void
+fd_sensei()
+{
+	int st0;
+
+	do {
+		out_fdc(0x8);
+		st0 = in_fdc();
+		(void) in_fdc();
+	} while (st0 != -1 && (st0 & NE7_ST0_IC) == NE7_ST0_IC_RC);
+}
 
 /****************************************************************************/
 /*                      autoconfiguration stuff                             */
@@ -455,7 +478,8 @@ printf("Stray int ST0 = %lx, PCN = %lx:",i,cyl);
 		}
 
 		fd_track = bp->b_cylin;
-		at_dma(read,bp->b_un.b_addr+fd_skip,FDBLK, fd_dmachan);
+		isa_dmastart(bp->b_flags, bp->b_un.b_addr+fd_skip, FDBLK,
+		    fd_dmachan);
 		blknum = (unsigned long)bp->b_blkno*DEV_BSIZE/FDBLK
 			+ fd_skip/FDBLK;
 		sectrac = ft->sectrac;
@@ -483,7 +507,19 @@ printf("Stray int ST0 = %lx, PCN = %lx:",i,cyl);
 		for(i=0;i<7;i++) {
 			fd_status[i] = in_fdc();
 		}
-		if (fd_status[0]&0xF8) {
+		/*
+		 * AI-ONLY NOTE: the transfer is done with the DMA channel
+		 * either way, and a read that was bounced is copied out,
+		 * as FreeBSD 2.0's fd.c calls isa_dmadone before looking
+		 * at the status. Then only the interrupt code, as there,
+		 * says whether it failed: 0xF8 also took seek end and
+		 * equipment check for failures, and a controller that
+		 * reports seek end after a read on the other head --
+		 * QEMU's does -- failed every sector past the first track.
+		 */
+		isa_dmadone(bp->b_flags, bp->b_un.b_addr+fd_skip, FDBLK,
+		    fd_dmachan);
+		if (fd_status[0] & NE7_ST0_IC) {
 #ifdef FDOTHER
 printf("status0 err %d:",fd_status[0]);
 #endif
@@ -500,11 +536,6 @@ printf("status0 err %d:",fd_status[0]);
 		}
 */
 		/* All OK */
-		if (!kernel_space(bp->b_un.b_addr+fd_skip)) {
-			/* RAW transfer */
-			if (read) bcopy(dma_bounce[fd_dmachan]->b_un.b_addr,
-				bp->b_un.b_addr+fd_skip, FDBLK);
-		}
 		fd_skip += FDBLK;
 		if (fd_skip >= bp->b_bcount) {
 #ifdef FDTEST
@@ -551,6 +582,8 @@ printf("Seek|");
 #ifdef FDOTHER
 printf("Seek %d %d\n", bp->b_cylin, dp->b_step);
 #endif
+		if (unit != 0xff)
+			fd_sensei();	/* the recalibrate's */
 		/* Seek necessary */
 		out_fdc(15);	/* Seek function */
 		out_fdc(fd_drive);/* Drive number */
@@ -558,6 +591,8 @@ printf("Seek %d %d\n", bp->b_cylin, dp->b_step);
 		fd_state = 1;
 		break;
 	case 4:
+		if (unit != 0xff)
+			fd_sensei();	/* the reset's */
 		out_fdc(3); /* specify command */
 		out_fdc(0xDF);
 		out_fdc(2);
@@ -569,6 +604,8 @@ printf("Seek %d %d\n", bp->b_cylin, dp->b_step);
 #ifdef FDOTHER
 		printf("**RESET**\n");
 #endif
+		if (unit != 0xff)
+			fd_sensei();	/* whatever interrupt brought us here */
 		/* Try a reset, keep motor on */
 		set_motor(fd_drive,1);
 		set_motor(fd_drive,0);

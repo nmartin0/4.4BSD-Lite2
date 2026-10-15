@@ -173,65 +173,198 @@ isa_defaultirq() {
 	outb(0xa1,0xff);
 }
 
-/* stuff needed for virtual to physical calculations */
+/*
+ * AI-ONLY NOTE: the ISA DMA code below, from isaphysmem to
+ * isa_dmarangecheck, is FreeBSD 2.0's i386/isa/isa.c (rev 1.35),
+ * unchanged but for pmap_kernel(), written kernel_pmap here, and
+ * stands in place of 386BSD's at_dma. NetBSD 1.0's isa/dma.c and
+ * OpenBSD's first isadma.c (1995) carry the same functions, line for
+ * line; FreeBSD's is the one in this file's own lineage. at_dma
+ * programmed channel 2's registers whatever channel it was given,
+ * bounced only user addresses, through a buffer from geteblk that
+ * could lie anywhere, and handed the controller kernel addresses
+ * past its 16 MB as they were: with 32 MB a floppy read came back as
+ * zeros. isa_dmastart bounces whatever the controller cannot reach,
+ * through isaphysmem, pages pmap_bootstrap reserves for it low in
+ * memory as FreeBSD 2.0's does, and isa_dmadone copies a read back.
+ * The register names come with them, from FreeBSD 2.0's isa.c and
+ * <i386/isa/ic/i8237.h>.
+ */
+#include <i386/isa/isa.h>
+#include <i386/isa/ic/i8237.h>
 
-struct buf *dma_bounce[8];
-#define MAXDMASZ 512
+/*
+**  Register definitions for DMA controller 1 (channels 0..3):
+*/
+#define	DMA1_CHN(c)	(IO_DMA1 + 1*(2*(c)))	/* addr reg for channel c */
+#define	DMA1_SMSK	(IO_DMA1 + 1*10)	/* single mask register */
+#define	DMA1_MODE	(IO_DMA1 + 1*11)	/* mode register */
+#define	DMA1_FFC	(IO_DMA1 + 1*12)	/* clear first/last FF */
 
-/* XXX temporary crud */
-kernel_space(x)
-unsigned long x;
-{
-	if (x >= KERNBASE) return 1;
-	else return 0;
+/*
+**  Register definitions for DMA controller 2 (channels 4..7):
+*/
+#define	DMA2_CHN(c)	(IO_DMA2 + 2*(2*(c)))	/* addr reg for channel c */
+#define	DMA2_SMSK	(IO_DMA2 + 2*10)	/* single mask register */
+#define	DMA2_MODE	(IO_DMA2 + 2*11)	/* mode register */
+#define	DMA2_FFC	(IO_DMA2 + 2*12)	/* clear first/last FF */
+
+/* region of physical memory known to be contiguous */
+vm_offset_t isaphysmem;
+static caddr_t dma_bounce[8];		/* XXX */
+static char bounced[8];		/* XXX */
+#define MAXDMASZ 512		/* XXX */
+
+/* high byte of address is stored in this port for i-th dma channel */
+static short dmapageport[8] =
+	{ 0x87, 0x83, 0x81, 0x82, 0x8f, 0x8b, 0x89, 0x8a };
+
+static int
+isa_dmarangecheck(caddr_t va, unsigned length, unsigned chan);
+
+/*
+ * isa_dmastart(): program 8237 DMA controller channel, avoid page alignment
+ * problems by using a bounce buffer.
+ */
+void isa_dmastart(int flags, caddr_t addr, unsigned nbytes, unsigned chan)
+{	vm_offset_t phys;
+	int waport;
+	caddr_t newaddr;
+
+	if (    chan > 7
+	    || (chan < 4 && nbytes > (1<<16))
+	    || (chan >= 4 && (nbytes > (1<<17) || (u_int)addr & 1)))
+		panic("isa_dmastart: impossible request"); 
+
+	if (isa_dmarangecheck(addr, nbytes, chan)) {
+		if (dma_bounce[chan] == 0)
+			dma_bounce[chan] =
+				/*(caddr_t)malloc(MAXDMASZ, M_TEMP, M_WAITOK);*/
+				(caddr_t) isaphysmem + NBPG*chan;
+		bounced[chan] = 1;
+		newaddr = dma_bounce[chan];
+		*(int *) newaddr = 0;	/* XXX */
+
+		/* copy bounce buffer on write */
+		if (!(flags & B_READ))
+			bcopy(addr, newaddr, nbytes);
+		addr = newaddr;
+	}
+
+	/* translate to physical */
+	phys = pmap_extract(kernel_pmap, (vm_offset_t)addr);
+
+	if ((chan & 4) == 0) {
+		/*
+		 * Program one of DMA channels 0..3.  These are
+		 * byte mode channels.
+		 */
+		/* set dma channel mode, and reset address ff */
+
+		/* If B_RAW flag is set, then use autoinitialise mode */
+		if (flags & B_RAW) {
+		  if (flags & B_READ)
+			outb(DMA1_MODE, DMA37MD_AUTO|DMA37MD_WRITE|chan);
+		  else
+			outb(DMA1_MODE, DMA37MD_AUTO|DMA37MD_READ|chan);
+		}
+		else
+		if (flags & B_READ)
+			outb(DMA1_MODE, DMA37MD_SINGLE|DMA37MD_WRITE|chan);
+		else
+			outb(DMA1_MODE, DMA37MD_SINGLE|DMA37MD_READ|chan);
+		outb(DMA1_FFC, 0);
+
+		/* send start address */
+		waport =  DMA1_CHN(chan);
+		outb(waport, phys);
+		outb(waport, phys>>8);
+		outb(dmapageport[chan], phys>>16);
+
+		/* send count */
+		outb(waport + 1, --nbytes);
+		outb(waport + 1, nbytes>>8);
+
+		/* unmask channel */
+		outb(DMA1_SMSK, chan);
+	} else {
+		/*
+		 * Program one of DMA channels 4..7.  These are
+		 * word mode channels.
+		 */
+		/* set dma channel mode, and reset address ff */
+
+		/* If B_RAW flag is set, then use autoinitialise mode */
+		if (flags & B_RAW) {
+		  if (flags & B_READ)
+			outb(DMA2_MODE, DMA37MD_AUTO|DMA37MD_WRITE|(chan&3));
+		  else
+			outb(DMA2_MODE, DMA37MD_AUTO|DMA37MD_READ|(chan&3));
+		}
+		else
+		if (flags & B_READ)
+			outb(DMA2_MODE, DMA37MD_SINGLE|DMA37MD_WRITE|(chan&3));
+		else
+			outb(DMA2_MODE, DMA37MD_SINGLE|DMA37MD_READ|(chan&3));
+		outb(DMA2_FFC, 0);
+
+		/* send start address */
+		waport = DMA2_CHN(chan - 4);
+		outb(waport, phys>>1);
+		outb(waport, phys>>9);
+		outb(dmapageport[chan], phys>>16);
+
+		/* send count */
+		nbytes >>= 1;
+		outb(waport + 2, --nbytes);
+		outb(waport + 2, nbytes>>8);
+
+		/* unmask channel */
+		outb(DMA2_SMSK, chan & 3);
+	}
 }
 
-
-/****************************************************************************/
-/*                                 at_dma                                   */
-/* set up DMA read/write operation and virtual address addr for nbytes      */
-/****************************************************************************/
-at_dma(read,addr,nbytes, chan)
-int read;
-unsigned long addr;
-int nbytes;
+void isa_dmadone(int flags, caddr_t addr, int nbytes, int chan)
 {
-	unsigned long phys;
-	int s,raw;
-	caddr_t bounce;
 
-	if (kernel_space(addr)) raw = 0;
-	else raw = 1;
-
-	if(raw) {
-		if (dma_bounce[chan] == 0)
-			dma_bounce[chan] = geteblk(MAXDMASZ);
-		bounce = dma_bounce[chan]->b_un.b_addr;
+	/* copy bounce buffer on read */
+	/*if ((flags & (B_PHYS|B_READ)) == (B_PHYS|B_READ))*/
+	if (bounced[chan]) {
+		bcopy(dma_bounce[chan], addr, nbytes);
+		bounced[chan] = 0;
 	}
+}
 
-	/* copy bounce buffer on write */
-	if (raw && !read) bcopy(addr,bounce,nbytes);
+/*
+ * Check for problems with the address range of a DMA transfer
+ * (non-contiguous physical pages, outside of bus address space,
+ * crossing DMA page boundaries).
+ * Return true if special handling needed.
+ */
 
-	/* Set read/write bytes */
-	if (read) {
-		outb(0xC,0x46); outb(0xB,0x46);
-	} else {
-		outb(0xC,0x4A); outb(0xB,0x4A);
+static int
+isa_dmarangecheck(caddr_t va, unsigned length, unsigned chan) {
+	vm_offset_t phys, priorpage = 0, endva;
+	u_int dma_pgmsk = (chan & 4) ?  ~(128*1024-1) : ~(64*1024-1);
+
+	endva = (vm_offset_t)round_page(va + length);
+	for (; va < (caddr_t) endva ; va += NBPG) {
+		phys = trunc_page(pmap_extract(kernel_pmap, (vm_offset_t)va));
+#define ISARAM_END	RAM_END
+		if (phys == 0)
+			panic("isa_dmacheck: no physical page present");
+		if (phys >= ISARAM_END)
+			return (1);
+		if (priorpage) {
+			if (priorpage + NBPG != phys)
+				return (1);
+			/* check if crossing a DMA page boundary */
+			if (((u_int)priorpage ^ (u_int)phys) & dma_pgmsk)
+				return (1);
+		}
+		priorpage = phys;
 	}
-	/* Send start address */
-	if (raw) phys = (unsigned long) bounce;
-	else phys = addr;
-	/* translate to physical */
-	phys = pmap_extract(kernel_pmap, (vm_offset_t)phys);
-	outb(0x4,phys & 0xFF);
-	outb(0x4,(phys>>8) & 0xFF);
-	outb(0x81,(phys>>16) & 0xFF);
-	/* Send count */
-	nbytes--;
-	outb(0x5,nbytes & 0xFF);
-	outb(0x5,(nbytes>>8) & 0xFF);
-	/* set channel 2 */
-	outb(0x0A,chan);
+	return (0);
 }
 
 /*

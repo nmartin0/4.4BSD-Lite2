@@ -48,6 +48,23 @@
 /* Status register ST0 */
 #define NE7_ST0BITS	"\020\010invalid\007abnormal\006seek complete\005drive check\004drive_rdy\003top head\002unit_sel1\001unit_sel0"
 
+/*
+ * AI-ONLY NOTE: ST0's fields, which fd.c now reads by name; these
+ * lines are FreeBSD 2.0's ic/nec765.h, the same file's descendant.
+ */
+#define NE7_ST0_IC	0xc0	/* interrupt completion code */
+
+#define NE7_ST0_IC_RC	0xc0	/* terminated due to ready changed, n/a */
+#define NE7_ST0_IC_IV	0x80	/* invalid command; must reset FDC */
+#define NE7_ST0_IC_AT	0x40	/* abnormal termination, check error stat */
+#define NE7_ST0_IC_NT	0x00	/* normal termination */
+
+#define NE7_ST0_SE	0x20	/* seek end */
+#define NE7_ST0_EC	0x10	/* equipment check, recalibrated but no trk0 */
+#define NE7_ST0_NR	0x08	/* not ready (n/a) */
+#define NE7_ST0_HD	0x04	/* upper head selected */
+#define NE7_ST0_DR	0x03	/* drive code */
+
 /* Status register ST1 */
 #define NE7_ST1BITS	"\020\010end_of_cyl\006bad_crc\005data_overrun\003sec_not_fnd\002write_protect\001no_am"
 

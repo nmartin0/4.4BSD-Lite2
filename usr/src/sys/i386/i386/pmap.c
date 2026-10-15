@@ -226,6 +226,7 @@ void pmap_activate __P((pmap_t, struct pcb *));
 struct pte *pmap_pte();
 
 extern vm_offset_t	atdevbase;
+#define DMAPAGES 8
 void
 pmap_bootstrap(firstaddr, loadaddr)
 	vm_offset_t firstaddr;
@@ -256,7 +257,15 @@ if (firstaddr < 0x100000)
 	firstaddr=0x100000;	/* for some reason, basemem screws up on this machine */
 #endif
 printf("ps %x pe %x ", firstaddr, maxmem <<PG_SHIFT);
-	avail_start = firstaddr;
+	/*
+	 * AI-ONLY NOTE: the first DMAPAGES pages above the kernel are
+	 * kept from the VM system for ISA DMA bounce buffers, and mapped
+	 * at isaphysmem below, as FreeBSD 2.0's pmap_bootstrap does
+	 * (`avail_start = firstaddr + DMAPAGES*NBPG'). isa_dmastart in
+	 * isa/isa.c bounces through them a transfer the DMA controller
+	 * cannot reach: they lie below its 16 MB, one page per channel.
+	 */
+	avail_start = firstaddr + DMAPAGES*NBPG;
 	avail_end = maxmem << PG_SHIFT;
 
 	/* XXX: allow for msgbuf */
@@ -312,6 +321,19 @@ printf("ps %x pe %x ", firstaddr, maxmem <<PG_SHIFT);
 	SYSMAP(struct msgbuf *	,msgbufmap	,msgbufp   ,1		)
 	virtual_avail = va;
 #endif
+	/*
+	 * reserve special hunk of memory for use by bus dma as a bounce
+	 * buffer (contiguous virtual *and* physical memory). for now,
+	 * assume vm does not use memory beneath hole, and we know that
+	 * the bootstrap uses top 32k of base memory. -wfj
+	 */
+	{
+		extern vm_offset_t isaphysmem;
+		isaphysmem = virtual_avail;
+
+		virtual_avail = pmap_map(virtual_avail, firstaddr,
+				firstaddr + DMAPAGES*NBPG, VM_PROT_ALL);
+	}
 
 	/**(int *)PTD = 0;
 	load_cr3(rcr3());*/
