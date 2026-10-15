@@ -292,7 +292,12 @@ struct kinfo_proc {
 #define	CTL_DEBUG_MAXID		20
 
 #ifdef	KERNEL
-#ifdef	DEBUG
+/*
+ * AI-ONLY NOTE: DIAGNOSTIC as well, as FreeBSD 2.0's sysctl.h has it:
+ * kern/vfs_subr.c defines debug1 under DIAGNOSTIC, and without the
+ * structure here a DIAGNOSTIC kernel did not compile.
+ */
+#if	defined(DEBUG) || defined(DIAGNOSTIC)
 /*
  * CTL_DEBUG variables.
  *

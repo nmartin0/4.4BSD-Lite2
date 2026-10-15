@@ -411,7 +411,12 @@ dounmount(mp, flags, p)
 /*
  * Sync each mounted filesystem.
  */
-#ifdef DEBUG
+/*
+ * AI-ONLY NOTE: DIAGNOSTIC, as FreeBSD 2.0's vfs_syscalls.c has it,
+ * where this said DEBUG: sync() below reads syncprt under DIAGNOSTIC,
+ * and a DIAGNOSTIC kernel without DEBUG did not compile.
+ */
+#ifdef DIAGNOSTIC
 int syncprt = 0;
 struct ctldebug debug0 = { "syncprt", &syncprt };
 #endif
