@@ -12,8 +12,11 @@ SUBDIR=	01.setup 02.config 03.fsck 04.quotas 05.fastfs 06.nfs 07.lpd \
 Title.ps: ${FILES}
 	groff -ms Title > ${.TARGET}
 
+# AI-ONLY NOTE: from ${.CURDIR}, as games/fortune/datfiles installs
+# its files: the build runs this in an object directory, which this
+# directory has as the parent of its subdirectories' (build/make.sh).
 beforeinstall:
-	install -c -o ${BINOWN} -g ${BINGRP} -m 444 ${FILES} \
-	    ${DESTDIR}${BINDIR}
+	(cd ${.CURDIR} && install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
+	    ${FILES} ${DESTDIR}${BINDIR})
 
 .include <bsd.subdir.mk>

@@ -12,8 +12,11 @@ SUBDIR=	01.cacm 02.implement 03.iosys 04.uprog 05.sysman 06.Clang \
 Title.ps: ${FILES}
 	groff Title > ${.TARGET}
 
+# AI-ONLY NOTE: from ${.CURDIR}, as games/fortune/datfiles installs
+# its files: the build runs this in an object directory, which this
+# directory has as the parent of its subdirectories' (build/make.sh).
 beforeinstall:
-	install -c -o ${BINOWN} -g ${BINGRP} -m 444 ${FILES} \
-	    ${DESTDIR}${BINDIR}
+	(cd ${.CURDIR} && install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
+	    ${FILES} ${DESTDIR}${BINDIR})
 
 .include <bsd.subdir.mk>
