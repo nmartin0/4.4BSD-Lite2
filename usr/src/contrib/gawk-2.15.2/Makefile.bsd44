@@ -1,15 +1,20 @@
-PROG=	awk
+# AI-ONLY NOTE: gawk, as /usr/contrib/bin/gawk, the contrib/ default
+# (Makefile.inc), with its manual page. Berkeley's Makefile made it
+# /usr/bin/awk -- "The 4.4BSD /bin/awk is version 2.15.2 of GNU Awk"
+# (4.4BSD-README) -- and this system's awk is Kernighan's, by the
+# maintainer's choice (usr.bin/awk); so it is gawk here, beside it.
+# The page is formatted from ${.CURDIR}, since the build runs in an
+# object directory.
+PROG=	gawk
 SRCS=	main.c eval.c builtin.c msg.c iop.c io.c field.c getopt1.c \
 	getopt.c array.c \
 	node.c version.c missing.c re.c awk.c regex.c dfa.c
 DPADD=	${LIBM}
 LDADD=	-lm
 CFLAGS+=-I${.CURDIR} -DGAWK
-BINDIR=	/usr/bin
-MANDIR=	/usr/share/man/cat
-CLEANFILES+=awk.c y.tab.h awk.0
+CLEANFILES+=awk.c y.tab.h gawk.0
 
-awk.0: gawk.1
-	nroff -man gawk.1 > awk.0
+gawk.0: gawk.1
+	nroff -man ${.CURDIR}/gawk.1 > gawk.0
 
 .include <bsd.prog.mk>

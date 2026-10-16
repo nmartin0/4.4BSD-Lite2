@@ -30,7 +30,13 @@
 #ifndef SRANDOM_PROTO
 extern void srandom P((int seed));
 #endif
-#ifndef linux
+/*
+ * AI-ONLY NOTE: only where the C library has no random(3), as
+ * OpenBSD's gawk of 1995 has it: Lite2's <stdlib.h> declares
+ * initstate with the unsigned long and long it has had since 1995,
+ * and these declarations conflicted with it.
+ */
+#if defined(RANDOM_MISSING)
 extern char *initstate P((unsigned seed, char *state, int n));
 extern char *setstate P((char *state));
 extern long random P((void));
