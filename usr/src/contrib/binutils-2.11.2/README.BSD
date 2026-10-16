@@ -1,0 +1,28 @@
+Notes for this system's distribution of binutils 2.11.2:
+
+1.  This is GNU binutils 2.11.2 as GNU released it, with the changes
+    NetBSD 1.6 made to it, which carried it as "2.11.2nb1", and this
+    system added to it as i386-unknown-bsd4.4elf
+    (docs/provenance/imports.md, *The toolchain*).
+
+2.  It is built twice.  build/sysroot.sh builds it on the machine
+    doing a cross build, to make programs for this system; and
+    `make' here, which `make build' runs, builds it to run on this
+    system itself, the i386, from 'makefile', which configures GNU's
+    sources and runs GNU's own Makefiles, as contrib/gdb-4.7.LBL's
+    and contrib/gcc-2.3.3's makefiles do.  It builds in a directory of
+    its own, the object directory when the build has one, and
+    obj.${MACHINE} here when not.
+
+3.  `make install' puts fourteen programs in /usr/bin -- as, ld, ar,
+    ranlib, nm, size, strip, strings, objcopy, objdump, readelf,
+    addr2line, c++filt and gprof, the set NetBSD 1.6 installed from
+    it -- and their manual pages, formatted, in /usr/share/man/cat1.
+    They take the place of 4.4BSD-Lite2's own as, ld, ar, ranlib, nm,
+    size, strip, strings and gprof for the i386, which read and write
+    a.out only; this system's programs are ELF.
+
+Therefore to build and install it on this system simply type:
+
+% make
+% make install

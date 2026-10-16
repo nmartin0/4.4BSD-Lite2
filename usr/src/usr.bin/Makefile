@@ -6,36 +6,46 @@
 # or two and no Makefile: diff (diff and diff3), ex, file, sort and
 # uucp. contrib/ has programs that could stand for some; until one is
 # chosen, nothing is built or installed by these names
-# (docs/deferred.md, *Programs the Lite cut emptied*).
+# (docs/deferred.md, *Programs the Lite cut emptied*). And ar, nm,
+# ranlib, size, strip, strings, gprof and gcore, which read or write
+# a.out only, are not built for the i386, whose programs are ELF:
+# binutils 2.11.2's stand in (contrib/binutils-2.11.2), as OpenBSD
+# builds its own ar, ranlib, strip and strings only `.if
+# ${ELF_TOOLCHAIN:L} == "no"' and NetBSD from 1.4 used binutils'.
+# gcore NetBSD and OpenBSD dropped. ld likewise, below.
 # And not named: at, bc, compress, dc, deroff, diction, graph, learn,
 # plot, ptx, spell, spline, struct, units and xsend, programs the Lite
 # cut deleted with their directories. A name with no directory stops
 # the build here, as it stopped Lite2's own make, which ran each
 # command with `sh -ec' (docs/deferred.md, *Sources and directories
 # named but absent*).
-SUBDIR=	apply apropos ar awk banner basename bdes biff cal calendar \
+SUBDIR=	apply apropos awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
 	comm cpp ctags cut dirname du \
 	env error expand false find finger fmt fold fpr from \
-	fsplit fstat ftp gcore gprof grep head hexdump id indent \
+	fsplit fstat ftp grep head hexdump id indent \
 	join jot kdump ktrace lam last lastcomm leave locate \
 	lock logger login logname lorder m4 mail make man mesg mkdep \
-	mkfifo mklocale mkstr more msgs mt netstat nfsstat nice nm nohup \
+	mkfifo mklocale mkstr more msgs mt netstat nfsstat nice nohup \
 	pagesize passwd paste patch pr printenv printf quota \
-	ranlib rdist renice rev rlogin rs rsh ruptime rwho sccs \
-	script sed shar showmount size soelim split \
-	strings strip su talk tcopy tee telnet tftp time tip \
+	rdist renice rev rlogin rs rsh ruptime rwho sccs \
+	script sed shar showmount soelim split \
+	su talk tcopy tee telnet tftp time tip \
 	tn3270 touch tput tr true tset tsort tty ul uname unexpand \
 	unifdef uniq unvis users uudecode uuencode vacation \
 	vgrind vis w wall wc what whatis whereis who whois window write \
 	xargs xinstall xstr yacc yes
+
+.if	${MACHINE} != "i386"
+SUBDIR+=ar gcore gprof nm ranlib size strings strip
+.endif
 
 # Cmp, look and tail all use mmap, so new-VM only.
 # F77 and pascal are VAX/Tahoe only.
 .if	${MACHINE} == "hp300"
 SUBDIR+=cmp ld look systat tail vmstat
 .elif	${MACHINE} == "i386"
-SUBDIR+=cmp ld look systat tail vmstat
+SUBDIR+=cmp look systat tail vmstat
 .elif	${MACHINE} == "luna68k"
 SUBDIR+=cmp ld look systat tail vmstat
 .elif	${MACHINE} == "mips"
