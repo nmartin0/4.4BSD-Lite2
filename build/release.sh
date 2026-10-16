@@ -13,9 +13,9 @@
 # release' and NetBSD's `build.sh release' are for in theirs:
 #
 #   the target root     build/sysroot.sh
-#   the base set        install.md, *Staging*: the programs, termcap,
-#                       the boot blocks, the kernel, etc/'s files,
-#                       archived as ustar
+#   the base set        the whole tree, by Lite2's own top-level
+#                       `make build'; the boot blocks, the kernel,
+#                       etc/'s files; archived as ustar
 #   the install kernel  *A root inside the kernel*, with MFS_ROOT=1600
 #   the install root    *The install root*, written into that kernel
 #   the boot floppy     *A root inside the kernel*: 2.88 MB, boot1,
@@ -29,11 +29,7 @@
 # what build/sysroot.sh needs: makefs and mkisofs (Debian's makefs and
 # genisoimage). Output: ${L2_BUILD}/release/, the CD as i386-cd.iso.
 #
-# Some installs stop at a manual page, after their programs are in
-# place: there is no nroff (install.md, *Staging*). Inside sbin the
-# make goes on past them; usr.bin/id's stops the directory. So a
-# directory that fails here is reported and the build goes on;
-# anything else that fails stops it.
+# Anything that fails stops it.
 
 set -e
 
@@ -69,26 +65,14 @@ mkdir -p "$O"
 # the target root, and the host tools
 sh build/sysroot.sh
 
-# the base set: install.md, *Staging*
-for d in bin sbin libexec/getty usr.bin/login usr.bin/passwd \
-    usr.sbin/pwd_mkdb usr.sbin/dev_mkdb usr.sbin/kvm_mkdb \
-    usr.sbin/syslogd usr.sbin/chown usr.sbin/update \
-    usr.bin/logger usr.bin/find usr.bin/true usr.bin/false \
-    usr.bin/tty usr.bin/id usr.bin/who usr.bin/more usr.bin/wc \
-    usr.bin/head usr.bin/tail usr.bin/env usr.bin/uname usr.bin/w \
-    usr.bin/xinstall usr.bin/sed usr.bin/tset usr.sbin/sysctl \
-    usr.sbin/quotaon usr.sbin/accton usr.sbin/timed usr.sbin/lpr \
-    usr.sbin/inetd usr.sbin/portmap usr.sbin/amd usr.bin/cap_mkdb \
-    usr.bin/script usr.sbin/pstat usr.bin/awk usr.bin/man
-do
-	(cd usr/src/$d && sh "$r/build/make.sh" \
-	    depend all install) ||
-	    echo "release.sh: $d: install stopped (see the note above)" >&2
-done
-(cd usr/src/share/termcap && sh "$r/build/make.sh" termcap)
-"$T/install" -o bin -g bin -m 444 \
-    "$L2_BUILD/obj$r/usr/src/share/termcap/termcap" \
-    "$R/usr/share/misc/termcap"
+# the base set: the whole tree, as Lite2's top-level Makefile builds
+# and installs it -- `make build', the way 4.4BSD was rebuilt from its
+# own sources (share/doc/smm/01.setup, *Recompiling and reinstalling
+# system software*) -- into the target root. SHARED=copies for the
+# headers, as sysroot.sh installs them (it explains why). Its input
+# is /dev/null: games/phantasia's setup asks for a message of the day,
+# and a release has none to give.
+(cd usr/src && sh "$r/build/make.sh" build SHARED=copies) </dev/null
 (cd usr/src/sys/boot/i386 && sh "$r/build/make.sh" all install)
 sh build/kernel.sh
 install -m 755 usr/src/sys/compile/GENERIC.i386/vmunix "$R/vmunix"
