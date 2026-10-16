@@ -107,7 +107,7 @@ on Lite2's procfs hooks, with its manual page (`a56c2f9b`).
    `build/mklabel.c`, `swapon -a` from fstab; measured paging under
    `-m 16`.
 4. ~~**MAKEDEV's pty majors**~~, now 5 and 6 as conf.c has them, and
-   ptys configured in LINK.i386; `script` runs through ttyp0. Still
+   ptys configured in the kernel; `script` runs through ttyp0. Still
    open: std's stdin, stdout, stderr and fd/ at major 53, which the
    i386 cdevsw has no driver for, and the panic from removing the
    device node the root was remounted through (`vinvalbuf: dirty
@@ -314,24 +314,45 @@ both kernels with it, and the CD installs a system that comes up
 multi-user (imports.md, *The toolchain*). pcc and binutils 2.16.1,
 the host GCC's specs file and L2_CC are gone with it.
 
-Next, in order: README.BSD and the makefile in each directory, and
-the system rebuilding its own compiler -- which wants make, share/mk
-and the rest of a build environment in the release; then the 4.2.1
-pair the same way. The kernel must be made to build with `-fno-common`
+Next, in order: README.BSD and the makefile in each directory --
+binutils-2.11.2's done, the system's as, ld and the rest built to run
+on it -- and the system rebuilding its own compiler, for which the
+whole tree in the release now gives make, share/mk and the rest of a
+build environment; then the 4.2.1 pair the same way. The kernel must be made to build with `-fno-common`
 before any of the newer pairs compiles it (Tier 1, item 5).
 
-**Next: the whole tree on the CD.** The base set is still the
-forty-odd directories install.md's recipe first staged: no grep, no
-mkfifo, no make. Decided (2026-10-14): the whole tree, installed by
-Berkeley's own top-level `make build`, as one base set, as Lite2
-intended -- grep is Lite2's own, Woods' egrep. A first run, with the
-top-level Makefile in FreeBSD 2.0's `${.CURDIR}` form and kerberosIV
-behind KERBEROS, goes to the end with about sixty directories failing:
-tools run on the build host that must be built for it (strfile, zic,
-cap_mkdb, chflags), documents installed from the object directory,
-`chown user.group`, the games' links, and every directory in
-contrib/, some of which (gcc-2.3.3, gas-1.38, gdb-4.7.LBL) have no
-i386 build at all.
+**~~The whole tree on the CD.~~ Done** (patch 153). Decided
+(2026-10-14): the whole tree, installed by Berkeley's own top-level
+`make build`, as one base set, as Lite2 intended -- grep is Lite2's
+own, Woods' egrep. `build/release.sh` now runs exactly that; what it
+took (docs/deferred.md, *The whole tree by `make build`*):
+
+- the top-level Makefile in FreeBSD 2.0's `${.CURDIR}` form, and
+  kerberosIV behind KERBEROS;
+- object directories where Lite2's own `make obj` made them, and none
+  for documents or below contrib/;
+- the tree's own zic, cap_mkdb, strfile and col built for the build
+  machine and run by name, FreeBSD 2.2's build-tools;
+- what the Lite cut emptied (diff, ex, file, sort, uucp, ac, quot,
+  sendmail, old) no longer named; dict, tmac and the manual-page lists
+  without the files the cut took, as FreeBSD 2.0, NetBSD 1.0 and
+  OpenBSD all have them;
+- the hidden games' links not chowned (NetBSD 1.0, cgd); chpass made
+  immutable by the installer;
+- Lite2's a.out-only ld, ar, nm, ranlib, size, strip, strings, gprof
+  and gcore not built for the i386, and binutils 2.11.2 built to run
+  on the system in their place, from contrib/binutils-2.11.2's own
+  README.BSD and makefile, in Lite2's manner.
+
+**Next: contrib/, one program at a time.** Decided (2026-10-16):
+Lite2's contrib/Makefile is the plan -- its programs built in their
+own directories and installed under /usr/contrib, Lite2's way, not
+the descendants' gnu/ and ports -- taken up one by one, groff, gzip
+and nvi first. For the i386 contrib/Makefile names binutils-2.11.2
+now and each program as it is done. gcc-2.3.3, gas-1.38 and
+gdb-4.7.LBL are not named for the i386: they make and read a.out;
+GCC 2.95.3 and binutils 2.11.2 stand in, and a gdb that reads ELF is
+to come.
 
 **Later, and noted: a test framework and a kernel debugger.** Lite2
 has tests but no framework to run them: Berkeley's db test driver,
@@ -427,8 +448,9 @@ driver of 1995, FreeBSD 2.1.0's, with ATAPI for CDs; it runs PIO. No AHCI, no NV
 **32-bit, no PAE.** The pmap assumes a 32-bit physical address space.
 Modern machines have more than 4 GB.
 
-**BIOS boot only, and the bootstrap reads a.out.** UEFI-only machines
-cannot boot this at all.
+**BIOS boot only.** The bootstrap, FreeBSD 4.1's boot1 and boot2,
+reads ELF but starts only from a BIOS; UEFI-only machines cannot boot
+this at all.
 
 **Uniprocessor.** No kernel threading; `struct proc` is the unit of
 scheduling and there is no thread abstraction to carry forward.

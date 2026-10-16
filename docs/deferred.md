@@ -85,6 +85,26 @@ shim over the `regexp` engine already here.
 `old.ucb.grep`; `diff` lost `diffh`; `pascal` lost `eyacc`. All absent
 from 4.4BSD-Lite too.
 
+Since patch 153, which builds the whole tree with `sh -ec` as Lite2's
+own make ran commands, each of these is **no longer named** in its
+Makefile: a name with no directory stops the build, as it stopped
+Lite2's own `make build`. Sixty entries, in bin, lib, sbin, usr.bin,
+usr.sbin, share/man and share/doc/{psd,smm,usd}, each Makefile saying
+which. They come back by name if their programs do.
+
+### Programs the Lite cut emptied
+
+Patch 153. Ten more the cut did not delete but emptied, leaving a
+manual page, a README or a few subdirectories, and no Makefile:
+`usr.bin/diff` (diff and diff3), `usr.bin/ex`, `usr.bin/file`,
+`usr.bin/sort`, `usr.bin/uucp`, `usr.sbin/ac`, `usr.sbin/quot`,
+`usr.sbin/sendmail`, and `old`, the top-level directory of eight
+retired programs. None is named now, and their manual pages are not
+installed. contrib/ holds programs that could stand for some --
+nvi for ex and vi, file-3.12, sort, ed -- outside contrib/Makefile's
+list; they are to be weighed with contrib/ (roadmap.md, *Next:
+contrib/*).
+
 ### The one inversion, stated by the project itself
 
 `7cb61884`
@@ -417,13 +437,75 @@ became code, the `mmap` fault's class.
 Related, from `docs/status.md`: the link passes no `-e`, and works
 only because `locore.o` is first and `start` is its first symbol.
 
+### The whole tree by `make build` -- what it took
+
+Patch 153; roadmap.md, *The whole tree on the CD*. `build/release.sh`
+runs Berkeley's own top-level `make build` into the target root. What
+a build on a machine of another kind needs that Lite2's did not, and
+what was settled with the maintainer for each:
+
+- **Errors stop the build.** bmake runs a command with `sh -c`;
+  Lite2's make ran `sh -ec`, so a directory failing inside
+  bsd.subdir.mk's loop stopped it. build/make.sh gives bmake
+  Lite2's shell, through a sys.mk of one `.SHELL` line ahead of the
+  tree's own.
+- **Object directories** where Lite2's `make obj` made them -- its
+  obj links are the record -- and none for a document (bsd.doc.mk's
+  obj target does nothing) or below contrib/ (contrib/Makefile's
+  does nothing). A directory that only recurses gets one as its
+  subdirectories' parent, so share/doc/{psd,smm,usd} and share/man
+  install their own files from `${.CURDIR}`, as games/fortune/datfiles
+  does.
+- **Tools the build runs** -- zic, cap_mkdb, strfile, col -- are the
+  tree's own built for the build machine by build/sysroot.sh and
+  called by name: FreeBSD 2.2's build-tools, strfile and the rot13 as
+  FreeBSD 4.0's Makefile has them. cap_mkdb's db(3) is built by
+  Lite2's own porting kit, lib/libc/db/PORT/linux, with hash.h's
+  `errno` field renamed `err` (NetBSD 1.3, OpenBSD 2004);
+  build/getcap-host.c gives getcap.c 4.4BSD's fgetln and a harmless
+  second fclose. Generators the build runs -- boggle's mkdict and
+  mkindex, phantasia's setup -- are built with `${HOSTCC}`, as
+  adventure's are; phantasia's setup writes its files where it runs
+  and they are installed under `${DESTDIR}` (FreeBSD 2.0; Berkeley's
+  wrote the build machine's /var/games/phantasia). The whatis
+  database is made from the pages under `${DESTDIR}`, not the build
+  machine's.
+- **Data the cut took**: dict's words is web2, connectives gone, and
+  tmac.r, dump.5, plot.5, eqnchar.7, man.7, ms.7 and term.7 dropped
+  from their lists, as FreeBSD 2.0, NetBSD 1.0 and OpenBSD all have
+  it. The mtree spec, of July 1992, gains the four document
+  directories the Makefiles install into: usd/11.vitut, 12.exref,
+  13.viref and smm/19.perl.
+- **The hidden games' links are not chowned** (NetBSD 1.0, cgd,
+  1994): on 4.4BSD that chown followed the link and stripped dm's
+  set-user-ID bit.
+- **chpass is made immutable by the installer**, since a file's flags
+  do not travel in the set; its Makefile does it only when installing
+  onto the running system.
+- **a.out tools.** Lite2's ld, ar, nm, ranlib, size, strip, strings,
+  gprof and gcore read or write a.out only; for the i386, whose
+  programs are ELF, they are not built, and binutils 2.11.2 is built
+  to run on the system in their place -- as, ld, ar, ranlib, nm, size,
+  strip, strings, objcopy, objdump, readelf, addr2line, c++filt,
+  gprof, NetBSD 1.6's set -- by contrib/binutils-2.11.2's makefile,
+  in the manner of Lite2's own gdb and gcc makefiles. NetBSD 1.4
+  replaced the same programs with binutils'; OpenBSD built its own
+  only where there was no ELF toolchain. gcore is not replaced:
+  NetBSD and OpenBSD dropped it. GNU's install targets are not used:
+  they copy as, ld, nm and strip into `${prefix}` without
+  `${DESTDIR}`, onto the build machine -- **measured, on this build
+  machine, and undone**.
+- **contrib/** for the i386 names binutils-2.11.2 and, one at a
+  time, Lite2's own list as each program is taken up (roadmap.md,
+  *Next: contrib/*).
+
 ### Other build items
 
 - **No `LIBCRT0` dependency** — changing `crt0.o` does not relink
   programs; NetBSD has it (`ad7131e0`).
 - **468 dangling `obj` symlinks** shipped in the tarball; `make obj`
   is not used, object directories are made outside instead
-  (`1da402c0`).
+  (`1da402c0`), where those links say Lite2's were (patch 153).
 - **`-I-` is obsolete** in GCC and warns once per compile; used for
   NetBSD's include order in the csu Makefile (`c5fd6177`).
 - **`tsort` reports loops** among libc's profiling objects. OpenBSD
@@ -432,6 +514,14 @@ only because `locore.o` is first and `start` is its first symbol.
   Measured both ways; the notices stay (`1da1369b`).
 
 ## 5. Known defects carried knowingly
+
+- **`make build` deletes three files the tree ships**:
+  contrib/nvi.1.43/USD.doc/vi.ref's paper.pdf, paper.ps and
+  vi.ref.txt, made from its sources and shipped made. bsd.doc.mk's
+  cleandir removes `paper.*`, and the vi.ref Makefile's CLEANFILES
+  the rest, and `make build` begins with cleandir, as Lite2's did;
+  nothing rebuilds them, since documents are installed as sources.
+  `git checkout usr/src/contrib/nvi.1.43` restores them (patch 153).
 
 - **NetBSD 1.6's `__ctors` reads past its one-element
   `__CTOR_LIST__[1]`**, which GCC compiles into an infinite loop on

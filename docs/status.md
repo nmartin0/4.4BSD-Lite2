@@ -37,6 +37,12 @@ the boot blocks load the kernel throughout:
 - **Its manual pages.** Every page the installed programs and
   libraries name -- 789 of them -- formatted by Lite2's own nroff,
   groff 1.08, and read on the system with man(1).
+- **The whole tree.** The base set is Berkeley's own top-level `make
+  build` of the whole tree, contrib/ aside (patch 153): 179 programs
+  in /usr/bin, the games, the time zones, the dictionaries, termcap.db
+  and whatis made at build time, make and share/mk. The system's own
+  binutils 2.11.2 runs on it: as and ld assemble and link a program
+  there against its libc, and strip and size work on it.
 - **The floppy, the tape, and the configuration Berkeley wrote.**
   The kernel is GENERIC.i386, corrected, with fd0 and wt0 as
   Berkeley's had them; the floppy reads and writes. A DIAGNOSTIC

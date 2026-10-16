@@ -915,6 +915,9 @@ mtree, making the install root, stops on the group-writable
 directories a umask of 002 leaves.
 
 Run from a fresh clone as root, it made a 24 MB CD, and that CD
-installed a blank disk as above. Run as an ordinary user under
+installed a blank disk as above. Since patch 153 the base set is the
+whole tree, by Lite2's own `make build' (roadmap.md, *The whole tree
+on the CD*): the CD is 57 MB, and it installs a 246 MB disk with a
+200 MB root, on which the system is 54 MB. Run as an ordinary user under
 fakeroot, umask 002, it made a base set with the same files, modes
 and owners, and its CD installed a blank disk too.

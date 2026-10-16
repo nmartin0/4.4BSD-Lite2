@@ -205,6 +205,30 @@ copied, and the commit names it with its release.
     alike), where Berkeley's matched hp300's `dca' and made nothing
   vnode_if.src, link(2), nfsrv_link, union_link: vop_link takes the
     directory first, FreeBSD 2.2 and 3.0
+  top-level Makefile: build and afterinstall by ${.CURDIR} and
+    ${MAKE}, FreeBSD 2.0, and its own makes from ${.CURDIR}, FreeBSD
+    3.0
+  zoneinfo, fortune/datfiles: zic and strfile by name, from the
+    tools the build makes first, FreeBSD 2.0 and 4.0 and FreeBSD
+    2.2's build-tools; the rot13 by tr, FreeBSD 4.0
+  boggle: mkdict and mkindex found in their object directories,
+    OpenBSD 1995; the words from the tree's web2, NetBSD 1.6
+  phantasia: setup writes where it runs, and the Makefile installs
+    under DESTDIR, FreeBSD 2.0; setup built for the build machine,
+    FreeBSD 4.0's build-tools
+  bsd.prog.mk: a hidden game's link not chowned, NetBSD 1.0 (cgd)
+    and OpenBSD 1995
+  share/dict, tmac, man5, man7: what the Lite cut took dropped from
+    the lists, and words a link to web2, FreeBSD 2.0, NetBSD 1.0 and
+    OpenBSD 1995 alike
+  etc/mtree: 13.viref among usd's directories, OpenBSD 1995; and
+    11.vitut, 12.exref and smm/19.perl the same way
+  share/man: makedb reads the pages under DESTDIR, FreeBSD 2.0,
+    NetBSD 1.0 and OpenBSD 1995
+  libc db hash.h: the errno field named err, NetBSD 1.3 and OpenBSD
+  usr.bin: Lite2's a.out ar, ranlib, nm, size, strip, strings, gprof
+    and gcore not built where binutils stands in, OpenBSD's
+    ELF_TOOLCHAIN line and NetBSD 1.4
 
 ## C -- our judgement, no donor line
 
@@ -592,9 +616,11 @@ system that comes up multi-user. Four things in the tree outside
 contrib/ needed GCC 2.95: <machine/stdarg.h> and <machine/ansi.h>
 give it a char * va_list as NetBSD 1.6's do; tip's signal handlers
 take the int their prototypes say; and lib/csu and boot2 lost flags
-that were for GCC 14. Not yet: the system building the toolchain
-itself, by a README.BSD and makefile in each directory, as Lite2
-built contrib/gcc-2.3.3.
+that were for GCC 14. binutils is also built to run on the system,
+by `make build', from a README.BSD and makefile in its directory, as
+Lite2 built contrib/gcc-2.3.3 and gdb-4.7.LBL, and installs fourteen
+programs in /usr/bin in place of Lite2's a.out ones (patch 153). Not
+yet: GCC the same way, and the system building the toolchain itself.
 
 **Removed: pcc and binutils 2.16.1.** The toolchain first chosen, for
 its licence: pcc 20220331 in NetBSD's framework, with a target made
