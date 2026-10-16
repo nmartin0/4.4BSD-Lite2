@@ -48,8 +48,8 @@
 #   3. Host tools, in ${L2_BUILD}/tools/bin. First install, which is
 #      build/install.sh and is put there before the headers are
 #      installed, since every install a Makefile runs through
-#      build/make.sh from here on goes through it. Then eight from this
-#      tree's own sources: lorder, from usr.bin/lorder/lorder.sh,
+#      build/make.sh from here on goes through it. Then twelve from
+#      this tree's own sources: lorder, from usr.bin/lorder/lorder.sh,
 #      which bsd.lib.mk runs to order an archive and which the host
 #      does not have; mkdep, for the same reason; yacc, because the
 #      packaged byacc reads these grammars but writes a yylex
@@ -57,7 +57,10 @@
 #      the kernel build runs; btxld, which sys/boot/i386/boot2
 #      runs to join boot2 to BTX; write_mfs_in_kernel, which puts
 #      a root filesystem into an install kernel; and crunchgen and
-#      crunchide, which make the one binary that root holds. And a
+#      crunchide, which make the one binary that root holds; and zic,
+#      cap_mkdb, strfile and col, which make the time zones,
+#      termcap.db and vgrindefs.db, fortune's files and the whatis
+#      database, as FreeBSD 2.2's build-tools built its own. And a
 #      `make' that is bmake, for crunchgen. NetBSD 1.6's
 #      build.sh installs its own tree's lorder the same way, as
 #      nblorder, and builds its own yacc as nbyacc. Each carries its
@@ -319,6 +322,56 @@ $HOSTCC -w -o "$TOOLS/crunchgen" "$C/crunchgen/crunchgen.c" \
 $HOSTCC -w -include "$REPO_ROOT/build/elf-host.h" -o "$TOOLS/crunchide" \
     "$C/crunchide/crunchide.c" "$C/crunchide/exec_elf32.c"
 ln -sf "$(command -v bmake)" "$TOOLS/make"
+
+# zic, cap_mkdb, strfile and col, for the data the build makes with
+# them: share/zoneinfo's zones, termcap.db and vgrindefs.db, fortune's
+# .dat files, and the whatis database. Lite2's Makefiles run them on
+# the machine doing the
+# build -- zic and strfile as just built, which here are programs for
+# the target -- so the tree's own are built for this machine and put
+# first on the PATH, and the Makefiles call them by name: FreeBSD
+# 2.2's build-tools (1997), which built zic, cap_mkdb and the rest
+# from its own tree and installed them where its build looked first
+# -- col among them -- and FreeBSD 4.0's, which added strfile. (col
+# the build machine may have, but not as a part of the base system.)
+#
+# With -m32, as the generators' HOSTCC is, so that what they write is
+# laid out as the i386 reads it: strfile's header is unsigned longs,
+# and cap_mkdb's hash database is db(3)'s pages, sized and aligned as
+# an i386 has them. The headers they want that glibc has not --
+# <tzfile.h>, <machine/endian.h> -- come from the target root, after
+# the host's own.
+#
+# cap_mkdb reads through libc's getcap.c and writes through db(3),
+# which glibc has neither of. db is built as Lite2 ships it to be
+# built elsewhere, by its own porting kit, lib/libc/db/PORT, from the
+# linux directory Berkeley left there, in a copy of the db sources.
+# getcap.c wants fgetln, and a second fclose of a FILE to be harmless,
+# as 4.4BSD's stdio has them; build/getcap-host.c gives both.
+hdir="$L2_BUILD/tools/hosttools.build"
+rm -rf "$hdir"
+mkdir -p "$hdir"
+H32="$HOSTCC -m32 -w -idirafter $ROOT/usr/include"
+Z=$SRC/share/zoneinfo
+# shellcheck disable=SC2086  # HOSTCC carries its own flags
+$H32 -DTM_GMTOFF=tm_gmtoff -DTM_ZONE=tm_zone -o "$TOOLS/zic" \
+    "$Z/zic.c" "$Z/scheck.c" "$Z/ialloc.c"
+# shellcheck disable=SC2086
+$H32 -o "$TOOLS/strfile" "$SRC/games/fortune/strfile/strfile.c"
+# shellcheck disable=SC2086
+$H32 -o "$TOOLS/col" "$SRC/usr.bin/col/col.c"
+cp -R "$SRC/lib/libc/db" "$hdir/db"
+(cd "$hdir/db/PORT/linux" &&
+    PATH="$TOOLS:$PATH" make -s CC="$HOSTCC -m32 -w" >make.log 2>&1) ||
+	{ tail "$hdir/db/PORT/linux/make.log" >&2; exit 1; }
+DBI="$hdir/db/PORT/linux/include"
+# shellcheck disable=SC2086
+$HOSTCC -m32 -w -D_GNU_SOURCE -I"$DBI" -Dfclose=getcap_fclose \
+    -c -o "$hdir/getcap.o" "$SRC/lib/libc/gen/getcap.c"
+# shellcheck disable=SC2086
+$HOSTCC -m32 -w -D_GNU_SOURCE -I"$DBI" -o "$TOOLS/cap_mkdb" \
+    "$SRC/usr.bin/cap_mkdb/cap_mkdb.c" "$hdir/getcap.o" \
+    "$REPO_ROOT/build/getcap-host.c" "$hdir/db/PORT/linux/libdb.a"
 
 # binutils and GCC, the system's assembler, linker and C compiler
 # (contrib/binutils-2.11.2 and contrib/gcc-2.95.3), built here as a

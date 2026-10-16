@@ -23,14 +23,23 @@ install: ${SRCS} ${BLDS}
 	install -o ${BINOWN} -g ${BINGRP} -m 444 ${BLDS} \
 	    ${DESTDIR}/usr/share/games/fortune
 
+# AI-ONLY NOTE: strfile and the rot13 as FreeBSD 4.0's Makefile runs
+# them. strfile by name, the strfile just built after anything on the
+# PATH: on a build machine of another kind that is the tree's own
+# strfile built for it, which build/sysroot.sh puts first on the
+# PATH, as FreeBSD's build-tools did; Lite2's ../strfile/obj/strfile
+# is a program for the target. And tr for /usr/games/caesar 13, which
+# is the build machine's and may not be there; NetBSD 1.6's uses tr
+# too.
 fortunes.dat fortunes2.dat fortunes2-o.dat limerick.dat startrek.dat zippy.dat:
-	${.CURDIR}/../strfile/obj/strfile -rs \
-	    ${.CURDIR}/${.TARGET:R} ${.TARGET}
+	PATH=$$PATH:${.OBJDIR}/../strfile \
+	    strfile -rs ${.CURDIR}/${.TARGET:R} ${.TARGET}
 
 fortunes-o.dat: fortunes-o
-	${.CURDIR}/../strfile/obj/strfile -rsx fortunes-o ${.TARGET}
+	PATH=$$PATH:${.OBJDIR}/../strfile \
+	    strfile -rsx fortunes-o ${.TARGET}
 
 fortunes-o: fortunes-o.${TYPE}
-	/usr/games/caesar 13 < ${.ALLSRC} > ${.TARGET}
+	tr a-zA-Z n-za-mN-ZA-M < ${.ALLSRC} > ${.TARGET}
 
 .include <bsd.prog.mk>
