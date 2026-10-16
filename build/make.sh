@@ -121,7 +121,7 @@
 #
 set -e
 
-REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
+REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd -P)
 SRC="$REPO_ROOT/usr/src"
 MKDIR="$SRC/share/mk"
 
@@ -175,19 +175,23 @@ mkdir -p "$L2_BUILD"
 # bmake uses MAKEOBJDIRPREFIX only for a directory that already exists,
 # and builds in the source directory otherwise, so object directories
 # are made here: for this directory and every one below it with a
-# Makefile, since a recursive target runs make in each. Except:
+# Makefile (or a makefile, as contrib/'s programs may have), since a
+# recursive target runs make in each. Except:
 #
 #   not where the Makefile sets NOOBJ: it installs files by relative
 #   name, which only resolve in the source directory, and bmake
 #   changes into the object directory before running anything;
 #
-#   not for a document, whose Makefile includes bsd.doc.mk: that obj
-#   target does nothing, and these install their sources by relative
-#   name too;
+#   and not for a document, whose Makefile includes bsd.doc.mk: that
+#   obj target does nothing, and these install their sources by
+#   relative name too.
 #
-#   and none below a Makefile with an obj target of its own, which
-#   stops Lite2's `make obj' going further: contrib/'s, which does
-#   nothing, for programs that build in their own directories.
+# contrib/ has them too. Its Makefile's obj target does nothing --
+# Bostic, June 1993, for programs whose GNU Makefiles knew no object
+# directory -- but every descendant built such programs in object
+# directories, OpenBSD by running GNU's own configure and make in
+# ${.OBJDIR} (Makefile.bsd-wrapper), and so do contrib/'s here
+# (docs/deferred.md, *contrib/ in object directories*).
 #
 # A directory that only recurses had none under Lite2's `make obj';
 # here it has one, as the parent of its subdirectories' -- bmake uses
@@ -197,37 +201,18 @@ mkdir -p "$L2_BUILD"
 #
 # Grepping for these is enough here, and costs one pass rather than a
 # make per directory.
-case "$PWD" in
+# By the directory's physical path, which is what make takes for
+# .CURDIR: contrib/nvi is a symbolic link to nvi.1.43.
+here=$(pwd -P)
+case "$here" in
 "$REPO_ROOT"|"$REPO_ROOT"/*)
-	objre='^([A-Za-z_.-]+[[:space:]]+)*obj([[:space:]]+[A-Za-z_.-]+)*[[:space:]]*:'
-	# None at all below an obj target above this directory.
-	above=
-	d=$PWD
-	while [ "${d#"$SRC"/}" != "$d" ]; do
-		d=${d%/*}
-		if [ -f "$d/Makefile" ] && grep -Eq "$objre" "$d/Makefile"; then
-			above=$d
-		fi
+	find . \( -name Makefile -o -name makefile \) -type f 2>/dev/null |
+	while read -r mf; do
+		dir=${mf%/[Mm]akefile}
+		grep -q '^NOOBJ' "$mf" && continue
+		grep -q 'bsd\.doc\.mk' "$mf" && continue
+		mkdir -p "$OBJ$here/${dir#./}"
 	done
-	if [ -z "$above" ]; then
-		# the directories whose own obj target stops `make obj'
-		stops=$(find . -name Makefile -type f -exec grep -El "$objre" \
-		    {} + 2>/dev/null | sed 's|/Makefile$||')
-		find . -name Makefile -type f 2>/dev/null |
-		while read -r mf; do
-			dir=${mf%/Makefile}
-			skip=
-			for t in $stops; do
-				case "$dir" in
-				"$t"|"$t"/*) skip=1 ;;
-				esac
-			done
-			[ -z "$skip" ] || continue
-			grep -q '^NOOBJ' "$mf" && continue
-			grep -q 'bsd\.doc\.mk' "$mf" && continue
-			mkdir -p "$OBJ$PWD/${dir#./}"
-		done
-	fi
 	;;
 esac
 
