@@ -5,10 +5,17 @@
 
 BINDIR=	/usr/share/doc/usd
 FILES=	Makefile Title
-SUBDIR=	01.begin 02.learn 03.shell 04.csh 05.dc 06.bc 07.mail 09.edtut \
-	10.edadv 11.vitut 12.exref 13.viref 14.jove 15.sed 16.awk 17.msmacros \
-	18.msdiffs 19.memacros 20.meref 21.troff 22.trofftut 23.eqn \
-	24.eqnguide 25.tbl 26.refer 27.invert 28.bib 29.diction 30.rogue \
+# AI-ONLY NOTE: not named: 01.begin, 02.learn, 03.shell, 05.dc, 06.bc,
+# 09.edtut, 10.edadv, 15.sed, 16.awk, 17.msmacros, 21.troff,
+# 22.trofftut, 23.eqn, 24.eqnguide, 25.tbl, 26.refer, 27.invert and
+# 29.diction, documents the Lite cut deleted with their directories. A
+# name with no directory stops the build here, as it stopped Lite2's
+# own make, which ran each command with `sh -ec' (docs/deferred.md,
+# *Sources and directories named but absent*).
+SUBDIR=	04.csh 07.mail \
+	11.vitut 12.exref 13.viref 14.jove \
+	18.msdiffs 19.memacros 20.meref \
+	28.bib 30.rogue \
 	31.trek
 
 Title.ps: ${FILES}

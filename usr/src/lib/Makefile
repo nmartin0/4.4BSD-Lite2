@@ -1,7 +1,12 @@
 #	@(#)Makefile	8.1 (Berkeley) 6/4/93
 
-SUBDIR=	libc libcurses libcompat libedit libkvm libm libmp \
-	libplot libresolv librpc/rpc libtelnet libterm libutil liby
+# AI-ONLY NOTE: not named: libmp and libplot, libraries the Lite cut
+# deleted with their directories. A name with no directory stops the
+# build here, as it stopped Lite2's own make, which ran each command
+# with `sh -ec' (docs/deferred.md, *Sources and directories named but
+# absent*).
+SUBDIR=	libc libcurses libcompat libedit libkvm libm \
+	libresolv librpc/rpc libtelnet libterm libutil liby
 
 .if	${MACHINE} == "tahoe"
 SUBDIR+=csu/tahoe.pcc

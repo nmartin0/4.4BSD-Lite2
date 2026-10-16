@@ -1,6 +1,11 @@
 #	@(#)Makefile	8.2 (Berkeley) 4/16/94
 
-SUBDIR=	man1 man3 man3f man4 man5 man7 man8
+# AI-ONLY NOTE: not named: man3f, manual pages the Lite cut deleted
+# with their directories. A name with no directory stops the build
+# here, as it stopped Lite2's own make, which ran each command with
+# `sh -ec' (docs/deferred.md, *Sources and directories named but
+# absent*).
+SUBDIR=	man1 man3 man4 man5 man7 man8
 SEDF= /usr/share/man/makewhatis.sed
 
 # AI-ONLY NOTE: makewhatis.sed installed from ${.CURDIR}, as

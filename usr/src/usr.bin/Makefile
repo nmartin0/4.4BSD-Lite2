@@ -2,22 +2,33 @@
 
 # AI-ONLY NOTE: awk, which 4.4BSD-Lite's lists had dropped with the
 # program itself; it is back as Kernighan's own -- see awk/Makefile.
-SUBDIR=	apply apropos ar at awk banner basename bc bdes biff cal calendar \
+# And five not named that the Lite cut emptied, leaving a manual page
+# or two and no Makefile: diff (diff and diff3), ex, file, sort and
+# uucp. contrib/ has programs that could stand for some; until one is
+# chosen, nothing is built or installed by these names
+# (docs/deferred.md, *Programs the Lite cut emptied*).
+# And not named: at, bc, compress, dc, deroff, diction, graph, learn,
+# plot, ptx, spell, spline, struct, units and xsend, programs the Lite
+# cut deleted with their directories. A name with no directory stops
+# the build here, as it stopped Lite2's own make, which ran each
+# command with `sh -ec' (docs/deferred.md, *Sources and directories
+# named but absent*).
+SUBDIR=	apply apropos ar awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
-	comm compress cpp ctags cut dc deroff diction diff dirname du \
-	env error ex expand false file find finger fmt fold fpr from \
-	fsplit fstat ftp gcore gprof graph grep head hexdump id indent \
-	join jot kdump ktrace lam last lastcomm learn leave locate \
+	comm cpp ctags cut dirname du \
+	env error expand false find finger fmt fold fpr from \
+	fsplit fstat ftp gcore gprof grep head hexdump id indent \
+	join jot kdump ktrace lam last lastcomm leave locate \
 	lock logger login logname lorder m4 mail make man mesg mkdep \
 	mkfifo mklocale mkstr more msgs mt netstat nfsstat nice nm nohup \
-	pagesize passwd paste patch plot pr printenv printf ptx quota \
+	pagesize passwd paste patch pr printenv printf quota \
 	ranlib rdist renice rev rlogin rs rsh ruptime rwho sccs \
-	script sed shar showmount size soelim sort spell spline split \
-	strings strip struct su talk tcopy tee telnet tftp time tip \
+	script sed shar showmount size soelim split \
+	strings strip su talk tcopy tee telnet tftp time tip \
 	tn3270 touch tput tr true tset tsort tty ul uname unexpand \
-	unifdef uniq units unvis users uucp uudecode uuencode vacation \
+	unifdef uniq unvis users uudecode uuencode vacation \
 	vgrind vis w wall wc what whatis whereis who whois window write \
-	xargs xinstall xsend xstr yacc yes
+	xargs xinstall xstr yacc yes
 
 # Cmp, look and tail all use mmap, so new-VM only.
 # F77 and pascal are VAX/Tahoe only.

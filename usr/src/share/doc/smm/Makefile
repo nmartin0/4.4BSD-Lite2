@@ -5,9 +5,15 @@
 
 BINDIR=	/usr/share/doc/smm
 FILES=	Makefile Title
+# AI-ONLY NOTE: not named: 08.sendmailop, 09.sendmail, 14.uucpimpl,
+# 15.uucpnet, 16.security and 17.password, documents the Lite cut
+# deleted with their directories. A name with no directory stops the
+# build here, as it stopped Lite2's own make, which ran each command
+# with `sh -ec' (docs/deferred.md, *Sources and directories named but
+# absent*).
 SUBDIR=	01.setup 02.config 03.fsck 04.quotas 05.fastfs 06.nfs 07.lpd \
-	08.sendmailop 09.sendmail 11.timedop 12.timed 14.uucpimpl \
-	15.uucpnet 16.security 17.password 18.net 19.perl
+	11.timedop 12.timed \
+	18.net 19.perl
 
 Title.ps: ${FILES}
 	groff -ms Title > ${.TARGET}

@@ -1,8 +1,16 @@
 #	@(#)Makefile	5.20 (Berkeley) 6/12/93
 
-SUBDIR=	ac accton amd arp chown chroot cron dev_mkdb diskpart edquota \
-	inetd kgmon kvm_mkdb lpr mkproto mtree portmap pstat pwd_mkdb \
-	quot quotaon repquota rmt rwhod sa sendmail sliplogin sysctl \
+# AI-ONLY NOTE: three not named that the Lite cut emptied, leaving a
+# manual page or a README and no Makefile: ac, quot and sendmail
+# (docs/deferred.md, *Programs the Lite cut emptied*).
+# And not named: cron, mkproto and sa, programs the Lite cut deleted
+# with their directories. A name with no directory stops the build
+# here, as it stopped Lite2's own make, which ran each command with
+# `sh -ec' (docs/deferred.md, *Sources and directories named but
+# absent*).
+SUBDIR=	accton amd arp chown chroot dev_mkdb diskpart edquota \
+	inetd kgmon kvm_mkdb lpr mtree portmap pstat pwd_mkdb \
+	quotaon repquota rmt rwhod sliplogin sysctl \
 	syslogd traceroute trpt trsp update vipw
 
 .if   make(clean) || make(cleandir)
