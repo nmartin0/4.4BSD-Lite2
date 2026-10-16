@@ -41,15 +41,18 @@
 # ifconfig line appended to netstart. `MAKEDEV all' makes the
 # device nodes, as NetBSD 1.1's Configure has it; this tree's MAKEDEV
 # has an `all' for it, naming what the kernel drives. And the
-# password and termcap databases are made here,
-# through chroot, by the installed system's own pwd_mkdb and
-# cap_mkdb: NetBSD's sets carried them made, and these cannot be made
-# on the build host. The databases come first and MAKEDEV runs in the
-# new root too, from the base set's /dev/MAKEDEV: its chown looks up
-# `bin', which this libc finds only in a pwd.db, and the install root
-# has none. The closing message says the base set carries the kernel
-# and that the install medium may be a CD, and Configure ends in /,
-# not in the new /dev, so that the new root can be unmounted.
+# password database is made here, through chroot, by the installed
+# system's own pwd_mkdb: NetBSD's sets carried it made, and it is not
+# made on the build host (termcap's is, by the tree's own cap_mkdb
+# built for it, and comes in the set). The database comes first and
+# MAKEDEV runs in the new root too, from the base set's /dev/MAKEDEV:
+# its chown looks up `bin', which this libc finds only in a pwd.db,
+# and the install root has none. Then chpass is made immutable, as
+# usr.bin/chpass's Makefile does when it installs onto the running
+# system: a file's flags do not travel in the set. The closing
+# message says the base set carries the kernel and that the install
+# medium may be a CD, and Configure ends in /, not in the new /dev, so
+# that the new root can be unmounted.
 
 Configure()
 {
@@ -164,15 +167,16 @@ Configure()
 	esac
 	
 	echo	""
-	echo -n	"Making the password and termcap databases..."
+	echo -n	"Making the password database..."
 	chroot ${ROOT} /usr/sbin/pwd_mkdb -p /etc/master.passwd
-	chroot ${ROOT} /usr/bin/cap_mkdb /usr/share/misc/termcap
 	echo	" done."
 
 	echo	""
 	echo -n	"Making device nodes (may take a while)..."
 	chroot ${ROOT} /bin/sh -c 'cd /dev; sh MAKEDEV all'
 	echo	" done."
+
+	chroot ${ROOT} /usr/bin/chflags schg /usr/bin/chpass
 
 	sync
 
