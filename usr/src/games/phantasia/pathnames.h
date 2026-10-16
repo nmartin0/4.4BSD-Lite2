@@ -42,3 +42,19 @@
 #define	_PATH_PEOPLE	"/var/games/phantasia/characs"
 #define	_PATH_SCORE	"/var/games/phantasia/scoreboard"
 #define	_PATH_VOID	"/var/games/phantasia/void"
+
+/*
+ * AI-ONLY NOTE: the same files by their names alone, which setup
+ * writes into the directory it runs in, so that the build can install
+ * them under ${DESTDIR} rather than setup writing the running
+ * system's /var/games/phantasia; FreeBSD 2.0's, as is the change to
+ * setup.c and the Makefile.
+ */
+#define	_SPATH_GOLD	"gold"
+#define	_SPATH_LASTDEAD	"lastdead"
+#define	_SPATH_MESS	"mess"
+#define	_SPATH_MONST	"monsters"
+#define	_SPATH_MOTD	"motd"
+#define	_SPATH_PEOPLE	"characs"
+#define	_SPATH_SCORE	"scoreboard"
+#define	_SPATH_VOID	"void"
