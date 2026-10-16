@@ -65,11 +65,15 @@ Twenty-five programs, thirty-six documents and several sources are
 named by build lists and are not here. `b8596dbf` established that
 this is a **lookup, not an inference**: the Lite cut was mechanical
 and kept `%sccs.include.redist.c%` while dropping
-`%sccs.include.proprietary.c%`. The seventeen no BSD has are the
-AT&T-derived tools (`bc`, `dc`, `spell`, `learn`, `struct`,
-`diction`, `ptx`); the eight every BSD has are their own later
-rewrites (`ed`, `expr`, `at`, `cron`, `sa`), plus `compress`, dropped
-for the LZW patent rather than the licence.
+`%sccs.include.proprietary.c%`. Some no BSD has (`learn`, `struct`,
+`diction`, `ptx`); some every BSD has as its own later rewrite
+(`ed`, `expr`, `at`, `cron`, `sa`, and `bc` and `dc`, rewritten for
+OpenBSD in 2003); some OpenBSD and NetBSD restored from Berkeley's
+own 4.4 sources under Caldera's licence (`deroff`, `spell`); and
+`compress`, dropped for the LZW patent rather than the licence.
+Corrected 2026-10-16: this paragraph had `bc`, `dc` and `spell` among
+those no BSD has. See *Caldera's licence, and what the BSDs took
+under it*, below.
 
 `lib/libcompat` lost thirteen of twenty-two sources. `4.1` held five
 manual pages and no code at all -- `gtty`, `stty` and `ftime` are
@@ -112,6 +116,52 @@ GNU diff 2.6, NetBSD 1.0's, is beside it in contrib/ as gdiff, gdiff3
 and gsdiff. And **ed is back**, though it was deleted rather than
 emptied: contrib/ed, Berkeley's own replacement, Rodney Ruddock's, as
 /bin/ed.
+
+### Caldera's licence, and what the BSDs took under it
+
+Researched 2026-10-16; **noted, not acted on, by the maintainer's
+decision: none of it is needed to bootstrap the system, and it is to
+be looped back to.**
+
+**The licence.** Caldera's of 23 January 2002 frees the 16-bit UNIX
+V1 to V7 and the 32-bit 32V, and excludes System III, System V and
+their successors. It does not name BSD. But what it frees is AT&T's
+copyright, and Berkeley's proprietary-marked files are proprietary
+only for what they took from 32V: each carries Berkeley's licence for
+Berkeley's part and, now, Caldera's for AT&T's. Greg Lehey read it so
+(TUHS, 2020: "it was my understanding that this would free all BSD
+versions"), and -- the stronger evidence -- all three BSDs acted on
+it, in their base systems, keeping both notices:
+
+| BSD | what, from Berkeley's 4.4 sources, under Caldera's licence |
+|---|---|
+| OpenBSD | deroff (`25a69cdca46`, 2002, millert: "the 4.4BSD deroff, now freed by Caldera"); spell (`9175dedbf31`, 2002); diff and diff3 (2003, deraadt: "free because of the Caldera license"); the documents for ed (09.edtut, 10.edadv), awk, sed, lex, yacc, lint, bc, dc, 01.begin, 17.msmacros and smm/17.password (2002-2003, mickey, otto); bc.library and the bc and dc pages |
+| NetBSD | deroff, spell (spell.sh in plain sh, 2005), diff, diff3, dc's document and page, bin/sh's USD document, m4's PSD document; and **games/ching's ching.sh, hexagrams and macros** (2005, perry) -- the three files this tree's games/ching lacks |
+| FreeBSD | diff and diff3 |
+
+**What none took.** No BSD took a V7 or 32V source directly, nor
+Heirloom's tools, nor Sun's beyond ZFS and DTrace (FreeBSD's cddl/).
+OpenBSD imported pcc, 32V's compiler's descendant, in 2007 and removed
+it in 2012. For ed, expr, at, cron, sa, ac, units, file and sort, every
+BSD kept its own rewrite rather than the archive's. So the GNU tools
+here -- flex as lex, gawk, GNU diff as gdiff, gzip, and groff to come
+-- have no Caldera or Heirloom replacement with precedent, and the
+rewrites accepted (expr, libcompat's regex.c, Kernighan's awk) stand.
+
+**To loop back to**, each with its precedent and its catch:
+
+	deroff     OpenBSD's 2002 import; NetBSD
+	spell      NetBSD's 2005, whose front end is sh; OpenBSD's is
+	           ksh, which Lite2 has not. Uses share/dict/words
+	ching      NetBSD's ching.sh, hexagrams and macros, completing
+	           games/ching
+	compress   Berkeley's own, `redist`; the patent has expired;
+	           every BSD ships it
+	bc, dc     Otto Moerbeek's 2003 rewrites, all three BSDs; dc
+	           needs libcrypto's bn(3), which this tree has not.
+	           Alternative: GNU bc, as FreeBSD 2.0 and NetBSD 1.0
+	documents  the Caldera-licensed 4.4 documents above, into
+	           share/doc; formatted once groff is built
 
 ### The one inversion, stated by the project itself
 

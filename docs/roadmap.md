@@ -375,6 +375,13 @@ need:
 	groff-1.08, libg++-2.3
 	              C++
 
+**Later, and noted: what Caldera's licence freed.** deroff, spell,
+ching's missing files, compress, bc and dc, and 4.4's
+Caldera-licensed documents, as OpenBSD and NetBSD restored them --
+not needed to bootstrap (decided 2026-10-16). Findings and the choice
+for each in deferred.md, *Caldera's licence, and what the BSDs took
+under it*.
+
 **Later, and noted: a test framework and a kernel debugger.** Lite2
 has tests but no framework to run them: Berkeley's db test driver,
 sed.test, the m4 and libterm/libedit test programs, and sys/tests
