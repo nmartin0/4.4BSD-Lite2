@@ -45,6 +45,14 @@
 #   MAKEFLAGS	-m <this tree>/usr/src/share/mk, so this tree's rules
 #		are read and not bmake's own. The path must be absolute:
 #		bmake changes into the object directory before parsing.
+#		Before it, -m ${L2_BUILD}/tools/mk, for a sys.mk that
+#		reads this tree's after one line of its own: the shell
+#		as Lite2's make runs it. That make runs every command
+#		with `sh -ec' (usr.bin/make/compat.c), so that a command
+#		that fails stops the make, even inside a loop such as
+#		bsd.subdir.mk's over SUBDIR; bmake runs `sh -c', and
+#		such a failure passes unseen, unless a .SHELL line asks
+#		for -e, which this one does.
 #   MACHINE	i386; Lite2 picks machine-dependent directories by it.
 #   LC_ALL	C, so sort, tr and awk behave the same on every host.
 #   DESTDIR	${L2_BUILD}/root, the target root build/sysroot.sh
@@ -102,9 +110,6 @@
 # target: __ELF__, which lib/libc/i386/SYS.h tests, among them.
 #
 # WHAT IT DOES NOT DO
-#
-#   No object directories for subdirectories, so a recursive build
-#   writes those objects into the source tree.
 #
 #   No guard against a SUBDIR entry naming a directory that is not
 #   here; share/mk ends such an entry, and 72 of them are reported and
@@ -168,35 +173,77 @@ TOOLS="$L2_BUILD/tools/bin"
 mkdir -p "$L2_BUILD"
 
 # bmake uses MAKEOBJDIRPREFIX only for a directory that already exists,
-# and builds in the source directory otherwise, so the one for this
-# directory is made here. Not for a directory Lite2 marks NOOBJ: it
-# installs files by relative name, which only resolve in the source
-# directory, and bmake changes into the object directory before running
-# anything.
+# and builds in the source directory otherwise, so object directories
+# are made here: for this directory and every one below it with a
+# Makefile, since a recursive target runs make in each. Except:
+#
+#   not where the Makefile sets NOOBJ: it installs files by relative
+#   name, which only resolve in the source directory, and bmake
+#   changes into the object directory before running anything;
+#
+#   not for a document, whose Makefile includes bsd.doc.mk: that obj
+#   target does nothing, and these install their sources by relative
+#   name too;
+#
+#   and none below a Makefile with an obj target of its own, which
+#   stops Lite2's `make obj' going further: contrib/'s, which does
+#   nothing, for programs that build in their own directories.
+#
+# A directory that only recurses had none under Lite2's `make obj';
+# here it has one, as the parent of its subdirectories' -- bmake uses
+# a directory that exists -- so the few such Makefiles that install
+# files of their own name them from ${.CURDIR}, as Lite2's
+# games/fortune/datfiles does (share/doc/usd and the like).
+#
+# Grepping for these is enough here, and costs one pass rather than a
+# make per directory.
 case "$PWD" in
 "$REPO_ROOT"|"$REPO_ROOT"/*)
-	# shellcheck disable=SC2016  # ${NOOBJ} is bmake's to expand
-	noobj=$(MACHINE=i386 MAKEOBJDIRPREFIX='' bmake -m "$MKDIR" \
-	    -V '${NOOBJ}' 2>/dev/null || true)
-	[ -n "$noobj" ] || mkdir -p "$OBJ$PWD"
-
-	# and one for every directory below this one that has a
-	# Makefile, since a recursive target runs make in each and
-	# bmake builds in the source directory when the object one is
-	# missing. Directories whose Makefile sets NOOBJ are skipped,
-	# for the reason above; grepping for it is enough here and
-	# costs one pass rather than a make per directory.
-	find . -mindepth 2 -name Makefile -type f 2>/dev/null |
-	while read -r mf; do
-		grep -q '^NOOBJ' "$mf" && continue
-		mkdir -p "$OBJ$PWD/$(dirname "${mf#./}")"
+	objre='^([A-Za-z_.-]+[[:space:]]+)*obj([[:space:]]+[A-Za-z_.-]+)*[[:space:]]*:'
+	# None at all below an obj target above this directory.
+	above=
+	d=$PWD
+	while [ "${d#"$SRC"/}" != "$d" ]; do
+		d=${d%/*}
+		if [ -f "$d/Makefile" ] && grep -Eq "$objre" "$d/Makefile"; then
+			above=$d
+		fi
 	done
+	if [ -z "$above" ]; then
+		# the directories whose own obj target stops `make obj'
+		stops=$(find . -name Makefile -type f -exec grep -El "$objre" \
+		    {} + 2>/dev/null | sed 's|/Makefile$||')
+		find . -name Makefile -type f 2>/dev/null |
+		while read -r mf; do
+			dir=${mf%/Makefile}
+			skip=
+			for t in $stops; do
+				case "$dir" in
+				"$t"|"$t"/*) skip=1 ;;
+				esac
+			done
+			[ -z "$skip" ] || continue
+			grep -q '^NOOBJ' "$mf" && continue
+			grep -q 'bsd\.doc\.mk' "$mf" && continue
+			mkdir -p "$OBJ$PWD/${dir#./}"
+		done
+	fi
 	;;
 esac
 
 LC_ALL=C
 MACHINE=i386
-MAKEFLAGS="-m $MKDIR${MAKEFLAGS:+ $MAKEFLAGS}"
+# the shell as Lite2's make runs it; see MAKEFLAGS above.
+mkdir -p "$L2_BUILD/tools/mk"
+cat > "$L2_BUILD/tools/mk/sys.mk" <<EOF
+# Written by build/make.sh: commands run with sh -e, as Lite2's
+# make runs them, and then this tree's own sys.mk.
+.SHELL: name=sh path=/bin/sh hasErrCtl=yes check="set -e" \\
+    ignore="set +e" echo="set -v" quiet="set +v" filter="set +v" \\
+    echoFlag=v errFlag=e newline="\\n"
+.include "$MKDIR/sys.mk"
+EOF
+MAKEFLAGS="-m $L2_BUILD/tools/mk -m $MKDIR${MAKEFLAGS:+ $MAKEFLAGS}"
 DESTDIR="$ROOT"
 MAKEOBJDIRPREFIX="$OBJ"
 # the host's own cc, by its full path, for HOSTCC below.
