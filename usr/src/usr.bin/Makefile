@@ -2,12 +2,13 @@
 
 # AI-ONLY NOTE: awk, which 4.4BSD-Lite's lists had dropped with the
 # program itself; it is back as Kernighan's own -- see awk/Makefile.
-# And five not named that the Lite cut emptied, leaving a manual page
-# or two and no Makefile: diff (diff and diff3), ex, file, sort and
-# uucp. contrib/ has programs that could stand for some; until one is
-# chosen, nothing is built or installed by these names
-# (docs/deferred.md, *Programs the Lite cut emptied*). And ar, nm,
-# ranlib, size, strip, strings, gprof and gcore, which read or write
+# And four not named that the Lite cut emptied, leaving a manual page
+# or two and no Makefile: ex, file, sort and uucp. contrib/ has
+# programs that could stand for some; until one is chosen, nothing is
+# built or installed by these names (docs/deferred.md, *Programs the
+# Lite cut emptied*). diff, the fifth, is back: OpenBSD's of 2003,
+# Berkeley's own under Caldera's licence (diff/diff/Makefile). And ar,
+# nm, ranlib, size, strip, strings, gprof and gcore, which read or write
 # a.out only, are not built for the i386, whose programs are ELF:
 # binutils 2.11.2's stand in (contrib/binutils-2.11.2), as OpenBSD
 # builds its own ar, ranlib, strip and strings only `.if
@@ -21,7 +22,7 @@
 # named but absent*).
 SUBDIR=	apply apropos awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
-	comm cpp ctags cut dirname du \
+	comm cpp ctags cut diff dirname du \
 	env error expand false find finger fmt fold fpr from \
 	fsplit fstat ftp grep head hexdump id indent \
 	join jot kdump ktrace lam last lastcomm leave locate \

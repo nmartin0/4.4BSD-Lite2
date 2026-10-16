@@ -78,6 +78,11 @@ static const char rcsid[] = "$OpenBSD: diff3prog.c,v 1.2 2003/07/14 17:43:52 der
 #include <stdlib.h>
 #include <ctype.h>
 #include <err.h>
+/*
+ * AI-ONLY NOTE: for getopt's optind, which this <stdlib.h> does not
+ * declare; OpenBSD's file added the same line in 2013 (millert).
+ */
+#include <unistd.h>
 
 /* diff3 - 3-way differential file comparison */
 
