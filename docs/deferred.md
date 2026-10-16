@@ -499,6 +499,24 @@ what was settled with the maintainer for each:
   time, Lite2's own list as each program is taken up (roadmap.md,
   *Next: contrib/*).
 
+### contrib/ in object directories
+
+Patch 154. Lite2 builds contrib/'s programs in their own source
+directories: Bostic made contrib/Makefile's obj target do nothing on 9
+June 1993 ("add an obj target"), for programs whose GNU Makefiles knew
+no object directory. Every descendant built them in object
+directories: FreeBSD 2.0, NetBSD 1.0 and OpenBSD 1995 by rewriting the
+ones they kept as BSD Makefiles under gnu/, OpenBSD from 1996 by
+running GNU's own configure and Makefiles in ${.OBJDIR} through a
+Makefile.bsd-wrapper, FreeBSD 3 and NetBSD 1.3 by reachover Makefiles.
+Decided (2026-10-16): OpenBSD's way. build/make.sh makes object
+directories below contrib/ as everywhere else; a program with a BSD
+Makefile builds there unchanged, and one with GNU's Makefile has a
+`makefile` beside it -- the name Lite2's own gcc-2.3.3, gdb-4.7.LBL,
+kermit and perl wrappers have -- that runs GNU's Makefile there with
+srcdir pointed back, and installs by name under DESTDIR, which those
+Makefiles do not know.
+
 ### Other build items
 
 - **No `LIBCRT0` dependency** — changing `crt0.o` does not relink

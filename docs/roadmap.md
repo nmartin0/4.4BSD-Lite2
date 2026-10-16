@@ -345,14 +345,32 @@ took (docs/deferred.md, *The whole tree by `make build`*):
   README.BSD and makefile, in Lite2's manner.
 
 **Next: contrib/, one program at a time.** Decided (2026-10-16):
-Lite2's contrib/Makefile is the plan -- its programs built in their
-own directories and installed under /usr/contrib, Lite2's way, not
-the descendants' gnu/ and ports -- taken up one by one, groff, gzip
-and nvi first. For the i386 contrib/Makefile names binutils-2.11.2
-now and each program as it is done. gcc-2.3.3, gas-1.38 and
-gdb-4.7.LBL are not named for the i386: they make and read a.out;
-GCC 2.95.3 and binutils 2.11.2 stand in, and a gdb that reads ELF is
-to come.
+Lite2's contrib/Makefile is the plan -- its programs, their own build
+systems and Lite2's /usr/contrib, not the descendants' gnu/ and ports
+-- taken up one by one, the C programs first and the two in C++,
+groff and libg++, after GCC's C++ (below). Built in object directories,
+as every descendant built them, OpenBSD's Makefile.bsd-wrapper way
+for those configured by GNU's configure (decided 2026-10-16).
+gcc-2.3.3, gas-1.38 and gdb-4.7.LBL are not named for the i386: they
+make and read a.out; GCC 2.95.3 and binutils 2.11.2 stand in, and a
+gdb that reads ELF is to come.
+
+Done: binutils 2.11.2 (patch 153); ansi, nvi, flex as /usr/bin/lex,
+gawk as /usr/contrib/bin/gawk beside Kernighan's awk, and gzip (patch
+154). Left, with what each is known to need:
+
+	rcs-V5.6      diff and diff3 at run time, which the Lite cut
+	              emptied (deferred.md, *Programs the Lite cut
+	              emptied*); its conf.sh runs test programs, which a
+	              cross build cannot
+	bib, hunt, jove-4.14.6, kermit-5A.188, mh-6.8.3a, bind-4.9.2
+	              their own Makefiles, each with generators or
+	              configuration that run on the build machine
+	perl-4.036    Berkeley's config.sh and makefile
+	emacs-18.57   dumps itself by running temacs: on the system, or
+	              not at all, until it self-hosts
+	groff-1.08, libg++-2.3
+	              C++
 
 **Later, and noted: a test framework and a kernel debugger.** Lite2
 has tests but no framework to run them: Berkeley's db test driver,

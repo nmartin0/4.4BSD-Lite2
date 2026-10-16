@@ -229,6 +229,12 @@ copied, and the commit names it with its release.
   usr.bin: Lite2's a.out ar, ranlib, nm, size, strip, strings, gprof
     and gcore not built where binutils stands in, OpenBSD's
     ELF_TOOLCHAIN line and NetBSD 1.4
+  contrib/gawk builtin.c: initstate, setstate and random declared only
+    where the library lacks them, OpenBSD 1995
+  contrib/flex: installed as /usr/bin/lex, with flex and flex++ and
+    the page as lex.0 and flex.0, NetBSD 1.0's names
+  contrib/: programs built in object directories, GNU's Makefiles run
+    there as OpenBSD's Makefile.bsd-wrapper runs them
 
 ## C -- our judgement, no donor line
 
@@ -688,7 +694,10 @@ archive. The licence is Lucent's of 1997, a permission notice with a
 disclaimer and no advertising clause.
 
 Chosen by the user over GNU awk, which is what NetBSD 1.0 and FreeBSD
-2.0 shipped; it is what OpenBSD, FreeBSD and NetBSD carry now. Of its
+2.0 shipped -- and, a correction, what 4.4BSD-Lite2 itself shipped as
+/usr/bin/awk, from contrib/gawk-2.15.2, which the choice was made
+without knowing; asked again, the user kept this awk, and gawk is
+installed beside it as /usr/contrib/bin/gawk (patch 154); it is what OpenBSD, FreeBSD and NetBSD carry now. Of its
 versions, 20121220 is the oldest whose sources can be had as
 Kernighan published them: the GitHub repository begins there, and the
 earlier releases survive in the BSDs' trees with their own changes
