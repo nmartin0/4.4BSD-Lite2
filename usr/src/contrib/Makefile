@@ -6,10 +6,11 @@
 # build here, one at a time (docs/roadmap.md, *Next: contrib/*). Not
 # gcc-2.3.3, gas-1.38 and gdb-4.7.LBL: they make and read a.out, and
 # this system is ELF; GCC 2.95.3 and binutils 2.11.2 stand in for the
-# first two, and a gdb that reads ELF is to come. And one not on
-# Berkeley's list: diff-2.6, GNU's, beside Berkeley's diff.
+# first two, and a gdb that reads ELF is to come. And two not on
+# Berkeley's list: diff-2.6, GNU's, beside Berkeley's diff; and ed,
+# Berkeley's own replacement for the bin/ed the Lite cut deleted.
 .if ${MACHINE} == "i386"
-SUBDIR=	ansi binutils-2.11.2 diff-2.6 flex-2.5.2 gawk-2.15.2 gzip-1.2.4 \
+SUBDIR=	ansi binutils-2.11.2 diff-2.6 ed flex-2.5.2 gawk-2.15.2 gzip-1.2.4 \
 	nvi
 .else
 SUBDIR=	ansi bib bind-4.9.2 flex-2.5.2 gawk-2.15.2 emacs-18.57 gas-1.38 \

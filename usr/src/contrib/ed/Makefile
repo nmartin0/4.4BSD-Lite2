@@ -7,6 +7,12 @@ SRCS=	a.c add_line.c address.c bang.c c.c d.c e.c edhup.c equal.c f.c \
 	t.c u.c w.c z.c
 
 CFLAGS+=-DBSD -DDBI
+# AI-ONLY NOTE: installed where Lite2's bin/ed was, /bin, with its page
+# beside the system's, by the maintainer's choice: the Lite cut
+# deleted bin/ed, and this is Berkeley's own replacement, Rodney
+# Ruddock's, which rcs's merges and the like call as /bin/ed.
+BINDIR=	/bin
+MANDIR=	/usr/share/man/cat
 LDADD=	-ltermcap
 DPADD=	${TERMLIB}
 
