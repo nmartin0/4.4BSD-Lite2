@@ -148,9 +148,14 @@ realinstall: _PROGSUBDIR
 	install ${STRIP} -o ${BINOWN} -g ${BINGRP} -m ${BINMODE} \
 	    ${INSTALLFLAGS} ${PROG} ${DESTDIR}${BINDIR}
 .endif
+# AI-ONLY NOTE: the link is not chowned, as NetBSD 1.0's is not:
+# "don't chown the symlink ... 4.4-based FS code _follows_ the
+# symlinks on a chown(2) call" (cgd, 18 June 1994) -- Berkeley's
+# `chown games.bin' re-owned dm itself, which clears its set-user-ID
+# bit, and on a fresh root, dm not yet there, it failed. OpenBSD's
+# has been the same since 1995.
 .if defined(HIDEGAME)
-	(cd ${DESTDIR}/usr/games; rm -f ${PROG}; ln -s dm ${PROG}; \
-	    chown games.bin ${PROG})
+	(cd ${DESTDIR}/usr/games; rm -f ${PROG}; ln -s dm ${PROG})
 .endif
 .if defined(LINKS) && !empty(LINKS)
 	@set ${LINKS}; \
