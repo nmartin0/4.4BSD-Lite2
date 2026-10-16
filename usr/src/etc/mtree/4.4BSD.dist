@@ -845,6 +845,14 @@ vax
 # ./usr/share/doc/smm/18.net
 ..
 
+# AI-ONLY NOTE: 19.perl, which share/doc/smm's Makefile names and
+# perl's document installs into (DIR=); this list, of July 1992,
+# stops at 18.net.
+# ./usr/share/doc/smm/19.perl
+19.perl
+# ./usr/share/doc/smm/19.perl
+..
+
 # ./usr/share/doc/smm
 ..
 
@@ -914,6 +922,25 @@ usd
 # ./usr/share/doc/usd/13.ex
 13.ex
 # ./usr/share/doc/usd/13.ex
+..
+
+# AI-ONLY NOTE: 11.vitut, 12.exref and 13.viref, the directories
+# share/doc/usd's Makefile and the documents' own (DIR=) install
+# into; this list, of July 1992, still named the older 11.edit,
+# 12.vi and 13.ex. OpenBSD's of 1995 adds 13.viref the same way.
+# ./usr/share/doc/usd/11.vitut
+11.vitut
+# ./usr/share/doc/usd/11.vitut
+..
+
+# ./usr/share/doc/usd/12.exref
+12.exref
+# ./usr/share/doc/usd/12.exref
+..
+
+# ./usr/share/doc/usd/13.viref
+13.viref
+# ./usr/share/doc/usd/13.viref
 ..
 
 # ./usr/share/doc/usd/14.jove
