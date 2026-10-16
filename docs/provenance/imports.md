@@ -284,6 +284,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	i386 reg.h: struct reg, NetBSD (1993); struct fpreg, FreeBSD 2.1.0
 	lib/libc/sys/ptrace.2		FreeBSD 2.2, adapted
 	kern/genassym.sh, sys/assym.h	FreeBSD 5.0, unmodified
+	contrib/diff-2.6		GNU diff 2.6, NetBSD 1.0's, as gdiff
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -697,8 +698,8 @@ Chosen by the user over GNU awk, which is what NetBSD 1.0 and FreeBSD
 2.0 shipped -- and, a correction, what 4.4BSD-Lite2 itself shipped as
 /usr/bin/awk, from contrib/gawk-2.15.2, which the choice was made
 without knowing; asked again, the user kept this awk, and gawk is
-installed beside it as /usr/contrib/bin/gawk (patch 154); it is what OpenBSD, FreeBSD and NetBSD carry now. Of its
-versions, 20121220 is the oldest whose sources can be had as
+installed beside it as /usr/contrib/bin/gawk (patch 154); it is what
+OpenBSD, FreeBSD and NetBSD carry now. Of its versions, 20121220 is the oldest whose sources can be had as
 Kernighan published them: the GitHub repository begins there, and the
 earlier releases survive in the BSDs' trees with their own changes
 (FreeBSD 5.0's contrib/one-true-awk is 20021129). It is also the last
@@ -744,11 +745,30 @@ MAKEDEV's `expr $unit '*' 8 + 0` for every wd0 minor.
 ## F -- Berkeley's own file, restored
 
 	sbin/savecore/zopen.c	741 lines	NetBSD 1.0
+	usr.bin/diff/diff		Berkeley's 4.3-Reno diff, OpenBSD 2003
+	usr.bin/diff/diff3		diff3prog OpenBSD 2003; diff3.sh,
+					Makefiles: CSRG, revision 8.1
 
 Marked %sccs.include.redist.c% in Berkeley's tree. It is absent from
 the Lite releases because usr.bin/compress went whole for the LZW
 patent, not for its licence. NetBSD's copy is Berkeley's file, so this
 is that code coming back rather than another system's arriving.
+
+**usr.bin/diff** is Berkeley's diff, which the Lite cut removed as
+%sccs.include.proprietary.c%, AT&T's in its descent. Caldera's
+licence of 2002 freed that code, and OpenBSD took it back on 25 June
+2003: Berkeley's 4.3-Reno diff, deraadt's "This is free because of the
+Caldera license", with the licence written into each file the same
+day; and on 10 July "a matching diff3 from 32V w/ some UCB changes"
+(millert). Those are what is here, by the maintainer's choice, diff
+as first committed and diff3prog as of 31 July, when its first faults
+were fixed; Berkeley's own revision 8.1 of the same files is in the
+CSRG history and was not taken. diff3's front end is Berkeley's
+diff3.sh, revision 8.1, from the CSRG history, with Caldera's licence
+where its proprietary mark was, as OpenBSD did: OpenBSD's own front
+end is a Korn shell script that runs mktemp(1), neither of which this
+system has. The Makefiles are Berkeley's, and the pages Lite2's own.
+diffh is not here, so -h does not run.
 
 ## G -- ours
 

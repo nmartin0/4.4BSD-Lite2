@@ -101,9 +101,17 @@ manual page, a README or a few subdirectories, and no Makefile:
 `usr.sbin/sendmail`, and `old`, the top-level directory of eight
 retired programs. None is named now, and their manual pages are not
 installed. contrib/ holds programs that could stand for some --
-nvi for ex and vi, file-3.12, sort, ed -- outside contrib/Makefile's
+nvi for ex and vi, file-3.12, sort -- outside contrib/Makefile's
 list; they are to be weighed with contrib/ (roadmap.md, *Next:
 contrib/*).
+
+**diff is back** (patch 155): Berkeley's own 4.3-Reno diff as OpenBSD
+took it under Caldera's licence in 2003, with its diff3 and Berkeley's
+diff3.sh (imports.md, kind F), the system's /usr/bin/diff and diff3;
+GNU diff 2.6, NetBSD 1.0's, is beside it in contrib/ as gdiff, gdiff3
+and gsdiff. And **ed is back**, though it was deleted rather than
+emptied: contrib/ed, Berkeley's own replacement, Rodney Ruddock's, as
+/bin/ed.
 
 ### The one inversion, stated by the project itself
 

@@ -357,12 +357,15 @@ gdb that reads ELF is to come.
 
 Done: binutils 2.11.2 (patch 153); ansi, nvi, flex as /usr/bin/lex,
 gawk as /usr/contrib/bin/gawk beside Kernighan's awk, and gzip (patch
-154). Left, with what each is known to need:
+154); for rcs, diff and diff3 -- Berkeley's, as OpenBSD restored them
+under Caldera's licence, in usr.bin -- GNU diff 2.6 beside them as
+gdiff, and ed as /bin/ed (patch 155). Left, with what each is known to
+need:
 
-	rcs-V5.6      diff and diff3 at run time, which the Lite cut
-	              emptied (deferred.md, *Programs the Lite cut
-	              emptied*); its conf.sh runs test programs, which a
-	              cross build cannot
+	rcs-V5.6      its conf.h, which conf.sh writes by compiling and
+	              running test programs: as the BSDs of the time made
+	              theirs, on the system itself, once it has its
+	              compiler (decided 2026-10-16); then committed
 	bib, hunt, jove-4.14.6, kermit-5A.188, mh-6.8.3a, bind-4.9.2
 	              their own Makefiles, each with generators or
 	              configuration that run on the build machine
