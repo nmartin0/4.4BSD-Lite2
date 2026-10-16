@@ -8,7 +8,7 @@
 # this system is ELF; GCC 2.95.3 and binutils 2.11.2 stand in for the
 # first two, and a gdb that reads ELF is to come.
 .if ${MACHINE} == "i386"
-SUBDIR=	ansi binutils-2.11.2 flex-2.5.2 gawk-2.15.2 nvi
+SUBDIR=	ansi binutils-2.11.2 flex-2.5.2 gawk-2.15.2 gzip-1.2.4 nvi
 .else
 SUBDIR=	ansi bib bind-4.9.2 flex-2.5.2 gawk-2.15.2 emacs-18.57 gas-1.38 \
 	gcc-2.3.3 gdb-4.7.LBL groff-1.08 gzip-1.2.4 hunt jove-4.14.6 \
