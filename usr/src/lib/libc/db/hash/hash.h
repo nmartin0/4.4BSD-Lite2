@@ -98,7 +98,14 @@ typedef struct htab {		/* Memory resident data structure */
 	BUFHEAD *cpage;		/* Current page */
 	int	cbucket;	/* Current bucket */
 	int	cndx;		/* Index of next item on cpage */
-	int	errno;		/* Error Number -- for DBM compatability */
+	/*
+	 * AI-ONLY NOTE: err, not errno, as NetBSD 1.3 and OpenBSD
+	 * (2004) renamed it, and FreeBSD 2.2, as error: a C library
+	 * where errno is a macro, as threads made it, cannot compile a
+	 * field of that name -- glibc, building this for cap_mkdb on
+	 * the build machine (build/sysroot.sh), is one.
+	 */
+	int	err;		/* Error Number -- for DBM compatability */
 	int	new_file;	/* Indicates if fd is backing store or no */
 	int	save_file;	/* Indicates whether we need to flush file at
 				 * exit */
