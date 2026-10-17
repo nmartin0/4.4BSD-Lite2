@@ -51,6 +51,10 @@ all)
 	sh MAKEDEV local
 	;;
 
+# AI-ONLY NOTE: stdin, stdout, stderr and fd/ at 22, the major
+# sys/i386/i386/conf.c gives fdopen, FreeBSD 2.0's i386 major for it.
+# Berkeley's lines said 53, vax's major, whose MAKEDEV these are; the
+# i386 cdevsw had no such device, and opening them failed.
 std)
 	mknod console		c 0 0
 	mknod drum		c 4 0	; chmod 640 drum ; chgrp kmem drum
@@ -60,13 +64,13 @@ std)
 	mknod zero      	c 2 12  ; chmod 666 zero
 	mknod tty		c 1 0	; chmod 666 tty
 	mknod klog		c 7 0	; chmod 600 klog
-	mknod stdin		c 53 0	; chmod 666 stdin
-	mknod stdout		c 53 1	; chmod 666 stdout
-	mknod stderr		c 53 2	; chmod 666 stderr
+	mknod stdin		c 22 0	; chmod 666 stdin
+	mknod stdout		c 22 1	; chmod 666 stdout
+	mknod stderr		c 22 2	; chmod 666 stderr
 	mkdir fd > /dev/null 2>&1
 	(cd fd && eval `echo "" | awk ' BEGIN { \
 		for (i = 0; i < 64; i++) \
-			printf("mknod %d c 53 %d;", i, i)}'`)
+			printf("mknod %d c 22 %d;", i, i)}'`)
 	chown -R bin.bin fd
 	chmod 555 fd
 	chmod 666 fd/*

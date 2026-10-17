@@ -262,6 +262,23 @@ cdev_decl(bpf);
 	(dev_type_reset((*))) enodev, 0, dev_init(c,n,select), \
 	(dev_type_map((*))) enodev, 0 }
 
+/*
+ * AI-ONLY NOTE: /dev/fd and /dev/std{in,out,err}, kern_descrip.c's
+ * fdopen, which every other port's cdevsw in this tree names --
+ * hp300's and luna68k's at 21, sparc's at 24, pmax's at 7 -- and this
+ * one did not; etc.i386/MAKEDEV made the nodes at 53, vax's major,
+ * whose MAKEDEV its lines are. Here at 22, FreeBSD 2.0's i386 major for
+ * it, and the declaration and initializer are hp300's.
+ */
+dev_type_open(fdopen);
+/* open */
+#define	cdev_fd_init(c,n) { \
+	dev_init(c,n,open), (dev_type_close((*))) enodev, \
+	(dev_type_read((*))) enodev, (dev_type_write((*))) enodev, \
+	(dev_type_ioctl((*))) enodev, (dev_type_stop((*))) enodev, \
+	(dev_type_reset((*))) enodev, 0, (dev_type_select((*))) enodev, \
+	(dev_type_map((*))) enodev, 0 }
+
 struct cdevsw	cdevsw[] =
 {
 	cdev_cn_init(1,cn),		/* 0: virtual console */
@@ -280,6 +297,13 @@ struct cdevsw	cdevsw[] =
 	cdev_notdef(),			/* 13 */
 	cdev_bpf_init(NBPFILTER,bpf),	/* 14: berkeley packet filter */
 	cdev_tape_init(NWCD,wcd),	/* 15: ATAPI CD-ROM */
+	cdev_notdef(),			/* 16 */
+	cdev_notdef(),			/* 17 */
+	cdev_notdef(),			/* 18 */
+	cdev_notdef(),			/* 19 */
+	cdev_notdef(),			/* 20 */
+	cdev_notdef(),			/* 21 */
+	cdev_fd_init(1,fd),		/* 22: file descriptor pseudo-dev */
 };
 
 int	nchrdev = sizeof (cdevsw) / sizeof (cdevsw[0]);
@@ -335,11 +359,15 @@ iszerodev(dev)
  *	char  9 Fd   -> block 2 Fd    floppy disk
  *	char 10 wt   -> block 3 wt    QIC cartridge tape
  *	char 11 xd   -> block 4 xd    temp alt st506 disk
+ *	char 15 wcd  -> block 5 wcd   ATAPI CD-ROM
  *
  * Every other character major -- cn, ctty, mm, pts, ptc, log, com,
- * pc, bpf and the hole at 13 -- has no block device at all.
+ * pc, bpf, fd and the holes at 13 and 16 to 21 -- has no block
+ * device at all. (wcd and fd were added to the switch tables after
+ * this table was written; wcd's pair and the length are corrected
+ * with fd's arrival.)
  *
- * MAXDEV is 15, the length of cdevsw, which nchrdev below computes
+ * MAXDEV is 23, the length of cdevsw, which nchrdev below computes
  * the same way. The bound matters because chrtoblk indexes
  * chrtoblktbl[major(dev)] with a character major, so the table must
  * cover every major nchrdev admits and the bound must not let an
@@ -355,7 +383,7 @@ iszerodev(dev)
  * Recorded rather than fixed: neither port has ever been compiled
  * here, and correcting another port's table is not this change.
  */
-#define MAXDEV	15
+#define MAXDEV	23
 static int chrtoblktbl[MAXDEV] = {
       /* VCHR */      /* VBLK */
 	/* 0 */		NODEV,
@@ -373,6 +401,14 @@ static int chrtoblktbl[MAXDEV] = {
 	/* 12 */	NODEV,
 	/* 13 */	NODEV,
 	/* 14 */	NODEV,
+	/* 15 */	5,
+	/* 16 */	NODEV,
+	/* 17 */	NODEV,
+	/* 18 */	NODEV,
+	/* 19 */	NODEV,
+	/* 20 */	NODEV,
+	/* 21 */	NODEV,
+	/* 22 */	NODEV,
 };
 
 /*
