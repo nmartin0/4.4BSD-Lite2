@@ -363,16 +363,15 @@ gawk as /usr/contrib/bin/gawk beside Kernighan's awk, and gzip (patch
 /usr/bin, as in NetBSD 1.0 and FreeBSD 2.0 (patch 155, and patch 157,
 which took out Berkeley's diff, Caldera-licensed) -- and ed as /bin/ed
 (patch 155); bib, hunt, jove, kermit and MH (patch 157); and sort,
-Berkeley's own new one from contrib/, as /usr/bin/sort (patch 158). Left, with
-what each is known to need:
+Berkeley's own new one from contrib/, as /usr/bin/sort (patch 158);
+bind 4.9.2 and perl 4.036, perl by OpenBSD's Makefile.bsd-wrapper, so
+that its own Configure-written makefile stays as Berkeley shipped it
+(patch 159). Left, with what each is known to need:
 
 	rcs-V5.6      its conf.h, which conf.sh writes by compiling and
 	              running test programs: as the BSDs of the time made
 	              theirs, on the system itself, once it has its
 	              compiler (decided 2026-10-16); then committed
-	bind-4.9.2    its own Makefiles, with generators or configuration
-	              that run on the build machine
-	perl-4.036    Berkeley's config.sh and makefile
 	emacs-18.57   dumps itself by running temacs: on the system, or
 	              not at all, until it self-hosts
 	groff-1.08, libg++-2.3

@@ -235,6 +235,14 @@ copied, and the commit names it with its release.
     the page as lex.0 and flex.0, NetBSD 1.0's names
   contrib/: programs built in object directories, GNU's Makefiles run
     there as OpenBSD's Makefile.bsd-wrapper runs them
+  share/mk/bsd.subdir.mk: a directory's Makefile.bsd-wrapper read in
+    place of its makefile, OpenBSD (niklas, December 1995) -- for
+    contrib/perl-4.036, whose makefile Configure wrote
+  contrib/bind named/ns_func.h: doupdate's and validate's last
+    arguments without the #ifdef inside __P, as Vixie's next
+    ns_func.h (rev 1.12, July 1994, FreeBSD 2.0) has them
+  contrib/perl x2p: its unused setenv renamed my_setenv, as perl's
+    own util.c names the same routine, clear of <stdlib.h>'s
 
 ## C -- our judgement, no donor line
 
@@ -270,6 +278,11 @@ are small, and every one says so in its own AI-ONLY NOTE.
     sources in the object directory	gives cc, ld, ar and ranlib
 					their target's, from GCC's and
 					binutils' tooldir
+  contrib bind, perl: their own	in a copy of the sources, as
+    Makefiles, run in a copy		MH's; perl's header lists name
+					the target's under DESTDIR, and
+					it is installed by name, since
+					installperl runs ./perl
   build/sysroot.sh: grops and devps	for MH's paper, which its own
     in the build machine's groff	`make all' formats, as on
 					Berkeley's machine
