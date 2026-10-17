@@ -12,7 +12,7 @@
 # replacement for the bin/ed the Lite cut deleted.
 .if ${MACHINE} == "i386"
 SUBDIR=	ansi bib binutils-2.11.2 diff-2.6 ed flex-2.5.2 gawk-2.15.2 \
-	gzip-1.2.4 hunt jove-4.14.6 kermit-5A.188 nvi
+	gzip-1.2.4 hunt jove-4.14.6 kermit-5A.188 mh-6.8.3a nvi
 .else
 SUBDIR=	ansi bib bind-4.9.2 flex-2.5.2 gawk-2.15.2 emacs-18.57 gas-1.38 \
 	gcc-2.3.3 gdb-4.7.LBL groff-1.08 gzip-1.2.4 hunt jove-4.14.6 \
