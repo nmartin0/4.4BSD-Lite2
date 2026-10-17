@@ -1,0 +1,90 @@
+#Build for this system: perl.
+#
+# AI-ONLY NOTE: perl 4.036 as Berkeley configured it -- config.sh and
+# the makefile Configure and makedepend wrote on Berkeley's machine,
+# which are left as they came -- built by that makefile and installed
+# where perl's installperl puts it: perl and taintperl in
+# /usr/contrib/bin, as perl4.036 and tperl4.036 with links, a2p and
+# the scripts beside them, /usr/bin/perl linked to perl, the library
+# in /usr/contrib/lib/perl and the pages, formatted, in
+# /usr/contrib/man/cat1, under ${DESTDIR}.
+#
+# This file is read rather than that makefile because it is here
+# (share/mk/bsd.subdir.mk, OpenBSD's Makefile.bsd-wrapper).
+#
+# The makefile builds among the sources, so it is run in a copy of
+# them in a directory of its own -- the object directory when the
+# build has one, obj.${MACHINE} here when not -- as MH's are. In the
+# copy, the makefile's and x2p's lists of the system headers each
+# object depends on, /usr/include/..., name the target's, under
+# ${DESTDIR}: they are the same files, and on another machine
+# /usr/include is that machine's. cflags runs cc by name, so the PATH
+# begins with GCC's and binutils' tooldir; YACC is this tree's yacc,
+# which the makefile names as /usr/bin/yacc.
+#
+# Installed by name, not by the makefile's install target, which ends
+# by running ./perl installperl -- this system's perl, which another
+# machine cannot run. What installperl does, for this config.sh, is
+# done here; suidperl is not built (d_dosuid undef).
+
+BINOWN?=	bin
+BINGRP?=	bin
+B=		${DESTDIR}/usr/contrib/bin
+L=		${DESTDIR}/usr/contrib/lib/perl
+M=		${DESTDIR}/usr/contrib/man/cat1
+VER=		4.036
+SCRIPTS=	cppstdin h2ph c2ph pstruct x2p/s2p x2p/find2perl
+PAGES=		perl.man h2ph.man x2p/s2p.man x2p/a2p.man
+
+.if defined(MAKEOBJDIRPREFIX)
+BUILD=	${MAKEOBJDIRPREFIX}${.CURDIR}
+.else
+BUILD=	${.CURDIR}/obj.${MACHINE}
+.endif
+
+.if !empty(CC:M*-gcc)
+TOOLPATH=	PATH=${CC:H:H}/${CC:T:S/-gcc$//}/bin:$$PATH
+.endif
+
+all:
+	mkdir -p ${BUILD}
+	if [ ! -f ${BUILD}/config.sh ]; then \
+		(cd ${.CURDIR} && pax -rw -pp . ${BUILD}); \
+		rm -f ${BUILD}/Makefile.bsd-wrapper; \
+		for f in makefile x2p/makefile; do \
+			sed 's#: /usr/include/#: ${DESTDIR}/usr/include/#' \
+			    ${BUILD}/$$f > ${BUILD}/$$f.tmp; \
+			mv ${BUILD}/$$f.tmp ${BUILD}/$$f; \
+		done; \
+	fi
+	cd ${BUILD} && ${TOOLPATH} ${MAKE} -f makefile YACC=yacc all
+	cd ${BUILD} && for f in ${PAGES}; do \
+		nroff -man $$f > `basename $$f .man`.0; \
+	done
+
+install:
+	install -c -o ${BINOWN} -g ${BINGRP} -m 755 ${BUILD}/perl \
+	    ${B}/perl${VER}
+	install -c -o ${BINOWN} -g ${BINGRP} -m 755 ${BUILD}/taintperl \
+	    ${B}/tperl${VER}
+	rm -f ${B}/perl ${B}/taintperl ${DESTDIR}/usr/bin/perl
+	ln ${B}/perl${VER} ${B}/perl
+	ln ${B}/tperl${VER} ${B}/taintperl
+	ln ${B}/perl ${DESTDIR}/usr/bin/perl
+	install -c -o ${BINOWN} -g ${BINGRP} -m 755 ${BUILD}/x2p/a2p ${B}/a2p
+	for f in ${SCRIPTS}; do \
+		install -c -o ${BINOWN} -g ${BINGRP} -m 755 ${BUILD}/$$f \
+		    ${B}/`basename $$f`; \
+	done
+	for f in ${BUILD}/lib/*.pl; do \
+		install -c -o ${BINOWN} -g ${BINGRP} -m 644 $$f ${L}; \
+	done
+	for f in ${PAGES}; do \
+		install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
+		    ${BUILD}/`basename $$f .man`.0 ${M}; \
+	done
+
+clean cleandir:
+	rm -rf ${BUILD}
+
+depend lint obj tags:

@@ -42,7 +42,13 @@ void	prexit();
 char	*get_a_line();
 char	*savestr();
 int	makedir();
-void	setenv();
+/*
+ * AI-ONLY NOTE: my_setenv, as perl's own util.h names the same routine:
+ * 4.4BSD's <stdlib.h> declares setenv(3) with three arguments, and this
+ * tree's yacc includes <stdlib.h> at the head of a2p.c, so the old name
+ * collides. Nothing in x2p calls it.
+ */
+void	my_setenv();
 int	envix();
 void	notincl();
 char	*getval();
