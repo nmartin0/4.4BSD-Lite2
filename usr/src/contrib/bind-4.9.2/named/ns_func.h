@@ -3,6 +3,14 @@
  * $Id: ns_func.h,v 1.6 1993/12/06 00:43:02 vixie Exp $
  */
 
+/*
+ * AI-ONLY NOTE: doupdate's u_int and validate's last int without the
+ * #ifdef CRED and #ifdef NCACHE that were inside __P's argument: a
+ * directive within a macro's argument is an error to GCC 2.95's
+ * preprocessor. conf/options.h defines both, and Vixie's own next
+ * ns_func.h (rev 1.12, July 1994, in FreeBSD 2.0 and NetBSD's BIND
+ * 4.9.3) declares both arguments unconditionally, as here.
+ */
 /* ++from ns_resp.c++ */
 extern void		ns_resp __P((u_char *, int)),
 			prime_cache __P((void)),
@@ -12,9 +20,7 @@ extern struct qinfo	*sysquery __P((char *, int, int,
 extern int		doupdate __P((char *, int, u_char *, int,
 				      struct databuf **,
 				      int
-#ifdef CRED
 				      , u_int
-#endif
 				      )),
 			send_msg __P((char *, int, struct qinfo *)),
 			findns __P((struct namebuf **, int,
@@ -119,9 +125,7 @@ extern void		ns_stats __P((void));
 /* ++from ns_validate.c++ */
 extern int		validate __P((char *, struct sockaddr_in *,
                                     int, int, char *, int
-#ifdef NCACHE
                                     , int
-#endif
                                     )),
 			dovalidate __P((char *, int, u_char *, int, int,
 					struct sockaddr_in *, int *)),
