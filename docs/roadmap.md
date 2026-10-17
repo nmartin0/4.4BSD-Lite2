@@ -107,9 +107,11 @@ on Lite2's procfs hooks, with its manual page (`a56c2f9b`).
    `build/mklabel.c`, `swapon -a` from fstab; measured paging under
    `-m 16`.
 4. ~~**MAKEDEV's pty majors**~~, now 5 and 6 as conf.c has them, and
-   ptys configured in the kernel; `script` runs through ttyp0. Still
-   open: std's stdin, stdout, stderr and fd/ at major 53, which the
-   i386 cdevsw has no driver for, and the panic from removing the
+   ptys configured in the kernel; `script` runs through ttyp0. std's
+   stdin, stdout, stderr and fd/ are made at major 22, where the i386
+   cdevsw now has fdopen, as every other port's in this tree does --
+   FreeBSD 2.0's i386 major for it (patch 158; sort writes to
+   /dev/stdout). Still open: the panic from removing the
    device node the root was remounted through (`vinvalbuf: dirty
    bufs`). That one is understood and left: `mount -u` looks the
    device up by name, and checkalias, finding the root's vnode still
@@ -360,7 +362,8 @@ gawk as /usr/contrib/bin/gawk beside Kernighan's awk, and gzip (patch
 154); for rcs, diff, diff3 and sdiff -- GNU diff 2.6, the system's in
 /usr/bin, as in NetBSD 1.0 and FreeBSD 2.0 (patch 155, and patch 157,
 which took out Berkeley's diff, Caldera-licensed) -- and ed as /bin/ed
-(patch 155); bib, hunt, jove, kermit and MH (patch 157). Left, with
+(patch 155); bib, hunt, jove, kermit and MH (patch 157); and sort,
+Berkeley's own new one from contrib/, as /usr/bin/sort (patch 158). Left, with
 what each is known to need:
 
 	rcs-V5.6      its conf.h, which conf.sh writes by compiling and

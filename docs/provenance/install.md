@@ -359,8 +359,9 @@ system call; none stops it.
   but never fills ps_strings in. Recorded in docs/roadmap.md.
 - **MAKEDEV's majors are partly wrong for this kernel.** Its `pty`
   case made `c 4` and `c 5` where conf.c has 5 and 6 (4 is drum,
-  which `std` also gives 4) -- fixed since; see *Pseudo-terminals*. `std` makes stdin, stdout, stderr and
-  fd/ at major 53, which the i386 cdevsw, ending at 14, does not have;
+  which `std` also gives 4) -- fixed since; see *Pseudo-terminals*. `std` made stdin, stdout, stderr and
+  fd/ at major 53, vax's, which the i386 cdevsw did not have -- fixed
+  since: fdopen at 22 in conf.c, and MAKEDEV to match (patch 158);
   fd/ needs awk, which there is none of; and `chown` is looked for in
   /bin and /usr/bin and lives in /usr/sbin.
 - **root's group is 10**, which etc/group does not have; `id` says

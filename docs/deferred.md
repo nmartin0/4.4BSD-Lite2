@@ -114,7 +114,11 @@ is the system's diff, diff3 and sdiff in /usr/bin, as in NetBSD 1.0
 and FreeBSD 2.0. Patch 155 had Berkeley's own 4.3-Reno diff there, as
 OpenBSD took it under Caldera's licence in 2003; it was removed by the
 rule below (*Caldera's licence, and what the BSDs took under it*).
-usr.bin/diff is again as Lite2 left it. And **ed is back**, though it was deleted rather than
+usr.bin/diff is again as Lite2 left it. **sort is back**: contrib/sort,
+Berkeley's own new sort, Peter McIlroy's of 1993, which Lite2 ships
+off contrib/Makefile's list, as /usr/bin/sort (patch 158) -- the sort
+NetBSD's usr.bin/sort descends from; bib's invert runs it. And **ed
+is back**, though it was deleted rather than
 emptied: contrib/ed, Berkeley's own replacement, Rodney Ruddock's, as
 /bin/ed.
 
@@ -635,6 +639,18 @@ Makefiles do not know.
   the rest, and `make build` begins with cleandir, as Lite2's did;
   nothing rebuilds them, since documents are installed as sources.
   `git checkout usr/src/contrib/nvi.1.43` restores them (patch 153).
+
+- **sort applies a leading -n, -r or the like to no key given by
+  position.** `sort -n +1` and `sort -n -k2` compare the second field
+  as text; `sort +1n` and `sort -k2n` compare it as a number, as
+  POSIX has the first form do too. Berkeley's 1993 sort as Lite2
+  ships it, the same built on the build machine; kept as it is
+  (patch 158).
+- **bib's shipped bibinc.fullnames and bibinc.shortnames are not what
+  its bibinc makes from the bibinc.names beside them**: 260 lines
+  against 862 on the system itself. Berkeley's, as shipped, are what
+  is installed; macs/Makefile would remake them only when
+  bibinc.names were newer (patch 157).
 
 - **NetBSD 1.6's `__ctors` reads past its one-element
   `__CTOR_LIST__[1]`**, which GCC compiles into an infinite loop on
