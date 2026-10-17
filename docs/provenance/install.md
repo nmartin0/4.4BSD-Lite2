@@ -922,3 +922,49 @@ on the CD*): the CD is 57 MB, and it installs a 246 MB disk with a
 200 MB root, on which the system is 54 MB. Run as an ordinary user under
 fakeroot, umask 002, it made a base set with the same files, modes
 and owners, and its CD installed a blank disk too.
+
+# The sources
+
+4.4BSD's distribution carried the system's sources beside it, as tar
+images to be put in /usr/src once the system was up: the setup guide
+(share/doc/smm/01.setup, section 2) lists them as tape files 4 to 6
+-- /usr/src/sys; /usr/src but sys and contrib; /usr/src/contrib --
+and ends the installation by extracting them, by hand, "as desired",
+into a filesystem of their own if there is room, and needing 250 to
+340 megabytes. The CD carries them the same way, by the maintainer's
+choice: build/release.sh makes the three from the tree before it
+builds, and puts them in source/sets, where release(7) puts a
+release's source sets, as syssrc.tar, src.tar and contribsrc.tar,
+NetBSD's names. The installer does not touch them; on the installed
+system, with the CD in:
+
+	# mount -t cd9660 /dev/wcd0c /mnt
+	# cd /usr/src
+	# tar xpf /mnt/source/sets/syssrc.tar	(the kernel's)
+	# tar xpf /mnt/source/sets/src.tar	(the utilities')
+	# tar xpf /mnt/source/sets/contribsrc.tar	(the contributed software's)
+	# cd /; umount /mnt
+
+The three are some 280 MB, so the disk wants room for them: a 700 MB
+disk, labelled with 1400 cylinders of 16 heads and 63 sectors, a
+1357-cylinder root and 43 for swap, holds the system and its sources
+together.
+
+The tar is pax's. Lite took 4.4BSD's tar away and left pax, which
+acts as tar when run by that name (bin/pax/options.c), so
+bin/pax/Makefile links tar to it in /bin, as OpenBSD did on 29 June
+1996, and the install root's tar is the crunched pax by the same name
+in the same place. Before, the install root had only a /usr/bin/tar
+pointing at the crunched binary through /bin/cat; the installer copies
+its root onto the disk, and the base set, which had no tar, left that
+link there, so tar on the installed system ran cat.
+
+Tried on QEMU: the CD, 359 MB, installed a 1401-cylinder disk with a
+1400-cylinder BSD portion, 1357 for the root and 43 for swap; on the
+system, /bin/tar and /bin/pax are one file, tar made and listed an
+archive, and the three sets extracted into /usr/src without an error,
+leaving the root 56% full. In /usr/src, make compiled and linked
+bin/cat and, after make depend, usr.bin/wc, and stopped at their
+manual pages: the system has no nroff yet.
+Run as an ordinary user under fakeroot, the release made a base set
+with the same files, modes, owners and links, and the same sources.

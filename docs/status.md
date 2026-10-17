@@ -40,6 +40,14 @@ the boot blocks load the kernel throughout:
 - **Its manual pages.** Every page the installed programs and
   libraries name -- 789 of them -- formatted by Lite2's own nroff,
   groff 1.08, and read on the system with man(1).
+- **Its sources.** The CD carries the tree as 4.4BSD's distribution
+  did, three tar images beside the base set -- syssrc.tar, src.tar
+  and contribsrc.tar, in source/sets -- extracted by hand into
+  /usr/src once the system is up, with tar, which is pax by that name
+  in /bin (patch 162; install.md, *The sources*). On the system, gcc
+  compiles and links a program in /usr/src with make; the manual
+  page then stops the build, since the system has no nroff of its
+  own yet -- groff is C++.
 - **The whole tree.** The base set is Berkeley's own top-level `make
   build` of the whole tree, contrib/ aside (patch 153): 179 programs
   in /usr/bin, the games, the time zones, the dictionaries, termcap.db

@@ -323,9 +323,11 @@ installed where 4.4BSD put its GCC, under /usr/libexec/gcc2, with
 /usr/bin/gcc and, by the maintainer's choice, /usr/bin/cc linked to
 it: on the system it compiles and links against libc and libm, and
 make, mkdep and bsd.prog.mk build a program with it -- and the system
-rebuilding its own compiler, for which the
-whole tree in the release now gives make, share/mk and the rest of a
-build environment; then the 4.2.1 pair the same way. The kernel must be made to build with `-fno-common`
+rebuilding itself and its own compiler, for which the whole tree in
+the release gives make, share/mk and the rest of a build environment,
+and the CD the sources, extracted into /usr/src by hand (patch 162);
+what stops it first is that the manual pages need nroff, and the
+system's, groff, is C++; then the 4.2.1 pair the same way. The kernel must be made to build with `-fno-common`
 before any of the newer pairs compiles it (Tier 1, item 5).
 
 **~~The whole tree on the CD.~~ Done** (patch 153). Decided

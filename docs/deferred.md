@@ -643,6 +643,11 @@ Makefiles do not know.
   the rest, and `make build` begins with cleandir, as Lite2's did;
   nothing rebuilds them, since documents are installed as sources.
   `git checkout usr/src/contrib/nvi.1.43` restores them (patch 153).
+  Since the CD carries the sources (patch 162), it matters more:
+  build/release.sh makes the source sets before it builds, so a run
+  from a fresh checkout ships the three, but a second run from the
+  same checkout ships contribsrc.tar without them, unless they are
+  restored first.
 
 - **sort applies a leading -n, -r or the like to no key given by
   position.** `sort -n +1` and `sort -n -k2` compare the second field
