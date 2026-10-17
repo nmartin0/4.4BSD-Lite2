@@ -19,6 +19,14 @@ BINMODE?=	555
 # Makefile.bsd-wrapper -- because one token leaves Lite2's loop as it
 # is. Neither file carries a copyright notice; both descend from the
 # 4.4BSD file this one is.
+#
+# And Makefile.bsd-wrapper, OpenBSD's of December 1995 (niklas: "Added
+# support for using a special makefile: Makefile.bsd-wrapper when
+# available. This will help having imported software in the tree
+# without needing to munge the standard Makefile."), in its form: a
+# directory with one is made by it rather than by its makefile, which
+# is left as it came -- contrib/perl-4.036's, which perl's Configure
+# wrote on Berkeley's machine.
 _SUBDIRUSE: .USE
 	@for entry in ${SUBDIR}; do \
 		(set -e; if test -d ${.CURDIR}/$${entry}.${MACHINE}; then \
@@ -28,7 +36,10 @@ _SUBDIRUSE: .USE
 			echo "===> $$entry"; \
 			cd ${.CURDIR}/$${entry}; \
 		fi; \
-		${MAKE} ${.TARGET:realinstall=install}); \
+		if [ -f Makefile.bsd-wrapper ]; then \
+			_makefile_spec_="-f Makefile.bsd-wrapper"; \
+		fi; \
+		${MAKE} $${_makefile_spec_} ${.TARGET:realinstall=install}); \
 	done
 
 ${SUBDIR}::
@@ -37,7 +48,10 @@ ${SUBDIR}::
 	else \
 		cd ${.CURDIR}/${.TARGET}; \
 	fi; \
-	${MAKE} all
+	if [ -f Makefile.bsd-wrapper ]; then \
+		_makefile_spec_="-f Makefile.bsd-wrapper"; \
+	fi; \
+	${MAKE} $${_makefile_spec_} all
 
 .if !target(all)
 all: _SUBDIRUSE
