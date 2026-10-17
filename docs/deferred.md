@@ -109,19 +109,33 @@ nvi for ex and vi, file-3.12, sort -- outside contrib/Makefile's
 list; they are to be weighed with contrib/ (roadmap.md, *Next:
 contrib/*).
 
-**diff is back** (patch 155): Berkeley's own 4.3-Reno diff as OpenBSD
-took it under Caldera's licence in 2003, with its diff3 and Berkeley's
-diff3.sh (imports.md, kind F), the system's /usr/bin/diff and diff3;
-GNU diff 2.6, NetBSD 1.0's, is beside it in contrib/ as gdiff, gdiff3
-and gsdiff. And **ed is back**, though it was deleted rather than
+**diff is back**: GNU diff 2.6, NetBSD 1.0's, from contrib/diff-2.6,
+is the system's diff, diff3 and sdiff in /usr/bin, as in NetBSD 1.0
+and FreeBSD 2.0. Patch 155 had Berkeley's own 4.3-Reno diff there, as
+OpenBSD took it under Caldera's licence in 2003; it was removed by the
+rule below (*Caldera's licence, and what the BSDs took under it*).
+usr.bin/diff is again as Lite2 left it. And **ed is back**, though it was deleted rather than
 emptied: contrib/ed, Berkeley's own replacement, Rodney Ruddock's, as
 /bin/ed.
 
 ### Caldera's licence, and what the BSDs took under it
 
-Researched 2026-10-16; **noted, not acted on, by the maintainer's
-decision: none of it is needed to bootstrap the system, and it is to
-be looped back to.**
+Researched 2026-10-16. **The rule, by the maintainer's decision
+(2026-10-17)**, for code this tree adds -- not for what came with
+4.4BSD-Lite2, which is kept as Berkeley shipped it, whatever its
+notice:
+
+- Caldera-licensed code is taken only where OpenBSD, NetBSD or FreeBSD
+  took it, and never what none of them did -- Berkeley's own kernel
+  bodies among it (below).
+- Even then, an alternative not derived from Caldera-licensed code is
+  preferred. So diff is GNU diff 2.6, not Berkeley's (patch 157).
+- Code under the old Berkeley notice ("The Berkeley software License
+  Agreement specifies the terms and conditions for redistribution")
+  is not added either.
+
+None of what follows is needed to bootstrap the system; the list at
+the end is to be looped back to under that rule.
 
 **The licence.** Caldera's of 23 January 2002 frees the 16-bit UNIX
 V1 to V7 and the 32-bit 32V, and excludes System III, System V and
@@ -144,24 +158,47 @@ Heirloom's tools, nor Sun's beyond ZFS and DTrace (FreeBSD's cddl/).
 OpenBSD imported pcc, 32V's compiler's descendant, in 2007 and removed
 it in 2012. For ed, expr, at, cron, sa, ac, units, file and sort, every
 BSD kept its own rewrite rather than the archive's. So the GNU tools
-here -- flex as lex, gawk, GNU diff as gdiff, gzip, and groff to come
+here -- flex as lex, gawk, GNU diff, gzip, and groff to come
 -- have no Caldera or Heirloom replacement with precedent, and the
 rewrites accepted (expr, libcompat's regex.c, Kernighan's awk) stand.
 
-**To loop back to**, each with its precedent and its catch:
+**The kernel.** No BSD took Caldera-licensed kernel code: no file
+under sys/ in the three current trees carries the licence, and no
+commit in their histories applies it there. Berkeley's history holds
+complete versions of all eight files whose 35 bodies the settlement
+removed (kern_exec.c 8.10, kern_acct.c 8.8, vfs_bio.c 8.11 and the
+rest), 32V's lineage throughout; outside the three, 2.11BSD and
+DiscoBSD ship that lineage's kernel, and McKusick credited the licence
+with making the whole CSRG archive publishable. By the rule above
+they are not used: the bodies stay as imported, from NetBSD and
+FreeBSD, and precedent.md's rule for the CSRG history stands.
 
-	deroff     OpenBSD's 2002 import; NetBSD
+**AT&T's AST toolkit** (github.com/att/ast; Korn and Fowler, AT&T
+Research, 1985-2012; Eclipse Public License 1.0; not derived from
+Caldera-licensed code) was weighed the same day: no BSD has it in its
+base system -- FreeBSD took ksh93 off its release CDs in 2001 "until
+the license issues are resolved", and it is in ports and pkgsrc only
+-- and it needs its own runtime, libast, sfio and vmalloc, and its own
+nmake. A candidate for ports, not the base system.
+
+**To loop back to**, under the rule, each with its precedent and its
+catch:
+
+	deroff     OpenBSD's 2002 import; NetBSD -- Caldera's, taken
+	           by two BSDs; no non-Caldera alternative in any
 	spell      NetBSD's 2005, whose front end is sh; OpenBSD's is
-	           ksh, which Lite2 has not. Uses share/dict/words
+	           ksh, which Lite2 has not. Uses share/dict/words.
+	           As deroff
 	ching      NetBSD's ching.sh, hexagrams and macros, completing
-	           games/ching
-	compress   Berkeley's own, `redist`; the patent has expired;
-	           every BSD ships it
-	bc, dc     Otto Moerbeek's 2003 rewrites, all three BSDs; dc
+	           games/ching. As deroff
+	compress   Berkeley's own, `redist`, not Caldera's; the patent
+	           has expired; every BSD ships it
+	bc, dc     Otto Moerbeek's 2003 rewrites, ISC-licensed, all
+	           three BSDs -- preferred, not being Caldera's; dc
 	           needs libcrypto's bn(3), which this tree has not.
 	           Alternative: GNU bc, as FreeBSD 2.0 and NetBSD 1.0
 	documents  the Caldera-licensed 4.4 documents above, into
-	           share/doc; formatted once groff is built
+	           share/doc, those OpenBSD, NetBSD or FreeBSD took
 
 ### The one inversion, stated by the project itself
 

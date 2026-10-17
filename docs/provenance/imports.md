@@ -254,6 +254,25 @@ are small, and every one says so in its own AI-ONLY NOTE.
   ${LIBTERM} and ${LIBRPC} values	the names this tree builds
   config.new: yywrap from -ll		four programs here do it; no
 					tree does it in this file
+  contrib bib, hunt, jove, kermit:	a makefile of their own, with
+    their Makefiles' programs,		the same objects and CFLAGS,
+    objects and CFLAGS			since those compile $*.c or
+					name sources in the directory
+					they run in; no tree built
+					these four in object directories
+  contrib/jove: setmaps by LOCALCC,	the Makefile's own provision for
+    ${HOSTCC} -ansi			cross-compiling; -ansi keeps a
+					Linux libc's getline() out
+  contrib/kermit: wart by ${HOSTCC}	as HOSTCC builds what a build
+					runs; its ckcpro.c compared
+  contrib/mh: Berkeley's configured	the descendants' ports build in
+    Makefiles, in a copy of the		a copy of the sources; the PATH
+    sources in the object directory	gives cc, ld, ar and ranlib
+					their target's, from GCC's and
+					binutils' tooldir
+  build/sysroot.sh: grops and devps	for MH's paper, which its own
+    in the build machine's groff	`make all' formats, as on
+					Berkeley's machine
 
 ## D -- transplanted, never in 4.4BSD-Lite2
 
@@ -284,7 +303,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	i386 reg.h: struct reg, NetBSD (1993); struct fpreg, FreeBSD 2.1.0
 	lib/libc/sys/ptrace.2		FreeBSD 2.2, adapted
 	kern/genassym.sh, sys/assym.h	FreeBSD 5.0, unmodified
-	contrib/diff-2.6		GNU diff 2.6, NetBSD 1.0's, as gdiff
+	contrib/diff-2.6		GNU diff 2.6, NetBSD 1.0's, the system's diff
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.
@@ -745,30 +764,20 @@ MAKEDEV's `expr $unit '*' 8 + 0` for every wd0 minor.
 ## F -- Berkeley's own file, restored
 
 	sbin/savecore/zopen.c	741 lines	NetBSD 1.0
-	usr.bin/diff/diff		Berkeley's 4.3-Reno diff, OpenBSD 2003
-	usr.bin/diff/diff3		diff3prog OpenBSD 2003; diff3.sh,
-					Makefiles: CSRG, revision 8.1
 
 Marked %sccs.include.redist.c% in Berkeley's tree. It is absent from
 the Lite releases because usr.bin/compress went whole for the LZW
 patent, not for its licence. NetBSD's copy is Berkeley's file, so this
 is that code coming back rather than another system's arriving.
 
-**usr.bin/diff** is Berkeley's diff, which the Lite cut removed as
-%sccs.include.proprietary.c%, AT&T's in its descent. Caldera's
-licence of 2002 freed that code, and OpenBSD took it back on 25 June
-2003: Berkeley's 4.3-Reno diff, deraadt's "This is free because of the
-Caldera license", with the licence written into each file the same
-day; and on 10 July "a matching diff3 from 32V w/ some UCB changes"
-(millert). Those are what is here, by the maintainer's choice, diff
-as first committed and diff3prog as of 31 July, when its first faults
-were fixed; Berkeley's own revision 8.1 of the same files is in the
-CSRG history and was not taken. diff3's front end is Berkeley's
-diff3.sh, revision 8.1, from the CSRG history, with Caldera's licence
-where its proprietary mark was, as OpenBSD did: OpenBSD's own front
-end is a Korn shell script that runs mktemp(1), neither of which this
-system has. The Makefiles are Berkeley's, and the pages Lite2's own.
-diffh is not here, so -h does not run.
+**usr.bin/diff** was here from patch 155 to patch 157: Berkeley's
+4.3-Reno diff and diff3, which the Lite cut removed as
+%sccs.include.proprietary.c%, as OpenBSD took them back under
+Caldera's licence on 25 June 2003, with Berkeley's diff3.sh. Patch 157
+removed them by the maintainer's rule -- an alternative not derived
+from Caldera-licensed code is preferred (deferred.md, *Caldera's
+licence, and what the BSDs took under it*) -- and GNU diff 2.6, kind
+D, is the system's diff in their place.
 
 ## G -- ours
 

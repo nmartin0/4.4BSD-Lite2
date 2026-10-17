@@ -357,18 +357,18 @@ gdb that reads ELF is to come.
 
 Done: binutils 2.11.2 (patch 153); ansi, nvi, flex as /usr/bin/lex,
 gawk as /usr/contrib/bin/gawk beside Kernighan's awk, and gzip (patch
-154); for rcs, diff and diff3 -- Berkeley's, as OpenBSD restored them
-under Caldera's licence, in usr.bin -- GNU diff 2.6 beside them as
-gdiff, and ed as /bin/ed (patch 155). Left, with what each is known to
-need:
+154); for rcs, diff, diff3 and sdiff -- GNU diff 2.6, the system's in
+/usr/bin, as in NetBSD 1.0 and FreeBSD 2.0 (patch 155, and patch 157,
+which took out Berkeley's diff, Caldera-licensed) -- and ed as /bin/ed
+(patch 155); bib, hunt, jove, kermit and MH (patch 157). Left, with
+what each is known to need:
 
 	rcs-V5.6      its conf.h, which conf.sh writes by compiling and
 	              running test programs: as the BSDs of the time made
 	              theirs, on the system itself, once it has its
 	              compiler (decided 2026-10-16); then committed
-	bib, hunt, jove-4.14.6, kermit-5A.188, mh-6.8.3a, bind-4.9.2
-	              their own Makefiles, each with generators or
-	              configuration that run on the build machine
+	bind-4.9.2    its own Makefiles, with generators or configuration
+	              that run on the build machine
 	perl-4.036    Berkeley's config.sh and makefile
 	emacs-18.57   dumps itself by running temacs: on the system, or
 	              not at all, until it self-hosts
@@ -377,10 +377,13 @@ need:
 
 **Later, and noted: what Caldera's licence freed.** deroff, spell,
 ching's missing files, compress, bc and dc, and 4.4's
-Caldera-licensed documents, as OpenBSD and NetBSD restored them --
-not needed to bootstrap (decided 2026-10-16). Findings and the choice
-for each in deferred.md, *Caldera's licence, and what the BSDs took
-under it*.
+Caldera-licensed documents -- not needed to bootstrap (decided
+2026-10-16). Code this tree adds is taken under Caldera's licence
+only where OpenBSD, NetBSD or FreeBSD took it, preferring an
+alternative not derived from it, and nothing under the old Berkeley
+notice is added (decided 2026-10-17); what came with Lite2 is kept.
+The findings, the kernel among them, and the choice for each in
+deferred.md, *Caldera's licence, and what the BSDs took under it*.
 
 **Later, and noted: a test framework and a kernel debugger.** Lite2
 has tests but no framework to run them: Berkeley's db test driver,
