@@ -505,7 +505,11 @@ HOSTCXX="$HOSTCXX -w -fno-for-scope -fpermissive"
 # and this tree's copy is configured for the target. Only what nroff
 # needs: troff, grotty and the groff driver, with tbl, eqn and soelim,
 # which pages are sometimes run through, the ascii and latin1 devices,
-# and the macro packages. _XOPEN_SOURCE=500 keeps glibc from declaring
+# and the macro packages; and grops and its devps, for the one paper
+# the build itself formats: contrib/mh-6.8.3a's doc/makefile, which
+# MH's own `make all' runs, makes paper.ps with bsd.doc.mk's groff, as
+# it did on Berkeley's machine (share/doc's papers are installed as
+# sources, and not formatted). _XOPEN_SOURCE=500 keeps glibc from declaring
 # strsignal, which groff 1.08 defines itself, as a libc of its day did
 # not.
 GR=$SRC/contrib/groff-1.08
@@ -515,14 +519,14 @@ rm -rf "$grdir"
 cp -R "$GR" "$grdir"
 cd "$grdir"
 grsub='LIBDIRS=libgroff libdriver'
-grsub2='CCPROGDIRS=groff troff tbl eqn grotty soelim'
+grsub2='CCPROGDIRS=groff troff tbl eqn grotty grops soelim'
 CC="$HOSTCC -m32 -w" CCC="$HOSTCXX" sh ./configure --prefix="$GPFX" \
     >configure.log 2>&1 || { tail configure.log >&2; exit 1; }
 mkdir -p "$GPFX/bin" "$GPFX/share/tmac" "$GPFX/share/groff_font" \
     "$GPFX/share/man/cat1" "$GPFX/share/man/cat5" "$GPFX/share/man/cat7"
 for t in all install; do
 	"$gmake" CCC="$HOSTCXX -D_XOPEN_SOURCE=500" YACC=byacc \
-	    "$grsub" "$grsub2" CPROGDIRS= DEVDIRS="devascii devlatin1" \
+	    "$grsub" "$grsub2" CPROGDIRS= DEVDIRS="devascii devlatin1 devps" \
 	    OTHERDIRS="tmac nroff" $t >>make.log 2>&1 ||
 		{ tail make.log >&2; exit 1; }
 done
