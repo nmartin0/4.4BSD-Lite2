@@ -636,18 +636,21 @@ Makefiles do not know.
 
 ## 5. Known defects carried knowingly
 
-- **`make build` deletes three files the tree ships**:
-  contrib/nvi.1.43/USD.doc/vi.ref's paper.pdf, paper.ps and
-  vi.ref.txt, made from its sources and shipped made. bsd.doc.mk's
-  cleandir removes `paper.*`, and the vi.ref Makefile's CLEANFILES
-  the rest, and `make build` begins with cleandir, as Lite2's did;
-  nothing rebuilds them, since documents are installed as sources.
-  `git checkout usr/src/contrib/nvi.1.43` restores them (patch 153).
-  Since the CD carries the sources (patch 162), it matters more:
-  build/release.sh makes the source sets before it builds, so a run
-  from a fresh checkout ships the three, but a second run from the
-  same checkout ships contribsrc.tar without them, unless they are
-  restored first.
+- ~~**`make build` deletes three files the tree ships**~~ **FIXED**
+  (patch 163): contrib/nvi.1.43/USD.doc/vi.ref's paper.ps and
+  vi.ref.txt, Berkeley's, made from its sources and shipped made, and
+  paper.pdf, the 2014 import's. Lite2's own top-level build reaches
+  the directory through share/doc/usd/13.viref, bsd.doc.mk's cleandir
+  removes `paper.*`, and the Makefile's CLEANFILES vi.ref.txt; with
+  the source sets on the CD (patch 162), a second release from one
+  checkout shipped the sources without them. All three BSDs took the
+  made copies out and left the clean rules alone, decided 2026-10-17:
+  NetBSD in 1994 and again in 1996 ("we do not want generated
+  files"), FreeBSD by 2.0.5, and again leaving out the "postscript
+  files" when it imported nvi 1.79 in 1996, OpenBSD in July 1996,
+  before 2.0. Nothing is lost: bsd.doc.mk installs the roff sources,
+  not the made copies, and groff makes them from those sources.
+  contrib/nvi.1.43/docs/README, Lite2's, still names the two.
 
 - **sort applies a leading -n, -r or the like to no key given by
   position.** `sort -n +1` and `sort -n -k2` compare the second field
