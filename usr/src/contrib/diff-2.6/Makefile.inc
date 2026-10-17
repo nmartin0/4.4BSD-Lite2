@@ -1,3 +1,5 @@
-# AI-ONLY NOTE: contrib/'s, one level up, as NetBSD 1.0's gnu/usr.bin has
-# a Makefile.inc of its own for the directories below it.
-.include "${.CURDIR}/../../Makefile.inc"
+# AI-ONLY NOTE: the system's, as contrib/ed is: /usr/bin, and the pages
+# with the system's, not contrib/'s /usr/contrib; NetBSD 1.0's
+# gnu/usr.bin/Makefile.inc puts its programs in /usr/bin the same way.
+BINDIR?=	/usr/bin
+MANDIR?=	/usr/share/man/cat
