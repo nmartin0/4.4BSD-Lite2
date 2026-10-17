@@ -33,7 +33,10 @@ the boot blocks load the kernel throughout:
   blocks, kernels -- compiled by GCC 2.95.3 and assembled and linked
   by binutils 2.11.2, the system's toolchain from contrib/, built on
   the host as a cross toolchain for i386-unknown-bsd4.4elf
-  (roadmap.md, *self-hosting*).
+  (roadmap.md, *self-hosting*). And both installed on the system
+  itself, built to run there: cc and gcc, under /usr/libexec/gcc2 as
+  4.4BSD put its GCC, compile and link there, and make builds a
+  program with them through bsd.prog.mk and mkdep.
 - **Its manual pages.** Every page the installed programs and
   libraries name -- 789 of them -- formatted by Lite2's own nroff,
   groff 1.08, and read on the system with man(1).

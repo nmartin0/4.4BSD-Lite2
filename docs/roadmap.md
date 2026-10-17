@@ -318,7 +318,12 @@ the host GCC's specs file and L2_CC are gone with it.
 
 Next, in order: README.BSD and the makefile in each directory --
 binutils-2.11.2's done, the system's as, ld and the rest built to run
-on it -- and the system rebuilding its own compiler, for which the
+on it; and gcc-2.95.3's done (patch 161), the system's own C compiler,
+installed where 4.4BSD put its GCC, under /usr/libexec/gcc2, with
+/usr/bin/gcc and, by the maintainer's choice, /usr/bin/cc linked to
+it: on the system it compiles and links against libc and libm, and
+make, mkdep and bsd.prog.mk build a program with it -- and the system
+rebuilding its own compiler, for which the
 whole tree in the release now gives make, share/mk and the rest of a
 build environment; then the 4.2.1 pair the same way. The kernel must be made to build with `-fno-common`
 before any of the newer pairs compiles it (Tier 1, item 5).
