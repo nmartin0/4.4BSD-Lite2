@@ -9,7 +9,11 @@
 # (docs/deferred.md, *Programs the Lite cut emptied*). For diff one is:
 # GNU diff 2.6, the system's diff, diff3 and sdiff, from
 # contrib/diff-2.6, as in NetBSD 1.0 and FreeBSD 2.0; and for sort:
-# Berkeley's own new sort, from contrib/sort. And ar, nm,
+# Berkeley's own new sort, from contrib/sort. And grep, which is here
+# and not named: James Woods' egrep, which hands -v, -b, -w, -x and -y
+# to the old AT&T greps the Lite cut removed; the system's grep, egrep
+# and fgrep are GNU grep 2.0, NetBSD 1.1's, from contrib/grep-2.0, as
+# in NetBSD and FreeBSD 2.0. And ar, nm,
 # ranlib, size, strip, strings, gprof and gcore, which read or write
 # a.out only, are not built for the i386, whose programs are ELF:
 # binutils 2.11.2's stand in (contrib/binutils-2.11.2), as OpenBSD
@@ -26,7 +30,7 @@ SUBDIR=	apply apropos awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
 	comm cpp ctags cut dirname du \
 	env error expand false find finger fmt fold fpr from \
-	fsplit fstat ftp grep head hexdump id indent \
+	fsplit fstat ftp head hexdump id indent \
 	join jot kdump ktrace lam last lastcomm leave locate \
 	lock logger login logname lorder m4 mail make man mesg mkdep \
 	mkfifo mklocale mkstr more msgs mt netstat nfsstat nice nohup \

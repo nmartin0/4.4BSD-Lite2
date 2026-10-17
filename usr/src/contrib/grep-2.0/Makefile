@@ -6,8 +6,14 @@ CFLAGS+=-DGREP -DHAVE_STRING_H=1 -DHAVE_SYS_PARAM_H=1 -DHAVE_UNISTD_H=1 \
 	-DHAVE_GETPAGESIZE=1 -DHAVE_MEMCHR=1 -DHAVE_STRERROR=1 \
 	-DHAVE_VALLOC=1
 
-LDADD+=	-lgnumalloc
-DPADD+=	/usr/lib/libgnumalloc.a
+# AI-ONLY NOTE: the system's grep, egrep and fgrep, by the maintainer's
+# choice, as in NetBSD 1.1, whose this is, and FreeBSD 2.0: in /usr/bin
+# with the pages beside the system's, as contrib/ed is. Lite2's own
+# usr.bin/grep, James Woods' egrep, hands -v, -b, -w, -x and -y to the
+# old AT&T greps in /usr/libexec, which the Lite cut removed. Without
+# NetBSD's libgnumalloc, which this system has not.
+BINDIR=	/usr/bin
+MANDIR=	/usr/share/man/cat
 
 LINKS+= ${BINDIR}/grep ${BINDIR}/egrep \
 	${BINDIR}/grep ${BINDIR}/fgrep
