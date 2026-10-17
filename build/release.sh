@@ -62,6 +62,21 @@ O=$L2_BUILD/release
 rm -rf "$O" "$L2_BUILD/obj" "$R"
 mkdir -p "$O"
 
+# The sources, as 4.4BSD's distribution carried them beside the
+# system (share/doc/smm/01.setup, section 2): three tar images to be
+# extracted into /usr/src -- the kernel's, sys; the utilities', the
+# rest but sys and contrib; and the contributed software's, contrib
+# -- made here, before the build, from the tree as it stands, but for
+# sys/compile, where kernels are built. On the CD in source/sets, as release(7) puts a release's
+# source sets, named as NetBSD names its: syssrc, src, and contribsrc
+# beside them. They are extracted by hand, as the setup guide has it
+# (install.md, *The sources*).
+S="tar -C usr/src --numeric-owner --owner=0 --group=0 --format=ustar"
+mkdir -p "$O/src"
+$S -cf "$O/src/syssrc.tar" --exclude=./sys/compile ./sys
+$S -cf "$O/src/src.tar" --exclude=./sys --exclude=./contrib .
+$S -cf "$O/src/contribsrc.tar" ./contrib
+
 # the target root, and the host tools
 sh build/sysroot.sh
 
@@ -110,8 +125,11 @@ dd if="$R/usr/mdec/boot2" of="$O/boot.fs" bs=512 skip=1 seek=2 \
     conv=notrunc 2>/dev/null
 
 # the CD: *Installing from the CD*
-mkdir -p "$O/cd/i386/binary/sets" "$O/cd/i386/installation/floppy"
+mkdir -p "$O/cd/i386/binary/sets" "$O/cd/i386/installation/floppy" \
+    "$O/cd/source/sets"
 cp "$O/base.tar" "$O/cd/i386/binary/sets/"
+cp "$O/src/syssrc.tar" "$O/src/src.tar" "$O/src/contribsrc.tar" \
+    "$O/cd/source/sets/"
 cp "$O/boot.fs" "$O/cd/i386/installation/floppy/boot.fs"
 mkisofs -quiet -A "4.4BSD-Lite2 i386" -V LITE2_I386 -r \
     -b i386/installation/floppy/boot.fs \
