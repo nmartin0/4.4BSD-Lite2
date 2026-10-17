@@ -29,4 +29,10 @@ SRCS=	ar_io.c ar_subs.c buf_subs.c cache.c cpio.c file_subs.c ftree.c\
 	gen_subs.c options.c pat_rep.c pax.c sel_subs.c tables.c tar.c\
 	tty_subs.c
 
+# AI-ONLY NOTE: pax acts as tar when its name is tar (options.c), and
+# Lite took 4.4BSD's tar away, so tar is pax by that name, in /bin, as
+# OpenBSD made it on 1996-06-29. Not cpio: Lite2's cpio_options is an
+# empty stub. No tar page: pax.1 does not describe tar's flags.
+LINKS=	${BINDIR}/pax ${BINDIR}/tar
+
 .include <bsd.prog.mk>
