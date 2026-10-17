@@ -8,7 +8,8 @@
 # chosen, nothing is built or installed by these names
 # (docs/deferred.md, *Programs the Lite cut emptied*). For diff one is:
 # GNU diff 2.6, the system's diff, diff3 and sdiff, from
-# contrib/diff-2.6, as in NetBSD 1.0 and FreeBSD 2.0. And ar, nm,
+# contrib/diff-2.6, as in NetBSD 1.0 and FreeBSD 2.0; and for sort:
+# Berkeley's own new sort, from contrib/sort. And ar, nm,
 # ranlib, size, strip, strings, gprof and gcore, which read or write
 # a.out only, are not built for the i386, whose programs are ELF:
 # binutils 2.11.2's stand in (contrib/binutils-2.11.2), as OpenBSD
