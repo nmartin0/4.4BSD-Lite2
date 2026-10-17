@@ -1,7 +1,8 @@
 #	@(#)Makefile	8.13 (Berkeley) 4/29/95
 
-# AI-ONLY NOTE: for the i386, binutils 2.11.2, the system's assembler,
-# linker and binary tools (binutils-2.11.2/README.BSD), and the
+# AI-ONLY NOTE: for the i386, binutils 2.11.2 and GCC 2.95.3, the
+# system's assembler, linker and binary tools and its C compiler
+# (binutils-2.11.2/README.BSD, gcc-2.95.3/README.BSD), and the
 # programs of Berkeley's list below as each is taken up and made to
 # build here, one at a time (docs/roadmap.md, *Next: contrib/*). Not
 # gcc-2.3.3, gas-1.38 and gdb-4.7.LBL: they make and read a.out, and
@@ -15,8 +16,8 @@
 # 1.1's, the system's grep, egrep and fgrep in place of usr.bin/grep's.
 .if ${MACHINE} == "i386"
 SUBDIR=	ansi bib bind-4.9.2 binutils-2.11.2 diff-2.6 ed flex-2.5.2 \
-	gawk-2.15.2 grep-2.0 gzip-1.2.4 hunt jove-4.14.6 kermit-5A.188 \
-	mh-6.8.3a nvi perl-4.036 sort
+	gawk-2.15.2 gcc-2.95.3 grep-2.0 gzip-1.2.4 hunt jove-4.14.6 \
+	kermit-5A.188 mh-6.8.3a nvi perl-4.036 sort
 .else
 SUBDIR=	ansi bib bind-4.9.2 flex-2.5.2 gawk-2.15.2 emacs-18.57 gas-1.38 \
 	gcc-2.3.3 gdb-4.7.LBL groff-1.08 gzip-1.2.4 hunt jove-4.14.6 \

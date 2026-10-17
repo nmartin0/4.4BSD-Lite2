@@ -1,0 +1,29 @@
+Notes for this system's distribution of gcc-2.95.3:
+
+1.  This is GNU GCC 2.95.3 as GNU released it, with the changes
+    NetBSD 1.6 made to it, which carried it as "2.95.3 (NetBSD nb3)",
+    and this system added to it as i386-unknown-bsd4.4elf
+    (docs/provenance/imports.md, *The toolchain*).  Only its C
+    compiler is built.
+
+2.  It is built twice.  build/sysroot.sh builds it on the machine
+    doing a cross build, to make programs for this system; and
+    `make' here, which `make build' runs, builds it to run on this
+    system itself, the i386, from 'makefile', which configures GNU's
+    sources and runs GNU's own Makefiles, as contrib/gcc-2.3.3's and
+    contrib/binutils-2.11.2's makefiles do.  It builds in a directory
+    of its own, the object directory when the build has one, and
+    obj.${MACHINE} here when not.
+
+3.  `make install' puts it where 4.4BSD put its GCC, under
+    /usr/libexec/gcc2: the driver as gcc-2.95.3 and
+    gcc-i386-unknown-bsd4.4elf, the preprocessor as cpp, which
+    /usr/bin/cpp runs, and cc1, cpp0, collect2, libgcc.a and GCC's
+    headers in gcc-lib/i386-unknown-bsd4.4elf/2.95.3.  /usr/bin/gcc
+    is a symbolic link to the driver, and /usr/bin/cc to gcc.  The
+    pages, formatted, go in /usr/contrib/man/cat1.
+
+Therefore to build and install it on this system simply type:
+
+% make
+% make install
