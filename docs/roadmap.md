@@ -366,7 +366,10 @@ which took out Berkeley's diff, Caldera-licensed) -- and ed as /bin/ed
 Berkeley's own new one from contrib/, as /usr/bin/sort (patch 158);
 bind 4.9.2 and perl 4.036, perl by OpenBSD's Makefile.bsd-wrapper, so
 that its own Configure-written makefile stays as Berkeley shipped it
-(patch 159). Left, with what each is known to need:
+(patch 159); grep, egrep and fgrep -- GNU grep 2.0 as NetBSD 1.1 had
+it, with 4.4BSD's -o, the system's in place of Lite2's, whose -v and
+the like ran AT&T's old greps, which the Lite cut removed (patch 160).
+Left, with what each is known to need:
 
 	rcs-V5.6      its conf.h, which conf.sh writes by compiling and
 	              running test programs: as the BSDs of the time made

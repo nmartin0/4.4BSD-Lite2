@@ -317,6 +317,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	lib/libc/sys/ptrace.2		FreeBSD 2.2, adapted
 	kern/genassym.sh, sys/assym.h	FreeBSD 5.0, unmodified
 	contrib/diff-2.6		GNU diff 2.6, NetBSD 1.0's, the system's diff
+	contrib/grep-2.0		GNU grep 2.0, NetBSD 1.1's, the system's grep
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.

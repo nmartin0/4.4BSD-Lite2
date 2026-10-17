@@ -87,7 +87,11 @@ shim over the `regexp` engine already here.
 
 `usr.bin/grep` lost `old.bin.grep`, `old.egrep`, `old.fgrep`,
 `old.ucb.grep`; `diff` lost `diffh`; `pascal` lost `eyacc`. All absent
-from 4.4BSD-Lite too.
+from 4.4BSD-Lite too. What is left of grep, James Woods' egrep, hands
+-v, -b, -w, -x and -y to the first three, so they failed ("can't exec
+old 'egrep'"); usr.bin/grep is no longer named, and the system's grep,
+egrep and fgrep are GNU grep 2.0 as NetBSD 1.1 had it, with 4.4BSD's
+-o, from contrib/grep-2.0, as in NetBSD and FreeBSD 2.0 (patch 160).
 
 Since patch 153, which builds the whole tree with `sh -ec` as Lite2's
 own make ran commands, each of these is **no longer named** in its
