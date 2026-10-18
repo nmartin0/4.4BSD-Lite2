@@ -652,13 +652,14 @@ Makefiles do not know.
   not the made copies, and groff makes them from those sources.
   contrib/nvi.1.43/docs/README, Lite2's, still names the two.
 
-- **A process starts with 6 MB for its data, Lite2's default.**
-  sys/i386/include/vmparam.h has DFLDSIZ 6 MB and MAXDSIZ 32 MB, and
-  GCC 2.95.3's cc1plus needs more than 6 MB for the STL's strings:
-  g++ says "virtual memory exhausted" until `limit datasize 32m'.
-  Every descendant raised both: NetBSD 1.0 and 1.2 to 16 MB and 256
-  MB, FreeBSD 2.0 and 2.1 to 64 MB and 128 MB. Left as Lite2 has it
-  until decided (patch 164).
+- ~~**A process starts with 6 MB for its data, Lite2's default.**~~
+  **FIXED** (patch 165). sys/i386/include/vmparam.h had DFLDSIZ 6 MB
+  and MAXDSIZ 32 MB, and GCC 2.95.3's cc1plus needs more than 6 MB
+  for the STL's strings: g++ said "virtual memory exhausted" until
+  `limit datasize 32m'. Every descendant raised both: NetBSD 1.0 and
+  1.2 to 16 MB and 256 MB, FreeBSD 2.0 and 2.1 to 64 MB and 128 MB.
+  Decided 2026-10-18: 64 MB to begin with, FreeBSD 2.0's, and its 128
+  MB at most. The text and stack limits stay Lite2's.
 
 - **sort applies a leading -n, -r or the like to no key given by
   position.** `sort -n +1` and `sort -n -k2` compare the second field

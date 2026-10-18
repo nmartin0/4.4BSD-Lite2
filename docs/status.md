@@ -38,9 +38,9 @@ the boot blocks load the kernel throughout:
   4.4BSD put its GCC, compile and link there, and make builds a
   program with them through bsd.prog.mk and mkdep. And GCC's C++:
   g++ and c++ compile, link and run a program with iostreams there,
-  against libstdc++ 2.10.0 (patch 164); one with the STL's strings
-  wants more than Lite2's 6 MB default data size, `limit datasize
-  32m'.
+  against libstdc++ 2.10.0 (patch 164), the STL's strings and vectors
+  among them, in the 64 MB a process now has for its data to begin
+  with, FreeBSD 2.0's, where Lite2 gave 6 (patch 165).
 - **Its manual pages.** Every page the installed programs and
   libraries name -- 789 of them -- formatted by Lite2's own nroff,
   groff 1.08, and read on the system with man(1). And groff itself is
