@@ -126,7 +126,7 @@ install_man:
 	-test -d $(manroot) || mkdir $(manroot)
 	-test -d $(cat1dir) || mkdir $(cat1dir)
 	@-pages="$(MAN1)"; \
-	if [ -n $$pages ]; then \
+	if [ -n "$$pages" ]; then \
 	 for p in $$pages; do \
 	  prog=`basename $$p .n`.0; \
 	  nroff -man $$p > $$prog; \
@@ -138,7 +138,7 @@ install_man:
 	fi
 	-test -d $(cat5dir) || mkdir $(cat5dir)
 	@-pages="$(MAN5)"; \
-	if [ -n $$pages ]; then \
+	if [ -n "$$pages" ]; then \
 	 for p in $$pages; do \
 	  prog=`basename $$p .n`.0; \
 	  nroff -man $$p > $$prog; \
@@ -150,7 +150,7 @@ install_man:
 	fi
 	-test -d $(cat7dir) || mkdir $(cat7dir)
 	@-pages="$(MAN7)"; \
-	if [ -n $$pages ]; then \
+	if [ -n "$$pages" ]; then \
 	 for p in $$pages; do \
 	  prog=`basename $$p .n`.0; \
 	  nroff -man $$p > $$prog; \
@@ -164,7 +164,7 @@ install_man:
 PHONY: uninstall_man
 uninstall_man:
 	@-pages="$(MAN1)"; \
-	if [ -n $$pages ]; then \
+	if [ -n "$$pages" ]; then \
 	 for p in $$pages; do \
 	  cattarget=$(cat1dir)/$(NAMEPREFIX)`basename $$p .n`.0; \
 	  echo rm -f $$cattarget; \
@@ -172,7 +172,7 @@ uninstall_man:
 	 done; \
 	fi
 	@-pages="$(MAN5)"; \
-	if [ -n $$pages ]; then \
+	if [ -n "$$pages" ]; then \
 	 for p in $$pages; do \
 	  cattarget=$(cat5dir)/`basename $$p .n`.0; \
 	  echo rm -f $$cattarget; \
@@ -180,7 +180,7 @@ uninstall_man:
 	 done; \
 	fi
 	@-pages="$(MAN7)"; \
-	if [ -n $$pages ]; then \
+	if [ -n "$$pages" ]; then \
 	 for p in $$pages; do \
 	  cattarget=$(cat7dir)/`basename $$p .n`.0; \
 	  echo rm -f $$cattarget; \
