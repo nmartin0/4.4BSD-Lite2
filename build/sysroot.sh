@@ -393,6 +393,15 @@ $HOSTCC -m32 -w -D_GNU_SOURCE -I"$DBI" -o "$TOOLS/cap_mkdb" \
 # ld's scripts, which binutils would install into that lib, go beside
 # it instead; ld has them compiled in and does not read them.
 #
+# GCC with its C++, as NetBSD 1.6's tools/toolchain built it: the
+# system's groff (contrib/groff-1.08) is C++, and Berkeley configured
+# it to be compiled by gcc, which runs cc1plus for a .cc file; and the
+# system's own GCC, built with this one, puts C++'s support -- new,
+# delete and the rest -- in its libgcc, compiled by this compiler.
+# cc1plus is made first, alone: libgcc2's C++ members are compiled
+# with it, and GCC 2.95's Makefile does not say so, so under -j they
+# can start before it exists.
+#
 # Built as 32-bit programs, as they were when these were current:
 # GCC 2.95.3's config.sub has no x86_64, so the build and host are
 # named i686-pc-linux-gnu and the host compiler given -m32. With it,
@@ -443,15 +452,24 @@ mkdir -p "$gdir"
 cd "$gdir"
 PATH="$GPFX/bin:$PATH" CC="$GCC_HOSTCC" sh "$G/configure" \
     --build=$GHOST --host=$GHOST --target=$GT --prefix="$GPFX" \
-    --with-gnu-as --with-gnu-ld --enable-languages=c --disable-nls \
+    --with-gnu-as --with-gnu-ld --enable-languages=c,c++ --disable-nls \
     >configure.log 2>&1 || { tail configure.log >&2; exit 1; }
+PATH="$GPFX/bin:$PATH" "$gmake" -C gcc -j"$(nproc)" MAKEINFO=true \
+    cc1plus >make.log 2>&1 || { tail make.log >&2; exit 1; }
 PATH="$GPFX/bin:$PATH" "$gmake" -j"$(nproc)" MAKEINFO=true all-gcc \
-    >make.log 2>&1 || { tail make.log >&2; exit 1; }
+    >>make.log 2>&1 || { tail make.log >&2; exit 1; }
 PATH="$GPFX/bin:$PATH" "$gmake" -C gcc MAKEINFO=true cpp \
     >>make.log 2>&1 || { tail make.log >&2; exit 1; }
 (cd gcc && PATH="$GPFX/bin:$PATH" "$gmake" MAKEINFO=true \
     install-common install-headers install-libgcc install-driver) \
     >install.log 2>&1 || { tail install.log >&2; exit 1; }
+# and C++'s own headers, exception, new, new.h and typeinfo, which
+# install-headers leaves to a step not named here: that step would
+# also put GCC's float.h and limits.h ahead of the tree's for C.
+for f in exception new new.h typeinfo; do
+	install -m 644 gcc/include/$f \
+	    "$GPFX/lib/gcc-lib/$GT/2.95.3/include/$f"
+done
 # and cpp, the preprocessor as a command, which the Makefiles run as a
 # filter on assembly. GCC's own install-cpp would put it in tools/bin
 # as plain `cpp', ahead of the host's; it goes under the target's name.
