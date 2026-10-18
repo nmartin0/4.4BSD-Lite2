@@ -1,0 +1,82 @@
+#Build for this system: groff.
+#
+# AI-ONLY NOTE: groff 1.08 as Berkeley configured it -- the Makefile
+# and config.status its configure wrote on Berkeley's machine, with
+# README.BSD's changes, which are left as they came: prefix /usr, the
+# programs in /usr/bin under their own names, nroff among them, the
+# fonts in /usr/share/groff_font, its macros beside Lite2's own in
+# /usr/share/tmac, and its pages formatted into /usr/share/man/cat*.
+# Built by that Makefile, and installed by its own install target,
+# with the prefix under ${DESTDIR}: the directories each program
+# searches are compiled in by the build, from the prefix as Berkeley
+# configured it, and install only copies.
+#
+# This file is read rather than that Makefile because it is here
+# (share/mk/bsd.subdir.mk, OpenBSD's Makefile.bsd-wrapper).
+#
+# The Makefile builds among the sources, so it is run in a copy of
+# them in a directory of its own -- the object directory when the
+# build has one, obj.${MACHINE} here when not -- as perl's are.
+#
+# CCC, the C++ compiler, is ${CC}, as Berkeley's was gcc: GCC compiles
+# C++ by a file's suffix, and links groff's programs with libgcc,
+# which holds what of C++'s support they use -- groff uses no
+# library of C++'s own. GCC 2.95.3 takes groff's C++ of 1993 given
+# -fno-for-scope, for a loop variable used after its loop, as C++
+# allowed until 1995, and -fpermissive, for functions declared
+# without a return type; build/sysroot.sh compiles the build
+# machine's groff the same way. ar and ranlib are run by name, so the
+# PATH begins with binutils' tooldir when ${CC} is the cross
+# compiler; YACC is this tree's yacc.
+#
+# Not soelim: the system has Lite2's own, usr.bin/soelim, and NetBSD
+# 1.0 built its groff without groff's ("BSD already provides
+# soelim"). Nor groff's me(7), for its own -me, tmac.groff_me here:
+# it would replace Lite2's me(7), for Berkeley's -me, tmac.e, which
+# stays the system's, as NetBSD 1.0 kept BSD's; in the copy, tmac's
+# list of pages names groff_ms(7) alone. The pages are formatted by
+# `nroff -man' as they are installed, Berkeley's change to
+# Makefile.comm, whose test of each list of pages is quoted here, so
+# that a list of two is not skipped: by the build machine's groff
+# (build/sysroot.sh), or on this system by the one already installed.
+
+.if defined(MAKEOBJDIRPREFIX)
+BUILD=	${MAKEOBJDIRPREFIX}${.CURDIR}
+.else
+BUILD=	${.CURDIR}/obj.${MACHINE}
+.endif
+
+BINOWN?=	bin
+BINGRP?=	bin
+CCPROGS=	groff troff tbl pic eqn grops grotty grodvi tfmtodit \
+		refer lookbib indxbib lkbib addftinfo
+GFLAGS=		CC="${CC}" CCC="${CC} -fno-for-scope -fpermissive -w" \
+		YACC=yacc "CCPROGDIRS=${CCPROGS}"
+
+.if !empty(CC:M*-gcc)
+TOOLPATH=	PATH=${CC:H:H}/${CC:T:S/-gcc$//}/bin:$$PATH
+.endif
+
+all:
+	mkdir -p ${BUILD}
+	if [ ! -f ${BUILD}/config.status ]; then \
+		(cd ${.CURDIR} && pax -rw -pp . ${BUILD}); \
+		rm -f ${BUILD}/Makefile.bsd-wrapper; \
+		sed 's/^MAN7=groff_ms.n me.n$$/MAN7=groff_ms.n/' \
+		    ${BUILD}/tmac/Makefile.sub > ${BUILD}/tmac/Makefile.sub.tmp; \
+		mv ${BUILD}/tmac/Makefile.sub.tmp ${BUILD}/tmac/Makefile.sub; \
+	fi
+	cd ${BUILD} && ${TOOLPATH} ${MAKE} -f Makefile ${GFLAGS} all
+
+install:
+	cd ${BUILD} && ${TOOLPATH} ${MAKE} -f Makefile ${GFLAGS} \
+	    prefix=${DESTDIR}/usr \
+	    INSTALL="install -c -o ${BINOWN} -g ${BINGRP}" \
+	    INSTALL_PROGRAM="install -c -o ${BINOWN} -g ${BINGRP} -m 555" \
+	    INSTALL_DATA="install -c -o ${BINOWN} -g ${BINGRP} -m 444" \
+	    install
+
+clean cleandir:
+	rm -rf ${BUILD}
+
+depend lint obj tags:
