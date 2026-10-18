@@ -27,7 +27,8 @@
  * address is given to the interface as Lite2's if_we gives it,
  * ac_ipaddr and arpwhohas, where FreeBSD called arp_ifinit, which
  * also sets the address's ARP route hooks: Lite2's in_ifinit sets
- * those itself. Left as FreeBSD has them: init, start, reset and
+ * those itself. A received packet's type is put in host order before
+ * ether_input, which in Lite2 takes it so. Left as FreeBSD has them: init, start, reset and
  * watchdog return void, and ioctl takes an int, where Lite2's ifnet
  * says int and u_long -- no caller uses what they return, and the
  * two are one size here.
@@ -2137,6 +2138,11 @@ ed_get_packet(sc, buf, len, multicast)
 	m->m_pkthdr.len = m->m_len = len - sizeof(struct ether_header);
 	m->m_data += sizeof(struct ether_header);
 
+	/*
+	 * AI-ONLY NOTE: Lite2's ether_input takes the type in host
+	 * order, as its own drivers give it; FreeBSD's converts it itself.
+	 */
+	eh->ether_type = ntohs((u_short)eh->ether_type);
 	ether_input(&sc->arpcom.ac_if, eh, m);
 	return;
 }
