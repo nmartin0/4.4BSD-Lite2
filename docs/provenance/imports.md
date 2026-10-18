@@ -303,6 +303,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	usr.sbin/crunch			FreeBSD 3.0, adapted
 	distrib/i386/floppies		NetBSD 1.1, adapted
 	i386/isa/wd.c, atapi.c, wcd.c	FreeBSD 2.1.0, adapted
+	i386/isa/if_ed.c, if_edreg.h	FreeBSD 2.1.0, adapted
 	the slice layer, 4 files	FreeBSD 2.1.0, 2 lines changed
 	config: isa_biotab		FreeBSD 2.1.0, adapted
 	contrib/gcc-2.95.3		GNU's release, NetBSD 1.6's changes, a target
@@ -537,6 +538,39 @@ Configure writing Lite2's netstart and making the password and
 termcap databases through chroot; install.md, *Installing with the
 installer*, has a whole install. The licence is Demetriou's
 four-clause one, with an advertising clause.
+
+**The network card: if_ed.** Lite2's i386 has 386BSD's Ethernet
+drivers, if_ne for the NE2000 and if_we for the WD8003, and if_ne,
+the one QEMU's ne2k_isa answers, waits for ever with the interrupts
+blocked when a packet's length is odd: nefetch asks the card for len
+bytes and reads len/2 words, so the transfer never ends (neput, its
+send side, rounds up). No descendant carried either: FreeBSD from 1.0
+and NetBSD 1.0 to 1.2 carried David Greenman's if_ed (1993), one
+driver for the 8390-based cards -- NE1000 and NE2000, WD/SMC 8003 and
+8013, the 3Com 3c503 -- and OpenBSD took NetBSD's. NetBSD's is
+written to Torek's new autoconfiguration, which Lite2's i386 does not
+have; FreeBSD's to the old isa_driver and isa_device this tree's i386
+uses, unchanged in their fields through FreeBSD 3.5.1 (decided
+2026-10-18; roadmap.md, *Tier 2*). So FreeBSD 2.1.0's if_ed.c and
+if_edreg.h are taken, the release this tree's wd.c is from: the
+import commit is them as shipped, the next adapts them. Cut:
+FreeBSD's devconf registration, as from wd.c; <machine/clock.h>,
+for DELAY, which Lite2's <machine/param.h> defines; isa_driver's
+sensitive_hw, which Lite2's lacks; and SIOCSIFMTU, which Lite2 does
+not have. An address is given as Lite2's if_we gives it, ac_ipaddr
+and arpwhohas, for FreeBSD's arp_ifinit: Lite2's in_ifinit sets the
+ARP route hooks itself. A received packet's type is put in host
+order before ether_input, as Lite2's drivers put it and Lite2's
+ether_input takes it; FreeBSD's ether_input converts it itself, and
+without the change every packet was dropped. And the i386's mbuf
+clusters are 2048 bytes, as Lite2's hp300's and sparc's are and every
+descendant's i386 is, where 386BSD's were 1024: if_ed takes a frame to
+fit in one cluster, and dropped longer ones as corrupt. Left: the hooks init, start, reset and
+watchdog return void and ioctl takes an int, where Lite2's ifnet says
+int and u_long; nothing uses what they return. GENERIC.i386 has ed0
+and ed1 at Berkeley's ne0's and we0's ports, interrupts and memory;
+if_ne.c and if_we.c stay, and files.i386 still names them. The
+licence is Greenman's own notice.
 
 **The disks: IDE, an ATAPI CD, and slices.** Lite2's i386 wd.c is
 386BSD's: one controller, one drive, no CD. A CD drive on a PC is an

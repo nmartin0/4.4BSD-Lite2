@@ -59,6 +59,11 @@ the boot blocks load the kernel throughout:
   and whatis made at build time, make and share/mk. The system's own
   binutils 2.11.2 runs on it: as and ld assemble and link a program
   there against its libc, and strip and size work on it.
+- **The network.** An NE2000 -- QEMU's ne2k_isa at port 0x320, irq 9
+  -- with FreeBSD 2.1.0's if_ed, configured by the installer: ping,
+  and TCP both ways -- daytime, echo of 6000 bytes, telnet into
+  telnetd, and a connection out to the host (patch 166). Lite2's
+  if_ne hung the machine on the first packet of odd length.
 - **The floppy, the tape, and the configuration Berkeley wrote.**
   The kernel is GENERIC.i386, corrected, with fd0 and wt0 as
   Berkeley's had them; the floppy reads and writes. A DIAGNOSTIC

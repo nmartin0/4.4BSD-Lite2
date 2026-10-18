@@ -452,6 +452,70 @@ contrib/perl-4.036). To be taken up after the framework is in.
 
 ## Tier 2 — modern hardware
 
+**Decided (2026-10-18): Torek's autoconfiguration for the i386, and
+the old interface abandoned; OpenBSD's line followed.** Lite2 carries
+two driver interfaces. The i386's, like the vax's, hp300's and pmax's,
+is the old one each port has its own form of -- here 386BSD's
+isa_driver and isa_device, a table config(8) writes, probed in order
+at the addresses it names. The sparc's, and the shared SCSI code's in
+sys/dev/scsi, is Chris Torek's of 1992 (LBL): struct device,
+cfdriver, config.new and kern/subr_autoconf.c, a tree of devices each
+bus finds its children for, by match and attach. FreeBSD kept and
+grew the old one through 3.5.1 and replaced it with newbus in 4.0;
+NetBSD moved its i386 to Torek's in 1994-95 and OpenBSD forked from
+it in 1995. The i386 is to go wholly to Torek's, as NetBSD's did,
+with no wrapper for old drivers: each driver is converted or replaced.
+
+Which descendant, measured against Lite2 (research of 2026-10-18,
+NetBSD and OpenBSD histories):
+
+- The framework. NetBSD 1.0's device.h is Lite2's but for 2 lines;
+  1.1's differs by 14 and its subr_autoconf.c by 222 (indirect
+  configuration, config_scan), and OpenBSD of 1996-01-01 is
+  byte-identical to 1.1. From there OpenBSD's device.h has stayed
+  within 180 changed lines of Lite2's to 2026: struct device still at
+  the head of each softc, allocated by ca_devsize, cfattach in
+  NetBSD 1.2's shape with detach and activate, cf_parents and cf_loc,
+  config.new's grammar with `attach' added. NetBSD's grew to 749
+  (device.h) and 4017 (subr_autoconf.c): CFATTACH_DECL and
+  name-based cfdata (2.0), interface attributes (4.0), the softc
+  split from an opaque device_t (5.0), cfargs and devhandles now.
+- Driver-facing interfaces. OpenBSD keeps Lite2's cdevsw tables in
+  conf.c with struct proc, ether_ifattach(ifp), if_watchdog and
+  dv_xname to 2026; its walls are the 2015 network rework (if_input
+  with mbuf lists, ifq_*), m_devget without an ifp (2015), and
+  malloc's flags renumbered in 2010 (M_WAITOK no longer 0: a Lite2
+  call with 0 panics there). NetBSD's go from 2000-02 (bufq, the
+  if_input hook, devsw_attach, CFATTACH_DECL) to a port, not a shim,
+  in 2005-08 (struct lwp in devsw, the softc split, three hardware
+  IPLs, mutexes and condvars). bus_space and bus_dma, NetBSD 1.2-1.3,
+  are in both, and stable.
+- Locking. Lite2 has spl, tsleep and wakeup, McKusick's lockmgr and
+  simple_lock, written for multiprocessors and compiled away without
+  them. OpenBSD went by small steps, each keeping the last working:
+  rwlock (2003), MP with one recursive big lock, __mp_lock and
+  KERNEL_LOCK, around a uniprocessor kernel (2004), mutex(9) with spl
+  semantics (2004), msleep (2007), lockmgr's API on rwlocks (2013)
+  until 2016, simple_lock gone in 2015, MP-safe interrupts (2013),
+  NET_LOCK (2016-17); spl, tsleep and a uniprocessor GENERIC are
+  still there. NetBSD's big lock was lockmgr's own spin mode (2002),
+  then 5.0 (2007-08) replaced the model at once: lockmgr, simple_lock
+  and ltsleep gone, adaptive mutexes, condvars, turnstiles, threaded
+  soft interrupts, preemption, MULTIPROCESSOR mandatory on i386.
+
+So: the i386 brought onto Torek's from NetBSD 1.1, the code OpenBSD
+began from (device.h, subr_autoconf.c, isa_machdep's isa_intr_establish
+with the interrupt-mask rework, isa.c, autoconf.c's configure(), the
+new-syntax files.i386 and GENERIC), then NetBSD 1.2's cfattach split
+and mainbus, then bus_space and bus_dma as OpenBSD took them in 1996
+and 1998; drivers after that from OpenBSD, as far forward as the
+walls above allow. The first steps towards locking are OpenBSD's: a
+KERNEL_LOCK that is nothing on one processor, then mutex(9) as spl
+and an owner check, then rwlocks, msleep, and lockmgr on rwlocks with
+its LK_* interface kept -- spl, tsleep and the drivers left as they
+are. if_ed and wd, FreeBSD 2.1.0's, are old-interface drivers taken
+for now, to be replaced as the i386 moves.
+
 Each of these is a measured absence, not a stylistic gap. Counts are
 from the tree as it stands.
 
@@ -492,8 +556,9 @@ driver of 1995, FreeBSD 2.1.0's, with ATAPI for CDs; it runs PIO. No AHCI, no NV
 
 **No USB.** On many machines that means no keyboard.
 
-**No modern NIC.** `if_ne` is an NE2000; `if_we`, `if_ec` and
-`if_apx` are of the same era.
+**No modern NIC.** `if_ed`, FreeBSD 2.1.0's (patch 166), drives the
+NE1000 and NE2000, the WD8003 and 8013 and the 3c503; Lite2's `if_ne`,
+`if_we`, `if_ec` and `if_apx` are of the same era.
 
 **32-bit, no PAE.** The pmap assumes a 32-bit physical address space.
 Modern machines have more than 4 GB.
