@@ -325,10 +325,12 @@ it: on the system it compiles and links against libc and libm, and
 make, mkdep and bsd.prog.mk build a program with it -- and the system
 rebuilding itself and its own compiler, for which the whole tree in
 the release gives make, share/mk and the rest of a build environment,
-and the CD the sources, extracted into /usr/src by hand (patch 162);
-what stops it first is that the manual pages need nroff, and the
-system's, groff, is C++; then the 4.2.1 pair the same way. The kernel must be made to build with `-fno-common`
-before any of the newer pairs compiles it (Tier 1, item 5).
+and the CD the sources, extracted into /usr/src by hand (patch 162),
+and the system's own nroff, groff 1.08, built with GCC's C++ (patch
+164), so that make in /usr/src builds a program and its manual page
+there; then the 4.2.1 pair the same way. The kernel must be made to
+build with `-fno-common` before any of the newer pairs compiles it
+(Tier 1, item 5).
 
 **~~The whole tree on the CD.~~ Done** (patch 153). Decided
 (2026-10-14): the whole tree, installed by Berkeley's own top-level
@@ -375,7 +377,12 @@ bind 4.9.2 and perl 4.036, perl by OpenBSD's Makefile.bsd-wrapper, so
 that its own Configure-written makefile stays as Berkeley shipped it
 (patch 159); grep, egrep and fgrep -- GNU grep 2.0 as NetBSD 1.1 had
 it, with 4.4BSD's -o, the system's in place of Lite2's, whose -v and
-the like ran AT&T's old greps, which the Lite cut removed (patch 160).
+the like ran AT&T's old greps, which the Lite cut removed (patch 160);
+groff 1.08, the system's nroff, troff, tbl, eqn, pic, refer and the
+rest in /usr/bin, as Berkeley configured it, without groff's soelim
+and me(7), which would replace Lite2's own, as NetBSD 1.0 built it --
+built with GCC 2.95.3's C++, now built with it, g++ and c++ and its
+library, libstdc++ 2.10.0 (patch 164).
 Left, with what each is known to need:
 
 	rcs-V5.6      its conf.h, which conf.sh writes by compiling and
@@ -384,8 +391,8 @@ Left, with what each is known to need:
 	              compiler (decided 2026-10-16); then committed
 	emacs-18.57   dumps itself by running temacs: on the system, or
 	              not at all, until it self-hosts
-	groff-1.08, libg++-2.3
-	              C++
+	libg++-2.3    written for g++ 2.3; GCC 2.95.3's libstdc++ is
+	              the system's C++ library meanwhile
 
 **Later, and noted: what Caldera's licence freed.** deroff, spell,
 ching's missing files, compress, bc and dc, and 4.4's

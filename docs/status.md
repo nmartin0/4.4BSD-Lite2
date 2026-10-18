@@ -36,18 +36,23 @@ the boot blocks load the kernel throughout:
   (roadmap.md, *self-hosting*). And both installed on the system
   itself, built to run there: cc and gcc, under /usr/libexec/gcc2 as
   4.4BSD put its GCC, compile and link there, and make builds a
-  program with them through bsd.prog.mk and mkdep.
+  program with them through bsd.prog.mk and mkdep. And GCC's C++:
+  g++ and c++ compile, link and run a program with iostreams there,
+  against libstdc++ 2.10.0 (patch 164); one with the STL's strings
+  wants more than Lite2's 6 MB default data size, `limit datasize
+  32m'.
 - **Its manual pages.** Every page the installed programs and
   libraries name -- 789 of them -- formatted by Lite2's own nroff,
-  groff 1.08, and read on the system with man(1).
+  groff 1.08, and read on the system with man(1). And groff itself is
+  installed (patch 164): nroff formats a page on the system, and
+  groff -Tps makes PostScript.
 - **Its sources.** The CD carries the tree as 4.4BSD's distribution
   did, three tar images beside the base set -- syssrc.tar, src.tar
   and contribsrc.tar, in source/sets -- extracted by hand into
   /usr/src once the system is up, with tar, which is pax by that name
-  in /bin (patch 162; install.md, *The sources*). On the system, gcc
-  compiles and links a program in /usr/src with make; the manual
-  page then stops the build, since the system has no nroff of its
-  own yet -- groff is C++.
+  in /bin (patch 162; install.md, *The sources*). On the system, make
+  builds a program in /usr/src, bin/cat and usr.bin/wc, with its
+  manual page, formatted by the system's own nroff (patch 164).
 - **The whole tree.** The base set is Berkeley's own top-level `make
   build` of the whole tree, contrib/ aside (patch 153): 179 programs
   in /usr/bin, the games, the time zones, the dictionaries, termcap.db
