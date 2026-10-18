@@ -516,6 +516,81 @@ its LK_* interface kept -- spl, tsleep and the drivers left as they
 are. if_ed and wd, FreeBSD 2.1.0's, are old-interface drivers taken
 for now, to be replaced as the i386 moves.
 
+**The order** (decided 2026-10-18), each stage passing the whole
+QEMU test -- the CD boots and installs, the disk boots, the network
+answers -- before the next begins:
+
+1. The framework: NetBSD 1.1's changes to Lite2's device.h and
+   subr_autoconf.c (14 and 222 lines), the code OpenBSD began from;
+   Lite2's sparc and sys/dev/scsi, Torek's users already, still built;
+   config.new the i386's config, as NetBSD 1.1 made it.
+2. The i386's bus and interrupts: NetBSD 1.1's isa.c and
+   isa_machdep.c, isa_intr_establish, and the interrupt-mask rework of
+   icu.s and vector.s in place of config's generated glue (mkglue.c);
+   configure() starting the tree; then NetBSD 1.2's cfattach split and
+   mainbus -- the shape OpenBSD has kept.
+3. Every i386 driver converted at once, as NetBSD's were in November
+   1994, since without the old interface the kernel boots only when
+   its console and disks are converted: cpu, clock and npx; the
+   console and com (the console is a serial line); wdc and wd with
+   ATAPI and wcd; fd; Ethernet (NetBSD 1.2's or OpenBSD's of 1996, for
+   the stopgap if_ed); wt. All from one donor snapshot, OpenBSD of
+   1996-97 or NetBSD 1.2, so that they speak one set of interfaces.
+4. bus_space and bus_dma, as OpenBSD took them from NetBSD (1996 and
+   1998); then PCI -- the bus, a PCI-ISA bridge, PCI IDE -- and the
+   hardware of the rest of this tier, from OpenBSD.
+5. Locking, OpenBSD's way, with the interrupt levels the converted
+   drivers name: KERNEL_LOCK, nothing on one processor; mutex(9) as
+   spl and an owner check, `mtx_init(&m, IPL_NET)'; rwlock(9) and
+   msleep; lockmgr on rwlocks, its LK_* interface kept. spl, tsleep
+   and the drivers stay as they are.
+
+**How drivers are taken**, so that they stay this tree's:
+
+- The kernel's interfaces move first, and each driver comes from the
+  donor snapshot whose interfaces the kernel has -- one snapshot for a
+  subsystem.
+- A driver needing an interface the kernel lacks (bus_space,
+  isa_intr_establish, timeout_set) brings that interface in, from the
+  same donor and era, with its provenance; the driver's calls are
+  left alone.
+- Compatibility macros for renames only, never for changed meaning:
+  OpenBSD's malloc flags of 2010, where a Lite2 call passing 0 panics,
+  are fixed at the call or avoided by an earlier driver.
+- The walls are respected: OpenBSD's network rework of 2015 and its
+  malloc flags of 2010; NetBSD after 1.3.
+- Each import as for wd and if_ed: a commit as released, a commit
+  adapting it, each change marked at its site, an entry in
+  provenance/imports.md, and the licence checked under this tree's
+  rules (no Caldera-licensed code a BSD did not take; nothing under
+  the old Berkeley notice).
+- config's language is Torek's, grown only by what the donor grew
+  (NetBSD 1.2's `attach ... with').
+
+**And Mach, looked at (2026-10-18).** Lite2's locks are Mach's
+already: kern_lock.c's lockmgr is McKusick's 1995 rework of the Mach
+lock package (its notice credits Avadis Tevanian, Michael Wayne Young
+and the Mach project at CMU), simple_lock and the vm/ system are
+Mach's, and vm.h maps simple_lock_data_t and lock_data_t onto them.
+CMU Mach 3.0 (MK83A), Utah's Mach 4 and OSF's kernel as MkLinux DR3
+carried it were read for anything better. None fits better than
+OpenBSD's line: MK83's and Mach 4's lock_t is what lockmgr replaced,
+without its wait message, priority, timeout or signals; OSFMK's mutex
+sleeps where OpenBSD's mtx spins at an spl, its lock_t lost the
+recursion vnode locking needs, and everything in it rests on Mach
+threads, assert_wait and thread_block's continuations, which Lite2's
+processes and u-area cannot carry. OSF's tree-level licence also
+limits use to academic, research and internal purposes, against its
+permissive file headers. Worth having, as design: OSFMK's lock
+debugging -- a per-processor stack of held locks, lock-held and
+none-held assertions, a spin that times out into the debugger --
+alongside OpenBSD's MUTEX_ASSERT_LOCKED and witness(4); and ddb,
+which is CMU Mach's code, taken from NetBSD or OpenBSD, where it is
+already a BSD's. Lites, CMU's 4.4BSD-Lite server on Mach, folded spl,
+tsleep and one master lock together, the precedent for KERNEL_LOCK.
+FreeBSD's zones (vm_zone.c, John Dyson, 1997-98) borrow only Mach's
+names; OpenBSD's pool(9) is the BSD equivalent.
+
 Each of these is a measured absence, not a stylistic gap. Counts are
 from the tree as it stands.
 
