@@ -90,9 +90,15 @@
  * clusters (MAPPED_MBUFS), MCLBYTES must also be an integral multiple
  * of the hardware page size.
  */
+/*
+ * AI-ONLY NOTE: 2048-byte clusters, where 386BSD's i386 had 1024, as
+ * Lite2's hp300 and sparc have them and NetBSD 1.0's, FreeBSD's and
+ * OpenBSD's i386 do: an Ethernet frame then fits in one, as if_ed,
+ * FreeBSD's, takes it to.
+ */
 #define	MSIZE		128		/* size of an mbuf */
-#define	MCLBYTES	1024
-#define	MCLSHIFT	10
+#define	MCLSHIFT	11
+#define	MCLBYTES	(1 << MCLSHIFT)
 #define	MCLOFSET	(MCLBYTES - 1)
 #ifndef NMBCLUSTERS
 #ifdef GATEWAY
