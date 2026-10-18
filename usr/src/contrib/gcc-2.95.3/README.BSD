@@ -3,8 +3,10 @@ Notes for this system's distribution of gcc-2.95.3:
 1.  This is GNU GCC 2.95.3 as GNU released it, with the changes
     NetBSD 1.6 made to it, which carried it as "2.95.3 (NetBSD nb3)",
     and this system added to it as i386-unknown-bsd4.4elf
-    (docs/provenance/imports.md, *The toolchain*).  Only its C
-    compiler is built.
+    (docs/provenance/imports.md, *The toolchain*).  Its C and C++
+    compilers are built, as gcc-2.3.3's were, and its C++ library,
+    libstdc++ 2.10.0 with libio; not its Objective C, Fortran, CHILL
+    or Java.
 
 2.  It is built twice.  build/sysroot.sh builds it on the machine
     doing a cross build, to make programs for this system; and
@@ -22,6 +24,17 @@ Notes for this system's distribution of gcc-2.95.3:
     headers in gcc-lib/i386-unknown-bsd4.4elf/2.95.3.  /usr/bin/gcc
     is a symbolic link to the driver, and /usr/bin/cc to gcc.  The
     pages, formatted, go in /usr/contrib/man/cat1.
+
+4.  And C++ where gcc-2.3.3 put it: cc1plus beside cc1; the g++
+    driver as g++-2.95.3, with c++-2.95.3 linked to it, where
+    gcc-2.3.3 installed g++-2.3.3 and c++-2.3.3; /usr/bin/g++ a
+    symbolic link to it and /usr/bin/c++ to g++; libstdc++.a beside
+    libgcc.a, which the driver searches; and the C++ headers --
+    libstdc++'s, libio's and _G_config.h -- in
+    /usr/libexec/gcc2/g++-include, where gcc-2.3.3 looked for them.
+    libgcc holds C++'s own support, new, delete, exceptions and type
+    information, which is all groff, the system's nroff, needs of
+    C++'s libraries: it is linked by gcc, as Berkeley configured it.
 
 Therefore to build and install it on this system simply type:
 
