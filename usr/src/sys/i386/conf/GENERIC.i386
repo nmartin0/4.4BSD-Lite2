@@ -141,8 +141,15 @@ controller	fd0	at isa? port "IO_FD1" bio irq 6 drq 2 vector fdintr
 disk		dk4	at fd0 drive 0
 disk		dk5	at fd0 drive 1
 device		com0	at isa? port "IO_COM1" tty irq 4 vector comintr
-device		ne0	at isa? port 0x320 net irq 9 vector neintr
-device we0 at isa? port 0x280 net irq 3 iomem 0xd0000 iosiz 8192 vector weintr
+# AI-ONLY NOTE: the Ethernet cards Berkeley's lines named, an NE2000
+# (ne0) and a WD8003 (we0), at the same ports, interrupts and memory,
+# with FreeBSD 2.1.0's if_ed, Greenman's driver for both and for the
+# NE1000, WD8013 and 3c503, in place of 386BSD's if_ne and if_we:
+# FreeBSD from 1.0 and NetBSD 1.0 carried if_ed and never if_ne, and
+# Lite2's if_ne waits for ever when a packet's length is odd. Each
+# probe looks for every card the driver knows at its address.
+device		ed0	at isa? port 0x320 net irq 9 vector edintr
+device		ed1	at isa? port 0x280 net irq 3 iomem 0xd0000 iosiz 8192 vector edintr
 # AI-ONLY NOTE: the Wangtek tape, Berkeley's line but for its class:
 # Berkeley's said `net', which would block the tape's interrupt with
 # the network's; a tape is a block device, and FreeBSD 2.0.5's GENERIC
