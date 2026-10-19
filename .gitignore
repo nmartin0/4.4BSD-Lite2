@@ -1,1 +1,2 @@
-usr/src/sys/compile/
+usr/src/sys/compile/*
+!usr/src/sys/compile/.keep_me

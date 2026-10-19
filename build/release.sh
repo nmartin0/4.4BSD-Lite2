@@ -67,13 +67,16 @@ mkdir -p "$O"
 # extracted into /usr/src -- the kernel's, sys; the utilities', the
 # rest but sys and contrib; and the contributed software's, contrib
 # -- made here, before the build, from the tree as it stands, but for
-# sys/compile, where kernels are built. On the CD in source/sets, as release(7) puts a release's
-# source sets, named as NetBSD names its: syssrc, src, and contribsrc
-# beside them. They are extracted by hand, as the setup guide has it
+# the kernels built in sys/compile: that directory goes empty but for
+# its .keep_me, as FreeBSD 2.0, NetBSD 1.0 and OpenBSD ship it, since
+# config makes a kernel's directory in it and cannot make it. On the
+# CD in source/sets, as release(7) puts a release's source sets, named
+# as NetBSD names its: syssrc, src, and contribsrc beside them. They are extracted by hand, as the setup guide has it
 # (install.md, *The sources*).
 S="tar -C usr/src --numeric-owner --owner=0 --group=0 --format=ustar"
 mkdir -p "$O/src"
 $S -cf "$O/src/syssrc.tar" --exclude=./sys/compile ./sys
+$S -rf "$O/src/syssrc.tar" --no-recursion ./sys/compile ./sys/compile/.keep_me
 $S -cf "$O/src/src.tar" --exclude=./sys --exclude=./contrib .
 $S -cf "$O/src/contribsrc.tar" ./contrib
 
