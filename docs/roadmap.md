@@ -579,9 +579,13 @@ without its wait message, priority, timeout or signals; OSFMK's mutex
 sleeps where OpenBSD's mtx spins at an spl, its lock_t lost the
 recursion vnode locking needs, and everything in it rests on Mach
 threads, assert_wait and thread_block's continuations, which Lite2's
-processes and u-area cannot carry. OSF's tree-level licence also
-limits use to academic, research and internal purposes, against its
-permissive file headers. Worth having, as design: OSFMK's lock
+processes and u-area cannot carry. OSF's code is permissive: each
+of its source files carries OSF's 1998 notice ("Permission to use,
+copy, modify, and distribute this software ... for any purpose and
+without fee is hereby granted"); the academic-only text in its
+conf/copyright.osf is a 1995 OSF/RI notice no source file carries and
+the build never reads. OSFMK 6.1 itself was not found to read. Worth
+having, as design or as code: OSFMK's lock
 debugging -- a per-processor stack of held locks, lock-held and
 none-held assertions, a spin that times out into the debugger --
 alongside OpenBSD's MUTEX_ASSERT_LOCKED and witness(4); and ddb,

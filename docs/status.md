@@ -53,6 +53,14 @@ the boot blocks load the kernel throughout:
   in /bin (patch 162; install.md, *The sources*). On the system, make
   builds a program in /usr/src, bin/cat and usr.bin/wc, with its
   manual page, formatted by the system's own nroff (patch 164).
+- **It builds itself.** From its own sources in /usr/src, on a fresh
+  install of the CD, Berkeley's `make build` -- headers, cleandir,
+  libraries, depend, make, make install -- ran to the end on the
+  system, single user, with a second disk for /usr/obj: everything,
+  GCC and binutils among it, compiled by its own compiler, in about
+  three hours under QEMU; the rebuilt system boots and compiles C and
+  C++ (patch 168; install.md, *The system builds itself*). It wants an
+  `ex` on the PATH, which is open (deferred.md).
 - **The whole tree.** The base set is Berkeley's own top-level `make
   build` of the whole tree, contrib/ aside (patch 153): 179 programs
   in /usr/bin, the games, the time zones, the dictionaries, termcap.db

@@ -968,3 +968,80 @@ bin/cat and, after make depend, usr.bin/wc, and stopped at their
 manual pages: the system has no nroff yet.
 Run as an ordinary user under fakeroot, the release made a base set
 with the same files, modes, owners and links, and the same sources.
+
+# The system builds itself
+
+With its sources in /usr/src, the system rebuilds itself as 4.4BSD
+was rebuilt, by Berkeley's `make build` (share/doc/smm/01.setup,
+section 6): the headers installed, the tree cleaned, the libraries
+built and installed, then the whole tree made and installed -- by its
+own make, compiled by its own GCC 2.95.3 and linked by its own
+binutils, nothing from the build machine. The objects go in /usr/obj,
+which wants a filesystem of its own: the root, holding the system and
+its sources, has not the room. A 1.5 GB second disk, as wd1:
+
+	# cd /dev; sh MAKEDEV wd1
+	# disklabel -R -r wd1 /tmp/obj.label	(3048 cylinders of 16
+	# newfs /dev/rwd1a			 heads and 63 sectors; a:
+	# mkdir /usr/obj			 the whole disk, 4.2BSD)
+	# mount /dev/wd1a /usr/obj
+	# echo '/dev/wd1a /usr/obj ufs rw 1 2' >> /etc/fstab
+	# cd /usr/src; make obj
+
+Then, single user -- `-s' at boot2's prompt -- since make install
+replaces programs marked immutable, chpass among them, which the
+installer marks so, and the kernel lets the mark be cleared only at
+securelevel 0, which init keeps while single user (the setup guide,
+section 3):
+
+	# fsck -p; mount -a
+	# TERM=dumb; export TERM		(for ex; below)
+	# cd /usr/src; make build
+
+Tried on QEMU, from a fresh install of the CD with the 1.5 GB disk
+beside it, every step finished without an error, in about three
+hours under QEMU's emulation with no hardware assistance: the headers
+in 6 seconds, cleandir in a minute, the libraries in 34 minutes,
+depend in 7, make in some 2 hours 10 -- 75 minutes of it bin and
+contrib, GCC among them -- and make install in 8. The rebuilt system
+then booted multi-user, and its compiler built and ran programs in C
+and C++. Getting there found these, which a build on another machine
+could not have shown:
+
+- **chpass's Makefile** asked `empty(DESTDIR)', which Lite2's own make
+  takes as an error when DESTDIR is not set at all, where bmake does
+  not; it asks `!defined(DESTDIR)' now. Lite2's make, built on the
+  host, then parsed every one of the tree's 443 Makefiles without
+  another error.
+- **The headers** install as copies by default, as NetBSD 1.0's and
+  OpenBSD's include/Makefile have them (SYS_INCLUDE?= copies): the
+  system's /usr/include/machine, as the release installs it, is a
+  directory, which Berkeley's symbolic-link install cannot replace.
+- **cpp** was GCC's cccp alone, which knows nothing of the target:
+  GCC 2.95 gives the preprocessor `__ELF__', `unix' and `__i386__'
+  through its drivers. Without `__ELF__', libc's system-call stubs took
+  a.out's names, and nothing linked. /usr/libexec/gcc2/cpp is GCC's cpp
+  driver now, as NetBSD 1.6's /usr/bin/cpp is.
+- **The contrib builds that copy their sources** -- bind, MH, groff,
+  perl -- copied obj.i386 into itself, where it is made inside the
+  directory, without end; the copy leaves it out. And they and GCC and
+  binutils make their directories only if they are not there: Lite2's
+  `mkdir -p', unlike POSIX's, fails on one that exists.
+- **install(1)** left every program it stripped mode 0600, which
+  nothing could run: binutils' strip writes a new file and renames it
+  over the old, and Lite2's install set the mode through its
+  descriptor on the old one. It reopens the file after strip now, as
+  NetBSD's install did from December 1995 (xinstall.c 1.9, NetBSD 1.2).
+  And binutils' makefile strips strip itself before installing it,
+  with the strip already there: install -s would run the new one on
+  itself while still 0600.
+- **zic and strfile**, which the time zones and fortune's files are
+  made with, are found where the build left them when the build
+  machine has none of its own: Lite2 installs neither.
+- **ex.** share/termcap's Makefile, Lite2's, edits termcap.src with
+  `ex', which the system has not got -- nvi is nvi, nex and nview in
+  /usr/contrib/bin. For this run a link /usr/bin/ex to nex was made
+  by hand; what the system should call nvi is the maintainer's to
+  choose (deferred.md). And nex will not start without a terminal
+  type, even reading a script, so single user wants TERM set
+  first, as a login on the console sets it.

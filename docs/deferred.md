@@ -722,6 +722,24 @@ Makefiles do not know.
 - **The serial ports have no dial-out devices.** MAKEDEV makes tty00
   and up, as NetBSD 1.0 does; OpenBSD's later cua00, at minor 128 and
   up, needs callout support Lite2's com.c has not got.
+- **Lite2's `mkdir -p` fails on a directory that exists**, where
+  POSIX 1003.2 has it ignore one. FreeBSD 2.0 fixed it in mkdir.c
+  (`if (!pflag)` around the last mkdir's warning); NetBSD 1.0 had not.
+  Left as shipped: the Makefiles that run it ask `test -d` first, as
+  Berkeley's share/mk does for object directories.
+- **share/termcap runs `ex`, which this system has not got.** Lite2
+  installs nvi only as nvi, nex and nview in /usr/contrib/bin; the Lite
+  cut took the original vi and ex. NetBSD 1.0, FreeBSD and OpenBSD
+  install nvi as vi, ex and view in /usr/bin. The choice is the
+  maintainer's; until it is made, a build on the system itself needs
+  an `ex` on the PATH (install.md, *The system builds itself*) -- and,
+  being nvi, a terminal type set even single user.
+- **A second `make install` needs single user.** init, login, su,
+  passwd, rlogin, rsh, rdist, sliplogin, mail.local and chpass are
+  installed immutable, which securelevel 1 will not undo; Berkeley's
+  setup guide runs at 0 only while single user. The installer marks
+  chpass so on a new system, so even the first install from the
+  system's own sources is done single user.
 
 ## 6. Things established that change how the rest reads
 

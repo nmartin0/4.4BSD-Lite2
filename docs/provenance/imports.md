@@ -243,6 +243,19 @@ copied, and the commit names it with its release.
     ns_func.h (rev 1.12, July 1994, FreeBSD 2.0) has them
   contrib/perl x2p: its unused setenv renamed my_setenv, as perl's
     own util.c names the same routine, clear of <stdlib.h>'s
+  xinstall: the target reopened after strip, NetBSD's xinstall.c 1.9
+    (jonathan, December 1995; NetBSD 1.2). binutils' strip writes a
+    new file and renames it over the old, so Lite2's install set the
+    mode through a descriptor on a file already gone, and every
+    program it installed with -s was left mode 0600
+  include/Makefile: headers copied by default, NetBSD 1.0 and OpenBSD
+    (SYS_INCLUDE?= copies); SHARED=symlinks still chooses Berkeley's
+  zoneinfo, fortune/datfiles: zic and strfile, after the build
+    machine's on the PATH, as just built -- Lite2's ../obj/zic and
+    ../strfile/obj/strfile -- for a build on the system itself
+  contrib/gcc-2.95.3: /usr/libexec/gcc2/cpp GCC's cpp driver, NetBSD
+    1.6's /usr/bin/cpp, which gives the preprocessor the target's
+    predefinitions; cccp alone has none of them
 
 ## C -- our judgement, no donor line
 
