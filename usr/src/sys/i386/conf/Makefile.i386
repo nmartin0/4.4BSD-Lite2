@@ -118,15 +118,24 @@ SYSTEM_LD_HEAD=	@echo loading $@; rm -f $@
 # physical 0xFF000, inside the BIOS ROM. With it there is one LOAD
 # segment, starting exactly at F0100000. Measured with readelf.
 LDFORMAT=-n
-SYSTEM_LD=	@strip=-x; [ X${DEBUG} = X-g ] && strip=-X; \
+# AI-ONLY NOTE: SYSTEM_LD and SYSTEM_LD_TAIL in the form of Berkeley's
+# own hp300/conf/Makefile.hp300, as NetBSD 1.0's i386 Makefile has
+# them: if/then/else, and the tail's test ended by || true. The i386's
+# `[ X${DEBUG} = X-g ] && strip=-X' stopped the link under Lite2's sh
+# -e, which exits on the failed test, and the tail's ended the make
+# with that test's status, on any kernel without DEBUG.
+SYSTEM_LD=	-@if [ X${DEBUG} = X-g ]; \
+		then strip=-X; \
+		else strip=-x; \
+		fi; \
 		${LD} $$strip ${LDFORMAT} -Ttext F0100000 -o $@ ${SYSTEM_OBJ} \
 		vers.o libkern.a
 #SYSTEM_LD_TAIL= @echo rearranging symbols;\
 #		symorder symbols.sort $@;\
 SYSTEM_LD_TAIL=	@size $@; chmod 755 $@; \
 		[ X${DEBUG} = X-g ] && { \
-		echo cp $@ $@.gdb; cp $@ $@.gdb; \
-		echo strip -d $@; strip -d $@; }
+		echo cp $@ $@.gdb; rm -f $@.gdb; cp $@ $@.gdb; \
+		echo strip -d $@; strip -d $@; } || true
 
 %LOAD
 
