@@ -394,6 +394,18 @@ libexec         type=dir uname=root gname=wheel mode=0755
 /set type=file gname=wheel uname=root mode=0775
 gcc2            type=dir mode=0755
 
+# ./libexec/gcc2/g++-include
+/set type=file gname=wheel uname=root mode=0755
+g++-include     type=dir
+
+# ./libexec/gcc2/g++-include/std
+std             type=dir
+# ./libexec/gcc2/g++-include/std
+..
+
+# ./libexec/gcc2/g++-include
+..
+
 # ./libexec/gcc2/gcc-lib
 /set type=file gname=wheel uname=root mode=0755
 gcc-lib         type=dir
@@ -424,6 +436,11 @@ include         type=dir
 ..
 
 # ./libexec/gcc2/gcc-lib
+..
+
+# ./libexec/gcc2/include
+include         type=dir
+# ./libexec/gcc2/include
 ..
 
 # ./libexec/gcc2

@@ -13,16 +13,19 @@ Notes for this system's distribution of gcc-2.95.3:
     `make' here, which `make build' runs, builds it to run on this
     system itself, the i386, from 'makefile', which configures GNU's
     sources and runs GNU's own Makefiles, as contrib/gcc-2.3.3's and
-    contrib/binutils-2.11.2's makefiles do.  It builds in a directory
-    of its own, the object directory when the build has one, and
-    obj.${MACHINE} here when not.
+    contrib/binutils-2.11.2's makefiles do.  It builds here, among the
+    sources, as Berkeley built its contributed software, and in a
+    directory of its own only when the build has one,
+    MAKEOBJDIRPREFIX, as on another machine.
 
 3.  `make install' puts it where 4.4BSD put its GCC, under
     /usr/libexec/gcc2: the driver as gcc-2.95.3 and
     gcc-i386-unknown-bsd4.4elf, GCC's cpp -- the driver that runs
-    cpp0 with the target's predefinitions, as NetBSD 1.6's /usr/bin/cpp
-    is -- as cpp, which /usr/bin/cpp runs, and cc1, cpp0, collect2,
-    libgcc.a and GCC's headers in gcc-lib/i386-unknown-bsd4.4elf/2.95.3.
+    cpp0 with the target's predefinitions, as OpenBSD's /usr/libexec/cpp
+    was from 1999 -- as cpp, which /usr/bin/cpp runs, and cc1, cpp0,
+    collect2 and libgcc.a beside them, and GCC's headers in include:
+    /usr/libexec/gcc2 itself, as gcc-2.3.3's Makefile made it its
+    libsubdir.
     /usr/bin/gcc is a symbolic link to the driver, and /usr/bin/cc to
     gcc.  The pages, formatted, go in /usr/contrib/man/cat1.
 

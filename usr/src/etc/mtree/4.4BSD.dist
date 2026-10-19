@@ -387,6 +387,17 @@ libexec
 # ./usr/libexec/gcc2
 gcc2
 
+# ./usr/libexec/gcc2/g++-include
+g++-include
+
+# ./usr/libexec/gcc2/g++-include/std
+std
+# ./usr/libexec/gcc2/g++-include/std
+..
+
+# ./usr/libexec/gcc2/g++-include
+..
+
 # ./usr/libexec/gcc2/gcc-lib
 gcc-lib
 
@@ -413,6 +424,11 @@ include
 ..
 
 # ./usr/libexec/gcc2/gcc-lib
+..
+
+# ./usr/libexec/gcc2/include
+include
+# ./usr/libexec/gcc2/include
 ..
 
 # ./usr/libexec/gcc2
