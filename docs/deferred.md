@@ -734,14 +734,22 @@ Makefiles do not know.
   whatever ex the build machine has, on Linux vim's. The system's own
   build uses nvi. The tree's nvi has a Linux port (PORT/linux), which
   build/sysroot.sh could build as it builds zic and strfile.
-- **Lite2's sh exits under -e when the first command of an && list
-  fails** -- `set -e; false && true' ends the shell -- where POSIX has
-  -e ignore it. make runs every command with sh -e, so a Makefile line
-  of that form stops a build. NetBSD 1.2 fixed it in eval.c (`don't
-  bomb out on "set -e; false && true"', three lines), FreeBSD 2.2 and
-  OpenBSD 1996 the same. Left as shipped until the maintainer decides;
-  the one Makefile it stopped, the i386 kernel's, now has Berkeley's
-  hp300 form.
+- ~~**Lite2's sh exits under -e when the first command of an && list
+  fails**~~ **FIXED** (patch 171). `set -e; false && true' ended the
+  shell, where POSIX has -e ignore it, and make runs every command
+  with sh -e. eval.c now has the three lines FreeBSD's 1.6 (6 October
+  1996) and NetBSD's 1.31 (16 October 1996, PR 2808) both added,
+  comment and all, shipped in FreeBSD 2.2 and NetBSD 1.2.1 -- not
+  1.2, as this note said; OpenBSD took NetBSD's four days later and
+  dropped this shell for pdksh in 1997. The i386 kernel's Makefile,
+  the one it stopped, keeps Berkeley's hp300 form.
+- **Lite2's sh exits under -e on `! true'.** The negated command is
+  run as tested, but its inverted status reaches evaltree's check
+  untested, as the && case's did. POSIX exempts a pipeline after `!'
+  from -e. No small fix of the time exists to take: FreeBSD 2.2 to
+  5.0 and NetBSD 1.3 to 1.6 have Berkeley's lines unchanged, and both
+  fixed it only in later rewrites of evaltree. Found testing patch
+  171; no Makefile in the tree is stopped by it.
 - **A second `make install` needs single user.** init, login, su,
   passwd, rlogin, rsh, rdist, sliplogin, mail.local and chpass are
   installed immutable, which securelevel 1 will not undo; Berkeley's

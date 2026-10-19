@@ -290,6 +290,10 @@ copied, and the commit names it with its release.
     Makefile has them; the i386's && forms failed under Lite2's sh -e
   sys/compile: in the tree and the source set, empty but for
     .keep_me, as FreeBSD 2.0, NetBSD 1.0 and OpenBSD ship it
+  bin/sh eval.c: a failed first command of an && list no longer
+    ends the shell under -e, the three lines FreeBSD's eval.c 1.6
+    (steve, 1996) and NetBSD's 1.31 (christos, 1996, PR 2808) both
+    added, comment and all; FreeBSD 2.2 and NetBSD 1.2.1
   etc/root/dot.profile: TERM given a value before Berkeley's `export
     TERM for single user shells', FreeBSD 2.2's ${TERM:-cons25}, here
     pc3, Lite2's termcap entry for the console

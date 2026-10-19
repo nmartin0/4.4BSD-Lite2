@@ -207,8 +207,19 @@ evaltree(n, flags)
 		break;
 	case NAND:
 		evaltree(n->nbinary.ch1, EV_TESTED);
-		if (evalskip || exitstatus != 0)
+		/*
+		 * AI-ONLY NOTE: the three lines FreeBSD's eval.c 1.6
+		 * (steve, 6 October 1996) and NetBSD's 1.31 (christos,
+		 * 16 October 1996, PR 2808) both added, comment and all;
+		 * shipped in FreeBSD 2.2 and NetBSD 1.2.1. A failed first
+		 * command left the shell to exit at `out' under -e, where
+		 * POSIX 1003.2 has -e ignore a command in an && list.
+		 */
+		if (evalskip || exitstatus != 0) {
+			/* don't bomb out on "set -e; false && true" */
+			flags |= EV_TESTED;
 			goto out;
+		}
 		evaltree(n->nbinary.ch2, flags);
 		break;
 	case NOR:
