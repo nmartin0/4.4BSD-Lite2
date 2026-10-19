@@ -51,7 +51,7 @@ static char sccsid[] = "@(#)mkdir.c	8.2 (Berkeley) 1/25/94";
 #include <string.h>
 #include <unistd.h>
 
-int	build __P((char *));
+int	build __P((char *, mode_t));
 void	usage __P((void));
 
 int
@@ -98,8 +98,18 @@ main(argc, argv)
 	}
 
 	for (exitval = 0; *argv != NULL; ++argv) {
-		if (pflag && build(*argv)) {
-			exitval = 1;
+		/*
+		 * AI-ONLY NOTE: -p as FreeBSD 2.2.5's mkdir.c has it (rev
+		 * 1.5.8.1, joerg, 1997), whose build() makes the last
+		 * component too and takes a directory already there as
+		 * done, as POSIX 1003.2 asks; Berkeley's made all but the
+		 * last and then failed on it if it existed. FreeBSD 2.2.5's
+		 * mode handling is not taken: Berkeley's octal case stays.
+		 */
+		if (pflag) {
+			if (build(*argv, oct ?
+			    omode : getmode(set, S_IRWXU | S_IRWXG | S_IRWXO)))
+				exitval = 1;
 			continue;
 		}
 		if (mkdir(*argv, oct ?
@@ -112,23 +122,28 @@ main(argc, argv)
 }
 
 int
-build(path)
+build(path, omode)
 	char *path;
+	mode_t omode;
 {
 	struct stat sb;
 	mode_t numask, oumask;
-	int first;
+	int first, last, retval;
 	char *p;
 
 	p = path;
+	oumask = 0;
+	retval = 0;
 	if (p[0] == '/')		/* Skip leading '/'. */
 		++p;
-	for (first = 1;; ++p) {
-		if (p[0] == '\0' || p[0] == '/' && p[1] == '\0')
-			break;
-		if (p[0] != '/')
+	for (first = 1, last = 0; !last ; ++p) {
+		if (p[0] == '\0')
+			last = 1;
+		else if (p[0] != '/')
 			continue;
 		*p = '\0';
+		if (p[1] == '\0')
+			last = 1;
 		if (first) {
 			/*
 			 * POSIX 1003.2:
@@ -147,18 +162,31 @@ build(path)
 			(void)umask(numask);
 			first = 0;
 		}
+		if (last)
+			(void)umask(oumask);
 		if (stat(path, &sb)) {
 			if (errno != ENOENT ||
-			    mkdir(path, S_IRWXU | S_IRWXG | S_IRWXO) < 0) {
+			    mkdir(path, last ? omode : 
+				  S_IRWXU | S_IRWXG | S_IRWXO) < 0) {
 				warn("%s", path);
-				return (1);
+				retval = 1;
+				break;
 			}
+		}
+		else if ((sb.st_mode & S_IFMT) != S_IFDIR) {
+			if (last)
+				errno = EEXIST;
+			else
+				errno = ENOTDIR;
+			warn("%s", path);
+			retval = 1;
+			break;
 		}
 		*p = '/';
 	}
-	if (!first)
+	if (!first && !last)
 		(void)umask(oumask);
-	return (0);
+	return (retval);
 }
 
 void
