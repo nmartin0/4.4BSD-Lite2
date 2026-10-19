@@ -47,12 +47,15 @@ NOOBJ=	noobj
 # source (``symlinks''), or a separate copy (``copies''); (latter useful
 # in environments where it's not possible to keep /sys publicly readable)
 # SHARED=	copies
-# AI-ONLY NOTE: copies by default, as NetBSD 1.0's and OpenBSD's
-# include/Makefile have it (SYS_INCLUDE?= copies), and as the release
-# installs them: a system built from its own sources finds
-# /usr/include/machine a directory, which symlinks' rm -f cannot
-# remove, and copies need no /sys. SHARED=symlinks still chooses
-# Berkeley's.
+# AI-ONLY NOTE: copies by default, the maintainer's choice, as
+# FreeBSD's include/Makefile has had it since 2.2.5 (1997) and has
+# today -- the same Berkeley file, 8.2 (Berkeley) 1/4/94, the same
+# switch, the default changed: the headers are there whether or not
+# the kernel's sources are. NetBSD and OpenBSD copy too. SHARED=symlinks
+# still chooses Berkeley's, whose machine lines are FreeBSD 2.0's: rm
+# -rf, as for the other directories, since copies leaves machine a
+# directory, and a link to /sys, without the DESTDIR Berkeley's put
+# into it.
 SHARED?=	copies
 
 install: ${SHARED}
@@ -121,8 +124,8 @@ symlinks:
 		ln -s /sys/$$i ${DESTDIR}/usr/include/$$i; \
 		chown ${BINOWN}.${BINGRP} ${DESTDIR}/usr/include/$$i; \
 	done
-	rm -f ${DESTDIR}/usr/include/machine
-	ln -s ${DESTDIR}/sys/${MACHINE}/include ${DESTDIR}/usr/include/machine
+	rm -rf ${DESTDIR}/usr/include/machine
+	ln -s /sys/${MACHINE}/include ${DESTDIR}/usr/include/machine
 	rm -f ${DESTDIR}/usr/include/X11
 	ln -s ${DESTDIR}/usr/X11/include/X11 ${DESTDIR}/usr/include/X11
 
