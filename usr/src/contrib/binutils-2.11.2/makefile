@@ -67,9 +67,12 @@ MANS=	addr2line	binutils/addr2line.1 \
 	strings		binutils/strings.1 \
 	strip		binutils/strip.1
 
+# AI-ONLY NOTE: the build directory is made only if it is not there,
+# as share/mk's obj target makes its own: Lite2's mkdir -p, unlike
+# POSIX's, fails on one that exists.
 all:
 .if ${MACHINE} == "i386"
-	mkdir -p ${BUILD}
+	test -d ${BUILD} || mkdir -p ${BUILD}
 	cd ${BUILD} && { [ -f config.status ] || \
 	    LD_PRELOAD= CC_FOR_BUILD="${HOSTCC}" sh ${.CURDIR}/configure \
 	    --host=${CONFIG} --target=${CONFIG} --prefix=/usr --disable-nls; }
@@ -77,13 +80,26 @@ all:
 	    all-gas all-ld all-binutils all-gprof
 .endif
 
+# AI-ONLY NOTE: strip is stripped before it is installed, by the strip
+# already there, and installed without -s: install -s runs
+# /usr/bin/strip on what it has just put there, and on this system
+# that is the new strip itself, still mode 0600, which cannot run.
 install:
 .if ${MACHINE} == "i386"
 	@set ${PROGS}; while [ $$# -ge 2 ]; do \
-		echo install -c -s -o ${BINOWN} -g ${BINGRP} -m 555 \
-		    ${BUILD}/$$2 ${DESTDIR}/usr/bin/$$1; \
-		install -c -s -o ${BINOWN} -g ${BINGRP} -m 555 \
-		    ${BUILD}/$$2 ${DESTDIR}/usr/bin/$$1 || exit 1; \
+		if [ $$1 = strip ]; then \
+			echo strip -o ${BUILD}/$$2.s ${BUILD}/$$2; \
+			strip -o ${BUILD}/$$2.s ${BUILD}/$$2 || exit 1; \
+			echo install -c -o ${BINOWN} -g ${BINGRP} -m 555 \
+			    ${BUILD}/$$2.s ${DESTDIR}/usr/bin/$$1; \
+			install -c -o ${BINOWN} -g ${BINGRP} -m 555 \
+			    ${BUILD}/$$2.s ${DESTDIR}/usr/bin/$$1 || exit 1; \
+		else \
+			echo install -c -s -o ${BINOWN} -g ${BINGRP} -m 555 \
+			    ${BUILD}/$$2 ${DESTDIR}/usr/bin/$$1; \
+			install -c -s -o ${BINOWN} -g ${BINGRP} -m 555 \
+			    ${BUILD}/$$2 ${DESTDIR}/usr/bin/$$1 || exit 1; \
+		fi; \
 		shift 2; \
 	done
 	@set ${MANS}; while [ $$# -ge 2 ]; do \

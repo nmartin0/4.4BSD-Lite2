@@ -217,8 +217,26 @@ install(from_name, to_name, fset, flags)
 		copy(from_fd, from_name, to_fd, to_name, from_sb.st_size);
 		(void)close(from_fd);
 	}
-	if (dostrip)
+	if (dostrip) {
 		strip(to_name);
+
+		/*
+		 * Re-open our fd on the target, in case we used a strip
+		 *  that does not work in-place -- like gnu binutils strip.
+		 */
+		/*
+		 * AI-ONLY NOTE: NetBSD's, xinstall.c 1.9 (1995/12/20,
+		 * jonathan), as NetBSD 1.2 has it, with Lite2's err(): the
+		 * system's strip is binutils', which writes a new file and
+		 * renames it over the old, so the mode, owner and flags set
+		 * through the old descriptor went to a file already gone,
+		 * and the installed program kept strip's copy of the 0600
+		 * it was made with.
+		 */
+		close(to_fd);
+		if ((to_fd = open(to_name, O_RDONLY, S_IRUSR | S_IWUSR)) < 0)
+			err("stripping %s: %s", to_name, strerror(errno));
+	}
 	/*
 	 * Set owner, group, mode for target; do the chown first,
 	 * chown may lose the setuid bits.
