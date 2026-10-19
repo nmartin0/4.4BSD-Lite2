@@ -248,14 +248,46 @@ copied, and the commit names it with its release.
     new file and renames it over the old, so Lite2's install set the
     mode through a descriptor on a file already gone, and every
     program it installed with -s was left mode 0600
-  include/Makefile: headers copied by default, NetBSD 1.0 and OpenBSD
-    (SYS_INCLUDE?= copies); SHARED=symlinks still chooses Berkeley's
-  zoneinfo, fortune/datfiles: zic and strfile, after the build
-    machine's on the PATH, as just built -- Lite2's ../obj/zic and
-    ../strfile/obj/strfile -- for a build on the system itself
-  contrib/gcc-2.95.3: /usr/libexec/gcc2/cpp GCC's cpp driver, NetBSD
-    1.6's /usr/bin/cpp, which gives the preprocessor the target's
-    predefinitions; cccp alone has none of them
+  include/Makefile: headers copied by default, FreeBSD 2.2.5 to today
+    (SHARED?= copies, in the same Berkeley file, 8.2 1/4/94), by the
+    maintainer's choice; SHARED=symlinks still chooses Berkeley's,
+    whose machine lines are FreeBSD 2.0's: rm -rf, and a link to /sys
+    without DESTDIR
+  zoneinfo, fortune/datfiles: Lite2's zic, strfile and caesar kept as
+    the defaults, named as variables as NetBSD 1.0 names ZIC and
+    STRFILE and FreeBSD 2.2 CAESAR, set by ?= as NetBSD 1.6 sets ZIC,
+    so that build/make.sh gives the build machine's: the tree's zic and
+    strfile built for it, and tr for the rot13, as OpenBSD 1996,
+    NetBSD 1.6 and FreeBSD 4.0 make it
+  contrib/gcc-2.95.3: /usr/libexec/gcc2/cpp GCC's cpp driver, run by
+    Lite2's usr.bin/cpp script, as OpenBSD's script ran it as
+    /usr/libexec/cpp from 1999 (espie); GCC 2.95 gives the target's
+    predefinitions through its drivers, and cccp alone has none
+  contrib/gcc-2.95.3: its passes, libgcc and headers in
+    /usr/libexec/gcc2 itself, as Lite2's gcc-2.3.3 Makefile made that
+    directory its libsubdir; found by MD_EXEC_PREFIX, as GCC's own
+    netbsd.h finds NetBSD's in /usr/libexec; its directories in
+    etc/mtree, and made by the install only if missing, by gcc-2.3.3's
+    own line
+  contrib/binutils-2.11.2: strip stripped by the strip already there
+    and installed without -s, FreeBSD 3.0 (jdp, 1998)
+  contrib/: bind, MH, groff, perl, GCC and binutils built in place,
+    as Berkeley built its contributed software (contrib/Makefile gives
+    contrib no object directories; gcc-2.3.3's makefile, gdb-4.7.LBL's
+    ./configure), and in a copy of their own only with
+    MAKEOBJDIRPREFIX, as OpenBSD's perl wrapper builds in place unless
+    there is an object directory (downsj, 1996)
+  mkdir: -p takes a directory already there, FreeBSD 2.2.5's build()
+    (rev 1.5.8.1, 1997), which extends Berkeley's loop to the last
+    component; FreeBSD 2.0's `if (!pflag)' hid every error and FreeBSD
+    dropped it; NetBSD 1.1's mkpath replaced Berkeley's routine
+  nvi: vi, ex and view in /usr/bin, linked to nvi, FreeBSD 2.0's two
+    LINKS lines, and its pages linked as FreeBSD 2.2's: where
+    <paths.h>'s _PATH_VI and mail's _PATH_EX name them, and where
+    Berkeley's vi and ex, which usr.bin/Makefile still names, were
+  etc/root/dot.profile: TERM given a value before Berkeley's `export
+    TERM for single user shells', FreeBSD 2.2's ${TERM:-cons25}, here
+    pc3, Lite2's termcap entry for the console
 
 ## C -- our judgement, no donor line
 

@@ -722,18 +722,18 @@ Makefiles do not know.
 - **The serial ports have no dial-out devices.** MAKEDEV makes tty00
   and up, as NetBSD 1.0 does; OpenBSD's later cua00, at minor 128 and
   up, needs callout support Lite2's com.c has not got.
-- **Lite2's `mkdir -p` fails on a directory that exists**, where
-  POSIX 1003.2 has it ignore one. FreeBSD 2.0 fixed it in mkdir.c
-  (`if (!pflag)` around the last mkdir's warning); NetBSD 1.0 had not.
-  Left as shipped: the Makefiles that run it ask `test -d` first, as
-  Berkeley's share/mk does for object directories.
-- **share/termcap runs `ex`, which this system has not got.** Lite2
-  installs nvi only as nvi, nex and nview in /usr/contrib/bin; the Lite
-  cut took the original vi and ex. NetBSD 1.0, FreeBSD and OpenBSD
-  install nvi as vi, ex and view in /usr/bin. The choice is the
-  maintainer's; until it is made, a build on the system itself needs
-  an `ex` on the PATH (install.md, *The system builds itself*) -- and,
-  being nvi, a terminal type set even single user.
+- ~~**Lite2's `mkdir -p` fails on a directory that exists**~~
+  **FIXED** (patch 169), by FreeBSD 2.2.5's build(), which POSIX 1003.2
+  asks for and NetBSD 1.1 and OpenBSD also fixed.
+- ~~**share/termcap runs `ex`, which this system has not got**~~
+  **FIXED** (patch 169): nvi is also vi, ex and view in /usr/bin, as
+  FreeBSD 2.0 linked it, and root's .profile gives TERM a value in
+  single user, as FreeBSD 2.2's does.
+- **The CD's termcap is ordered by the build machine's ex.** A cross
+  build runs share/termcap's `ex - termcap.src < reorder` with
+  whatever ex the build machine has, on Linux vim's. The system's own
+  build uses nvi. The tree's nvi has a Linux port (PORT/linux), which
+  build/sysroot.sh could build as it builds zic and strfile.
 - **A second `make install` needs single user.** init, login, su,
   passwd, rlogin, rsh, rdist, sliplogin, mail.local and chpass are
   installed immutable, which securelevel 1 will not undo; Berkeley's

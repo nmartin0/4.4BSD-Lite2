@@ -58,9 +58,11 @@ the boot blocks load the kernel throughout:
   libraries, depend, make, make install -- ran to the end on the
   system, single user, with a second disk for /usr/obj: everything,
   GCC and binutils among it, compiled by its own compiler, in about
-  three hours under QEMU; the rebuilt system boots and compiles C and
-  C++ (patch 168; install.md, *The system builds itself*). It wants an
-  `ex` on the PATH, which is open (deferred.md).
+  two and a half hours under QEMU; the rebuilt system boots and
+  compiles C and C++ (patches 168 and 169; install.md, *The system
+  builds itself*). contrib builds among its sources, as Berkeley's did;
+  GCC keeps its passes in /usr/libexec/gcc2, as Lite2's gcc-2.3.3 did;
+  nvi is also vi, ex and view in /usr/bin.
 - **The whole tree.** The base set is Berkeley's own top-level `make
   build` of the whole tree, contrib/ aside (patch 153): 179 programs
   in /usr/bin, the games, the time zones, the dictionaries, termcap.db
