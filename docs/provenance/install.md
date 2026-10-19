@@ -1064,3 +1064,40 @@ Lite2 did it (imports.md, B):
   gcc-2.3.3 Makefile put them, and not in GNU's
   gcc-lib/i386-unknown-bsd4.4elf/2.95.3, which an earlier note here
   wrongly called Lite2's.
+
+# Its own kernel
+
+The kernel is built on the system as the setup guide builds one
+(share/doc/smm/01.setup, sections 4 and 6), with the system's own
+config, make, GCC and ld, the sources in /sys, Lite2's link to
+/usr/src/sys:
+
+	# cd /sys/libkern; make obj; make
+	# cd /sys/i386/conf; config GENERIC.i386
+	# cd ../../compile/GENERIC.i386; make depend; make
+	# cp vmunix /newvmunix; cp /vmunix /genvmunix; sync
+
+then booted by `/newvmunix' at boot2's prompt, and, once it runs,
+installed as /vmunix, the guide's order: the new one tried under
+another name, and the generic kept as /genvmunix for emergencies.
+
+Tried on QEMU, on the system that had just rebuilt itself: libkern in
+40 seconds, config at once, depend in 22 seconds, the kernel in under
+three minutes. It booted -- `4.4BSD-Lite #1 ...
+root@pcchost.my.domain:/sys/compile/GENERIC.i386' -- ran multi-user,
+its network answered, its compiler built a program, and installed as
+/vmunix it booted by default, ps and dmesg reading it. Two things
+stood in the way, both Berkeley's:
+
+- **No /usr/src/sys/compile.** config makes a kernel's directory in
+  it, compiled in as ../../compile/, but not the directory itself, and
+  the source set left it out with the kernels built there. It is in
+  the tree and the set now, empty but for a .keep_me, as FreeBSD 2.0,
+  NetBSD 1.0 and OpenBSD ship it.
+- **The i386's link lines.** `[ X${DEBUG} = X-g ] && strip=-X' stops
+  the link under Lite2's sh, which with -e exits when the test fails,
+  and the tail's test, last, failed the make on any kernel built
+  without DEBUG. They are Berkeley's own hp300 lines now --
+  if/then/else, and the tail ended by `|| true' -- as NetBSD 1.0's
+  i386 Makefile has them. (The sh behaviour itself is in
+  deferred.md.)

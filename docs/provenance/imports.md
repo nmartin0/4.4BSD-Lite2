@@ -285,6 +285,11 @@ copied, and the commit names it with its release.
     LINKS lines, and its pages linked as FreeBSD 2.2's: where
     <paths.h>'s _PATH_VI and mail's _PATH_EX name them, and where
     Berkeley's vi and ex, which usr.bin/Makefile still names, were
+  i386 Makefile.i386: SYSTEM_LD and SYSTEM_LD_TAIL in Berkeley's own
+    hp300 form, if/then/else and `|| true', as NetBSD 1.0's i386
+    Makefile has them; the i386's && forms failed under Lite2's sh -e
+  sys/compile: in the tree and the source set, empty but for
+    .keep_me, as FreeBSD 2.0, NetBSD 1.0 and OpenBSD ship it
   etc/root/dot.profile: TERM given a value before Berkeley's `export
     TERM for single user shells', FreeBSD 2.2's ${TERM:-cons25}, here
     pc3, Lite2's termcap entry for the console

@@ -734,6 +734,14 @@ Makefiles do not know.
   whatever ex the build machine has, on Linux vim's. The system's own
   build uses nvi. The tree's nvi has a Linux port (PORT/linux), which
   build/sysroot.sh could build as it builds zic and strfile.
+- **Lite2's sh exits under -e when the first command of an && list
+  fails** -- `set -e; false && true' ends the shell -- where POSIX has
+  -e ignore it. make runs every command with sh -e, so a Makefile line
+  of that form stops a build. NetBSD 1.2 fixed it in eval.c (`don't
+  bomb out on "set -e; false && true"', three lines), FreeBSD 2.2 and
+  OpenBSD 1996 the same. Left as shipped until the maintainer decides;
+  the one Makefile it stopped, the i386 kernel's, now has Berkeley's
+  hp300 form.
 - **A second `make install` needs single user.** init, login, su,
   passwd, rlogin, rsh, rdist, sliplogin, mail.local and chpass are
   installed immutable, which securelevel 1 will not undo; Berkeley's

@@ -194,6 +194,14 @@ as the boot floppy image in floppy emulation.
 
 ## After Tier 1½ — self-hosting
 
+**Reached** (patches 168 to 170). From its own sources on its own CD,
+the system runs Berkeley's `make build` -- headers, libraries, the
+whole tree with contrib -- and builds its own kernel by config and
+make, the setup guide's way, and boots it as /vmunix: everything
+compiled by its own GCC 2.95.3 and linked by its own binutils
+(install.md, *The system builds itself*, *Its own kernel*). The work
+can move from the build machine to the system itself.
+
 The system building itself. Lite2 has no compiler for its i386: its
 contrib/gcc-2.3.3 carries Berkeley's BSD-make Makefile for hp300,
 luna68k, mips and sparc and not the i386, and contrib/gas-1.38 and
@@ -359,9 +367,13 @@ took (docs/deferred.md, *The whole tree by `make build`*):
 Lite2's contrib/Makefile is the plan -- its programs, their own build
 systems and Lite2's /usr/contrib, not the descendants' gnu/ and ports
 -- taken up one by one, the C programs first and the two in C++,
-groff and libg++, after GCC's C++ (below). Built in object directories,
-as every descendant built them, OpenBSD's Makefile.bsd-wrapper way
-for those configured by GNU's configure (decided 2026-10-16).
+groff and libg++, after GCC's C++ (below). Built among their
+sources, as Berkeley built contrib -- its Makefile gives contrib no
+object directories -- and in a copy of their own only on another
+machine, as OpenBSD's perl wrapper built in place unless there was an
+object directory (decided 2026-10-19, superseding object directories
+for all, 2026-10-16); OpenBSD's Makefile.bsd-wrapper is the name of
+the file for those configured by GNU's configure.
 gcc-2.3.3, gas-1.38 and gdb-4.7.LBL are not named for the i386: they
 make and read a.out; GCC 2.95.3 and binutils 2.11.2 stand in, and a
 gdb that reads ELF is to come.
@@ -387,10 +399,10 @@ Left, with what each is known to need:
 
 	rcs-V5.6      its conf.h, which conf.sh writes by compiling and
 	              running test programs: as the BSDs of the time made
-	              theirs, on the system itself, once it has its
-	              compiler (decided 2026-10-16); then committed
-	emacs-18.57   dumps itself by running temacs: on the system, or
-	              not at all, until it self-hosts
+	              theirs, on the system itself, which now can
+	              (decided 2026-10-16); then committed
+	emacs-18.57   dumps itself by running temacs: on the system,
+	              which now builds itself
 	libg++-2.3    written for g++ 2.3; GCC 2.95.3's libstdc++ is
 	              the system's C++ library meanwhile
 
