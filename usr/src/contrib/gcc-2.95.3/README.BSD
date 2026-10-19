@@ -19,11 +19,12 @@ Notes for this system's distribution of gcc-2.95.3:
 
 3.  `make install' puts it where 4.4BSD put its GCC, under
     /usr/libexec/gcc2: the driver as gcc-2.95.3 and
-    gcc-i386-unknown-bsd4.4elf, the preprocessor as cpp, which
-    /usr/bin/cpp runs, and cc1, cpp0, collect2, libgcc.a and GCC's
-    headers in gcc-lib/i386-unknown-bsd4.4elf/2.95.3.  /usr/bin/gcc
-    is a symbolic link to the driver, and /usr/bin/cc to gcc.  The
-    pages, formatted, go in /usr/contrib/man/cat1.
+    gcc-i386-unknown-bsd4.4elf, GCC's cpp -- the driver that runs
+    cpp0 with the target's predefinitions, as NetBSD 1.6's /usr/bin/cpp
+    is -- as cpp, which /usr/bin/cpp runs, and cc1, cpp0, collect2,
+    libgcc.a and GCC's headers in gcc-lib/i386-unknown-bsd4.4elf/2.95.3.
+    /usr/bin/gcc is a symbolic link to the driver, and /usr/bin/cc to
+    gcc.  The pages, formatted, go in /usr/contrib/man/cat1.
 
 4.  And C++ where gcc-2.3.3 put it: cc1plus beside cc1; the g++
     driver as g++-2.95.3, with c++-2.95.3 linked to it, where

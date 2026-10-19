@@ -115,28 +115,30 @@ USNO=	usno1988 usno1989
 # target, which a build machine of another kind cannot run. The
 # name finds the tree's own zic built for the build machine, which
 # build/sysroot.sh puts first on the PATH, as FreeBSD 2.2's
-# build-tools did; on the system itself, the installed one.
+# build-tools did; after it on the PATH, the one just built, which is
+# the one found on the system itself, since Lite2 installs no zic.
 
 posix_only: ${TDATA}
 	(cd ${.CURDIR}/datfiles; \
-	    zic -d ${TZDIR} -L /dev/null ${TDATA})
+	    PATH=$$PATH:${.OBJDIR} zic -d ${TZDIR} -L /dev/null ${TDATA})
 
 right_only: leapseconds ${TDATA}
 	(cd ${.CURDIR}/datfiles; \
-	    zic -d ${TZDIR} -L leapseconds ${TDATA})
+	    PATH=$$PATH:${.OBJDIR} zic -d ${TZDIR} -L leapseconds ${TDATA})
 
 other_two: leapseconds ${TDATA}
 	(cd ${.CURDIR}/datfiles; \
-	    zic -d ${TZDIR}/posix -L /dev/null ${TDATA})
+	    PATH=$$PATH:${.OBJDIR} zic -d ${TZDIR}/posix -L /dev/null ${TDATA})
 	(cd ${.CURDIR}/datfiles; \
-	    zic -d ${TZDIR}/right -L leapseconds ${TDATA})
+	    PATH=$$PATH:${.OBJDIR} zic -d ${TZDIR}/right -L leapseconds ${TDATA})
 
 posix_right: posix_only other_two
 
 right_posix: right_only other_two
 
 install: maninstall ${DATA} ${REDO}
-	(cd ${.CURDIR}/datfiles && zic -d ${TZDIR} -p ${POSIXRULES})
+	(cd ${.CURDIR}/datfiles && PATH=$$PATH:${.OBJDIR} \
+	    zic -d ${TZDIR} -p ${POSIXRULES})
 	install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 	    ${TZDIR}/${LOCALTIME} ${DESTDIR}/etc/localtime
 	chown -R ${BINOWN}.${BINGRP} ${TZDIR}

@@ -28,15 +28,17 @@ install: ${SRCS} ${BLDS}
 # PATH: on a build machine of another kind that is the tree's own
 # strfile built for it, which build/sysroot.sh puts first on the
 # PATH, as FreeBSD's build-tools did; Lite2's ../strfile/obj/strfile
-# is a program for the target. And tr for /usr/games/caesar 13, which
-# is the build machine's and may not be there; NetBSD 1.6's uses tr
-# too.
+# is a program for the target. Then where the build left it: in the
+# object directory beside this one, or, on this system, where `make
+# obj' makes none here, in Lite2's ../strfile/obj. And tr for
+# /usr/games/caesar 13, which is the build machine's and may not be
+# there; NetBSD 1.6's uses tr too.
 fortunes.dat fortunes2.dat fortunes2-o.dat limerick.dat startrek.dat zippy.dat:
-	PATH=$$PATH:${.OBJDIR}/../strfile \
+	PATH=$$PATH:${.OBJDIR}/../strfile:${.CURDIR}/../strfile/obj \
 	    strfile -rs ${.CURDIR}/${.TARGET:R} ${.TARGET}
 
 fortunes-o.dat: fortunes-o
-	PATH=$$PATH:${.OBJDIR}/../strfile \
+	PATH=$$PATH:${.OBJDIR}/../strfile:${.CURDIR}/../strfile/obj \
 	    strfile -rsx fortunes-o ${.TARGET}
 
 fortunes-o: fortunes-o.${TYPE}

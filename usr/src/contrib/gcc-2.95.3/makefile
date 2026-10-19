@@ -4,8 +4,12 @@
 # this system and installed where Lite2's own GCC was installed
 # (contrib/gcc-2.3.3's Makefile, and etc/mtree/4.4BSD.usr): under
 # /usr/libexec/gcc2 -- the driver as gcc-2.95.3, with
-# gcc-i386-unknown-bsd4.4elf linked to it; cccp as /usr/libexec/gcc2/cpp,
-# which usr.bin/cpp's script runs; cc1, cpp0, collect2, libgcc.a and
+# gcc-i386-unknown-bsd4.4elf linked to it; GCC's cpp, the driver that
+# runs cpp0 as gcc -E does, as /usr/libexec/gcc2/cpp, which usr.bin/cpp's
+# script runs -- NetBSD 1.6's /usr/bin/cpp is the same driver: GCC 2.95
+# gives the target's predefinitions (__ELF__, unix, __i386__) to the
+# preprocessor through its drivers, and cccp alone, which gcc-2.3.3
+# installed there, knows none of them; cc1, cpp0, collect2, libgcc.a and
 # GCC's own headers in gcc-lib/i386-unknown-bsd4.4elf/2.95.3 -- and
 # /usr/bin/gcc a symbolic link to the driver, as gcc-2.3.3's install
 # meant to make it (its line lacks the separator that would run it).
@@ -49,6 +53,10 @@
 #
 # Installed by name, from the build directory, and not by GNU's
 # install targets, which know no DESTDIR.
+#
+# A directory is made only if it is not there, as share/mk's obj
+# target makes its own: Lite2's mkdir -p, unlike POSIX's, fails on a
+# directory that exists.
 
 CONFIG=		i386-unknown-bsd4.4elf
 VERSION=	2.95.3
@@ -94,7 +102,7 @@ BUILDCC=	${CC}
 
 all:
 .if ${MACHINE} == "i386"
-	mkdir -p ${BUILD}
+	test -d ${BUILD} || mkdir -p ${BUILD}
 	cd ${BUILD} && { [ -f config.status ] || \
 	    LD_PRELOAD= CC_FOR_BUILD="${BUILDCC}" CC="${CC}" \
 	    sh ${.CURDIR}/configure ${CROSS} --host=${CONFIG} \
@@ -102,6 +110,7 @@ all:
 	    --with-gnu-as --with-gnu-ld --enable-languages=c,c++ --disable-nls \
 	    --with-gxx-include-dir=${PREFIX}/g++-include; }
 	cd ${BUILD} && ${MAKE} MAKEINFO=true ${CROSSFLAGS} all-gcc
+	cd ${BUILD}/gcc && ${MAKE} MAKEINFO=true ${CROSSFLAGS} cpp
 	cd ${BUILD} && LD_PRELOAD= ${MAKE} MAKEINFO=true ${CROSSFLAGS} \
 	    all-target-libstdc++
 	nroff -man ${.CURDIR}/gcc/gcc.1 > ${BUILD}/gcc.0
@@ -111,7 +120,8 @@ all:
 
 install:
 .if ${MACHINE} == "i386"
-	mkdir -p ${DESTDIR}${LIBSUBDIR}/include
+	test -d ${DESTDIR}${LIBSUBDIR}/include || \
+	    mkdir -p ${DESTDIR}${LIBSUBDIR}/include
 	install -c -s -o ${BINOWN} -g ${BINGRP} -m 555 ${BUILD}/gcc/xgcc \
 	    ${DESTDIR}${PREFIX}/gcc-${VERSION}
 	rm -f ${DESTDIR}${PREFIX}/gcc-${CONFIG}
@@ -120,7 +130,7 @@ install:
 	    ${DESTDIR}${PREFIX}/g++-${VERSION}
 	rm -f ${DESTDIR}${PREFIX}/c++-${VERSION}
 	ln ${DESTDIR}${PREFIX}/g++-${VERSION} ${DESTDIR}${PREFIX}/c++-${VERSION}
-	install -c -s -o ${BINOWN} -g ${BINGRP} -m 555 ${BUILD}/gcc/cccp \
+	install -c -s -o ${BINOWN} -g ${BINGRP} -m 555 ${BUILD}/gcc/cpp \
 	    ${DESTDIR}${PREFIX}/cpp
 	for f in cc1 cc1plus cpp0 collect2; do \
 		install -c -s -o ${BINOWN} -g ${BINGRP} -m 555 \
@@ -134,7 +144,7 @@ install:
 	done
 	install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 	    ${TBUILD}/libstdc++/libstdc++.a ${DESTDIR}${LIBSUBDIR}/libstdc++.a
-	mkdir -p ${DESTDIR}${GXXINC}/std
+	test -d ${DESTDIR}${GXXINC}/std || mkdir -p ${DESTDIR}${GXXINC}/std
 	cd ${.CURDIR}/libstdc++ && for f in ${STDCXXHDRS}; do \
 		if [ -f stl/$$f ]; then s=stl/$$f; else s=$$f; fi; \
 		install -c -o ${BINOWN} -g ${BINGRP} -m 444 $$s \

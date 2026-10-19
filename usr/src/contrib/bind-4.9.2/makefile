@@ -25,9 +25,15 @@ BUILD=	${.CURDIR}/obj.${MACHINE}
 TOOLPATH=	PATH=${CC:H:H}/${CC:T:S/-gcc$//}/bin:$$PATH
 .endif
 
+# AI-ONLY NOTE: the copy leaves out obj.${MACHINE}, where it is made
+# on a build with no MAKEOBJDIRPREFIX, inside this directory. Its
+# directory is made only if it is not there, as share/mk's obj target
+# makes its own: Lite2's mkdir -p, unlike POSIX's, fails on one that
+# exists.
 all:
-	mkdir -p ${BUILD}
-	[ -f ${BUILD}/Makefile ] || (cd ${.CURDIR} && pax -rw -pp . ${BUILD})
+	test -d ${BUILD} || mkdir -p ${BUILD}
+	[ -f ${BUILD}/Makefile ] || (cd ${.CURDIR} && \
+	    pax -rw -pp -s ',^\./obj\.${MACHINE}.*$$,,' . ${BUILD})
 	rm -f ${BUILD}/makefile
 	cd ${BUILD} && ${TOOLPATH} ${MAKE} -f Makefile CC="${CC}" all
 

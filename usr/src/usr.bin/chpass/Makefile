@@ -14,9 +14,11 @@ MLINKS=	chpass.1 chfn.1 chpass.1 chsh.1
 # for another machine -- it would set the flag on the build machine's
 # chpass, or fail there, and a file's flags do not travel in the
 # distribution's ustar archive anyway; the installer sets this one on
-# the new system (distrib/i386/floppies/inst/dot.instutils).
+# the new system (distrib/i386/floppies/inst/dot.instutils). Asked
+# by defined(), since Lite2's make takes empty() of a variable no one
+# set as an error.
 afterinstall:
-.if empty(DESTDIR)
+.if !defined(DESTDIR)
 	chflags schg /usr/bin/chpass
 .endif
 

@@ -47,7 +47,13 @@ NOOBJ=	noobj
 # source (``symlinks''), or a separate copy (``copies''); (latter useful
 # in environments where it's not possible to keep /sys publicly readable)
 # SHARED=	copies
-SHARED=	symlinks
+# AI-ONLY NOTE: copies by default, as NetBSD 1.0's and OpenBSD's
+# include/Makefile have it (SYS_INCLUDE?= copies), and as the release
+# installs them: a system built from its own sources finds
+# /usr/include/machine a directory, which symlinks' rm -f cannot
+# remove, and copies need no /sys. SHARED=symlinks still chooses
+# Berkeley's.
+SHARED?=	copies
 
 install: ${SHARED}
 	@echo installing ${FILES}
