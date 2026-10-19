@@ -10,6 +10,16 @@ EX=	nex
 VIEW=	nview
 PROG=	nvi
 LINKS=	${BINDIR}/${VI} ${BINDIR}/${EX} ${BINDIR}/${VI} ${BINDIR}/${VIEW}
+# AI-ONLY NOTE: and as vi, ex and view, FreeBSD 2.0's two lines
+# (usr.bin/vi/common/Makefile), there with nvi in /usr/bin and here
+# into /usr/bin from /usr/contrib/bin: where Lite2's own programs
+# look for them -- <paths.h>'s _PATH_VI, which vipw, chpass,
+# disklabel -e, edquota and more run, and mail's _PATH_EX -- and where
+# Berkeley's own vi and ex, which usr.bin/Makefile still names, were.
+# The pages linked too, as FreeBSD 2.2's lines link them.
+LINKS+= ${BINDIR}/${VI} /usr/bin/vi ${BINDIR}/${EX} /usr/bin/ex
+LINKS+= ${BINDIR}/${VI} /usr/bin/view
+MLINKS=	nvi.1 vi.1 nvi.1 ex.1 nvi.1 view.1
 
 #CFLAGS=-g -DDEBUG #-DCOMLOG
 #CFLAGS+=-pg
