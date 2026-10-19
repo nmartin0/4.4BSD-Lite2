@@ -8,12 +8,14 @@
 # etc/mtree/4.4BSD.usr makes, and its pages in /usr/contrib/man, all
 # under ${DESTDIR}, which those Makefiles take.
 #
-# Those Makefiles build among the sources and name one another's
-# directories, ../h and ../sbr, so they are run in a copy of these
-# sources in a directory of their own -- the object directory when the
-# build has one, obj.${MACHINE} here when not -- as the descendants'
-# ports build a program in a copy of its sources, and are not run
-# here, which they would fill with objects.
+# Built here, among the sources, where Berkeley built all its
+# contributed software -- contrib/Makefile gives contrib no object
+# directories -- and in a directory of its own only when the build has
+# one, MAKEOBJDIRPREFIX, as on another machine, whose build leaves
+# the sources as they are: as OpenBSD's perl wrapper (downsj, 1996)
+# builds in place unless there is an object directory. There it
+# builds in a copy of these sources, since the Makefiles name one
+# another's directories, ../h and ../sbr.
 #
 # They run cc, ld, ar and ranlib by those names. On another machine
 # they are its own, so the PATH begins with the directory where GCC
@@ -23,23 +25,19 @@
 .if defined(MAKEOBJDIRPREFIX)
 BUILD=	${MAKEOBJDIRPREFIX}${.CURDIR}
 .else
-BUILD=	${.CURDIR}/obj.${MACHINE}
+BUILD=	${.CURDIR}
 .endif
 
 .if !empty(CC:M*-gcc)
 TOOLPATH=	PATH=${CC:H:H}/${CC:T:S/-gcc$//}/bin:$$PATH
 .endif
 
-# AI-ONLY NOTE: the copy leaves out obj.${MACHINE}, where it is made
-# on a build with no MAKEOBJDIRPREFIX, inside this directory. Its
-# directory is made only if it is not there, as share/mk's obj target
-# makes its own: Lite2's mkdir -p, unlike POSIX's, fails on one that
-# exists.
 all:
-	test -d ${BUILD} || mkdir -p ${BUILD}
-	[ -f ${BUILD}/Makefile ] || (cd ${.CURDIR} && \
-	    pax -rw -pp -s ',^\./obj\.${MACHINE}.*$$,,' . ${BUILD})
+.if defined(MAKEOBJDIRPREFIX)
+	mkdir -p ${BUILD}
+	[ -f ${BUILD}/Makefile ] || (cd ${.CURDIR} && pax -rw -pp . ${BUILD})
 	rm -f ${BUILD}/makefile
+.endif
 	cd ${BUILD} && ${TOOLPATH} ${MAKE} -f Makefile all
 
 install:
@@ -47,6 +45,10 @@ install:
 	    inst-all
 
 clean cleandir:
+.if defined(MAKEOBJDIRPREFIX)
 	rm -rf ${BUILD}
+.else
+	cd ${BUILD} && ${MAKE} -f Makefile clean
+.endif
 
 depend lint obj tags:

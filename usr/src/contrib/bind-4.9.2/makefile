@@ -5,36 +5,37 @@
 # /usr/libexec, nslookup, dig and host, the pages -- built by its own
 # Makefiles, all and install, under ${DESTDIR}, which they take.
 #
-# Those Makefiles build among the sources, and its own `links' target,
-# which makes a tree of links to build in elsewhere, wants res/ and
-# compat/, which Lite2's copy does not have; so they are run in a copy
-# of these sources in a directory of their own -- the object directory
-# when the build has one, obj.${MACHINE} here when not -- as MH's are
-# (contrib/mh-6.8.3a/makefile), and not here. CC is given on the
-# command line, which its Makefile passes down in MFLAGS; ranlib, ld
-# and the like are run by name, so the PATH begins with GCC's and
-# binutils' tooldir, their target's tools by those names.
+# Built here, among the sources, where Berkeley built all its
+# contributed software -- contrib/Makefile gives contrib no object
+# directories -- and in a directory of its own only when the build has
+# one, MAKEOBJDIRPREFIX, as on another machine, whose build leaves
+# the sources as they are: as OpenBSD's perl wrapper (downsj, 1996)
+# builds in place unless there is an object directory. There it
+# builds in a copy of these sources: BIND's own `links' target, which
+# makes a tree of links to build in elsewhere, wants res/ and compat/,
+# which Lite2's copy does not have.
+#
+# CC is given on the command line, which its Makefile passes down in
+# MFLAGS; ranlib, ld and the like are run by name, so the PATH begins
+# with GCC's and binutils' tooldir, their target's tools by those
+# names.
 
 .if defined(MAKEOBJDIRPREFIX)
 BUILD=	${MAKEOBJDIRPREFIX}${.CURDIR}
 .else
-BUILD=	${.CURDIR}/obj.${MACHINE}
+BUILD=	${.CURDIR}
 .endif
 
 .if !empty(CC:M*-gcc)
 TOOLPATH=	PATH=${CC:H:H}/${CC:T:S/-gcc$//}/bin:$$PATH
 .endif
 
-# AI-ONLY NOTE: the copy leaves out obj.${MACHINE}, where it is made
-# on a build with no MAKEOBJDIRPREFIX, inside this directory. Its
-# directory is made only if it is not there, as share/mk's obj target
-# makes its own: Lite2's mkdir -p, unlike POSIX's, fails on one that
-# exists.
 all:
-	test -d ${BUILD} || mkdir -p ${BUILD}
-	[ -f ${BUILD}/Makefile ] || (cd ${.CURDIR} && \
-	    pax -rw -pp -s ',^\./obj\.${MACHINE}.*$$,,' . ${BUILD})
+.if defined(MAKEOBJDIRPREFIX)
+	mkdir -p ${BUILD}
+	[ -f ${BUILD}/Makefile ] || (cd ${.CURDIR} && pax -rw -pp . ${BUILD})
 	rm -f ${BUILD}/makefile
+.endif
 	cd ${BUILD} && ${TOOLPATH} ${MAKE} -f Makefile CC="${CC}" all
 
 install:
@@ -42,6 +43,10 @@ install:
 	    DESTDIR=${DESTDIR} install
 
 clean cleandir:
+.if defined(MAKEOBJDIRPREFIX)
 	rm -rf ${BUILD}
+.else
+	cd ${BUILD} && ${MAKE} -f Makefile clean
+.endif
 
 depend lint obj tags:

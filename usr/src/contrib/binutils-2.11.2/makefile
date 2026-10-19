@@ -10,9 +10,14 @@
 #
 # GNU's configure and its own Makefiles do the work, as gdb-4.7.LBL's
 # and gcc-2.3.3's makefiles have them do, run by this system's make.
-# Built in a directory of its own -- the object directory when the
-# build has one, obj.${MACHINE} here when not -- rather than among the
-# sources, which configure would otherwise fill. Installed by name,
+# Built here, among the sources, where Berkeley built all its
+# contributed software, gcc-2.3.3 and gdb-4.7.LBL among it --
+# contrib/Makefile gives contrib no object directories -- and in a
+# directory of its own only when the build has one, MAKEOBJDIRPREFIX,
+# as on another machine, whose build leaves the sources as they are:
+# as OpenBSD's perl wrapper (downsj, 1996) builds in place unless there
+# is an object directory. GNU's Makefile is named, -f Makefile, as
+# gcc-2.3.3's makefile names it, beside this one. Installed by name,
 # program by program, and not by GNU's install targets: those copy
 # as, ld, nm and strip to ${prefix} without ${DESTDIR}, onto the
 # machine doing the build.
@@ -31,8 +36,10 @@ HOSTCC?=	cc
 
 .if defined(MAKEOBJDIRPREFIX)
 BUILD=	${MAKEOBJDIRPREFIX}${.CURDIR}
+CONFIGURE=	${.CURDIR}/configure
 .else
-BUILD=	${.CURDIR}/obj.${MACHINE}
+BUILD=	${.CURDIR}
+CONFIGURE=	./configure
 .endif
 
 # program	built as
@@ -67,23 +74,24 @@ MANS=	addr2line	binutils/addr2line.1 \
 	strings		binutils/strings.1 \
 	strip		binutils/strip.1
 
-# AI-ONLY NOTE: the build directory is made only if it is not there,
-# as share/mk's obj target makes its own: Lite2's mkdir -p, unlike
-# POSIX's, fails on one that exists.
 all:
 .if ${MACHINE} == "i386"
-	test -d ${BUILD} || mkdir -p ${BUILD}
+.if defined(MAKEOBJDIRPREFIX)
+	mkdir -p ${BUILD}
+.endif
 	cd ${BUILD} && { [ -f config.status ] || \
-	    LD_PRELOAD= CC_FOR_BUILD="${HOSTCC}" sh ${.CURDIR}/configure \
+	    LD_PRELOAD= CC_FOR_BUILD="${HOSTCC}" sh ${CONFIGURE} \
 	    --host=${CONFIG} --target=${CONFIG} --prefix=/usr --disable-nls; }
-	cd ${BUILD} && ${MAKE} MAKEINFO=true \
+	cd ${BUILD} && ${MAKE} -f Makefile MAKEINFO=true \
 	    all-gas all-ld all-binutils all-gprof
 .endif
 
 # AI-ONLY NOTE: strip is stripped before it is installed, by the strip
-# already there, and installed without -s: install -s runs
-# /usr/bin/strip on what it has just put there, and on this system
-# that is the new strip itself, still mode 0600, which cannot run.
+# already there, and installed without -s, as FreeBSD 3.0's
+# gnu/usr.bin/binutils/strip/Makefile does it (jdp, 1998): install -s
+# runs /usr/bin/strip on what it has just put there, and on this
+# system that is the new strip itself, still mode 0600, which cannot
+# run.
 install:
 .if ${MACHINE} == "i386"
 	@set ${PROGS}; while [ $$# -ge 2 ]; do \
@@ -113,6 +121,11 @@ install:
 .endif
 
 clean cleandir:
+.if defined(MAKEOBJDIRPREFIX)
 	rm -rf ${BUILD}
+.else
+	cd ${BUILD} && { [ ! -f Makefile ] || ${MAKE} -f Makefile distclean; }
+	rm -f ${BUILD}/binutils/strip-new.s
+.endif
 
 depend lint obj tags:

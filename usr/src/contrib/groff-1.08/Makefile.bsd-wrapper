@@ -14,9 +14,13 @@
 # This file is read rather than that Makefile because it is here
 # (share/mk/bsd.subdir.mk, OpenBSD's Makefile.bsd-wrapper).
 #
-# The Makefile builds among the sources, so it is run in a copy of
-# them in a directory of its own -- the object directory when the
-# build has one, obj.${MACHINE} here when not -- as perl's are.
+# Built here, among the sources, where Berkeley built all its
+# contributed software -- contrib/Makefile gives contrib no object
+# directories -- and in a copy of them in a directory of its own only
+# when the build has one, MAKEOBJDIRPREFIX, as on another machine,
+# whose build leaves the sources as they are: as OpenBSD's perl
+# wrapper (downsj, 1996) builds in place unless there is an object
+# directory.
 #
 # CCC, the C++ compiler, is ${CC}, as Berkeley's was gcc: GCC compiles
 # C++ by a file's suffix, and links groff's programs with libgcc,
@@ -31,10 +35,12 @@
 #
 # Not soelim: the system has Lite2's own, usr.bin/soelim, and NetBSD
 # 1.0 built its groff without groff's ("BSD already provides
-# soelim"). Nor groff's me(7), for its own -me, tmac.groff_me here:
-# it would replace Lite2's me(7), for Berkeley's -me, tmac.e, which
-# stays the system's, as NetBSD 1.0 kept BSD's; in the copy, tmac's
-# list of pages names groff_ms(7) alone. The pages are formatted by
+# soelim"). Its me(7), for its own -me, tmac.groff_me here, is
+# installed as Berkeley's Makefile.sub lists it, and Lite2's me(7),
+# for Berkeley's -me, tmac.e, installed after it by share/me -- the
+# top-level Makefile makes contrib before share -- replaces it, so
+# Berkeley's page stays the system's, as NetBSD 1.0 kept BSD's. The
+# pages are formatted by
 # `nroff -man' as they are installed, Berkeley's change to
 # Makefile.comm, whose test of each list of pages is quoted here, so
 # that a list of two is not skipped: by the build machine's groff
@@ -43,7 +49,7 @@
 .if defined(MAKEOBJDIRPREFIX)
 BUILD=	${MAKEOBJDIRPREFIX}${.CURDIR}
 .else
-BUILD=	${.CURDIR}/obj.${MACHINE}
+BUILD=	${.CURDIR}
 .endif
 
 BINOWN?=	bin
@@ -57,21 +63,14 @@ GFLAGS=		CC="${CC}" CCC="${CC} -fno-for-scope -fpermissive -w" \
 TOOLPATH=	PATH=${CC:H:H}/${CC:T:S/-gcc$//}/bin:$$PATH
 .endif
 
-# AI-ONLY NOTE: the copy leaves out obj.${MACHINE}, where it is made
-# on a build with no MAKEOBJDIRPREFIX, inside this directory. Its
-# directory is made only if it is not there, as share/mk's obj target
-# makes its own: Lite2's mkdir -p, unlike POSIX's, fails on one that
-# exists.
 all:
-	test -d ${BUILD} || mkdir -p ${BUILD}
+.if defined(MAKEOBJDIRPREFIX)
+	mkdir -p ${BUILD}
 	if [ ! -f ${BUILD}/config.status ]; then \
-		(cd ${.CURDIR} && pax -rw -pp \
-		    -s ',^\./obj\.${MACHINE}.*$$,,' . ${BUILD}); \
+		(cd ${.CURDIR} && pax -rw -pp . ${BUILD}); \
 		rm -f ${BUILD}/Makefile.bsd-wrapper; \
-		sed 's/^MAN7=groff_ms.n me.n$$/MAN7=groff_ms.n/' \
-		    ${BUILD}/tmac/Makefile.sub > ${BUILD}/tmac/Makefile.sub.tmp; \
-		mv ${BUILD}/tmac/Makefile.sub.tmp ${BUILD}/tmac/Makefile.sub; \
 	fi
+.endif
 	cd ${BUILD} && ${TOOLPATH} ${MAKE} -f Makefile ${GFLAGS} all
 
 install:
@@ -83,6 +82,10 @@ install:
 	    install
 
 clean cleandir:
+.if defined(MAKEOBJDIRPREFIX)
 	rm -rf ${BUILD}
+.else
+	cd ${BUILD} && ${MAKE} -f Makefile clean
+.endif
 
 depend lint obj tags:

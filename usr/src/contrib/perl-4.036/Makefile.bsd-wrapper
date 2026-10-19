@@ -12,13 +12,16 @@
 # This file is read rather than that makefile because it is here
 # (share/mk/bsd.subdir.mk, OpenBSD's Makefile.bsd-wrapper).
 #
-# The makefile builds among the sources, so it is run in a copy of
-# them in a directory of its own -- the object directory when the
-# build has one, obj.${MACHINE} here when not -- as MH's are. In the
-# copy, the makefile's and x2p's lists of the system headers each
-# object depends on, /usr/include/..., name the target's, under
-# ${DESTDIR}: they are the same files, and on another machine
-# /usr/include is that machine's. cflags runs cc by name, so the PATH
+# Built here, among the sources, where Berkeley built all its
+# contributed software -- contrib/Makefile gives contrib no object
+# directories -- and in a copy of them in a directory of its own only
+# when the build has one, MAKEOBJDIRPREFIX, as on another machine,
+# whose build leaves the sources as they are: as OpenBSD's perl
+# wrapper (downsj, 1996) builds in place unless there is an object
+# directory. In that copy only, the makefile's and x2p's lists of the
+# system headers each object depends on, /usr/include/..., name the
+# target's, under ${DESTDIR}: they are the same files, and on another
+# machine /usr/include is that machine's. cflags runs cc by name, so the PATH
 # begins with GCC's and binutils' tooldir; YACC is this tree's yacc,
 # which the makefile names as /usr/bin/yacc.
 #
@@ -39,23 +42,18 @@ PAGES=		perl.man h2ph.man x2p/s2p.man x2p/a2p.man
 .if defined(MAKEOBJDIRPREFIX)
 BUILD=	${MAKEOBJDIRPREFIX}${.CURDIR}
 .else
-BUILD=	${.CURDIR}/obj.${MACHINE}
+BUILD=	${.CURDIR}
 .endif
 
 .if !empty(CC:M*-gcc)
 TOOLPATH=	PATH=${CC:H:H}/${CC:T:S/-gcc$//}/bin:$$PATH
 .endif
 
-# AI-ONLY NOTE: the copy leaves out obj.${MACHINE}, where it is made
-# on a build with no MAKEOBJDIRPREFIX, inside this directory. Its
-# directory is made only if it is not there, as share/mk's obj target
-# makes its own: Lite2's mkdir -p, unlike POSIX's, fails on one that
-# exists.
 all:
-	test -d ${BUILD} || mkdir -p ${BUILD}
+.if defined(MAKEOBJDIRPREFIX)
+	mkdir -p ${BUILD}
 	if [ ! -f ${BUILD}/config.sh ]; then \
-		(cd ${.CURDIR} && pax -rw -pp \
-		    -s ',^\./obj\.${MACHINE}.*$$,,' . ${BUILD}); \
+		(cd ${.CURDIR} && pax -rw -pp . ${BUILD}); \
 		rm -f ${BUILD}/Makefile.bsd-wrapper; \
 		for f in makefile x2p/makefile; do \
 			sed 's#: /usr/include/#: ${DESTDIR}/usr/include/#' \
@@ -63,6 +61,7 @@ all:
 			mv ${BUILD}/$$f.tmp ${BUILD}/$$f; \
 		done; \
 	fi
+.endif
 	cd ${BUILD} && ${TOOLPATH} ${MAKE} -f makefile YACC=yacc all
 	cd ${BUILD} && for f in ${PAGES}; do \
 		nroff -man $$f > `basename $$f .man`.0; \
@@ -91,6 +90,13 @@ install:
 	done
 
 clean cleandir:
+.if defined(MAKEOBJDIRPREFIX)
 	rm -rf ${BUILD}
+.else
+	cd ${BUILD} && ${MAKE} -f makefile clean
+	cd ${BUILD} && for f in ${PAGES}; do \
+		rm -f `basename $$f .man`.0; \
+	done
+.endif
 
 depend lint obj tags:
