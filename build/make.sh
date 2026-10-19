@@ -266,7 +266,18 @@ HOSTCC="$hostcc -m32 -std=gnu89"
 # own both stand as Berkeley wrote them. NetBSD builds its own the
 # same way, as nbyacc and nblex.
 YACC="yacc"
+# ZIC, STRFILE and CAESAR: the programs share/zoneinfo and
+# games/fortune/datfiles run while they build, which their Makefiles
+# take by default as Lite2 runs them -- this system's zic and strfile
+# just built, and its installed caesar -- and which a build machine of
+# another kind cannot run: the tree's own zic and strfile, which
+# sysroot.sh builds into the tools directory, and tr for the rot13, as
+# NetBSD 1.6 gives its build TOOL_ZIC and makes the rot13 with tr.
+ZIC=zic
+STRFILE=strfile
+CAESAR="tr a-zA-Z n-za-mN-ZA-M"
 export LC_ALL MACHINE MAKEFLAGS DESTDIR MAKEOBJDIRPREFIX PATH
 export LIBMODE CC CPP AS LD HOSTCC YACC
+export ZIC STRFILE CAESAR
 
 exec bmake "$@"

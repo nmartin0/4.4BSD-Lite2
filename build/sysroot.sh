@@ -326,10 +326,11 @@ ln -sf "$(command -v bmake)" "$TOOLS/make"
 # zic, cap_mkdb, strfile and col, for the data the build makes with
 # them: share/zoneinfo's zones, termcap.db and vgrindefs.db, fortune's
 # .dat files, and the whatis database. Lite2's Makefiles run them on
-# the machine doing the
-# build -- zic and strfile as just built, which here are programs for
-# the target -- so the tree's own are built for this machine and put
-# first on the PATH, and the Makefiles call them by name: FreeBSD
+# the machine doing the build -- zic and strfile as just built, which
+# here are programs for the target -- so the tree's own are built for
+# this machine and put first on the PATH: cap_mkdb and col the
+# Makefiles call by name, and zic and strfile make.sh gives them as
+# ZIC and STRFILE, as NetBSD 1.6 gives its build TOOL_ZIC. FreeBSD
 # 2.2's build-tools (1997), which built zic, cap_mkdb and the rest
 # from its own tree and installed them where its build looked first
 # -- col among them -- and FreeBSD 4.0's, which added strfile. (col

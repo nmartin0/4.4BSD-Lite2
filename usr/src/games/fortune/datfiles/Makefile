@@ -23,25 +23,27 @@ install: ${SRCS} ${BLDS}
 	install -o ${BINOWN} -g ${BINGRP} -m 444 ${BLDS} \
 	    ${DESTDIR}/usr/share/games/fortune
 
-# AI-ONLY NOTE: strfile and the rot13 as FreeBSD 4.0's Makefile runs
-# them. strfile by name, the strfile just built after anything on the
-# PATH: on a build machine of another kind that is the tree's own
-# strfile built for it, which build/sysroot.sh puts first on the
-# PATH, as FreeBSD's build-tools did; Lite2's ../strfile/obj/strfile
-# is a program for the target. Then where the build left it: in the
-# object directory beside this one, or, on this system, where `make
-# obj' makes none here, in Lite2's ../strfile/obj. And tr for
-# /usr/games/caesar 13, which is the build machine's and may not be
-# there; NetBSD 1.6's uses tr too.
+# AI-ONLY NOTE: Lite2's own commands, as STRFILE and CAESAR -- the
+# strfile just built, in ../strfile/obj, which FreeBSD 2.0 kept as
+# Lite2 had it, and the installed caesar, which games/ installs before
+# fortune -- named as variables as NetBSD 1.0's Makefile names STRFILE
+# and FreeBSD 2.2's CAESAR, and set by ?=, as NetBSD 1.6 sets its
+# ZIC, so that a build on a machine of another kind, which cannot run
+# this system's programs, gives its own: build/make.sh gives
+# STRFILE=strfile, the tree's own built for the build machine, which
+# build/sysroot.sh puts first on the PATH, and CAESAR as tr, as
+# OpenBSD (1996), NetBSD 1.6 and FreeBSD 4.0 make the rot13.
+STRFILE?=	${.CURDIR}/../strfile/obj/strfile
+CAESAR?=	/usr/games/caesar 13
+
 fortunes.dat fortunes2.dat fortunes2-o.dat limerick.dat startrek.dat zippy.dat:
-	PATH=$$PATH:${.OBJDIR}/../strfile:${.CURDIR}/../strfile/obj \
-	    strfile -rs ${.CURDIR}/${.TARGET:R} ${.TARGET}
+	${STRFILE} -rs \
+	    ${.CURDIR}/${.TARGET:R} ${.TARGET}
 
 fortunes-o.dat: fortunes-o
-	PATH=$$PATH:${.OBJDIR}/../strfile:${.CURDIR}/../strfile/obj \
-	    strfile -rsx fortunes-o ${.TARGET}
+	${STRFILE} -rsx fortunes-o ${.TARGET}
 
 fortunes-o: fortunes-o.${TYPE}
-	tr a-zA-Z n-za-mN-ZA-M < ${.ALLSRC} > ${.TARGET}
+	${CAESAR} < ${.ALLSRC} > ${.TARGET}
 
 .include <bsd.prog.mk>

@@ -110,35 +110,35 @@ TDATA=	${YDATA} ${NDATA} ${SDATA}
 DATA=	${YDATA} ${NDATA} ${SDATA} leapseconds
 USNO=	usno1988 usno1989
 
-# AI-ONLY NOTE: zic by name, as FreeBSD 2.0's Makefile runs it, and
-# not ../obj/zic, the one just built: that is a program for the
-# target, which a build machine of another kind cannot run. The
-# name finds the tree's own zic built for the build machine, which
-# build/sysroot.sh puts first on the PATH, as FreeBSD 2.2's
-# build-tools did; after it on the PATH, the one just built, which is
-# the one found on the system itself, since Lite2 installs no zic.
+# AI-ONLY NOTE: Lite2's ../obj/zic, the zic just built, as ZIC, as
+# NetBSD 1.0's Makefile names it (ZIC=${.OBJDIR}/zic, rev. 1.11): Lite2
+# installs no zic. Set by ?=, as NetBSD 1.6's is (ZIC?=zic), so that a
+# build on a machine of another kind, which cannot run this system's
+# program, gives its own: build/make.sh gives ZIC=zic, the tree's own
+# zic built for the build machine, which build/sysroot.sh puts first
+# on the PATH.
+ZIC?=	${.OBJDIR}/zic
 
 posix_only: ${TDATA}
 	(cd ${.CURDIR}/datfiles; \
-	    PATH=$$PATH:${.OBJDIR} zic -d ${TZDIR} -L /dev/null ${TDATA})
+	    ${ZIC} -d ${TZDIR} -L /dev/null ${TDATA})
 
 right_only: leapseconds ${TDATA}
 	(cd ${.CURDIR}/datfiles; \
-	    PATH=$$PATH:${.OBJDIR} zic -d ${TZDIR} -L leapseconds ${TDATA})
+	    ${ZIC} -d ${TZDIR} -L leapseconds ${TDATA})
 
 other_two: leapseconds ${TDATA}
 	(cd ${.CURDIR}/datfiles; \
-	    PATH=$$PATH:${.OBJDIR} zic -d ${TZDIR}/posix -L /dev/null ${TDATA})
+	    ${ZIC} -d ${TZDIR}/posix -L /dev/null ${TDATA})
 	(cd ${.CURDIR}/datfiles; \
-	    PATH=$$PATH:${.OBJDIR} zic -d ${TZDIR}/right -L leapseconds ${TDATA})
+	    ${ZIC} -d ${TZDIR}/right -L leapseconds ${TDATA})
 
 posix_right: posix_only other_two
 
 right_posix: right_only other_two
 
 install: maninstall ${DATA} ${REDO}
-	(cd ${.CURDIR}/datfiles && PATH=$$PATH:${.OBJDIR} \
-	    zic -d ${TZDIR} -p ${POSIXRULES})
+	(cd ${.CURDIR}/datfiles && ${ZIC} -d ${TZDIR} -p ${POSIXRULES})
 	install -c -o ${BINOWN} -g ${BINGRP} -m 444 \
 	    ${TZDIR}/${LOCALTIME} ${DESTDIR}/etc/localtime
 	chown -R ${BINOWN}.${BINGRP} ${TZDIR}
