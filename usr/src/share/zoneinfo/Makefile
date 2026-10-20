@@ -34,7 +34,16 @@ TZDIR=	${DESTDIR}/usr/share/zoneinfo
 #	REDO=		right_posix
 # below.
 
-REDO=		right_only
+# AI-ONLY NOTE: posix_only, as NetBSD's Makefile has it from its
+# change of 2 September 1993 (cgd: "everything else in the world, i.e.
+# other UNIX boxes, and WWV, are == posix_only") -- NetBSD 0.9 to
+# today, OpenBSD from its start, and FreeBSD 2.0, whose leap seconds
+# come only with LEAPSECONDS. Berkeley's right_only, its choice since
+# Net/2, counted the 17 leap seconds of leapseconds in the clock, which
+# POSIX 1003.1 does not, so that date(1) and every program that works
+# from time(3) as POSIX defines it, rcs among them, differed by 17
+# seconds.
+REDO=		posix_only
 
 # If you're running on a System V-style system and don't want lint grief,
 # add
