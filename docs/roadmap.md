@@ -394,13 +394,12 @@ groff 1.08, the system's nroff, troff, tbl, eqn, pic, refer and the
 rest in /usr/bin, as Berkeley configured it, without groff's soelim
 and me(7), which would replace Lite2's own, as NetBSD 1.0 built it --
 built with GCC 2.95.3's C++, now built with it, g++ and c++ and its
-library, libstdc++ 2.10.0 (patch 164).
+library, libstdc++ 2.10.0 (patch 164); rcs 5.6, as Berkeley
+configured it but for GNU diff's lines, with the conf.h its conf.sh
+wrote on the system, kept as FreeBSD 2.0 kept the one Wollman
+regenerated (decided 2026-10-19, patch 172).
 Left, with what each is known to need:
 
-	rcs-V5.6      its conf.h, which conf.sh writes by compiling and
-	              running test programs: as the BSDs of the time made
-	              theirs, on the system itself, which now can
-	              (decided 2026-10-16); then committed
 	emacs-18.57   dumps itself by running temacs: on the system,
 	              which now builds itself
 	libg++-2.3    written for g++ 2.3; GCC 2.95.3's libstdc++ is

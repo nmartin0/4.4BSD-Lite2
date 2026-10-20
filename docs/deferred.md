@@ -750,6 +750,28 @@ Makefiles do not know.
   5.0 and NetBSD 1.3 to 1.6 have Berkeley's lines unchanged, and both
   fixed it only in later rewrites of evaltree. Found testing patch
   171; no Makefile in the tree is stopped by it.
+- ~~**Lite2's sh rejects a command of redirections only before &&
+  or ||**~~ **FIXED** (patch 172). `<file || echo missing' was a
+  syntax error; rcs's rcstest uses the form. NetBSD's parser.c 1.30's
+  two case labels, FreeBSD's since 1995. A command of redirections only
+  whose file cannot be opened still ends a shell that is not
+  interactive -- `sh -c "</nonexistent || echo no"' prints `cannot
+  open' and exits 2 -- where POSIX has only a special built-in's
+  redirection error do that. Found testing patch 172; not yet compared
+  with the other BSDs, and rcstest's own file always exists.
+- ~~**The clock counts leap seconds**~~ **FIXED** (patch 172).
+  Berkeley's zoneinfo REDO=right_only put Lite2's 17 leap seconds into
+  every zone, so date -u differed from POSIX time by 17 seconds and
+  rcstest failed on it; posix_only, NetBSD's since 1993, decided
+  2026-10-19. A system installed before 172 keeps the old zones until
+  share/zoneinfo is installed again.
+- **rcsmerge shows the common ancestor in an overlap.** RCS 5.6 runs
+  `diff3 -am', and GNU diff 2.6's diff3 takes -m as -A, so an overlap
+  carries a `|||||||' section and a temporary file's name as its last
+  label, where rcstest expects neither; the merge is otherwise right.
+  NetBSD 1.0 and FreeBSD 2.0 shipped the same, with this merger.c;
+  NetBSD changed it by moving to RCS 5.7. Every other check in
+  rcstest passes on the system.
 - **A second `make install` needs single user.** init, login, su,
   passwd, rlogin, rsh, rdist, sliplogin, mail.local and chpass are
   installed immutable, which securelevel 1 will not undo; Berkeley's

@@ -64,10 +64,12 @@ the boot blocks load the kernel throughout:
   (patch 170; install.md, *Its own kernel*). contrib builds among its
   sources, as Berkeley's did;
   GCC keeps its passes in /usr/libexec/gcc2, as Lite2's gcc-2.3.3 did;
-  nvi is also vi, ex and view in /usr/bin.
+  nvi is also vi, ex and view in /usr/bin; rcs is in /usr/contrib/bin,
+  with the conf.h its conf.sh wrote on the system (patch 172).
 - **The whole tree.** The base set is Berkeley's own top-level `make
   build` of the whole tree, contrib/ aside (patch 153): 179 programs
-  in /usr/bin, the games, the time zones, the dictionaries, termcap.db
+  in /usr/bin, the games, the time zones -- without leap seconds,
+  NetBSD's posix_only (patch 172) -- the dictionaries, termcap.db
   and whatis made at build time, make and share/mk. The system's own
   binutils 2.11.2 runs on it: as and ld assemble and link a program
   there against its libc, and strip and size work on it.

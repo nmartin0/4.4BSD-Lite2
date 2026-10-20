@@ -294,6 +294,16 @@ copied, and the commit names it with its release.
     ends the shell under -e, the three lines FreeBSD's eval.c 1.6
     (steve, 1996) and NetBSD's 1.31 (christos, 1996, PR 2808) both
     added, comment and all; FreeBSD 2.2 and NetBSD 1.2.1
+  bin/sh parser.c: a command of redirections only before && and ||,
+    TAND and TOR as NetBSD's parser.c 1.30 has them (christos, 1996,
+    PR 2808, "from FreeBSD"), FreeBSD's since 1995, FreeBSD 2.1
+  share/zoneinfo: REDO=posix_only, NetBSD's from 2 September 1993
+    (cgd), NetBSD 0.9 on; OpenBSD the same, FreeBSD 2.0 likewise
+    unless LEAPSECONDS
+  contrib/rcs-V5.6: GNU diff's lines of Berkeley's configuration
+    section, the values NetBSD 1.0's and FreeBSD 2.0's conf.h have;
+    conf.h made on the system by conf.sh and kept, as FreeBSD 2.0
+    kept Wollman's (1994), with the Makefile's own conf_h
   etc/root/dot.profile: TERM given a value before Berkeley's `export
     TERM for single user shells', FreeBSD 2.2's ${TERM:-cons25}, here
     pc3, Lite2's termcap entry for the console
