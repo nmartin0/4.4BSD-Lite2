@@ -56,15 +56,21 @@ default :: all
 #DIFF = $(DIFFPREFIX)rdiff# short for ``RCS diff'' on some hosts
 DIFF = $(DIFFPREFIX)diff
 
+# AI-ONLY NOTE: GNU diff 2.6, which is this system's diff and diff3 in
+# /usr/bin (contrib/diff-2.6), by this section's own lines for it:
+# DIFF_FLAGS, DIFF_L and DIFF3_BIN as GNU diff has them, the values
+# NetBSD 1.0's and FreeBSD 2.0's conf.h have; DIFFPREFIX and DIFF3
+# stay Berkeley's, the same directory. conf.h was made from these on
+# the system and is kept (conf_h, below, and ../makefile).
 #DIFFPREFIX = /usr/local/bin/# GNU diff -- must be version 1.15 or later
 #DIFFPREFIX = /bin/# traditional diff
 DIFFPREFIX = /usr/bin/# traditional diff (alternate name)
 
-#DIFF_FLAGS = -an# GNU diff
-DIFF_FLAGS = -n# traditional diff
+ DIFF_FLAGS = -an# GNU diff
+#DIFF_FLAGS = -n# traditional diff
 
-#DIFF_L = 1# GNU diff
-DIFF_L = 0# traditional diff
+ DIFF_L = 1# GNU diff
+#DIFF_L = 0# traditional diff
 
  DIFF_SUCCESS = 0
 #DIFF_SUCCESS = EXIT_SUCCESS
@@ -80,8 +86,8 @@ DIFF_L = 0# traditional diff
 #DIFF3 = /usr/lib/rdiff3
  DIFF3 = /usr/bin/diff3
 
-#DIFF3_BIN = 1# GNU diff
- DIFF3_BIN = 0# traditional diff
+ DIFF3_BIN = 1# GNU diff
+#DIFF3_BIN = 0# traditional diff
 
  ED = /bin/ed
 
