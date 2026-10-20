@@ -467,6 +467,16 @@ TRACE(("expecting DO got %s %s\n", tokname[got], got == TWORD ? wordtext : ""));
 		 */
 		if (!redir)
 			synexpect(-1);
+	/*
+	 * AI-ONLY NOTE: TAND and TOR as NetBSD's parser.c 1.30 has them
+	 * (christos, 16 October 1996, PR 2808, "from FreeBSD"), FreeBSD
+	 * having added them in 1995 ("handle null commands in &&/||",
+	 * FreeBSD 2.1): a command that is only redirections, `<file ||
+	 * echo missing', was a syntax error before && or ||. Shipped in
+	 * FreeBSD 2.1 and 2.2 and NetBSD 1.2.1.
+	 */
+	case TAND:
+	case TOR:
 	case TNL:
 	case TEOF:
 	case TWORD:
