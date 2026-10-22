@@ -729,11 +729,20 @@ Makefiles do not know.
   **FIXED** (patch 169): nvi is also vi, ex and view in /usr/bin, as
   FreeBSD 2.0 linked it, and root's .profile gives TERM a value in
   single user, as FreeBSD 2.2's does.
-- **The CD's termcap is ordered by the build machine's ex.** A cross
-  build runs share/termcap's `ex - termcap.src < reorder` with
-  whatever ex the build machine has, on Linux vim's. The system's own
-  build uses nvi. The tree's nvi has a Linux port (PORT/linux), which
-  build/sysroot.sh could build as it builds zic and strfile.
+- ~~**The CD's termcap is ordered by the build machine's ex.**~~
+  **CLOSED, checked** (2026-10-22). A cross build runs share/termcap's
+  `ex - termcap.src < reorder' with the build machine's ex, on Linux
+  vim's, where the system's own build uses nvi. The two make the same
+  file: Berkeley's reorder run by nvi on the system gave 172,285 bytes
+  with the CD's termcap's checksum. FreeBSD's buildworld did the same,
+  running the build machine's ex for this step -- its bootstrap tools
+  were strfile, yacc and config, never ex -- and ex is a POSIX
+  utility, assumed as sed and awk are, so build/sysroot.sh does not
+  check for it. Nothing else in the cross build runs ex: the Pascal
+  compilers' grammar step is VAX and Tahoe only, and the kernel's is
+  for profiling kernels. NetBSD dropped the reorder in 1995 (jtc)
+  because its termcap had become terminfo's, already in order; Lite2's
+  termcap.src is not.
 - ~~**Lite2's sh exits under -e when the first command of an && list
   fails**~~ **FIXED** (patch 171). `set -e; false && true' ended the
   shell, where POSIX has -e ignore it, and make runs every command
