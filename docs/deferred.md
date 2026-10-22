@@ -765,8 +765,9 @@ Makefiles do not know.
   NetBSD 1.5 (Husemann, January 2000) moved the test into evalcommand,
   losing subshells and pipelines; FreeBSD 5.3 (cracauer, December 2003
   and January 2004) tested commands and subshells only, losing
-  pipelines. Found testing patch 171. Still open, and kept out of
-  patch 178 as a separate bug: `if false; false; then' and a failing
+  pipelines. Found testing patch 171. Still open, kept out of patch
+  178 as a separate bug, and to be settled for 4.5BSD or 4.6BSD
+  (roadmap.md, *To settle*): `if false; false; then' and a failing
   command inside a function called as `f || true' end the shell, which
   FreeBSD's eval.c 1.45 and 1.46 (stefanf, the same day) fixed by
   passing EV_TESTED on to an NSEMI's left side and to loop bodies.
@@ -777,8 +778,19 @@ Makefiles do not know.
   whose file cannot be opened still ends a shell that is not
   interactive -- `sh -c "</nonexistent || echo no"' prints `cannot
   open' and exits 2 -- where POSIX has only a special built-in's
-  redirection error do that. Found testing patch 172; not yet compared
-  with the other BSDs, and rcstest's own file always exists.
+  redirection error do that. Found testing patch 172. Compared
+  (2026-10-22), and left as it is for 4.5BSD, for 4.6BSD's POSIX work
+  (roadmap-4.6.md): the cause is wider, a redirection error on any
+  builtin ending the shell, since evalcommand redirects before it sets
+  its handler -- `echo x >/no/dir/f || echo failed' ends a script too.
+  FreeBSD 2.0 to 6.x and NetBSD 1.0 to 1.6 are the same. NetBSD 2.0
+  fixed the builtins (David Laight's changes, committed by christos 24
+  November 2002) and FreeBSD 7.0 (stefanf, 2 and 9 April 2006, with
+  special built-ins marked -s in builtins.def); both kept a command of
+  redirections only fatal, as a special built-in, until FreeBSD 9.0
+  (jilles, 13 March 2010) and NetBSD after 8. Nothing in the tree is
+  stopped by it: rcstest's own file always exists, and make runs
+  commands with -e, so a failure stops it either way.
 - ~~**The clock counts leap seconds**~~ **FIXED** (patch 172).
   Berkeley's zoneinfo REDO=right_only put Lite2's 17 leap seconds into
   every zone, so date -u differed from POSIX time by 17 seconds and

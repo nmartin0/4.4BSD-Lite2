@@ -1,15 +1,183 @@
-# Roadmap
+# Roadmap: 4.5BSD
 
-Three tiers, in dependency order. Tier 0 finishes what `dev`/`dev2`
-set out to do. Tier 1 is the first tier where anything runs. Tier 2 is
-4.5BSD's stated target and is listed so that nothing in it is
-rediscovered later.
+Two releases, decided by the maintainer (2026-10-22).
 
-Nothing here is a schedule. Items are listed with what is known about
-each, and with the donor where the record names one. `docs/deferred.md`
-holds the reasoning behind most of them; this file holds the ordering.
+**4.5BSD** is 4.4BSD-Lite2 restored: the system as it should have been
+at its release, completed into a capable, running system. Lite2's own
+code, made whole and correct; what the Lite cut took, put back or
+replaced; the gaps filled from the descendants of the period, as they
+filled them. Its compiler is GCC 2.95.3, its C is C89, its machine the
+legacy PC that QEMU's `pc` emulates.
 
-## Tier 0 — finish the heritage restoration
+**4.6BSD** is cut from 4.5BSD once 4.5BSD is complete, and continues
+it: new kernel primitives, more drivers and modern hardware, modern
+tools, POSIX 2024, a modern C standard. A modern, fully capable system
+that is none of OpenBSD, NetBSD or FreeBSD, loyal to its Lite2
+heritage, minimal, and close to its roots. Its roadmap is
+`docs/roadmap-4.6.md`.
+
+The test for which release an item belongs to: does a capable 4.4BSD
+system of its own time need it, or does it modernize one? The first
+is 4.5BSD's; the second waits for 4.6BSD.
+
+This file is 4.5BSD's: what is left; what is still to be settled
+between the two; what is noted for later; what is done, in the order
+it was done; and the two plans decided and not yet begun, the ports
+and Torek's autoconfiguration.
+Nothing here is a schedule. `docs/deferred.md` holds the reasoning
+behind most items; this file holds the ordering.
+
+## What is left for 4.5BSD
+
+Grouped, not yet ordered. Each item is a candidate until it is taken
+up and its precedent read.
+
+**1. What the system itself reaches for and has not got.** Measured
+on an installed system booting multi-user (patch 178's test, from the
+console log):
+
+- `cron: not found`. /etc/rc starts cron; the Lite cut deleted
+  usr.sbin/cron, and nothing runs /etc/daily, weekly or monthly.
+- `sendmail: not found`. /etc/rc starts the mail daemon; the Lite cut
+  emptied usr.sbin/sendmail. Mail is not delivered, not even locally.
+- `timed: not found`. /etc/netstart asks for it; Berkeley's own
+  usr.sbin/Makefile leaves timed off the i386's list.
+- `NFS not available`. nfsd and mountd start; GENERIC.i386 leaves out
+  `options NFS`, which Berkeley's own i386 configurations carried.
+- `/usr/libexec/ex3.7preserve: not found`. /etc/rc preserves the old
+  ex's files; the system's editor is nvi, whose own recover script
+  does this.
+- `/var/log/secure: No such file or directory`, at syslogd's start.
+- /etc/daily runs `sa -s`, and /etc/rc turns on accounting; sa and ac
+  were deleted or emptied by the cut.
+
+**2. What the Lite cut took, to be decided one by one** (deferred.md,
+*Sources and directories named but absent*, *Programs the Lite cut
+emptied*, *Caldera's licence, and what the BSDs took under it*): at,
+bc, dc, compress, deroff, spell, units, file (contrib/file-3.12 is on
+hand), quot, uucp, fsdb, icheck, ncheck, mkproto, graph, plot, spline,
+xsend, libmp, libplot, and libcompat's ecvt and gcvt (in the Single
+UNIX Specification until 2008, which removed them). Those no BSD
+has -- learn, struct, diction, ptx -- stay out.
+
+**3. A debugger.** gdb-4.7.LBL reads a.out only; a gdb that reads ELF
+is to come (*After Tier 1½*, below). And ddb, which the kernel has
+not got: CMU Mach's, as NetBSD 1.0 and FreeBSD 2.0 carry it (*Later, and
+noted: a test framework and a kernel debugger*, below).
+
+**4. Ports** (decided 2026-10-14; *Ports*, below): FreeBSD 2.2.2's
+framework, and what it needs from FreeBSD 2.2 -- pkg_install, md5,
+fetch.
+
+**5. A test framework**: NetBSD 1.0's regress/, around Berkeley's own
+tests (below).
+
+**6. The kernel's loose ends of the period**, each in deferred.md or
+status.md: a statistics clock (FreeBSD 2.0.5's and OpenBSD 1996's, on
+IRQ 8); `CLKF_INTR`; the FPU registers for ptrace, once npx saves on
+demand; dial-out devices for the serial ports; vmstat's `??0` drive
+names; fd's debugging printf; the kernel linked without a linker
+script; the kernel's warnings, not yet audited. The `vinvalbuf`
+panic is understood and left (Tier 1, item 4).
+
+**7. Berkeley's own driver framework on the i386**: Torek's
+autoconfiguration, stages 1 to 4 (*Berkeley's driver framework on the
+i386*, below). 4.4BSD shipped the framework and converted one port
+(deferred.md, section 6); finishing the move is restoration.
+
+**8. The release itself.** The kernel still calls itself
+`4.4BSD-Lite` (sys/conf/newvers.sh: ostype, osrelease, version);
+release notes; the sets and the installation guide as a release
+carries them.
+
+## To settle: 4.5BSD or 4.6BSD
+
+Each with the lean of this file, for the maintainer to decide.
+
+- **The seven other ports** (Tier 0, below): hp300, luna68k, sparc,
+  pmax, news3400, vax, tahoe. "4.4BSD-Lite2 compiles" is not true of
+  the tree until they build or are removed deliberately. Lean:
+  4.5BSD's question, decided before its release, either way.
+- **X11R5** (contrib/X11R5-*, for hp300 and luna68k as shipped; X11's
+  two games wait on it). Lean: 4.5BSD, if a capable 4.4BSD system is
+  taken to include X.
+- **PCI and bus_space/bus_dma**, stage 4 of Torek's move. PCI machines
+  were common from 1995, and NetBSD and OpenBSD had both by 1996-98.
+  Lean: 4.5BSD.
+- **Shared libraries** (*Later: shared libraries*, below). No 4.4BSD
+  had them; NetBSD 1.3 and FreeBSD 3.0 did, in 1997-98. Lean: 4.6BSD.
+- **GCC's other languages** (below), already imported with GCC 2.95.3.
+  Lean: 4.5BSD.
+- **sh's two remaining -e bugs**: `if false; false; then' and a
+  failing command in a function called as `f || true' end the shell
+  (deferred.md); FreeBSD's eval.c 1.45 and 1.46, 2005. Bugs that end
+  scripts, not conformance. Lean: 4.5BSD.
+- **Kerberos** stays conditional and off, as recorded (deferred.md,
+  section 1). Settled unless reopened.
+
+Already placed in 4.6BSD (roadmap-4.6.md): newer compilers and
+`-fno-common` (Tier 1, item 5); locking, Torek's stage 5; the modern
+hardware this file once listed as Tier 2; sh's redirection errors on
+builtins, left as every BSD had them until 2002 and later
+(deferred.md).
+
+## Noted for later, with what is known
+
+Found while the system was brought up, each with what is known so
+far. Where each falls is in the two lists above.
+
+**Later, and noted: what Caldera's licence freed.** deroff, spell,
+ching's missing files, compress, bc and dc, and 4.4's
+Caldera-licensed documents -- not needed to bootstrap (decided
+2026-10-16). Code this tree adds is taken under Caldera's licence
+only where OpenBSD, NetBSD or FreeBSD took it, preferring an
+alternative not derived from it, and nothing under the old Berkeley
+notice is added (decided 2026-10-17); what came with Lite2 is kept.
+The findings, the kernel among them, and the choice for each in
+deferred.md, *Caldera's licence, and what the BSDs took under it*.
+
+**Later, and noted: a test framework and a kernel debugger.** Lite2
+has tests but no framework to run them: Berkeley's db test driver,
+sed.test, the m4 and libterm/libedit test programs, and sys/tests
+(benchmarks, filesystem tests, Sun's Connectathon NFS suite). NetBSD
+1.0's regress/ (1994) is the period's framework, wrapped around
+Berkeley's own db test; OpenBSD kept regress/ to this day; NetBSD and
+FreeBSD later moved to ATF and Kyua. Lite2 has no ddb -- only kgdb
+stubs, and kadb named in the configurations with its sources cut --
+and ddb, CMU Mach's via 386BSD, is in NetBSD 1.0 and FreeBSD 2.0.
+
+**Later: shared libraries** (noted 2026-10-22). The system links
+every program statically, as 4.4BSD did; Lite2 has no shared
+libraries. For ELF there is one family, from John Polstra's work of
+1996: NetBSD's ld.elf_so (Polstra and Matt Thomas, 1996; in NetBSD 1.3,
+1997, first on the alpha) and FreeBSD's rtld-elf (Polstra, 1996 to
+2000; in FreeBSD 3.0, October 1998, the first i386 BSD release with
+ELF shared libraries). OpenBSD's ld.so was written independently in
+2000, first for MIPS and PowerPC. The shared libraries of NetBSD 0.9
+and FreeBSD 1.x, Paul Kranenburg's SunOS-style ld.so, are for a.out
+and do not apply. The lean, to be researched when taken up: NetBSD's
+ld.elf_so, since this system's ELF pieces are NetBSD's already -- the
+kernel's sys/exec_elf.h and loader, and lib/csu's start files -- and it
+shares Polstra's original with FreeBSD's. A project of its own:
+position-independent libraries, ld -shared, the kernel loading an
+interpreter (PT_INTERP), the shared start files (crtbeginS), and the
+library Makefiles. Emacs is not a blocker either way: it can stay
+statically linked, emacs's own NO_SHARED_LIBS, as emacs's s/netbsd.h
+had NetBSD/alpha do in 1997; or link dynamically as that file's
+shared-library case does, with the system's start files and the one
+line Berkeley added to sysdep.c, `char __progname[] = "emacs"', which
+the system's crt0 also defines, put under a guard.
+
+**Later: GCC's other languages.** GCC 2.95.3 is imported whole, with
+its C++, Objective C, Fortran 77, CHILL and Java front ends. C comes
+first, then C++, which Lite2's own groff and libg++ are written in.
+Fortran
+(g77, libf2c) and Java (gcc/java; its runtime, libgcj, was a separate
+release) are to be taken up once C builds the system.
+
+## Done for 4.5BSD
+
+### Tier 0 — finish the heritage restoration
 
 The `dev`/`dev2` goal was 4.4BSD-Lite2 as Berkeley shipped it,
 compiling under a modern GCC. Measured against the tree as it stands:
@@ -47,7 +215,7 @@ FreeBSD 2.0's headers have it; a DIAGNOSTIC kernel boots multi-user.
 maintainer's decision (2026-10-14): not needed soon; the i386 comes
 first.** — hp300 (74 sources),
 luna68k (59), sparc (55), pmax (48), news3400 (57), vax (61), tahoe
-(161). Whether 4.5BSD keeps them is an open question, but "4.4BSD-Lite2
+(161). Whether 4.5BSD keeps them is to be settled (above), but "4.4BSD-Lite2
 compiles" is not true of the tree until they do or are removed
 deliberately. Each wants a cross toolchain for its processor; GCC
 2.95.3 has m68k, sparc, mips and vax and no longer has the tahoe.
@@ -74,7 +242,7 @@ was not established; it went with the host compiler.
 tree's own yacc and flex build it, and `ftpcmd.y` stands as Berkeley
 wrote it.
 
-## Tier 1 — boot on QEMU's legacy machine
+### Tier 1 — boot on QEMU's legacy machine
 
 **Reached.** On QEMU's `pc` machine the kernel boots single user,
 installs the system from a ustar archive on a raw disk with its own
@@ -153,7 +321,7 @@ on Lite2's procfs hooks, with its manual page (`a56c2f9b`).
    them, as NetBSD 1.1 has it (Charles M. Hannum, May 1995) and
    FreeBSD 2.2 (patch 176).
 
-## Tier 1½ — an installable `.iso`
+### Tier 1½ — an installable `.iso`
 
 What the BSDs of 1994-98 shipped: a boot image carrying a kernel and a
 small root, an installer on that root, and the distribution as files
@@ -196,7 +364,7 @@ as the boot floppy image in floppy emulation.
    kernel, the installer extracts the set from it, and the disk then
    boots by itself (install.md, *Installing from the CD*).
 
-## After Tier 1½ — self-hosting
+### After Tier 1½ — self-hosting
 
 **Reached** (patches 168 to 170). From its own sources on its own CD,
 the system runs Berkeley's `make build` -- headers, libraries, the
@@ -413,55 +581,6 @@ libg++ with GCC 2.95 -- and nothing in the tree uses it; it stays as
 Lite2 shipped it, as gcc-2.3.3, gas-1.38 and gdb-4.7.LBL do (decided
 2026-10-22, patch 175). With it, contrib is done.
 
-**Later, and noted: what Caldera's licence freed.** deroff, spell,
-ching's missing files, compress, bc and dc, and 4.4's
-Caldera-licensed documents -- not needed to bootstrap (decided
-2026-10-16). Code this tree adds is taken under Caldera's licence
-only where OpenBSD, NetBSD or FreeBSD took it, preferring an
-alternative not derived from it, and nothing under the old Berkeley
-notice is added (decided 2026-10-17); what came with Lite2 is kept.
-The findings, the kernel among them, and the choice for each in
-deferred.md, *Caldera's licence, and what the BSDs took under it*.
-
-**Later, and noted: a test framework and a kernel debugger.** Lite2
-has tests but no framework to run them: Berkeley's db test driver,
-sed.test, the m4 and libterm/libedit test programs, and sys/tests
-(benchmarks, filesystem tests, Sun's Connectathon NFS suite). NetBSD
-1.0's regress/ (1994) is the period's framework, wrapped around
-Berkeley's own db test; OpenBSD kept regress/ to this day; NetBSD and
-FreeBSD later moved to ATF and Kyua. Lite2 has no ddb -- only kgdb
-stubs, and kadb named in the configurations with its sources cut --
-and ddb, CMU Mach's via 386BSD, is in NetBSD 1.0 and FreeBSD 2.0.
-
-**Later: shared libraries** (noted 2026-10-22). The system links
-every program statically, as 4.4BSD did; Lite2 has no shared
-libraries. For ELF there is one family, from John Polstra's work of
-1996: NetBSD's ld.elf_so (Polstra and Matt Thomas, 1996; in NetBSD 1.3,
-1997, first on the alpha) and FreeBSD's rtld-elf (Polstra, 1996 to
-2000; in FreeBSD 3.0, October 1998, the first i386 BSD release with
-ELF shared libraries). OpenBSD's ld.so was written independently in
-2000, first for MIPS and PowerPC. The shared libraries of NetBSD 0.9
-and FreeBSD 1.x, Paul Kranenburg's SunOS-style ld.so, are for a.out
-and do not apply. The lean, to be researched when taken up: NetBSD's
-ld.elf_so, since this system's ELF pieces are NetBSD's already -- the
-kernel's sys/exec_elf.h and loader, and lib/csu's start files -- and it
-shares Polstra's original with FreeBSD's. A project of its own:
-position-independent libraries, ld -shared, the kernel loading an
-interpreter (PT_INTERP), the shared start files (crtbeginS), and the
-library Makefiles. Emacs is not a blocker either way: it can stay
-statically linked, emacs's own NO_SHARED_LIBS, as emacs's s/netbsd.h
-had NetBSD/alpha do in 1997; or link dynamically as that file's
-shared-library case does, with the system's start files and the one
-line Berkeley added to sysdep.c, `char __progname[] = "emacs"', which
-the system's crt0 also defines, put under a guard.
-
-**Later: GCC's other languages.** GCC 2.95.3 is imported whole, with
-its C++, Objective C, Fortran 77, CHILL and Java front ends. C comes
-first, then C++, which Lite2's own groff and libg++ are written in.
-Fortran
-(g77, libf2c) and Java (gcc/java; its runtime, libgcj, was a separate
-release) are to be taken up once C builds the system.
-
 ## Ports
 
 **Decided: FreeBSD's ports framework, as of 1997.** Jordan Hubbard's
@@ -476,11 +595,11 @@ NetBSD's make and bsd.own.mk). The 1997 framework over the 1995 one:
 and each installed package recording which others need it
 (+REQUIRED_BY), so that pkg_delete can tell what is still in use.
 
-What it needs that the release does not yet carry: make and
-/usr/share/mk in the base set, and tr, sort, patch, xargs, cksum,
-gzip, mtree and ftp; and from FreeBSD 2.2, pkg_install (pkg_add,
-pkg_create, pkg_delete, pkg_info), md5, fetch and a tar that reads
-gzip.
+What it needs: make and /usr/share/mk, tr, sort, patch, xargs, cksum,
+gzip, mtree, ftp and tar, which the base set now carries (checked
+2026-10-22; whether its tar reads gzip is not yet checked); and from
+FreeBSD 2.2, pkg_install (pkg_add, pkg_create, pkg_delete, pkg_info),
+md5 and fetch.
 
 **Deferred: removing a program together with what it pulled in.**
 Installing a port installs its dependencies with it; removing one
@@ -491,7 +610,7 @@ tool that does this, as a port: it needs Perl 5, which FreeBSD 2.2's
 ports tree carries as lang/perl5 (the base system has Perl 4.036, in
 contrib/perl-4.036). To be taken up after the framework is in.
 
-## Tier 2 — modern hardware
+## Berkeley's driver framework on the i386
 
 **Decided (2026-10-18): Torek's autoconfiguration for the i386, and
 the old interface abandoned; OpenBSD's line followed.** Lite2 carries
@@ -578,13 +697,10 @@ answers -- before the next begins:
    the stopgap if_ed); wt. All from one donor snapshot, OpenBSD of
    1996-97 or NetBSD 1.2, so that they speak one set of interfaces.
 4. bus_space and bus_dma, as OpenBSD took them from NetBSD (1996 and
-   1998); then PCI -- the bus, a PCI-ISA bridge, PCI IDE -- and the
-   hardware of the rest of this tier, from OpenBSD.
-5. Locking, OpenBSD's way, with the interrupt levels the converted
-   drivers name: KERNEL_LOCK, nothing on one processor; mutex(9) as
-   spl and an owner check, `mtx_init(&m, IPL_NET)'; rwlock(9) and
-   msleep; lockmgr on rwlocks, its LK_* interface kept. spl, tsleep
-   and the drivers stay as they are.
+   1998); then PCI -- the bus, a PCI-ISA bridge, PCI IDE -- from
+   OpenBSD. (Whether this stage is 4.5BSD's is to be settled, above.)
+Stage 5, locking, OpenBSD's way, is 4.6BSD's (roadmap-4.6.md, *Kernel
+primitives*).
 
 **How drivers are taken**, so that they stay this tree's:
 
@@ -607,140 +723,3 @@ answers -- before the next begins:
   the old Berkeley notice).
 - config's language is Torek's, grown only by what the donor grew
   (NetBSD 1.2's `attach ... with').
-
-**And Mach, looked at (2026-10-18).** Lite2's locks are Mach's
-already: kern_lock.c's lockmgr is McKusick's 1995 rework of the Mach
-lock package (its notice credits Avadis Tevanian, Michael Wayne Young
-and the Mach project at CMU), simple_lock and the vm/ system are
-Mach's, and vm.h maps simple_lock_data_t and lock_data_t onto them.
-CMU Mach 3.0 (MK83A), Utah's Mach 4 and OSF's kernel as MkLinux DR3
-carried it were read for anything better. None fits better than
-OpenBSD's line: MK83's and Mach 4's lock_t is what lockmgr replaced,
-without its wait message, priority, timeout or signals; OSFMK's mutex
-sleeps where OpenBSD's mtx spins at an spl, its lock_t lost the
-recursion vnode locking needs, and everything in it rests on Mach
-threads, assert_wait and thread_block's continuations, which Lite2's
-processes and u-area cannot carry. OSF's code is permissive: each
-of its source files carries OSF's 1998 notice ("Permission to use,
-copy, modify, and distribute this software ... for any purpose and
-without fee is hereby granted"); the academic-only text in its
-conf/copyright.osf is a 1995 OSF/RI notice no source file carries and
-the build never reads. OSFMK 6.1 itself was not found to read. Worth
-having, as design or as code: OSFMK's lock
-debugging -- a per-processor stack of held locks, lock-held and
-none-held assertions, a spin that times out into the debugger --
-alongside OpenBSD's MUTEX_ASSERT_LOCKED and witness(4); and ddb,
-which is CMU Mach's code, taken from NetBSD or OpenBSD, where it is
-already a BSD's. Lites, CMU's 4.4BSD-Lite server on Mach, folded spl,
-tsleep and one master lock together, the precedent for KERNEL_LOCK.
-FreeBSD's zones (vm_zone.c, John Dyson, 1997-98) borrow only Mach's
-names; OpenBSD's pool(9) is the BSD equivalent.
-
-**The BSDs' locking, surveyed (2026-10-22)**, for stage 5 and for
-taking drivers; read from the trees. Lite2's own: spl levels,
-tsleep/wakeup, and Mach's simple_lock and McKusick's lockmgr; Torek's
-cfdriver, each softc beginning with struct device.
-
-- OpenBSD grew those in place. spl and tsleep stayed; rwlock(9),
-  November 2003 (Artur Grabowski); mutex(9), July 2004, "cpu-owned
-  spinning locks with spl semantics", mtx_init(&m, IPL_NET); the
-  kernel lock with SMP, June 2004; simple_lock folded away in 2010;
-  lockmgr put on recursive rwlocks in 2013 (Ted Unangst, after
-  Thordur Bjornsson) and its interface removed in 2016; splassert
-  (2002), rwsleep and NET_LOCK (2016), nanosecond sleeps (2019). Its
-  em(4) of 2026 still mixes splnet(), KERNEL_LOCK(), mtx at an IPL
-  and an IPL_NET | IPL_MPSAFE interrupt.
-- NetBSD replaced them at once. simple_lock and lockmgr through 4.0
-  with a big lock; in 5.0 (2009) both removed for Solaris's set --
-  adaptive mutexes, mutex_init(&m, MUTEX_DEFAULT, IPL_x) ("For porting
-  code written for Solaris"), rwlock, condvar, sleep queues,
-  workqueues -- spl kept as IPLs.
-- FreeBSD took another system's. 5.0 (2003): BSDi's SMPng from BSD/OS
-  (its mutex.h copyright 1997 Berkeley Software Design) -- every spl a
-  no-op returning 0, interrupts in kernel threads, Giant, mtx, sx,
-  condvar; rwlock in 7.0 (2008).
-
-The canonical primitives for this system are OpenBSD's, the one line
-that kept Lite2's model and grew it -- as stage 5 above already
-decided. And for drivers, the interface counts for more than the
-locks. FreeBSD left Torek's framework in 3.0 (1998) for newbus (Doug
-Rabson, 1997-98), so its drivers' attach, interrupt and locking code is
-rewritten whatever this system chooses. NetBSD and OpenBSD kept
-Torek's, with NetBSD 1.2's cfattach, which OpenBSD's struct cfattach
-still is: size, match, attach, detach, activate. In order of ease:
-OpenBSD's drivers of any year -- the same softc, cfattach, bus_space,
-bus_dma and, with its primitives, the same locks; NetBSD's to 4.0, the
-mid-2000s and before, Torek-shaped (struct device first, CFATTACH_DECL)
-and locked mostly by spl alone; NetBSD's from 5.0, whose softc holds a
-device_t (CFATTACH_DECL_NEW, device_private()) and whose locks are
-Solaris's, adaptable by a thin layer and by mapping mutex_enter to
-mtx_enter or rw_enter and cv_wait to msleep or rwsleep; then
-FreeBSD's, whose hardware knowledge carries over and little else.
-
-Each of these is a measured absence, not a stylistic gap. Counts are
-from the tree as it stands.
-
-**No PCI bus.** Zero files. A grep for `pci` across the whole kernel
-returns nine hits and every one is a false positive — `profile.h`'s
-`_mcount` internals, `pccons.c`, `nfs.h`, a test program. Nothing on a
-modern machine is findable without this, and everything below depends
-on it. `sys/i386/eisa/` and `sys/i386/mca/` each contain a single
-`tags` file and no code.
-
-**No ACPI.** Zero files. Post-2000 machines describe interrupt
-routing, power and device topology there.
-
-**No APIC or IOAPIC.** Zero files. The 8259 PIC is still emulated on
-modern chipsets but increasingly vestigially.
-
-**Build-time interrupt wiring.** `usr.sbin/config/mkglue.c` generates
-`vector.s` with one stub per configured interrupt and the handler
-baked in. Two properties of modern interrupt hardware cannot be
-expressed in it at all: PCI lines are *shared*, so a handler chain
-must be walked at run time and its length is unknown until the bus is
-enumerated; and MSI/MSI-X allocate a vector per device from a pool
-when the device is found, so the vector number does not exist at
-config time. Neither is a performance argument.
-
-  `5a0ade80` establishes that `mkglue.c` came from 386BSD in January
-  1991 as "386BSD additions to config" and was never Berkeley's
-  design, which is why every later tree dropped it rather than
-  maintaining it. **No Berkeley heritage is lost by replacing it.**
-  Donors: NetBSD 1.1 has a static `vector.s` dispatching through a
-  run-time table; OpenBSD 1996 has no `mkglue.c` at all; FreeBSD
-  2.0.5 carries `register_intr()`/`unregister_intr()` in an `isa.c` of
-  1056 lines against this tree's 254, and every driver's attach path
-  changes with it.
-
-**No storage driver that matches anything.** `wd.c` is an ST-506/IDE
-driver of 1995, FreeBSD 2.1.0's, with ATAPI for CDs; it runs PIO. No AHCI, no NVMe.
-
-**No USB.** On many machines that means no keyboard.
-
-**No modern NIC.** `if_ed`, FreeBSD 2.1.0's (patch 166), drives the
-NE1000 and NE2000, the WD8003 and 8013 and the 3c503; Lite2's `if_ne`,
-`if_we`, `if_ec` and `if_apx` are of the same era.
-
-**32-bit, no PAE.** The pmap assumes a 32-bit physical address space.
-Modern machines have more than 4 GB.
-
-**BIOS boot only.** The bootstrap, FreeBSD 4.1's boot1 and boot2,
-reads ELF but starts only from a BIOS; UEFI-only machines cannot boot
-this at all.
-
-**Uniprocessor.** No kernel threading; `struct proc` is the unit of
-scheduling and there is no thread abstraction to carry forward.
-
-### The question Tier 2 cannot start without
-
-"Modern hardware" spans two targets that differ enormously in scope:
-
-- **roughly 2005–2015**: legacy BIOS, PCI, IDE-compatible SATA,
-  USB-legacy or PS/2 input. Large work, but every piece has a lineal
-  BSD implementation that could be traced.
-- **2020 onward**: UEFI-only, NVMe, no CSM, USB-only input. Almost
-  none of that has 4.4BSD ancestry to be genetic about, because it
-  postdates the lineage.
-
-Which one 4.5BSD targets decides whether Tier 2 is six items or
-twenty, and it should be settled before any Tier 2 work begins.
