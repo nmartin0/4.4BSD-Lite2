@@ -789,6 +789,9 @@ gives them.
 	bin/expr			679 lines	NetBSD 1.0, unmodified
 	sys/kern/subr_rmap.c		NetBSD 1.2, a note added
 	usr.bin/awk			Kernighan, 20121220, unmodified
+	usr.sbin/cron, usr.bin/crontab	NetBSD 1.0, NetBSD's later fixes
+	usr.bin/at, libexec/atrun	NetBSD 1.0, NetBSD's and OpenBSD's
+					later fixes
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
@@ -882,6 +885,43 @@ operators POSIX names. It needs a yacc, and build/make.sh's is byacc.
 Tested on the system: `expr 3 + 4`, `expr abc : 'a\(.*\)'`,
 `expr 6 \* 7` and `expr 7 / 0` (status 2, "division by zero"), and
 MAKEDEV's `expr $unit '*' 8 + 0` for every wd0 minor.
+
+**usr.sbin/cron and usr.bin/crontab** are Paul Vixie's cron 3.0, and
+**usr.bin/at and libexec/atrun** Thomas Koenig's at with David
+Parsons's changes, each first committed byte for byte as NetBSD's
+netbsd-1-0 branch has it (decided 2026-10-22). Berkeley's cron, at and
+atrun were AT&T's (`att/bsd/shared' in the CSRG history) and went
+with the settlement; every BSD carried these two in their place, and
+Lite2's own /etc/crontab, with its user field, is the system crontab
+Vixie's cron reads. Vixie's notice asks that changes be marked; every
+change here is, at its site.
+
+FreeBSD 2.0's cron is the same code in Vixie's own three-directory
+layout with a libcron, Makefiles in FreeBSD 2.0's newer manual-page
+style, and a misspelt HAVE_SAVED_SUIDS that NetBSD 1.0 had corrected.
+NetBSD 1.0's Makefiles are in Lite2's own; one line changed, for
+Lite2's bsd.prog.mk, which leaves `all' to a Makefile that defines it.
+
+NetBSD 1.0's copies had holes NetBSD closed later, and those fixes
+are taken, each its own commit (decided 2026-10-22):
+
+	cron	MAILTO off sendmail's command line (-oi -t), and
+		cron_popen's argv bounded: Hannum, 14 April 1995, NetBSD 1.1
+	cron,	copies bounded throughout; env.c's name buffer, which a
+	crontab	crontab variable name of over 100 characters overran as
+		root (SNI-02, 16 December 1996): NetBSD's pull-ups of 26
+		January and 6 March 1997 (Harvey, Thorpe), NetBSD 1.2.1 --
+		with crontab's `sizeof(User - 1)' as NetBSD 1.3 corrected
+		it, and env.c's quote-stripping strcpy kept, as FreeBSD 2.2
+		kept it, where the pull-up's strncpy cut values short
+	at	atq and atrm no longer made root: Thorpe, 25 March 1995,
+		NetBSD 1.1
+	at	the file -f names opened as the user, and panic and perr
+		taking root back to remove a job: NetBSD 1.3's lines
+	atrun	a job run with its owner's groups (initgroups): Demetriou,
+		2 March 1995, NetBSD 1.1
+	at	12am and 12pm: OpenBSD, de Raadt, 2 January 1996, from
+		Mark Weaver, NetBSD PR 1743
 
 ## F -- Berkeley's own file, restored
 

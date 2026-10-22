@@ -476,4 +476,8 @@ taking ed, at, cron, sa and compress from NetBSD or FreeBSD would make
 it a hybrid of this tree and theirs. Where a missing file blocks
 something that is here -- zopen.c did, kvm_i386.c does, expr's absence
 left MAKEDEV unable to make a disk -- that is decided one program at a
-time, and recorded.
+time, and recorded. Since the decision of 2026-10-22 to make 4.5BSD a
+capable running system (roadmap.md), what the system itself reaches
+for is decided the same way: cron and at, which /etc/rc and
+/etc/crontab run, are NetBSD 1.0's, with the fixes NetBSD and OpenBSD
+made to them later (imports.md, kind E). ed came back by contrib/ed.
