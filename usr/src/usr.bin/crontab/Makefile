@@ -10,7 +10,10 @@ MAN5=
 CLEANFILES=crontab.1.0 crontab.5.0
 
 .if !defined(NOMAN)
-all:	crontab.1.0 crontab.5.0
+# AI-ONLY NOTE: ${PROG} named here. Lite2's bsd.prog.mk gives a Makefile
+# that defines `all' the whole target (`.if !target(all)'), where
+# NetBSD 1.0's adds its own `all: ${PROG}' to it, as this line assumed.
+all:	${PROG} crontab.1.0 crontab.5.0
 
 crontab.1.0:	crontab.1
 	nroff -mandoc ${.ALLSRC} > ${.TARGET}

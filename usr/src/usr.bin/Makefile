@@ -25,10 +25,11 @@
 # cut deleted with their directories. A name with no directory stops
 # the build here, as it stopped Lite2's own make, which ran each
 # command with `sh -ec' (docs/deferred.md, *Sources and directories
-# named but absent*).
+# named but absent*). crontab, which Berkeley's cron had not, is
+# Vixie cron's, built from usr.sbin/cron, as NetBSD 1.0 has it.
 SUBDIR=	apply apropos awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
-	comm cpp ctags cut dirname du \
+	comm cpp crontab ctags cut dirname du \
 	env error expand false find finger fmt fold fpr from \
 	fsplit fstat ftp head hexdump id indent \
 	join jot kdump ktrace lam last lastcomm leave locate \

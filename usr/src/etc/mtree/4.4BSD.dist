@@ -1419,6 +1419,19 @@ crash		mode=775
 # ./var/crash
 ..
 
+# AI-ONLY NOTE: /var/cron and its tabs, for Vixie cron's crontabs, as
+# NetBSD 1.0's 4.4BSD.dist has them.
+# ./var/cron
+cron
+
+# ./var/cron/tabs
+tabs		mode=0700
+# ./var/cron/tabs
+..
+
+# ./var/cron
+..
+
 # ./var/db
 db
 
