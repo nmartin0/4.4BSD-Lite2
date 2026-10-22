@@ -414,20 +414,23 @@ again:
 	 * below it is how NetBSD 1.0 and FreeBSD 2.0 both arrange the
 	 * top of the stack -- each puts more between the two, signal
 	 * trampoline or spare space, which this tree does not need --
-	 * and the fields are set as FreeBSD 2.0's
-	 * exec_copyout_strings sets them: the first argument string,
-	 * the argument count, the first environment string, the
-	 * environment count.
+	 * and the fields are set as NetBSD 1.1's copyargs sets them
+	 * (Charles M. Hannum, kern_exec.c 1.69, 16 May 1995), and
+	 * FreeBSD 2.2's exec_copyout_strings: the argv vector, the
+	 * argument count, the envp vector, the environment count --
+	 * the vectors, one word above the stack pointer and after
+	 * argv's terminating 0, where FreeBSD 2.0's, as this body did,
+	 * gave the first string of each.
 	 */
 	arginfo.ps_nargvstr = na - ne;
 	arginfo.ps_nenvstr = ne;
 	ssize = (na + 3) * NBPW;
 	ucp = (int)PS_STRINGS - nc;
-	arginfo.ps_argvstr = arginfo.ps_envstr = (char *)ucp;
 	ap = ucp - ssize;
 	ssize += nc;
 	cpu_setstack(p, ap);
 	(void) suword((caddr_t)ap, na-ne);
+	arginfo.ps_argvstr = (char **)(ap + NBPW);
 	nc = 0;
 	cp = (char *)execargs;
 	cc = NCARGS;
@@ -436,7 +439,7 @@ again:
 		if (na == ne) {
 			(void) suword((caddr_t)ap, 0);
 			ap += NBPW;
-			arginfo.ps_envstr = (char *)ucp;
+			arginfo.ps_envstr = (char **)ap;
 		}
 		if (--na < 0)
 			break;

@@ -53,6 +53,7 @@ static char sccsid[] = "@(#)kvm_proc.c	8.4 (Berkeley) 8/20/94";
 #include <sys/stat.h>
 #include <sys/ioctl.h>
 #include <sys/tty.h>
+#include <string.h>
 #include <unistd.h>
 #include <nlist.h>
 #include <kvm.h>
@@ -457,10 +458,26 @@ kvm_argv(kd, p, addr, narg, maxcnt)
 	register int narg;
 	register int maxcnt;
 {
-	register char *cp;
+	register char *np, *cp, *ep, *ap;
+	register u_long oaddr = -1;
 	register int len, cc;
 	register char **argv;
 
+	/*
+	 * AI-ONLY NOTE: this function is NetBSD's of May 1995 (Charles M.
+	 * Hannum, 16 May, "Find the arguments using their addresses in
+	 * the argv array, rather than guessing based on the location of
+	 * NULs", with his three fixes of 18 and 25 May), in
+	 * NetBSD 1.1, for the ps_strings that now records where the argv
+	 * and envp vectors are (<sys/exec.h>, kern_exec.c): addr is a
+	 * vector of narg pointers, read whole, and each string is read
+	 * where its pointer says, so that a count of 0 reads nothing.
+	 * Berkeley's scanned the strings themselves from the first and
+	 * counted NULs, and with a count of 0 still returned the first
+	 * string -- ps -e showed init, which has no environment, with
+	 * one. FreeBSD 2.2 made the same change. NBPG and PGOFSET where
+	 * NetBSD's wrote kd->nbpg, as Berkeley's function here did.
+	 */
 	/*
 	 * Check that there aren't an unreasonable number of agruments,
 	 * and that the address is in user space.
@@ -480,7 +497,7 @@ kvm_argv(kd, p, addr, narg, maxcnt)
 	 * where nothing changes; hp300 and luna68k put USRSTACK above
 	 * VM_MAXUSER_ADDRESS as the i386 does.
 	 */
-	if (narg > 512 || addr < VM_MIN_ADDRESS || addr >= USRSTACK)
+	if (narg > ARG_MAX || addr < VM_MIN_ADDRESS || addr >= USRSTACK)
 		return (0);
 
 	if (kd->argv == 0) {
@@ -505,17 +522,36 @@ kvm_argv(kd, p, addr, narg, maxcnt)
 			return (0);
 		kd->arglen = NBPG;
 	}
-	cp = kd->argspc;
+	if (kd->argbuf == 0) {
+		kd->argbuf = (char *)_kvm_malloc(kd, NBPG);
+		if (kd->argbuf == 0)
+			return (0);
+	}
+	cc = sizeof(char *) * narg;
+	if (kvm_uread(kd, p, addr, (char *)kd->argv, cc) != cc)
+		return (0);
+	ap = np = kd->argspc;
 	argv = kd->argv;
-	*argv = cp;
 	len = 0;
 	/*
 	 * Loop over pages, filling in the argument vector.
 	 */
-	while (addr < USRSTACK) {
-		cc = NBPG - (addr & PGOFSET);
+	while (argv < kd->argv + narg && *argv != 0) {
+		addr = (u_long)*argv & ~PGOFSET;
+		if (addr != oaddr) {
+			if (kvm_uread(kd, p, addr, kd->argbuf, NBPG) !=
+			    NBPG)
+				return (0);
+			oaddr = addr;
+		}
+		addr = (u_long)*argv & PGOFSET;
+		cp = kd->argbuf + addr;
+		cc = NBPG - addr;
 		if (maxcnt > 0 && cc > maxcnt - len)
 			cc = maxcnt - len;;
+		ep = memchr(cp, '\0', cc);
+		if (ep != 0)
+			cc = ep - cp + 1;
 		if (len + cc > kd->arglen) {
 			register int off;
 			register char **pp;
@@ -526,44 +562,39 @@ kvm_argv(kd, p, addr, narg, maxcnt)
 							  kd->arglen);
 			if (kd->argspc == 0)
 				return (0);
-			cp = &kd->argspc[len];
 			/*
 			 * Adjust argv pointers in case realloc moved
 			 * the string space.
 			 */
 			off = kd->argspc - op;
-			for (pp = kd->argv; pp < argv; ++pp)
+			for (pp = kd->argv; pp < argv; pp++)
 				*pp += off;
+			ap += off;
+			np += off;
 		}
-		if (kvm_uread(kd, p, addr, cp, cc) != cc)
-			/* XXX */
-			return (0);
+		memcpy(np, cp, cc);
+		np += cc;
 		len += cc;
-		addr += cc;
-
-		if (maxcnt == 0 && len > 16 * NBPG)
-			/* sanity */
-			return (0);
-
-		while (--cc >= 0) {
-			if (*cp++ == 0) {
-				if (--narg <= 0) {
-					*++argv = 0;
-					return (kd->argv);
-				} else
-					*++argv = cp;
-			}
-		}
+		if (ep != 0) {
+			*argv++ = ap;
+			ap = np;
+		} else
+			*argv += cc;
 		if (maxcnt > 0 && len >= maxcnt) {
 			/*
 			 * We're stopping prematurely.  Terminate the
-			 * argv and current string.
+			 * current string.
 			 */
-			*++argv = 0;
-			*cp = 0;
-			return (kd->argv);
+			if (ep == 0) {
+				*np = '\0';
+				*argv++ = ap;
+			}
+			break;
 		}
 	}
+	/* Make sure argv is terminated. */
+	*argv = 0;
+	return (kd->argv);
 }
 
 static void
@@ -615,7 +646,7 @@ kvm_doargv(kd, kp, nchr, info)
 	kvm_t *kd;
 	const struct kinfo_proc *kp;
 	int nchr;
-	int (*info)(struct ps_strings*, u_long *, int *);
+	void (*info)(struct ps_strings *, u_long *, int *);
 {
 	register const struct proc *p = &kp->kp_proc;
 	register char **ap;

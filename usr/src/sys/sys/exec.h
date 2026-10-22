@@ -44,14 +44,21 @@
  * The following structure is found at the top of the user stack of each
  * user process. The ps program uses it to locate argv and environment
  * strings. Programs that wish ps to display other information may modify
- * it; normally ps_argvstr points to the text for argv[0], and ps_nargvstr
- * is the same as the program's argc. The fields ps_envstr and ps_nenvstr
- * are the equivalent for the environment.
+ * it; normally ps_argvstr points to argv[0], and ps_nargvstr is the same
+ * as the program's argc. The fields ps_envstr and ps_nenvstr are the
+ * equivalent for the environment.
+ *
+ * AI-ONLY NOTE: ps_argvstr and ps_envstr point at the argv and envp
+ * vectors, char **, as NetBSD's revision 1.56 has them (Charles M.
+ * Hannum, 16 May 1995, NetBSD 1.1, "Change ps_{argv,env}str to
+ * char**"), and FreeBSD 2.2's; Berkeley's pointed at the text of the
+ * first string, and libkvm found the rest by counting NULs. This
+ * comment's wording is that revision's too.
  */
 struct ps_strings {
-	char	*ps_argvstr;	/* first of 0 or more argument strings */
+	char	**ps_argvstr;	/* first of 0 or more argument strings */
 	int	ps_nargvstr;	/* the number of argument strings */
-	char	*ps_envstr;	/* first of 0 or more environment strings */
+	char	**ps_envstr;	/* first of 0 or more environment strings */
 	int	ps_nenvstr;	/* the number of environment strings */
 };
 

@@ -179,6 +179,7 @@ _kvm_open(kd, uf, mf, sf, flag, errout)
 	kd->db = 0;
 	kd->procbase = 0;
 	kd->argspc = 0;
+	kd->argbuf = 0;
 	kd->argv = 0;
 
 	if (uf == 0)
@@ -317,6 +318,8 @@ kvm_close(kd)
 		_kvm_freevtop(kd);
 	if (kd->procbase != 0)
 		free((void *)kd->procbase);
+	if (kd->argbuf != 0)
+		free((void *)kd->argbuf);
 	if (kd->argv != 0)
 		free((void *)kd->argv);
 	free((void *)kd);
