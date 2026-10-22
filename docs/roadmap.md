@@ -29,8 +29,11 @@ behind most items; this file holds the ordering.
 
 ## What is left for 4.5BSD
 
-Grouped, not yet ordered. Each item is a candidate until it is taken
-up and its precedent read.
+The work list, settled by the maintainer (2026-10-22): the i386 alone
+for now, X11R5 in, PCI in, sh's -e bugs fixed (patch 180), GCC's other
+languages and Kerberos left for later. Each item is taken up with its
+precedent read first. Proposed order: 1, then 2 and 6 as they fall
+out of 1, then 3, 4 and 5; 7, then 9; 8 last.
 
 **1. What the system itself reaches for and has not got.** Measured
 on an installed system booting multi-user (patch 178's test, from the
@@ -81,45 +84,45 @@ script; the kernel's warnings, not yet audited. The `vinvalbuf`
 panic is understood and left (Tier 1, item 4).
 
 **7. Berkeley's own driver framework on the i386**: Torek's
-autoconfiguration, stages 1 to 4 (*Berkeley's driver framework on the
-i386*, below). 4.4BSD shipped the framework and converted one port
+autoconfiguration, stages 1 to 4, PCI with bus_space and bus_dma among
+them (decided 2026-10-22; *Berkeley's driver framework on the i386*,
+below). 4.4BSD shipped the framework and converted one port
 (deferred.md, section 6); finishing the move is restoration.
 
 **8. The release itself.** The kernel still calls itself
 `4.4BSD-Lite` (sys/conf/newvers.sh: ostype, osrelease, version);
 release notes; the sets and the installation guide as a release
-carries them.
+carries them; and docs/status.md, which still describes the kernel
+before it linked, brought up to date.
+
+**9. X11R5** (decided 2026-10-22). Lite2's contrib/X11R5-* is built
+for hp300 and luna68k as shipped; the i386 needs an X server for its
+display, which Lite2's contrib does not carry: Lite2 has the
+libraries and the hp300's and luna68k's builds only. To be read first:
+X386, Thomas Roell's PC server, which MIT's X11R5 distribution
+carried, and XFree86, which grew from it and which the BSDs of 1993-95
+shipped. X11's two games, xneko and xroach, wait on it.
 
 ## To settle: 4.5BSD or 4.6BSD
 
-Each with the lean of this file, for the maintainer to decide.
-
-- **The seven other ports** (Tier 0, below): hp300, luna68k, sparc,
-  pmax, news3400, vax, tahoe. "4.4BSD-Lite2 compiles" is not true of
-  the tree until they build or are removed deliberately. Lean:
-  4.5BSD's question, decided before its release, either way.
-- **X11R5** (contrib/X11R5-*, for hp300 and luna68k as shipped; X11's
-  two games wait on it). Lean: 4.5BSD, if a capable 4.4BSD system is
-  taken to include X.
-- **PCI and bus_space/bus_dma**, stage 4 of Torek's move. PCI machines
-  were common from 1995, and NetBSD and OpenBSD had both by 1996-98.
-  Lean: 4.5BSD.
 - **Shared libraries** (*Later: shared libraries*, below). No 4.4BSD
   had them; NetBSD 1.3 and FreeBSD 3.0 did, in 1997-98. Lean: 4.6BSD.
-- **GCC's other languages** (below), already imported with GCC 2.95.3.
-  Lean: 4.5BSD.
-- **sh's two remaining -e bugs**: `if false; false; then' and a
-  failing command in a function called as `f || true' end the shell
-  (deferred.md); FreeBSD's eval.c 1.45 and 1.46, 2005. Bugs that end
-  scripts, not conformance. Lean: 4.5BSD.
-- **Kerberos** stays conditional and off, as recorded (deferred.md,
-  section 1). Settled unless reopened.
 
-Already placed in 4.6BSD (roadmap-4.6.md): newer compilers and
-`-fno-common` (Tier 1, item 5); locking, Torek's stage 5; the modern
-hardware this file once listed as Tier 2; sh's redirection errors on
-builtins, left as every BSD had them until 2002 and later
-(deferred.md).
+Settled (2026-10-22), from the list that stood here:
+
+- **The seven other ports** -- hp300, luna68k, sparc, pmax, news3400,
+  vax, tahoe -- are left out for the time being; 4.5BSD is the i386's
+  (Tier 0, below).
+- **X11R5**: 4.5BSD (item 9, above).
+- **PCI and bus_space/bus_dma**, Torek's stage 4: 4.5BSD (item 7).
+- **GCC's other languages**: later (roadmap-4.6.md).
+- **sh's two remaining -e bugs**: fixed, patch 180.
+- **Kerberos** stays conditional and off for the time being.
+
+Placed in 4.6BSD (roadmap-4.6.md): newer compilers and `-fno-common`
+(Tier 1, item 5); locking, Torek's stage 5; the modern hardware this
+file once listed as Tier 2; sh's redirection errors on builtins, left
+as every BSD had them until 2002 and later (deferred.md).
 
 ## Noted for later, with what is known
 
@@ -215,7 +218,7 @@ FreeBSD 2.0's headers have it; a DIAGNOSTIC kernel boots multi-user.
 maintainer's decision (2026-10-14): not needed soon; the i386 comes
 first.** — hp300 (74 sources),
 luna68k (59), sparc (55), pmax (48), news3400 (57), vax (61), tahoe
-(161). Whether 4.5BSD keeps them is to be settled (above), but "4.4BSD-Lite2
+(161). Left out for the time being (decided 2026-10-22), but "4.4BSD-Lite2
 compiles" is not true of the tree until they do or are removed
 deliberately. Each wants a cross toolchain for its processor; GCC
 2.95.3 has m68k, sparc, mips and vax and no longer has the tahoe.

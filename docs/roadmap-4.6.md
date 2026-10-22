@@ -21,6 +21,9 @@ settle*.
 - **`-fno-common`**, before any compiler newer than GCC 2.95.3 builds
   the kernel: 101 symbols tentatively defined in more than one kernel
   object (roadmap.md, Tier 1, item 5; deferred.md).
+- **GCC's other languages** -- Objective C, Fortran 77, CHILL, Java,
+  imported with GCC 2.95.3 and not built -- left for later work
+  (decided 2026-10-22; roadmap.md, *Later: GCC's other languages*).
 - **Changes made for GCC 14** are kept in the tree for these
   compilers (deferred.md, section 5).
 - **Permissive binary tools**, when they mature: nm and size from
