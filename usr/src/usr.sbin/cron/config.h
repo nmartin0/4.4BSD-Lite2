@@ -42,11 +42,18 @@
 			 */
 
 #define MAILCMD _PATH_SENDMAIL					/*-*/
-#define MAILARGS "%s -FCronDaemon -odi -oem -or0s %s"		/*-*/
+/* AI-ONLY NOTE: -oi -t, and no recipient on the command line, as NetBSD's
+ * config.h 1.3 (mycroft, 14 April 1995; NetBSD 1.1): the recipient is
+ * MAILTO, which a crontab sets, and on sendmail's command line a value
+ * beginning with `-' was taken as an option. do_command.c writes it in
+ * the message's To: line, which -t reads.
+ */
+#define MAILARGS "%s -FCronDaemon -odi -oem -oi -or0s -t"	/*-*/
 			/* -Fx	 = set full-name of sender
 			 * -odi	 = Option Deliverymode Interactive
 			 * -oem	 = Option Errors Mailedtosender
 			 * -or0s = Option Readtimeout -- don't time out
+			 * -t    = read recipient from header of message
 			 */
 
 /* #define MAILCMD "/bin/mail"			/*-*/

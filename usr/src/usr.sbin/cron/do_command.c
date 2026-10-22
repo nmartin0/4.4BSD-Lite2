@@ -366,8 +366,12 @@ child_process(e, u)
 				auto char	hostname[MAXHOSTNAMELEN];
 
 				(void) gethostname(hostname, MAXHOSTNAMELEN);
-				(void) sprintf(mailcmd, MAILARGS,
-					       MAILCMD, mailto);
+				/* AI-ONLY NOTE: NetBSD's do_command.c 1.2
+				 * (mycroft, 14 April 1995): no recipient
+				 * here; see config.h's MAILARGS.
+				 */
+				(void) snprintf(mailcmd, sizeof(mailcmd),
+				    MAILARGS, MAILCMD);
 				if (!(mail = cron_popen(mailcmd, "w"))) {
 					perror(MAILCMD);
 					(void) _exit(ERROR_EXIT);
