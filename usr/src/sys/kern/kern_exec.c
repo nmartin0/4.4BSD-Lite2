@@ -470,6 +470,17 @@ again:
 		cred->cr_gid = gid;
 		p->p_flag |= P_SUGID;
 	}
+	/*
+	 * AI-ONLY NOTE: the saved user and group ids are the effective ones
+	 * the new image runs with, as POSIX has execve set them, and as
+	 * NetBSD 1.1's and FreeBSD 2.0's execve do, after the set-id case
+	 * and whether or not it applied (FreeBSD's comment: "Implement
+	 * correct POSIX saved uid behavior"). Without them a setuid program
+	 * that gave up its privilege by seteuid could not take it back:
+	 * at and atq, setuid root, could not open /var/at.
+	 */
+	p->p_cred->p_svuid = cred->cr_uid;
+	p->p_cred->p_svgid = cred->cr_gid;
 	bcopy(ndp->ni_cnd.cn_nameptr, p->p_comm, MAXCOMLEN);
 	p->p_comm[MAXCOMLEN] = '\0';
 	setregs(p, entry, retval);
