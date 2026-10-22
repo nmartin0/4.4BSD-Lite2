@@ -636,6 +636,47 @@ tsleep and one master lock together, the precedent for KERNEL_LOCK.
 FreeBSD's zones (vm_zone.c, John Dyson, 1997-98) borrow only Mach's
 names; OpenBSD's pool(9) is the BSD equivalent.
 
+**The BSDs' locking, surveyed (2026-10-22)**, for stage 5 and for
+taking drivers; read from the trees. Lite2's own: spl levels,
+tsleep/wakeup, and Mach's simple_lock and McKusick's lockmgr; Torek's
+cfdriver, each softc beginning with struct device.
+
+- OpenBSD grew those in place. spl and tsleep stayed; rwlock(9),
+  November 2003 (Artur Grabowski); mutex(9), July 2004, "cpu-owned
+  spinning locks with spl semantics", mtx_init(&m, IPL_NET); the
+  kernel lock with SMP, June 2004; simple_lock folded away in 2010;
+  lockmgr put on recursive rwlocks in 2013 (Ted Unangst, after
+  Thordur Bjornsson) and its interface removed in 2016; splassert
+  (2002), rwsleep and NET_LOCK (2016), nanosecond sleeps (2019). Its
+  em(4) of 2026 still mixes splnet(), KERNEL_LOCK(), mtx at an IPL
+  and an IPL_NET | IPL_MPSAFE interrupt.
+- NetBSD replaced them at once. simple_lock and lockmgr through 4.0
+  with a big lock; in 5.0 (2009) both removed for Solaris's set --
+  adaptive mutexes, mutex_init(&m, MUTEX_DEFAULT, IPL_x) ("For porting
+  code written for Solaris"), rwlock, condvar, sleep queues,
+  workqueues -- spl kept as IPLs.
+- FreeBSD took another system's. 5.0 (2003): BSDi's SMPng from BSD/OS
+  (its mutex.h copyright 1997 Berkeley Software Design) -- every spl a
+  no-op returning 0, interrupts in kernel threads, Giant, mtx, sx,
+  condvar; rwlock in 7.0 (2008).
+
+The canonical primitives for this system are OpenBSD's, the one line
+that kept Lite2's model and grew it -- as stage 5 above already
+decided. And for drivers, the interface counts for more than the
+locks. FreeBSD left Torek's framework in 3.0 (1998) for newbus (Doug
+Rabson, 1997-98), so its drivers' attach, interrupt and locking code is
+rewritten whatever this system chooses. NetBSD and OpenBSD kept
+Torek's, with NetBSD 1.2's cfattach, which OpenBSD's struct cfattach
+still is: size, match, attach, detach, activate. In order of ease:
+OpenBSD's drivers of any year -- the same softc, cfattach, bus_space,
+bus_dma and, with its primitives, the same locks; NetBSD's to 4.0, the
+mid-2000s and before, Torek-shaped (struct device first, CFATTACH_DECL)
+and locked mostly by spl alone; NetBSD's from 5.0, whose softc holds a
+device_t (CFATTACH_DECL_NEW, device_private()) and whose locks are
+Solaris's, adaptable by a thin layer and by mapping mutex_enter to
+mtx_enter or rw_enter and cv_wait to msleep or rwsleep; then
+FreeBSD's, whose hardware knowledge carries over and little else.
+
 Each of these is a measured absence, not a stylistic gap. Counts are
 from the tree as it stands.
 
