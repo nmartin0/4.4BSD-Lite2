@@ -177,3 +177,41 @@ the Free Software Foundation, 675 Mass Ave, Cambridge, MA 02139, USA.  */
    not make it a little harder.  */
 
 #define C_DEBUG_SWITCH -g -traditional -O2
+
+/*
+ * AI-ONLY NOTE: 4.4BSD on ELF -- the i386 here; Berkeley's hp300 and
+ * sparc are a.out and see none of this. One block, as emacs's own
+ * s/netbsd.h and s/freebsd.h have theirs (emacs 20 and 21: "#if ...
+ * defined (__ELF__)"), each setting as one of emacs's own files has it:
+ *
+ *   UNEXEC		unexelf.o, the ELF dumper Lite2 ships; unexec.c
+ *			dumps a.out and COFF.
+ *   USG_SHARED_LIBRARIES  for unexelf.c's bss_end, which emacs.c
+ *			defines only under it; every emacs 18 system that
+ *			uses unexelf.o has it (s-usg5-4.h, s-dgux.h,
+ *			s-newsos5.h).
+ *   DATA_SEG_BITS	0x08000000, as 18.57's s-usg5-4.h has it: an
+ *			i386 ELF program loads at 0x08048000, above the
+ *			24 bits of address a Lisp object holds.
+ *   LIBS_TERMCAP	the system's termcap, as emacs's s/netbsd.h and
+ *			s/freebsd.h and 18.59's s-386bsd.h have it, and
+ *			Berkeley's m-sparcbsd.h.
+ *   C_SWITCH_ASM	-mpreferred-stack-boundary=2, for crt0.c alone:
+ *			emacs's own start, which every statically linked
+ *			BSD's emacs used (386BSD, NetBSD 0.9, FreeBSD,
+ *			Berkeley's), finds argc at a fixed distance from
+ *			the frame _start pushes, and GCC 2.95.3 aligns the
+ *			stack to 16 bytes there unless told its old 4.
+ *
+ * The system's own start files are for a system with shared
+ * libraries, as emacs's s/netbsd.h uses them only #ifndef
+ * NO_SHARED_LIBS; this one has none (docs/roadmap.md, *Later: shared
+ * libraries*).
+ */
+#ifdef __ELF__
+#define UNEXEC unexelf.o
+#define USG_SHARED_LIBRARIES
+#define DATA_SEG_BITS 0x08000000
+#define LIBS_TERMCAP -ltermcap
+#define C_SWITCH_ASM -mpreferred-stack-boundary=2
+#endif /* __ELF__ */
