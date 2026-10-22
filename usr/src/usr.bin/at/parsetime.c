@@ -345,15 +345,21 @@ tod(tm)
     if (token() == DOT) {
 	expect(NUMBER);
 	minute = atoi(sc_token);
-	if (minute > 59)
-	    panic("garbled time");
 	token();
     } else if (tlen == 4) {
 	minute = hour%100;
-	if (minute > 59)
-	    panic("garbeld time");
 	hour = hour/100;
     }
+
+    /*
+     * AI-ONLY NOTE: 12am is midnight and 12pm noon, as OpenBSD's
+     * parsetime.c of 2 January 1996 (deraadt, from Mark Weaver; NetBSD
+     * PR 1743): 12 took 12 more for pm, made 24, which became midnight
+     * the next day, and 12am stayed noon. The minute's check, made
+     * once here, and the hour-24 case removed with it, as there.
+     */
+    if (minute > 59)
+	panic("garbled time");
 
     /*
      * check if an AM or PM specifier was given
@@ -361,6 +367,8 @@ tod(tm)
     if (sc_tokid == AM || sc_tokid == PM) {
 	if (hour > 12)
 	    panic("garbled time");
+	else if (hour == 12)
+	    hour = 0;
 
 	if (sc_tokid == PM)
 	    hour += 12;
@@ -378,10 +386,6 @@ tod(tm)
 
     tm->tm_hour = hour;
     tm->tm_min = minute;
-    if (tm->tm_hour == 24) {
-	tm->tm_hour = 0;
-	tm->tm_mday++;
-    }
 } /* tod */
 
 
