@@ -189,6 +189,9 @@ evaltree(n, flags)
 	union node *n;
 	int flags;
 {
+	int do_etest;
+
+	do_etest = 0;
 	if (n == NULL) {
 		TRACE(("evaltree(NULL) called\n"));
 		exitstatus = 0;
@@ -207,19 +210,8 @@ evaltree(n, flags)
 		break;
 	case NAND:
 		evaltree(n->nbinary.ch1, EV_TESTED);
-		/*
-		 * AI-ONLY NOTE: the three lines FreeBSD's eval.c 1.6
-		 * (steve, 6 October 1996) and NetBSD's 1.31 (christos,
-		 * 16 October 1996, PR 2808) both added, comment and all;
-		 * shipped in FreeBSD 2.2 and NetBSD 1.2.1. A failed first
-		 * command left the shell to exit at `out' under -e, where
-		 * POSIX 1003.2 has -e ignore a command in an && list.
-		 */
-		if (evalskip || exitstatus != 0) {
-			/* don't bomb out on "set -e; false && true" */
-			flags |= EV_TESTED;
+		if (evalskip || exitstatus != 0)
 			goto out;
-		}
 		evaltree(n->nbinary.ch2, flags);
 		break;
 	case NOR:
@@ -236,6 +228,7 @@ evaltree(n, flags)
 		break;
 	case NSUBSHELL:
 		evalsubshell(n, flags);
+		do_etest = !(flags & EV_TESTED);
 		break;
 	case NBACKGND:
 		evalsubshell(n, flags);
@@ -275,9 +268,11 @@ evaltree(n, flags)
 
 	case NPIPE:
 		evalpipe(n);
+		do_etest = !(flags & EV_TESTED);
 		break;
 	case NCMD:
 		evalcommand(n, flags, (struct backcmd *)NULL);
+		do_etest = !(flags & EV_TESTED);
 		break;
 	default:
 		out1fmt("Node type = %d\n", n->type);
@@ -287,7 +282,17 @@ evaltree(n, flags)
 out:
 	if (pendingsigs)
 		dotrap();
-	if ((flags & EV_EXIT) || (eflag && exitstatus && !(flags & EV_TESTED)))
+	/*
+	 * AI-ONLY NOTE: FreeBSD's eval.c 1.44 (stefanf, 10 September
+	 * 2005, reviewed by cracauer; in FreeBSD 7.0), whose lines
+	 * NetBSD took for 4.0: -e is tested only after a simple
+	 * command, a pipeline or a subshell that is not itself tested,
+	 * as do_etest says. As shipped, every node was tested here, so
+	 * "set -e; ! true" left the shell at the `!', and a failed &&
+	 * list left it at the `;' above the list. The && case is again
+	 * as Berkeley shipped it, as in FreeBSD since 5.3 and NetBSD 4.0.
+	 */
+	if ((flags & EV_EXIT) || (eflag && exitstatus != 0 && do_etest))
 		exitshell(exitstatus);
 }
 

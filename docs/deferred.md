@@ -751,14 +751,25 @@ Makefiles do not know.
   comment and all, shipped in FreeBSD 2.2 and NetBSD 1.2.1 -- not
   1.2, as this note said; OpenBSD took NetBSD's four days later and
   dropped this shell for pdksh in 1997. The i386 kernel's Makefile,
-  the one it stopped, keeps Berkeley's hp300 form.
-- **Lite2's sh exits under -e on `! true'.** The negated command is
-  run as tested, but its inverted status reaches evaltree's check
-  untested, as the && case's did. POSIX exempts a pipeline after `!'
-  from -e. No small fix of the time exists to take: FreeBSD 2.2 to
-  5.0 and NetBSD 1.3 to 1.6 have Berkeley's lines unchanged, and both
-  fixed it only in later rewrites of evaltree. Found testing patch
-  171; no Makefile in the tree is stopped by it.
+  the one it stopped, keeps Berkeley's hp300 form. Patch 178 took
+  the three lines out again: they covered a list run alone, but a
+  failed list after a `;', as in `set -e; false && true; exit 7', still
+  ended the shell at the `;' node, and patch 178's narrower test covers
+  both, as FreeBSD 5.3 and NetBSD 4.0 dropped them.
+- ~~**Lite2's sh exits under -e on `! true'.**~~ **FIXED** (patch 178).
+  The negated command was run as tested, but evaltree's check at `out'
+  then tested every node, the `!' among them. FreeBSD's eval.c 1.44
+  (stefanf, 10 September 2005; FreeBSD 7.0) tests -e only after a
+  simple command, a pipeline or a subshell, through a do_etest flag;
+  NetBSD took the same lines for 4.0. Earlier fixes were narrower:
+  NetBSD 1.5 (Husemann, January 2000) moved the test into evalcommand,
+  losing subshells and pipelines; FreeBSD 5.3 (cracauer, December 2003
+  and January 2004) tested commands and subshells only, losing
+  pipelines. Found testing patch 171. Still open, and kept out of
+  patch 178 as a separate bug: `if false; false; then' and a failing
+  command inside a function called as `f || true' end the shell, which
+  FreeBSD's eval.c 1.45 and 1.46 (stefanf, the same day) fixed by
+  passing EV_TESTED on to an NSEMI's left side and to loop bodies.
 - ~~**Lite2's sh rejects a command of redirections only before &&
   or ||**~~ **FIXED** (patch 172). `<file || echo missing' was a
   syntax error; rcs's rcstest uses the form. NetBSD's parser.c 1.30's
