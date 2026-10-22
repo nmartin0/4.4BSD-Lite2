@@ -44,8 +44,10 @@ The
 utility runs commands queued by
 .Xr at 1 .
 It is usually invoked by
-.Xr crond 8
+.Xr cron 8
 every ten minutes.
+.\" AI-ONLY NOTE: cron(8) for crond(8), three times, as NetBSD's
+.\" atrun.8 1.3 (jtc, 3 November 1994).
 .Sh FILES
 .Bl -tag -width /var/at/lockfile -compact
 .It Pa /var/at/jobs
@@ -56,7 +58,7 @@ Directory containing output spool files
 Job-creation lock file.
 .El
 .Sh SEE ALSO
-.Xr crond 8 ,
+.Xr cron 8 ,
 .Xr at 1
 .Sh AUTHOR
 .Bl -tag
@@ -66,7 +68,7 @@ Thomas Koenig, ig25@rz.uni-karlsruhe.de
 The functionality of
 .Nm atrun
 should arguaby be merged into
-.Xr crond 8 .
+.Xr cron 8 .
 .Sh CAVEATS
 Since the default configuration causes
 .Nm atrun
