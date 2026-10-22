@@ -426,6 +426,28 @@ FreeBSD later moved to ATF and Kyua. Lite2 has no ddb -- only kgdb
 stubs, and kadb named in the configurations with its sources cut --
 and ddb, CMU Mach's via 386BSD, is in NetBSD 1.0 and FreeBSD 2.0.
 
+**Later: shared libraries** (noted 2026-10-22). The system links
+every program statically, as 4.4BSD did; Lite2 has no shared
+libraries. For ELF there is one family, from John Polstra's work of
+1996: NetBSD's ld.elf_so (Polstra and Matt Thomas, 1996; in NetBSD 1.3,
+1997, first on the alpha) and FreeBSD's rtld-elf (Polstra, 1996 to
+2000; in FreeBSD 3.0, October 1998, the first i386 BSD release with
+ELF shared libraries). OpenBSD's ld.so was written independently in
+2000, first for MIPS and PowerPC. The shared libraries of NetBSD 0.9
+and FreeBSD 1.x, Paul Kranenburg's SunOS-style ld.so, are for a.out
+and do not apply. The lean, to be researched when taken up: NetBSD's
+ld.elf_so, since this system's ELF pieces are NetBSD's already -- the
+kernel's sys/exec_elf.h and loader, and lib/csu's start files -- and it
+shares Polstra's original with FreeBSD's. A project of its own:
+position-independent libraries, ld -shared, the kernel loading an
+interpreter (PT_INTERP), the shared start files (crtbeginS), and the
+library Makefiles. Emacs is not a blocker either way: it can stay
+statically linked, emacs's own NO_SHARED_LIBS, as emacs's s/netbsd.h
+had NetBSD/alpha do in 1997; or link dynamically as that file's
+shared-library case does, with the system's start files and the one
+line Berkeley added to sysdep.c, `char __progname[] = "emacs"', which
+the system's crt0 also defines, put under a guard.
+
 **Later: GCC's other languages.** GCC 2.95.3 is imported whole, with
 its C++, Objective C, Fortran 77, CHILL and Java front ends. C comes
 first, then C++, which Lite2's own groff and libg++ are written in.

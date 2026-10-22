@@ -1127,8 +1127,10 @@ emacs-version -- `GNU Emacs 18.57.50 ... on pcchost.my.domain
 Lisp file. What porting it took, all in contrib/emacs-18.57:
 
 - **src/config.i386bsd.h**, in the pattern of Berkeley's two -- the
-  makefile links config.${MACHINE}bsd.h -- with emacs's m-intel386.h,
-  no X, and the settings below, each as emacs's own files have it.
+  makefile links config.${MACHINE}bsd.h -- with emacs's m-intel386.h
+  and no X; the settings below, each as emacs's own files have it, in
+  one #ifdef __ELF__ block in Berkeley's s-bsd4-4.h, as emacs's own
+  s/netbsd.h and s/freebsd.h hold theirs (patch 174).
 - **The ELF dumper.** unexelf.c, which Lite2 ships, was written for
   System V and includes System V's <elf.h>; this system's ELF
   definitions are <sys/exec_elf.h>, NetBSD's, under NetBSD's names. As
@@ -1138,10 +1140,14 @@ Lisp file. What porting it took, all in contrib/emacs-18.57:
 - **The addresses.** An ELF program loads at 0x08048000, above the 24
   bits of address a Lisp object holds: DATA_SEG_BITS, as emacs's
   s-usg5-4.h has it, puts them back. Without it temacs died at once.
-- **The start.** emacs links its own crt0.c, whose i386 start finds
-  argc at a fixed distance from the frame _start pushes; GCC 2.95.3's
-  16-byte stack alignment moved it. -mpreferred-stack-boundary=2, for
-  crt0.c alone, by the ymakefile's switch for that file.
+- **The start.** emacs links its own crt0.c, as every statically
+  linked BSD's emacs did -- 386BSD's, NetBSD 0.9's, FreeBSD's first,
+  Berkeley's; the system's start files are for shared libraries, and
+  emacs's s/netbsd.h uses them only #ifndef NO_SHARED_LIBS. crt0.c's
+  i386 start finds argc at a fixed distance from the frame _start
+  pushes; GCC 2.95.3's 16-byte stack alignment moved it.
+  -mpreferred-stack-boundary=2, for crt0.c alone, by the ymakefile's
+  switch for that file.
 - **The dump's system calls.** unexelf.c passed st_size, and 0 for an
   offset, to mmap and ftruncate with no prototypes in sight -- emacs
   is compiled -traditional -- so 4.4BSD's 64-bit off_t moved every
