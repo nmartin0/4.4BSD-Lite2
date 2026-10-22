@@ -1101,3 +1101,56 @@ stood in the way, both Berkeley's:
   if/then/else, and the tail ended by `|| true' -- as NetBSD 1.0's
   i386 Makefile has them. (The sh behaviour itself is in
   deferred.md.)
+
+# Emacs
+
+GNU Emacs 18.57, which Lite2 ships in contrib, is built on the system,
+not on the build machine: emacs is made by running temacs, which
+loads its Lisp and dumps itself, and only this system can run it. So
+the CD carries emacs's sources, in contribsrc.tar, and not emacs; the
+system's own `make build' builds and installs it with the rest of
+contrib, or by itself, from the sources (*The sources*):
+
+	# cd /usr/src/contrib/emacs-18.57; make; make install
+
+in a minute and a quarter under QEMU: emacs, etags, ctags and
+emacsclient in /usr/contrib/bin, its Lisp in /usr/contrib/lib/emacs,
+its page in /usr/contrib/man/cat1. Then, as anyone, with a terminal
+type termcap knows:
+
+	% env TERM=vt100 emacs file
+
+Tried on a fresh install of the CD: it built, dumped, installed, and,
+after a reboot, opened a file, took text, answered M-x
+emacs-version -- `GNU Emacs 18.57.50 ... on pcchost.my.domain
+(berkeley-unix)' -- saved with C-x C-s and quit; `emacs -batch' ran a
+Lisp file. What porting it took, all in contrib/emacs-18.57:
+
+- **src/config.i386bsd.h**, in the pattern of Berkeley's two -- the
+  makefile links config.${MACHINE}bsd.h -- with emacs's m-intel386.h,
+  no X, and the settings below, each as emacs's own files have it.
+- **The ELF dumper.** unexelf.c, which Lite2 ships, was written for
+  System V and includes System V's <elf.h>; this system's ELF
+  definitions are <sys/exec_elf.h>, NetBSD's, under NetBSD's names. As
+  GNU's unexelf.c of emacs 20.1 does for NetBSD, it includes that and
+  maps the three names it uses. emacs.c's bss_end, which it needs, is
+  under USG_SHARED_LIBRARIES, as on System V Release 4.
+- **The addresses.** An ELF program loads at 0x08048000, above the 24
+  bits of address a Lisp object holds: DATA_SEG_BITS, as emacs's
+  s-usg5-4.h has it, puts them back. Without it temacs died at once.
+- **The start.** emacs links its own crt0.c, whose i386 start finds
+  argc at a fixed distance from the frame _start pushes; GCC 2.95.3's
+  16-byte stack alignment moved it. -mpreferred-stack-boundary=2, for
+  crt0.c alone, by the ymakefile's switch for that file.
+- **The dump's system calls.** unexelf.c passed st_size, and 0 for an
+  offset, to mmap and ftruncate with no prototypes in sight -- emacs
+  is compiled -traditional -- so 4.4BSD's 64-bit off_t moved every
+  argument after it: mmap's EINVAL, or SIGBUS. (off_t) and (size_t),
+  as Berkeley cast every lseek elsewhere in this emacs.
+- **Not stripped.** Berkeley's Makefile installed xemacs with -s;
+  stripping the ELF dump breaks it -- it hung, and aborted -- as
+  emacs's own later unexelf.c records. Installed as GNU's own Makefile
+  installs it, without -s.
+- **etc before src.** etc's programs include ../src/config.h, which
+  Lite2 ships linked to config.hp300bsd.h and src's makefile links
+  anew only later; the makefile here links it first.

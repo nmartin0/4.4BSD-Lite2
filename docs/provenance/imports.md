@@ -304,6 +304,11 @@ copied, and the commit names it with its release.
     section, the values NetBSD 1.0's and FreeBSD 2.0's conf.h have;
     conf.h made on the system by conf.sh and kept, as FreeBSD 2.0
     kept Wollman's (1994), with the Makefile's own conf_h
+  contrib/emacs-18.57: unexelf.c's ELF definitions from
+    <sys/exec_elf.h> with three names mapped, as GNU's emacs 20.1
+    (1997) has it for NetBSD; xemacs installed without -s, as GNU's
+    own 18.59 Makefile installs it; config.i386bsd.h's settings each
+    as one of emacs's own s- or m- files has it
   etc/root/dot.profile: TERM given a value before Berkeley's `export
     TERM for single user shells', FreeBSD 2.2's ${TERM:-cons25}, here
     pc3, Lite2's termcap entry for the console

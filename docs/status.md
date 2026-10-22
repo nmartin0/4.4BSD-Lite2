@@ -65,7 +65,9 @@ the boot blocks load the kernel throughout:
   sources, as Berkeley's did;
   GCC keeps its passes in /usr/libexec/gcc2, as Lite2's gcc-2.3.3 did;
   nvi is also vi, ex and view in /usr/bin; rcs is in /usr/contrib/bin,
-  with the conf.h its conf.sh wrote on the system (patch 172).
+  with the conf.h its conf.sh wrote on the system (patch 172); emacs
+  18.57 builds, dumps and runs on the system (patch 173; install.md,
+  *Emacs*).
 - **The whole tree.** The base set is Berkeley's own top-level `make
   build` of the whole tree, contrib/ aside (patch 153): 179 programs
   in /usr/bin, the games, the time zones -- without leap seconds,

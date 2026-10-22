@@ -397,11 +397,12 @@ built with GCC 2.95.3's C++, now built with it, g++ and c++ and its
 library, libstdc++ 2.10.0 (patch 164); rcs 5.6, as Berkeley
 configured it but for GNU diff's lines, with the conf.h its conf.sh
 wrote on the system, kept as FreeBSD 2.0 kept the one Wollman
-regenerated (decided 2026-10-19, patch 172).
+regenerated (decided 2026-10-19, patch 172); emacs 18.57, built on
+the system, where it dumps itself, ported as GNU's emacs 20.1 ported
+unexelf.c to NetBSD, and passed over by the build on another machine
+(decided 2026-10-22, patch 173; install.md, *Emacs*).
 Left, with what each is known to need:
 
-	emacs-18.57   dumps itself by running temacs: on the system,
-	              which now builds itself
 	libg++-2.3    written for g++ 2.3; GCC 2.95.3's libstdc++ is
 	              the system's C++ library meanwhile
 
