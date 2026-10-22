@@ -1398,12 +1398,20 @@ account
 # ./var/account
 ..
 
+# AI-ONLY NOTE: /var/at's jobs and spool, for Thomas Koenig's at, as
+# NetBSD 1.0's 4.4BSD.dist has them, in place of past, which Berkeley's
+# at, taken by the settlement, used.
 # ./var/at
 at
 
-# ./var/at/past
-past
-# ./var/at/past
+# ./var/at/jobs
+jobs		mode=0700
+# ./var/at/jobs
+..
+
+# ./var/at/spool
+spool		mode=0700
+# ./var/at/spool
 ..
 
 # ./var/at
