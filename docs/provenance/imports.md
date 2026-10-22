@@ -304,6 +304,10 @@ copied, and the commit names it with its release.
     section, the values NetBSD 1.0's and FreeBSD 2.0's conf.h have;
     conf.h made on the system by conf.sh and kept, as FreeBSD 2.0
     kept Wollman's (1994), with the Makefile's own conf_h
+  ps_strings: the argv and envp vectors' addresses, not their first
+    strings -- sys/exec.h's char **, kern_exec.c, and libkvm's
+    kvm_argv reading the strings through them -- NetBSD 1.1's
+    (Charles M. Hannum, 16 to 25 May 1995), FreeBSD 2.2 the same
   contrib/emacs-18.57: unexelf.c's ELF definitions from
     <sys/exec_elf.h> with three names mapped, as GNU's emacs 20.1
     (1997) has it for NetBSD; xemacs installed without -s, as GNU's

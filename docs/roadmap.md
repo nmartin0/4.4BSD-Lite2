@@ -146,8 +146,12 @@ on Lite2's procfs hooks, with its manual page (`a56c2f9b`).
    (`579fed2d`).
 7. ~~**`ps_strings`.**~~ execve fills it in, and kvm_argv bounds
    addresses by USRSTACK; `ps -ax` shows every command's arguments.
-   Left: `ps -e` on init shows a garbage environment -- init has none,
-   and kvm_argv given a count of 0 still returns one string.
+   And `ps -e` on init, which has no environment, showed one string of
+   garbage: kvm_argv found the strings by counting NULs and, given a
+   count of 0, still returned the first. Now ps_strings records where
+   the argv and envp vectors are, and libkvm reads the strings through
+   them, as NetBSD 1.1 has it (Charles M. Hannum, May 1995) and
+   FreeBSD 2.2 (patch 176).
 
 ## Tier 1½ — an installable `.iso`
 
