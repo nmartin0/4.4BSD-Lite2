@@ -36,7 +36,9 @@
 .Nm at, batch, atq, atrm
 .Nd queue, examine, or delete jobs for later execution
 .\"
-.Sh SYOPSIS
+.\" AI-ONLY NOTE: SYNOPSIS spelt so, batch without a time operand, and
+.\" cron(8) for crond(8), as NetBSD's at.1 1.6 (glass, 25 March 1995).
+.Sh SYNOPSIS
 .Nm at
 .Op Fl q Ar queue
 .Op Fl f Ar file
@@ -54,7 +56,6 @@
 .Nm batch
 .Op Fl f Ar file
 .Op Fl m
-.Ar time
 .Sh DESCRIPTION
 The
 .Nm at
@@ -186,7 +187,7 @@ Job-creation lock file.
 .It Pa /var/run/utmp
 .El
 .Sh SEE ALSO
-.Xr crond 8 ,
+.Xr cron 8 ,
 .Xr nice 1 ,
 .Xr sh 1 ,
 .Xr atrun 8

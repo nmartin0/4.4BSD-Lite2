@@ -246,7 +246,10 @@ writefile(runtimer, queue)
 	 * write to the directory, if necessary.
 	 */
 
-	    REDUCE_PRIV(0);
+	/* AI-ONLY NOTE: effective_uid for 0, as NetBSD's at.c 1.4 (glass,
+	 * 25 March 1995; NetBSD 1.1).
+	 */
+	    REDUCE_PRIV(effective_uid);
 
 	/*
 	 * We've successfully created the file; let's set the flag so it
@@ -526,17 +529,17 @@ main(argc, argv)
 
 	/* select our program */
 	switch (program) {
+	/*
+	 * AI-ONLY NOTE: no REDUCE_PRIV(0) before atq and atrm, as NetBSD's
+	 * at.c 1.4 (glass, 25 March 1995; NetBSD 1.1). It made the real
+	 * user id root, and the two compare a job's owner with that, so any
+	 * user's atq listed every job and atrm removed any.
+	 */
 	case ATQ:
-
-		REDUCE_PRIV(0);
-
 		list_jobs();
 		break;
 
 	case ATRM:
-
-		REDUCE_PRIV(0);
-
 		delete_jobs(argc, argv);
 		break;
 
