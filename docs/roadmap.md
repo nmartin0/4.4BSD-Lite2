@@ -401,10 +401,13 @@ regenerated (decided 2026-10-19, patch 172); emacs 18.57, built on
 the system, where it dumps itself, ported as GNU's emacs 20.1 ported
 unexelf.c to NetBSD, and passed over by the build on another machine
 (decided 2026-10-22, patch 173; install.md, *Emacs*).
-Left, with what each is known to need:
-
-	libg++-2.3    written for g++ 2.3; GCC 2.95.3's libstdc++ is
-	              the system's C++ library meanwhile
+Not built: libg++-2.3, written for g++ 2.3. GCC 2.95.3's libstdc++ is
+the system's C++ library, as each BSD dropped libg++ when it took egcs
+or GCC 2.95 -- NetBSD in 1.4 (1999), OpenBSD in May 1999 ("old libg++,
+replaced by part of egcs"), FreeBSD by 4.0 (2000), none having paired
+libg++ with GCC 2.95 -- and nothing in the tree uses it; it stays as
+Lite2 shipped it, as gcc-2.3.3, gas-1.38 and gdb-4.7.LBL do (decided
+2026-10-22, patch 175). With it, contrib is done.
 
 **Later, and noted: what Caldera's licence freed.** deroff, spell,
 ching's missing files, compress, bc and dc, and 4.4's

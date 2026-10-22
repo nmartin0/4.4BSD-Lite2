@@ -2,12 +2,16 @@
 
 # AI-ONLY NOTE: for the i386, binutils 2.11.2 and GCC 2.95.3, the
 # system's assembler, linker and binary tools and its C compiler
-# (binutils-2.11.2/README.BSD, gcc-2.95.3/README.BSD), and the
-# programs of Berkeley's list below as each is taken up and made to
-# build here, one at a time (docs/roadmap.md, *Next: contrib/*). Not
-# gcc-2.3.3, gas-1.38 and gdb-4.7.LBL: they make and read a.out, and
-# this system is ELF; GCC 2.95.3 and binutils 2.11.2 stand in for the
-# first two, and a gdb that reads ELF is to come. And two not on
+# (binutils-2.11.2/README.BSD, gcc-2.95.3/README.BSD), and the programs
+# of Berkeley's list below as each is taken up and made to build here,
+# one at a time (docs/roadmap.md, *Next: contrib/*). Not gcc-2.3.3,
+# gas-1.38 and gdb-4.7.LBL: they make and read a.out, and this system is
+# ELF; GCC 2.95.3 and binutils 2.11.2 stand in for the first two, and a
+# gdb that reads ELF is to come. Nor libg++-2.3, written for g++ 2.3:
+# GCC 2.95.3's libstdc++ is the system's C++ library, as each BSD
+# dropped libg++ when it took egcs or GCC 2.95 -- NetBSD in 1.4, OpenBSD
+# in May 1999 ("old libg++, replaced by part of egcs"), FreeBSD by 4.0
+# -- and nothing here uses it (decided 2026-10-22). And four not on
 # Berkeley's list: diff-2.6, GNU's, the system's diff, diff3 and sdiff,
 # for the usr.bin/diff the Lite cut emptied; and ed, Berkeley's own
 # replacement for the bin/ed the Lite cut deleted; and sort, Berkeley's
@@ -16,9 +20,9 @@
 # 1.1's, the system's grep, egrep and fgrep in place of usr.bin/grep's.
 .if ${MACHINE} == "i386"
 SUBDIR=	ansi bib bind-4.9.2 binutils-2.11.2 diff-2.6 ed emacs-18.57 \
-	flex-2.5.2 \
-	gawk-2.15.2 gcc-2.95.3 grep-2.0 groff-1.08 gzip-1.2.4 hunt \
-	jove-4.14.6 kermit-5A.188 mh-6.8.3a nvi perl-4.036 rcs-V5.6 sort
+	flex-2.5.2 gawk-2.15.2 gcc-2.95.3 grep-2.0 groff-1.08 gzip-1.2.4 \
+	hunt jove-4.14.6 kermit-5A.188 mh-6.8.3a nvi perl-4.036 rcs-V5.6 \
+	sort
 .else
 SUBDIR=	ansi bib bind-4.9.2 flex-2.5.2 gawk-2.15.2 emacs-18.57 gas-1.38 \
 	gcc-2.3.3 gdb-4.7.LBL groff-1.08 gzip-1.2.4 hunt jove-4.14.6 \
