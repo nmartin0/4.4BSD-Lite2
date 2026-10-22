@@ -806,6 +806,11 @@ Makefiles do not know.
   NetBSD 1.0 and FreeBSD 2.0 shipped the same, with this merger.c;
   NetBSD changed it by moving to RCS 5.7. Every other check in
   rcstest passes on the system.
+- **su passes nothing after the user name to the shell.** `su tester
+  -c id' starts an interactive shell for tester, as Berkeley's su did:
+  its usage is `su [-flm] [login]'. NetBSD 1.0's su passes the rest
+  on (`np = *argv ? argv : argv-1'); FreeBSD 2.0's is Berkeley's.
+  Found testing patch 181; not yet decided.
 - **A second `make install` needs single user.** init, login, su,
   passwd, rlogin, rsh, rdist, sliplogin, mail.local and chpass are
   installed immutable, which securelevel 1 will not undo; Berkeley's

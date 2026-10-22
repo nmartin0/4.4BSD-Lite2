@@ -923,6 +923,16 @@ are taken, each its own commit (decided 2026-10-22):
 	at	12am and 12pm: OpenBSD, de Raadt, 2 January 1996, from
 		Mark Weaver, NetBSD PR 1743
 
+Tested on a fresh install (patch 181): cron starts at boot and runs a
+crontab's line on the minute; an ordinary user's crontab is installed,
+listed, run as that user and removed; `crontab -u daemon' keeps the
+whole name. As an ordinary user, at queues a job, atq lists only that
+user's, atrm of root's job says "Not owner", and `at -f
+/etc/master.passwd' is refused; atrun runs root's job with root's
+groups and the user's with the user's alone; 12pm, 12am and 11:30pm
+queue for noon, midnight and half past eleven. The at commands as an
+ordinary user needed the saved ids execve now sets (patch 181).
+
 ## F -- Berkeley's own file, restored
 
 	sbin/savecore/zopen.c	741 lines	NetBSD 1.0
