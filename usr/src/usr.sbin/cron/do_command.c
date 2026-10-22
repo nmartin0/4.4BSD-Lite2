@@ -19,6 +19,11 @@
 static char rcsid[] = "$Id: do_command.c,v 1.1.1.4 1994/01/20 02:47:22 jtc Exp $";
 #endif
 
+/* AI-ONLY NOTE: from NetBSD's pull-up of 26 January 1997 (rat, "Update
+ * from trunk.  Fixes security bugs."; NetBSD 1.2.1): the status message
+ * written by snprintf.
+ */
+
 
 #include "cron.h"
 #include <sys/signal.h>
@@ -429,7 +434,7 @@ child_process(e, u)
 			if (mailto && status) {
 				char buf[MAX_TEMPSTR];
 
-				sprintf(buf,
+				snprintf(buf, sizeof(buf),
 			"mailed %d byte%s of output but got status 0x%04x\n",
 					bytes, (bytes==1)?"":"s",
 					status);

@@ -115,7 +115,18 @@ load_env(envstr, f)
 {
 	long	filepos;
 	int	fileline;
-	char	name[MAX_TEMPSTR], val[MAX_ENVSTR];
+	/* AI-ONLY NOTE: name as long as the line it is read from, as
+	 * NetBSD's env.c pull-up of 6 March 1997 (thorpej, PR 3293, from
+	 * Rick Byers; NetBSD 1.2.1) and FreeBSD 2.2's: a crontab's variable
+	 * name of more than 100 characters overran it, as root (Secure
+	 * Networks, SNI-02, 16 December 1996); and envstr below
+	 * written by snprintf, as NetBSD's pull-up of 26 January 1997 (rat;
+	 * NetBSD 1.2.1). That pull-up's strncpy for the strcpy that strips
+	 * the quotes is not taken: it copied sizeof(val - 1), a pointer's
+	 * size, cutting a quoted value to three characters, and the strcpy,
+	 * which shortens the string, cannot overrun; FreeBSD 2.2 kept it.
+	 */
+	char	name[MAX_ENVSTR], val[MAX_ENVSTR];
 	int	fields;
 
 	filepos = ftell(f);
@@ -154,7 +165,7 @@ load_env(envstr, f)
 		}
 	}
 
-	(void) sprintf(envstr, "%s=%s", name, val);
+	(void) snprintf(envstr, MAX_ENVSTR, "%s=%s", name, val);
 	Debug(DPARS, ("load_env, <%s> <%s> -> <%s>\n", name, val, envstr))
 	return (TRUE);
 }

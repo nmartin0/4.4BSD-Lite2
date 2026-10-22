@@ -19,6 +19,11 @@
 static char rcsid[] = "$Id: entry.c,v 1.1.1.4 1994/01/20 02:47:23 jtc Exp $";
 #endif
 
+/* AI-ONLY NOTE: from NetBSD's pull-up of 26 January 1997 (rat, "Update
+ * from trunk.  Fixes security bugs."; NetBSD 1.2.1): the environment
+ * strings written by snprintf.
+ */
+
 /* vix 26jan87 [RCS'd; rest of log is in RCS file]
  * vix 01jan87 [added line-level error recovery]
  * vix 31dec86 [added /step to the from-to range, per bob@acornrc]
@@ -27,7 +32,6 @@ static char rcsid[] = "$Id: entry.c,v 1.1.1.4 1994/01/20 02:47:23 jtc Exp $";
 
 
 #include "cron.h"
-
 
 typedef	enum ecode {
 	e_none, e_minute, e_hour, e_dom, e_month, e_dow,
@@ -249,21 +253,21 @@ load_entry(file, error_func, pw, envp)
 	 */
 	e->envp = env_copy(envp);
 	if (!env_get("SHELL", e->envp)) {
-		sprintf(envstr, "SHELL=%s", _PATH_BSHELL);
+		snprintf(envstr, sizeof(envstr), "SHELL=%s", _PATH_BSHELL);
 		e->envp = env_set(e->envp, envstr);
 	}
 	if (!env_get("HOME", e->envp)) {
-		sprintf(envstr, "HOME=%s", pw->pw_dir);
+		snprintf(envstr, sizeof(envstr), "HOME=%s", pw->pw_dir);
 		e->envp = env_set(e->envp, envstr);
 	}
 	if (!env_get("PATH", e->envp)) {
-		sprintf(envstr, "PATH=%s", _PATH_DEFPATH);
+		snprintf(envstr, sizeof(envstr), "PATH=%s", _PATH_DEFPATH);
 		e->envp = env_set(e->envp, envstr);
 	}
-	sprintf(envstr, "%s=%s", "LOGNAME", pw->pw_name);
+	snprintf(envstr, sizeof(envstr), "%s=%s", "LOGNAME", pw->pw_name);
 	e->envp = env_set(e->envp, envstr);
 #if defined(BSD)
-	sprintf(envstr, "%s=%s", "USER", pw->pw_name);
+	snprintf(envstr, sizeof(envstr), "%s=%s", "USER", pw->pw_name);
 	e->envp = env_set(e->envp, envstr);
 #endif
 
