@@ -92,8 +92,8 @@ int exitstatus;			/* exit status of last command */
 int oexitstatus;		/* saved exit status */
 
 
-STATIC void evalloop __P((union node *));
-STATIC void evalfor __P((union node *));
+STATIC void evalloop __P((union node *, int));
+STATIC void evalfor __P((union node *, int));
 STATIC void evalcase __P((union node *, int));
 STATIC void evalsubshell __P((union node *, int));
 STATIC void expredir __P((union node *));
@@ -203,7 +203,15 @@ evaltree(n, flags)
 	TRACE(("evaltree(0x%lx: %d) called\n", (long)n, n->type));
 	switch (n->type) {
 	case NSEMI:
-		evaltree(n->nbinary.ch1, 0);
+		/*
+		 * AI-ONLY NOTE: FreeBSD's eval.c 1.45 (stefanf, 10 September
+		 * 2005, PRs 77067 and 85267, reviewed by cracauer), and 1.46
+		 * for the loops below: a tested list, loop or function body
+		 * is tested throughout, so "if false; false; then" and a
+		 * failing command early in a function called as "f || true"
+		 * no longer end the shell under -e. In FreeBSD 7.0.
+		 */
+		evaltree(n->nbinary.ch1, flags & ~EV_EXIT);
 		if (evalskip)
 			goto out;
 		evaltree(n->nbinary.ch2, flags);
@@ -249,10 +257,10 @@ evaltree(n, flags)
 	}
 	case NWHILE:
 	case NUNTIL:
-		evalloop(n);
+		evalloop(n, flags & ~EV_EXIT);
 		break;
 	case NFOR:
-		evalfor(n);
+		evalfor(n, flags & ~EV_EXIT);
 		break;
 	case NCASE:
 		evalcase(n, flags);
@@ -298,8 +306,9 @@ out:
 
 
 STATIC void
-evalloop(n)
+evalloop(n, flags)
 	union node *n;
+	int flags;
 {
 	int status;
 
@@ -323,7 +332,7 @@ skipping:	  if (evalskip == SKIPCONT && --skipcount <= 0) {
 			if (exitstatus == 0)
 				break;
 		}
-		evaltree(n->nbinary.ch2, 0);
+		evaltree(n->nbinary.ch2, flags);
 		status = exitstatus;
 		if (evalskip)
 			goto skipping;
@@ -335,8 +344,9 @@ skipping:	  if (evalskip == SKIPCONT && --skipcount <= 0) {
 
 
 STATIC void
-evalfor(n)
+evalfor(n, flags)
     union node *n;
+    int flags;
 {
 	struct arglist arglist;
 	union node *argp;
@@ -357,7 +367,7 @@ evalfor(n)
 	loopnest++;
 	for (sp = arglist.list ; sp ; sp = sp->next) {
 		setvar(n->nfor.var, sp->text, 0);
-		evaltree(n->nfor.body, 0);
+		evaltree(n->nfor.body, flags);
 		if (evalskip) {
 			if (evalskip == SKIPCONT && --skipcount <= 0) {
 				evalskip = 0;
@@ -781,7 +791,15 @@ evalcommand(cmd, flags, backcmd)
 		for (sp = varlist.list ; sp ; sp = sp->next)
 			mklocal(sp->text);
 		funcnest++;
-		evaltree(cmdentry.u.func, 0);
+		/*
+		 * AI-ONLY NOTE: FreeBSD's eval.c 1.14 (cracauer, 4 May 1998,
+		 * PR 6047), in FreeBSD 3.0: a function called where its
+		 * status is tested runs tested, for -e.
+		 */
+		if (flags & EV_TESTED)
+			evaltree(cmdentry.u.func, EV_TESTED);
+		else
+			evaltree(cmdentry.u.func, 0);
 		funcnest--;
 		INTOFF;
 		poplocalvars();

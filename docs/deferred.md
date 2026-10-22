@@ -765,12 +765,14 @@ Makefiles do not know.
   NetBSD 1.5 (Husemann, January 2000) moved the test into evalcommand,
   losing subshells and pipelines; FreeBSD 5.3 (cracauer, December 2003
   and January 2004) tested commands and subshells only, losing
-  pipelines. Found testing patch 171. Still open, kept out of patch
-  178 as a separate bug, and to be settled for 4.5BSD or 4.6BSD
-  (roadmap.md, *To settle*): `if false; false; then' and a failing
-  command inside a function called as `f || true' end the shell, which
-  FreeBSD's eval.c 1.45 and 1.46 (stefanf, the same day) fixed by
-  passing EV_TESTED on to an NSEMI's left side and to loop bodies.
+  pipelines. Found testing patch 171. And, fixed in patch 180, the
+  two cases kept out of patch 178 as a separate bug: `if false; false;
+  then' and a failing command early in a function called as `f ||
+  true' ended the shell. FreeBSD's eval.c 1.45 and 1.46 (stefanf, the
+  same day, PRs 77067 and 85267) pass EV_TESTED on to an NSEMI's left
+  side and to loop bodies, and its 1.14 (cracauer, 4 May 1998, PR 6047;
+  FreeBSD 3.0) into a function called where its status is tested,
+  which the function case needs as well.
 - ~~**Lite2's sh rejects a command of redirections only before &&
   or ||**~~ **FIXED** (patch 172). `<file || echo missing' was a
   syntax error; rcs's rcstest uses the form. NetBSD's parser.c 1.30's
