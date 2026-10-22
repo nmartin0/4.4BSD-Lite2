@@ -246,10 +246,14 @@ writefile(runtimer, queue)
 	 * write to the directory, if necessary.
 	 */
 
-	/* AI-ONLY NOTE: effective_uid for 0, as NetBSD's at.c 1.4 (glass,
-	 * 25 March 1995; NetBSD 1.1).
+	/*
+	 * AI-ONLY NOTE: no REDUCE_PRIV here, as NetBSD 1.3's writefile has
+	 * none. In this setuid-root at it made the process root for good,
+	 * and the file -f names was then opened as root, so any user could
+	 * queue a job holding a file only root may read. After PRIV_END
+	 * the effective user id is the user's; panic and perr take root
+	 * back to remove the job file, as NetBSD 1.3's do.
 	 */
-	    REDUCE_PRIV(effective_uid);
 
 	/*
 	 * We've successfully created the file; let's set the flag so it

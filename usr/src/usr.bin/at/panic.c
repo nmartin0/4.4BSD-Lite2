@@ -35,6 +35,7 @@
 
 #include "panic.h"
 #include "at.h"
+#include "privs.h"
 
 /* File scope variables */
 
@@ -51,8 +52,12 @@ panic(a)
 /* Something fatal has happened, print error message and exit.
  */
 	fprintf(stderr, "%s: %s\n", namep, a);
-	if (fcreated)
+	/* AI-ONLY NOTE: as root, as NetBSD 1.3's panic.c: see writefile. */
+	if (fcreated) {
+		PRIV_START
 		unlink(atfile);
+		PRIV_END
+	}
 
 	exit(EXIT_FAILURE);
 }
@@ -64,8 +69,12 @@ perr(a)
 /* Some operating system error; print error message and exit.
  */
 	perror(a);
-	if (fcreated)
+	/* AI-ONLY NOTE: as root, as NetBSD 1.3's panic.c: see writefile. */
+	if (fcreated) {
+		PRIV_START
 		unlink(atfile);
+		PRIV_END
+	}
 
 	exit(EXIT_FAILURE);
 }
