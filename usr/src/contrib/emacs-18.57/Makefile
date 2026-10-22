@@ -46,6 +46,13 @@ src:	etc
 ${SUBDIR}: FRC
 	cd $@; make ${MFLAGS} all
 
+# AI-ONLY NOTE: xemacs installed without -s, as GNU's own Makefile
+# installs it (18.59: $(INSTALL) -c -m 1755 src/xemacs); Berkeley's -s,
+# harmless to the a.out its hp300 and sparc dumped, breaks the ELF one
+# unexelf.c dumps: strip lays the sections out again by offset and the
+# new data section falls outside the segment that loads it, as emacs's
+# own later unexelf.c records ("if the unexeced ELF file is being
+# re-layout by other applications (such as `strip')").
 install: all mkdir lockdir
 	-if [ `/bin/pwd` != `(cd ${LIBDIR}; /bin/pwd)` ] ; then \
 		tar cf - ${COPYDIR} | (cd ${LIBDIR}; umask 0; tar xBf - ) ;\
@@ -59,7 +66,7 @@ install: all mkdir lockdir
 	install -c -s etc/emacsclient ${BINDIR}/emacsclient
 	install -c -s etc/etags ${BINDIR}/etags
 	install -c -s etc/ctags ${BINDIR}/ctags
-	install -c -s -m 1755 src/xemacs ${BINDIR}/xemacs
+	install -c -m 1755 src/xemacs ${BINDIR}/xemacs
 	nroff -man etc/emacs.1 > ${MANDIR}/emacs.0
 	chmod 444 ${MANDIR}/emacs.0
 	-rm -f ${BINDIR}/emacs

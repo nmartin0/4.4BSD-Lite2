@@ -323,7 +323,27 @@ Filesz      Memsz       Flags       Align
 #include <errno.h>
 #include <unistd.h>
 #include <fcntl.h>
+/*
+ * AI-ONLY NOTE: 4.4BSD here, as GNU's own unexelf.c of emacs 20.1
+ * (September 1997) has NetBSD: "NetBSD does not have normal-looking
+ * user-land ELF support". There is no <elf.h>, System V's header,
+ * which this file was written for; the system's ELF definitions are
+ * <sys/exec_elf.h>, NetBSD's, under NetBSD's own names, and the three
+ * this file uses are given the specification's names as emacs 20.1
+ * gives them on NetBSD. SHT_NULL and SHT_NOBITS are mapped as there;
+ * PT_LOAD to Elf32_pt_load, NetBSD 1.1's name, which this header has,
+ * where emacs 20.1 has Elf_pt_load, NetBSD 1.3's. __BSD_4_4__ is the
+ * compiler's, as __NetBSD__ is NetBSD's.
+ */
+#ifdef __BSD_4_4__
+#include <sys/exec_elf.h>
+
+#define PT_LOAD		Elf32_pt_load
+#define SHT_NULL	Elf_sht_null
+#define SHT_NOBITS	Elf_sht_nobits
+#else
 #include <elf.h>
+#endif
 #include <sys/mman.h>
 
 #ifndef emacs
@@ -395,7 +415,18 @@ unexec (new_name, old_name, data_start, bss_start, entry_address)
   if (fstat (old_file, &stat_buf) == -1)
     fatal ("Can't fstat(%s): errno %d\n", old_name, errno);
 
-  old_base = mmap (0, stat_buf.st_size, PROT_READ, MAP_SHARED, old_file, 0);
+  /*
+   * AI-ONLY NOTE: (size_t) and (off_t), here and in the ftruncate and
+   * mmap below, as Berkeley cast every lseek's offset elsewhere in this
+   * emacs -- doc.c, fileio.c, termcap.c, unexec.c -- but never this
+   * file, which its hp300 and sparc did not use. Compiled -traditional,
+   * emacs sees 4.4BSD's headers without prototypes, so a 64-bit
+   * st_size went as two words and a 0 as one where an off_t is two,
+   * and every argument after it moved: mmap failed with EINVAL, or
+   * mapped at a wrong offset and the dump died of SIGBUS.
+   */
+  old_base = mmap (0, (size_t) stat_buf.st_size, PROT_READ, MAP_SHARED,
+		   old_file, (off_t) 0);
 
   if (old_base == (caddr_t) -1)
     fatal ("Can't mmap(%s): errno %d\n", old_name, errno);
@@ -466,11 +497,11 @@ unexec (new_name, old_name, data_start, bss_start, entry_address)
 
   new_file_size = stat_buf.st_size + old_file_h->e_shentsize + new_data2_size;
 
-  if (ftruncate (new_file, new_file_size))
+  if (ftruncate (new_file, (off_t) new_file_size))
     fatal ("Can't ftruncate(%s): errno %d\n", new_name, errno);
 
   new_base = mmap (0, new_file_size, PROT_READ | PROT_WRITE, MAP_SHARED,
-		   new_file, 0);
+		   new_file, (off_t) 0);
 
   if (new_base == (caddr_t) -1)
     fatal ("Can't mmap(%s): errno %d\n", new_name, errno);
