@@ -211,9 +211,22 @@ rm -f "$COMPILE/vmunix"
 # the other, so a kernel would be linked from the first one's. The
 # compiler and assembler are recorded beside them, and a change
 # empties the directory of objects first.
-if [ "$(cat "$COMPILE/.kcc" 2>/dev/null)" != "$KCC $KAS" ]; then
+#
+# The same holds for the configuration's options. config writes them
+# into the Makefile as -D flags on its IDENT and PARAM lines, and
+# make, which sees no file change, keeps every object compiled
+# without a new one: with `options NFS' and FIFO added, nfs/*.o were
+# made, but init_sysent.o kept nfssvc as nosys and ufs_vnops.o kept
+# no FIFO, and the kernel said "NFS not available". 4.4BSD's answer
+# was `make clean' after a change of options; NetBSD and FreeBSD
+# later had config write the options into headers (opt_*.h) that
+# make depend can follow. Here the two lines are recorded with the
+# compiler, and a change empties the objects as a compiler's does.
+stamp="$KCC $KAS
+$(grep '^IDENT=\|^PARAM=' "$COMPILE/Makefile")"
+if [ "$(cat "$COMPILE/.kcc" 2>/dev/null)" != "$stamp" ]; then
 	rm -f "$COMPILE"/*.o "$COMPILE/assym.s"
-	printf '%s\n' "$KCC $KAS" > "$COMPILE/.kcc"
+	printf '%s\n' "$stamp" > "$COMPILE/.kcc"
 fi
 
 say "make depend"
