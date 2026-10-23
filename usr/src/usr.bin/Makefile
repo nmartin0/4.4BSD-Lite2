@@ -21,7 +21,7 @@
 # ${ELF_TOOLCHAIN:L} == "no"' and NetBSD from 1.4 used binutils'.
 # gcore NetBSD and OpenBSD dropped. ld likewise, below.
 # And not named: bc, dc, deroff, diction, graph, learn,
-# plot, ptx, spell, spline, struct, units and xsend, programs the Lite
+# plot, ptx, spell, spline, struct and xsend, programs the Lite
 # cut deleted with their directories. A name with no directory stops
 # the build here, as it stopped Lite2's own make, which ran each
 # command with `sh -ec' (docs/deferred.md, *Sources and directories
@@ -29,7 +29,9 @@
 # Vixie cron's, built from usr.sbin/cron, as NetBSD 1.0 has it; and at
 # is named again, Thomas Koenig's, NetBSD 1.0's (docs/provenance/imports.md).
 # compress is named again: Berkeley's, as 4.4BSD-Lite had it, which
-# Lite2 left out (docs/provenance/imports.md).
+# Lite2 left out (docs/provenance/imports.md). units is named again:
+# Adrian Mariano's, NetBSD 1.0's, in place of Berkeley's, which the
+# settlement took (docs/provenance/imports.md).
 SUBDIR=	apply apropos at awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
 	comm compress cpp crontab ctags cut dirname du \
@@ -43,7 +45,7 @@ SUBDIR=	apply apropos at awk banner basename bdes biff cal calendar \
 	script sed shar showmount soelim split \
 	su talk tcopy tee telnet tftp time tip \
 	tn3270 touch tput tr true tset tsort tty ul uname unexpand \
-	unifdef uniq unvis users uudecode uuencode vacation \
+	unifdef uniq units unvis users uudecode uuencode vacation \
 	vgrind vis w wall wc what whatis whereis who whois window write \
 	xargs xinstall xstr yacc yes
 
