@@ -3,7 +3,13 @@
 #	@(#)netstart	8.1 (Berkeley) 7/23/93
 
 routedflags=-q
-timedflags=YES
+# AI-ONLY NOTE: empty, so that rc runs plain `timed', as NetBSD 1.0's
+# netstart has it (timed_flags=). rc passes this as timed's flags.
+# "YES" (Bostic, 25 July 1990, "explicitly state that timed runs") was
+# ignored by the timed of then, which read only words beginning with
+# `-'; Vernon Schryver's timed of 11 May 1993 parses with getopt and
+# exits on a word it does not expect, so from then timed never started.
+timedflags=
 rwhod=NO
 
 # myname is my symbolic name
