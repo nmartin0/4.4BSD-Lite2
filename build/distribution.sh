@@ -15,7 +15,7 @@
 # WHY NOT `make distribution'
 #
 # That target was written to run as root on a 4.4BSD machine. Two of
-# its steps cannot run here, and a third must run differently:
+# its steps cannot run here, and two must run differently:
 #
 #   pwd_mkdb	is the target's own program; the host has none, and its
 #		database format is the target's. Run it on the system:
@@ -26,6 +26,11 @@
 #   mtree	resolves wheel, bin and the rest against the host's
 #		group and passwd files. It is run, with -N pointing it at
 #		the tree's own, as build/sysroot.sh already does.
+#   make etc-sendmail.cf
+#		runs the target's make in usr.sbin/sendmail/cf/cf; here
+#		its rule is run directly, with the build machine's m4,
+#		which sendmail's configuration files ask for (GNU m4
+#		works, cf/cf/Makefile says).
 #
 # Everything else is the target's, step for step and in its order. The
 # file lists are read out of etc/Makefile with bmake -V, so a change
@@ -62,7 +67,7 @@ REPO_ROOT=$(cd "$(dirname "$0")/.." && pwd)
 E="$REPO_ROOT/usr/src/etc"
 MACHINE=i386
 
-for t in bmake mtree install; do
+for t in bmake mtree install m4; do
 	command -v "$t" >/dev/null 2>&1 || die "not found: $t"
 done
 
@@ -149,6 +154,14 @@ inst root utmp 664 /dev/null "$D/var/run/utmp"
 (cd "$D/usr/lib" && rm -f grmd && ln -s /usr/hpux/lib/grmd grmd)
 (cd "$D/usr/lib" && rm -f tmac && ln -s /usr/share/tmac tmac)
 (cd "$D/usr/ucb" && rm -f rdist && ln -s /usr/bin/rdist rdist)
+# The Makefile's `cd ../usr.sbin/sendmail/cf/cf; make etc-sendmail.cf':
+# generic-bsd4.4.mc through the build machine's m4, by the rule there.
+(
+	cd ../usr.sbin/sendmail/cf/cf
+	m4 ../m4/cf.m4 generic-bsd4.4.mc > "$D/etc/sendmail.cf.new"
+	inst root wheel 644 "$D/etc/sendmail.cf.new" "$D/etc/sendmail.cf"
+	rm -f "$D/etc/sendmail.cf.new"
+)
 
 printf '%s\n' "distribution.sh: done; on the system, still:" \
     "  pwd_mkdb -p /etc/master.passwd" "  cd /dev && sh MAKEDEV std"

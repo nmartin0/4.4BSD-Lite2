@@ -24,7 +24,12 @@ RM=	rm -f
 	(cd ${.CURDIR} && $(M4) ${CFDIR}/m4/cf.m4 ${@:R}.mc) > $@
 	$(CHMOD) $(ROMODE) $@
 
-ALL=	freebsd.cf
+# AI-ONLY NOTE: generic-bsd4.4.cf, sendmail's own configuration for
+# 4.4BSD (generic-bsd4.4.mc, 8.2 (Berkeley) 3/23/96), for freebsd.cf,
+# which is FreeBSD's; and install -c for ${INSTALL} ${COPY}, which
+# Lite2's make does not define. etc/Makefile's distribution installs it
+# as /etc/sendmail.cf by etc-sendmail.cf, as FreeBSD's does.
+ALL=	generic-bsd4.4.cf
 
 # Local sendmail.cf, may be set in /etc/make.conf.  Warning! If set, this
 # causes 'make install' to always copy it over /etc/sendmail.cf!!!
@@ -52,14 +57,14 @@ depend:
 
 install:
 .if defined(SENDMAIL_CF)
-	${INSTALL} ${COPY} -o ${BINOWN} -g ${BINGRP} -m 644 ${SENDMAIL_CF} \
+	install -c -o ${BINOWN} -g ${BINGRP} -m 644 ${SENDMAIL_CF} \
 		${DESTDIR}/etc/sendmail.cf
 .endif
 	
 
 # Helper for src/etc/Makefile
-etc-sendmail.cf: freebsd.cf
-	${INSTALL} ${COPY} -o ${BINOWN} -g ${BINGRP} -m 644 freebsd.cf \
+etc-sendmail.cf: generic-bsd4.4.cf
+	install -c -o ${BINOWN} -g ${BINGRP} -m 644 generic-bsd4.4.cf \
 		${DESTDIR}/etc/sendmail.cf
 
 # this is overkill, but....

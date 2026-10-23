@@ -680,7 +680,17 @@ typedef int		pid_t;
 #  define LA_TYPE	LA_SUBR
 # endif
 # define SFS_TYPE	SFS_MOUNT	/* use <sys/mount.h> statfs() impl */
-# define SPT_TYPE	SPT_PSSTRINGS	/* use PS_STRINGS pointer */
+/*
+ * AI-ONLY NOTE: SPT_REUSEARGV with nulls for padding, this file's own
+ * lines for FreeBSD 2.x before its libutil had setproctitle, for
+ * SPT_PSSTRINGS. This system's ps_strings holds the argv and envp
+ * vectors, as NetBSD 1.1's and FreeBSD 2.2's do (patch 176), where
+ * SPT_PSSTRINGS stores the title string itself, written for Lite2's.
+ * NetBSD's and OpenBSD's sendmail used the setproctitle in their libc,
+ * which this system's has not.
+ */
+# define SPT_TYPE	SPT_REUSEARGV
+# define SPT_PADCHAR	'\0'		/* pad process title with nulls */
 #endif
 
 

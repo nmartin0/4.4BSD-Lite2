@@ -19,7 +19,9 @@ DBMDEF=	-DNEWDB
 
 # if you don't want NIS support, comment out this line
 # FreeBSD supports NIS
-NIS=	-DNIS
+# AI-ONLY NOTE: no -DNIS: Lite2 has no YP, and Berkeley's own
+# src/Makefile for 8.7 (CSRG, 1995) defined none; FreeBSD 2.2 has YP.
+NIS=
 
 # If you want tcp wrapper support, uncomment the following two lines
 #TCPWRAPPERSBASEDIR=	/usr/local
@@ -37,9 +39,13 @@ LDADD=	-lutil
 .if defined(TCPWRAPPERS)
 LDADD+=	-L${TCPWRAPPERSBASEDIR}/lib -lwrap
 .endif
-MAN1=	mailq.1 newaliases.1
-MAN5=	aliases.5
-MAN8=	sendmail.8 
+# AI-ONLY NOTE: the manual pages by the names of their formatted
+# pages, as Lite2's bsd.man.mk installs them (MAN8= sendmail.0), where
+# FreeBSD 2.2's names the sources; and install for ${INSTALL}, which
+# Lite2's make does not define.
+MAN1=	mailq.0 newaliases.0
+MAN5=	aliases.0
+MAN8=	sendmail.0
 LINKS=	/usr/sbin/sendmail /usr/bin/newaliases \
 	/usr/sbin/sendmail /usr/bin/mailq \
 	/usr/sbin/sendmail /usr/bin/hoststat \
@@ -49,9 +55,9 @@ BINOWN=	root
 BINMODE=4555
 
 beforeinstall:
-	${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 644 /dev/null \
+	install -c -o ${BINOWN} -g ${BINGRP} -m 644 /dev/null \
 	    ${DESTDIR}/var/log/sendmail.st
-	${INSTALL} -c -o ${BINOWN} -g ${BINGRP} -m 444 ${.CURDIR}/sendmail.hf \
+	install -c -o ${BINOWN} -g ${BINGRP} -m 444 ${.CURDIR}/sendmail.hf \
 	    ${DESTDIR}/usr/share/misc
 
 .include <bsd.prog.mk>

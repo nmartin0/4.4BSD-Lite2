@@ -112,6 +112,11 @@ distribution:
 .if ${MACHINE} == "hp300"
 	(cd ${DESTDIR}/usr/bin && rm -f X11 && ln -s /usr/X11/bin X11)
 .endif
+	# AI-ONLY NOTE: /etc/sendmail.cf, made from sendmail's own
+	# generic-bsd4.4.mc, as FreeBSD 2.2's distribution installs its own
+	# (`${MAKE} etc-sendmail.cf'); NetBSD 1.0 and OpenBSD the same from
+	# their cf/cf, at the same place in this target.
+	(cd ../usr.sbin/sendmail/cf/cf; ${MAKE} etc-sendmail.cf)
 
 hcx9-distribution:
 	(cd etc.tahoe; install -c -o root -g wheel -m 444 ${WCS2} \
