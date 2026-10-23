@@ -90,7 +90,13 @@ main(argc, argv)
 	 * seen.
 	 */
 	int ch;
-	int error;
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-23) -- set to 0, as OpenBSD's sa
+	 * (Theo de Raadt, 24 May 1999, "init exit code"); NetBSD and
+	 * FreeBSD did the same in 1999 and 2000. Only failures set it, so
+	 * sa exited with whatever the stack held, 1 on this system.
+	 */
+	int error = 0;
 
 	while ((ch = getopt(argc, argv, "abcdDfijkKlmnqrstuv:")) != -1)
 		switch (ch) {
