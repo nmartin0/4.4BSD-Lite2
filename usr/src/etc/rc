@@ -110,9 +110,60 @@ then
 	'password file may be incorrect -- /etc/ptmp exists'
 fi
 
-echo preserving editor files
-(cd /var/tmp && /usr/libexec/ex3.7preserve -a &&
-     rm -f Ex[0-9][0-9][0-9][0-9][0-9] Rx[0-9][0-9][0-9][0-9][0-9])
+# AI-ONLY NOTE: nvi's recovery, for the old ex's ex3.7preserve, which the
+# Lite cut took: the system's editor is nvi 1.43, and its reference
+# manual (contrib/nvi/USD.doc/vi.ref, *Recovery*) says to insert
+# install/recover.script into the startup file, substituting this
+# system's sendmail for /usr/lib/sendmail. Here it is, word for word but
+# for SENDMAIL. NetBSD, FreeBSD and OpenBSD put the same step in /etc/rc
+# (FreeBSD 2.2 and OpenBSD of 1997 nvi's script itself, by sendmail -t on
+# rc's PATH; NetBSD 1.0 and FreeBSD 2.0 only its mailing loop).
+#	@(#)recover.script	8.7 (Berkeley) 8/16/94
+#
+# Script to recover nvi edit sessions.
+#
+RECDIR=/var/tmp/vi.recover
+SENDMAIL=/usr/sbin/sendmail
+echo 'Recovering nvi editor sessions.'
+
+# Check editor backup files.
+vibackup=`echo $RECDIR/vi.*`
+if [ "$vibackup" != "$RECDIR/vi.*" ]; then
+	for i in $vibackup; do
+		# Only test files that are readable.
+		if test ! -r $i; then
+			continue
+		fi
+
+		# Unmodified nvi editor backup files either have the
+		# execute bit set or are zero length.  Delete them.
+		if test -x $i -o ! -s $i; then
+			rm $i
+		fi
+	done
+fi
+
+# It is possible to get incomplete recovery files, if the editor crashes
+# at the right time.
+virecovery=`echo $RECDIR/recover.*`
+if [ "$virecovery" != "$RECDIR/recover.*" ]; then
+	for i in $virecovery; do
+		# Only test files that are readable.
+		if test ! -r $i; then
+			continue
+		fi
+
+		# Delete any recovery files that are zero length, corrupted,
+		# or that have no corresponding backup file.  Else send mail
+		# to the user.
+		recfile=`awk '/^X-vi-recover-path:/{print $2}' < $i`
+		if test -n "$recfile" -a -s "$recfile"; then
+			$SENDMAIL -t < $i
+		else
+			rm $i
+		fi
+	done
+fi
 
 echo clearing /tmp
 
