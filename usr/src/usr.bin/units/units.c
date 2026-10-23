@@ -634,14 +634,18 @@ main(int argc, char **argv)
 
 	struct unittype have, want;
 	char havestr[81], wantstr[81];
-	char optchar;
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-23) -- an int, compared with -1,
+	 * as NetBSD's units.c (1 April 1996), NetBSD 1.2's.
+	 */
+	int optchar;
 	char *userfile = 0;
 	int quiet = 0;
 
 	extern char *optarg;
 	extern int optind;
 
-	while (EOF != (optchar = getopt(argc, argv, "vqf:"))) {
+	while ((optchar = getopt(argc, argv, "vqf:")) != -1) {
 		switch (optchar) {
 		case 'f':
 			userfile = optarg;
