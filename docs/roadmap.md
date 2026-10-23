@@ -49,8 +49,14 @@ console log):
   shipped, from FreeBSD 2.2.8's tree (decided 2026-10-23; imports.md,
   kind F). Local mail is delivered by Lite2's own mail.local, and
   /etc/sendmail.cf is sendmail's generic-bsd4.4.mc.
-- `timed: not found`. /etc/netstart asks for it; Berkeley's own
-  usr.sbin/Makefile leaves timed off the i386's list.
+- ~~`timed: not found`~~ **Done** (patch 183): built for the i386, as
+  every other port's line and all three BSDs built it, and started:
+  netstart's `timedflags=YES' had made rc run `timed YES', which
+  Schryver's timed of 1993 rejects, so it never ran on any port;
+  empty, as NetBSD 1.0's (decided 2026-10-23). Tested on a fresh
+  install: timed starts at boot and answers timedc's trace and
+  clockdiff; without -M it stays a slave, as timed(8) says, waiting for
+  a master on the network, and QEMU's has none.
 - `NFS not available`. nfsd and mountd start; GENERIC.i386 leaves out
   `options NFS`, which Berkeley's own i386 configurations carried.
 - `/usr/libexec/ex3.7preserve: not found`. /etc/rc preserves the old

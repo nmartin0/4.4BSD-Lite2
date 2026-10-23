@@ -953,7 +953,9 @@ licence, and what the BSDs took under it*) -- and GNU diff 2.6, kind
 D, is the system's diff in their place.
 
 **usr.sbin/sendmail** is Eric Allman's sendmail, Berkeley's program
-under the Regents' licence. Berkeley's tree held 8.7.Beta.7 (21 June
+under the Regents' licence -- here because it is Berkeley's, though in
+a later release than any Lite2 carried: not a file restored as it was,
+but Berkeley's program at its last release under Berkeley's terms. Berkeley's tree held 8.7.Beta.7 (21 June
 1995); Lite2's README says the beta was left off the tape at its
 developers' request, and named the release to fetch. Decided
 2026-10-23, after NetBSD 1.0 to 1.4, FreeBSD 2.0 to 3.0 and OpenBSD
