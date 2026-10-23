@@ -797,6 +797,8 @@ gives them.
 	usr.sbin/cron, usr.bin/crontab	NetBSD 1.0, NetBSD's later fixes
 	usr.bin/at, libexec/atrun	NetBSD 1.0, NetBSD's and OpenBSD's
 					later fixes
+	usr.sbin/sa, usr.sbin/ac	NetBSD 1.0, the three BSDs' later
+					fixes; ac.8 Berkeley's, merged
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
@@ -937,6 +939,60 @@ user's, atrm of root's job says "Not owner", and `at -f
 groups and the user's with the user's alone; 12pm, 12am and 11:30pm
 queue for noon, midnight and half past eleven. The at commands as an
 ordinary user needed the saved ids execve now sets (patch 181).
+
+**usr.sbin/sa** is Chris Demetriou's sa of March 1994 and
+**usr.sbin/ac** Simon J. Gerraty's ac with Demetriou's changes to May
+1994, each first committed byte for byte as NetBSD's netbsd-1-0 branch
+has it (decided 2026-10-23). Berkeley's sa and ac were AT&T's (`new
+copyright; att/bsd/shared' in the CSRG history, 1991) and the Lite cut
+took them, leaving ac.8 and accton. NetBSD 1.0, FreeBSD 2.0 and
+OpenBSD's first tree carry these same two; FreeBSD 2.0's code differs
+from NetBSD 1.0's by one fix, taken below. ac's notice asks that changes be
+marked; every change here is, at its site. Lite2's kernel writes the
+struct acct sa reads, and its libc has the db(3) sa keeps its
+summaries in; both build unchanged.
+
+The fixes taken, each its own commit, earliest donor first:
+
+	ac	a name compared to UT_NAMESIZE, not one byte past ut_name
+		into ut_host: FreeBSD 2.0 (Chernov, 14 November 1994);
+		OpenBSD and NetBSD 1997
+	sa	-t's *ignore* printed, where "%8 " printed nothing, and
+		formats matched to their types: FreeBSD (Pritchard, 22
+		January 1996)
+	sa	getopt's result an int: NetBSD 1.2 (30 March 1996)
+	sa	-m -k's quotient, a double, cast for %qu: NetBSD 1.3
+		(Mewburn, 18 October 1997)
+	sa.8	the default file is /var/account/acct: FreeBSD
+		(Pritchard, 7 April 1996); OpenBSD and NetBSD 1997
+	ac	with -w, the file's last record ends the run: OpenBSD (de
+		Raadt, 9 October 1997, from Andrew Timonin); FreeBSD 1998
+	ac.8	Berkeley's page merged with the authors', for -t: NetBSD's
+		of 6 March 1997, NetBSD 1.3; .Nx, which this -mdoc lacks,
+		in plain text
+	sa	the exit status set to 0 before any failure, where it was
+		left as the stack held it: OpenBSD (de Raadt, 24 May 1999);
+		NetBSD 1999, FreeBSD 4.0
+
+Not taken: NetBSD 1.1's memcpy of each db record before it is read,
+for machines that fault on unaligned access, which the i386 does not
+(to come with another port); NetBSD's 1996 replacement of ac's -c with
+/etc/ttys, a change of behaviour; FreeBSD's and OpenBSD's changes to
+ac's list of pseudo-terminal letters, which follow their own consoles'
+names (ttyv on FreeBSD), where this i386's console is `console' and
+its pseudo-terminals ttyp to ttyt, which ac's list already covers.
+
+/etc/rc and /etc/daily keep accounting only when /var/account/acct
+exists, as NetBSD 1.0's and OpenBSD's do (decided 2026-10-23); no BSD
+of the period created the file.
+
+Tested on a fresh install (patch 187): no accounting message at boot;
+with /var/account/acct created and accton run, root's commands and an
+ordinary user's are recorded, sa summarises them by command, -m by
+user (root and the user apart), -u record by record, -t with its
+ratio column, and -s folds them into savacct and usracct and empties
+acct; sa exits 0, and 1 for an unknown option. ac, ac -p, ac -d and ac
+-w /var/log/wtmp -p report the console login.
 
 ## F -- Berkeley's own file, restored
 

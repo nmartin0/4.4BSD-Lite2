@@ -84,12 +84,19 @@ console log):
   etc/Makefile of 1997 create theirs (decided 2026-10-23). Tested on
   a fresh install: syslogd starts quiet but for uucp's ERRORS, which
   waits for uucp (item 2), and last(1) shows the console login.
-- `/var/account/acct: No such file or directory`, from accton at
-  boot (measured with patch 186); goes with sa and ac, below.
+- ~~`/var/account/acct: No such file or directory`~~ and ~~sa and
+  ac~~ **Done** (patch 187): sa and ac are NetBSD 1.0's, the rewrites
+  all three BSDs carried, with the three BSDs' fixes of 1994-99, each
+  its own commit, and ac.8 Berkeley's merged with the authors' as
+  NetBSD's (imports.md, kind E). rc and daily keep accounting when
+  /var/account/acct exists, as NetBSD 1.0 and OpenBSD (decided
+  2026-10-23). Tested on a fresh install: the boot
+  is quiet about accounting; with the file created, accton records
+  root's and an ordinary user's commands, and sa, sa -m, sa -u, sa -t
+  and sa -s report them and exit 0 (1 for a bad option); ac, ac -p,
+  ac -d and ac -w report the console login.
 - `/etc/named.boot: No such file or directory`: /etc/rc starts named
   whether or not it has a configuration (measured with patch 186).
-- /etc/daily runs `sa -s`, and /etc/rc turns on accounting; sa and ac
-  were deleted or emptied by the cut.
 
 **2. What the Lite cut took, to be decided one by one** (deferred.md,
 *Sources and directories named but absent*, *Programs the Lite cut
