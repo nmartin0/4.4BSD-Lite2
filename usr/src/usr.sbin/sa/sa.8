@@ -65,7 +65,9 @@ the accounting file, so that reports include
 all available information.
 .Pp
 If file names are supplied, they are read instead of
-.Pa /var/account/account .
+.\" AI-ONLY NOTE: changed (2026-10-23) -- acct, the file sa reads
+.\" (_PATH_ACCT), as FreeBSD's sa.8 (Mike Pritchard, 7 April 1996).
+.Pa /var/account/acct .
 After each file is read, if the summary
 files are being updated, an updated summary will
 be saved to disk.  Only one report is printed,
