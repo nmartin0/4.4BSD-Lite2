@@ -624,7 +624,11 @@ usage()
 }
 
 
-void 
+/*
+ * AI-ONLY NOTE: changed (2026-10-23) -- int, as NetBSD's units.c (J.T.
+ * Conklin, 21 March 1996, "Be pedantic, main() returns int in C").
+ */
+int
 main(int argc, char **argv)
 {
 
