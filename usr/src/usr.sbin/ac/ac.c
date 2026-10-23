@@ -523,7 +523,15 @@ ac(fp)
 		}
 	}
 	(void)fclose(fp);
-	usr.ut_time = time((time_t *)0);
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-23) -- with -w, a file's own
+	 * last record ends the run, as OpenBSD's ac (Theo de Raadt, 9
+	 * October 1997, from Andrew Timonin) and FreeBSD's (May 1998):
+	 * an old wtmp's sessions left open ran on to the present, and
+	 * were charged the time since.
+	 */
+	if (!(Flags & AC_W))
+		usr.ut_time = time((time_t *)0);
 	(void)strcpy(usr.ut_line, "~");
 	
 	if (Flags & AC_D) {
