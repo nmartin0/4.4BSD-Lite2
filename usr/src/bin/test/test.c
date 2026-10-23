@@ -537,6 +537,16 @@ get_int(v, lp)
 	for (; *v && isspace(*v); ++v);
 
 	/*
+	 * AI-ONLY NOTE: an empty string is 0, as FreeBSD's test (Geoff
+	 * Rehmet, 11 September 1994, reviewed by rgrimes; FreeBSD 2.0),
+	 * "the same behaviour as in 1.x"; it was a bad number.
+	 */
+	if(!*v) {
+		*lp = 0;
+		return;
+	}
+
+	/*
 	 * AI-ONLY NOTE: a sign before the digits, as FreeBSD's test (Geoff
 	 * Rehmet, 11 September 1994; FreeBSD 2.0): `test -5 -eq 5' said -5
 	 * was a bad number.
