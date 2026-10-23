@@ -195,7 +195,17 @@ update_user(head, name, secs)
 	struct user_list *up;
 
 	for (up = head; up != NULL; up = up->next) {
-		if (strncmp(up->name, name, sizeof (up->name)) == 0) {
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-23) -- compared to
+		 * UT_NAMESIZE, as FreeBSD 2.0's ac (Andrey Chernov, 14
+		 * November 1994). up->name holds UT_NAMESIZE+1 bytes,
+		 * and name, utmp's ut_name, UT_NAMESIZE with no NUL: a
+		 * name of the full eight letters was compared with the
+		 * first byte of ut_host past it, and one user was
+		 * counted twice. NetBSD (1997) and OpenBSD (1997) made
+		 * the same fix.
+		 */
+		if (strncmp(up->name, name, UT_NAMESIZE) == 0) {
 			up->secs += secs;
 			Total += secs;
 			return head;
