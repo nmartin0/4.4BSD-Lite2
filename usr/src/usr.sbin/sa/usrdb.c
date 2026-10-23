@@ -261,7 +261,13 @@ usracct_print()
 
 		/* t is always >= 0.0001; see above */
 		if (kflag)
-			printf("%12qu%s", ui->ui_mem / t, "k");
+			/*
+			 * AI-ONLY NOTE: changed (2026-10-23) -- the quotient,
+			 * a double, made a u_quad_t for %qu, as NetBSD 1.3's
+			 * sa (Luke Mewburn, 18 October 1997). As a double it
+			 * was read as a quad's bytes, and -k printed nonsense.
+			 */
+			printf("%12qu%s", (u_quad_t)(ui->ui_mem / t), "k");
 		else
 			printf("%12qu%s", ui->ui_mem, "k*sec");
 
