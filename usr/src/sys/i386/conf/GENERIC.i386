@@ -43,13 +43,25 @@ options		"COMPAT_43"
 # configurations, which read `options FFS MFS INET NFS "COMPAT_43"
 # "TCP_COMPAT_42"'; the three pagers come from this tree's own
 # hp300 GENERIC, which reads `options SWAPPAGER VNODEPAGER
-# DEVPAGER'. NFS and the debug options ARGO also carries are left
-# out: they add subsystems rather than completing this one.
+# DEVPAGER'. The debug options ARGO also carries are left out: they
+# add subsystems rather than completing this one. NFS, left out here
+# at first for the same reason, follows with FIFO.
 options		FFS
 options		MFS
 options		SWAPPAGER
 options		VNODEPAGER
 options		DEVPAGER
+# AI-ONLY NOTE: FIFO and NFS, as every other GENERIC Berkeley wrote
+# carries them, together, and in these words: hp300's, pmax's, sparc's,
+# luna68k's, tahoe's and vax's (decided 2026-10-23). NFS needs FIFO --
+# nfs_vnops.c's fifo_nfsv2nodeop_entries are fifo.h's, which declares
+# them only under FIFO -- and without FIFO the system had no named pipe
+# on any filesystem. /etc/rc starts mountd, nfsd and nfsiod, which said
+# "NFS not available". Berkeley's ARGO and BLITZ, above, read NFS too;
+# FreeBSD 2.0's i386 GENERIC has NFS, with its fifofs made standard,
+# and NetBSD 1.1's and OpenBSD's have FIFO, NFSCLIENT and NFSSERVER.
+options		FIFO		# POSIX fifo support (in all filesystems)
+options		NFS		# Sun NFS-compatible filesystem
 # AI-ONLY NOTE: kernfs, for /kern, which the installer's profile
 # mounts, and from which it shows the boot messages again. The line
 # is this tree's hp300 and pmax GENERIC configurations', `options
