@@ -83,7 +83,13 @@ main(argc, argv)
 	int argc;
 	char **argv;
 {
-	char ch;
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-23) -- an int, as NetBSD's sa
+	 * (30 March 1996; NetBSD 1.2) and OpenBSD's: getopt returns an
+	 * int, and where char is unsigned the -1 it ends with was never
+	 * seen.
+	 */
+	int ch;
 	int error;
 
 	while ((ch = getopt(argc, argv, "abcdDfijkKlmnqrstuv:")) != -1)
