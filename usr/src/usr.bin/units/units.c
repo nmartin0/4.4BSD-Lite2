@@ -686,8 +686,14 @@ main(int argc, char **argv)
 				if (!quiet)
 					printf("You have: ");
 				if (!fgets(havestr, 80, stdin)) {
-					if (!quiet);
-					putchar('\n');
+					/*
+					 * AI-ONLY NOTE: changed (2026-10-23)
+					 * -- the stray `;' after the test
+					 * removed, as FreeBSD's units.c
+					 * (Alexander Langer, 8 June 1996).
+					 */
+					if (!quiet)
+						putchar('\n');
 					exit(0);
 				}
 			} while (addunit(&have, havestr, 0) ||
@@ -706,4 +712,11 @@ main(int argc, char **argv)
 			showanswer(&have, &want);
 		}
 	}
+
+	/*
+	 * AI-ONLY NOTE: added (2026-10-23) -- as FreeBSD's units.c
+	 * (Alexander Langer, 8 June 1996, "Fix exit code when used in
+	 * non-interactive mode").
+	 */
+	return(0);
 }
