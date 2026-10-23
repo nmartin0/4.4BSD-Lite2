@@ -4,7 +4,10 @@
 units - conversion program
 .SH SYNTAX
 .B units
-[-f filename] [-q] [to-unit from-unit]
+.\" AI-ONLY NOTE: changed (2026-10-23) -- from-unit before to-unit, the
+.\" order units takes them, and -v, as NetBSD's units.1 (J.T. Conklin,
+.\" 16 July 1994, "Fix manpage typo", NetBSD bug 328).
+[-f filename] [-qv] [from-unit to-unit]
 .SH SUMMARY
 .TP 4
 .B -f filename
@@ -14,6 +17,10 @@ Specifies the name of the units data file to load.
 .B -q 
 Suppresses prompting of the user for units and the display of statistics
 about the number of units loaded.
+.LP
+.TP 4
+.B -v 
+Prints the version number.
 .LP
 .TP 4
 .B from-unit to-unit
