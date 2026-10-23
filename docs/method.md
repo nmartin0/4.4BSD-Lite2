@@ -310,8 +310,10 @@ releases kept `%sccs.include.redist.c%` and dropped
 not an argument. Verified on seven samples.
 
 Note the exception it turns up: `zopen.c` is marked redistributable and
-is still absent, because `usr.bin/compress` was removed whole for the
-LZW patent rather than for its licence.
+was still absent. 4.4BSD-Lite carried `usr.bin/compress` whole and Lite2
+left it out; Berkeley's history gives no reason, and the LZW patent is
+the likely one (corrected 2026-10-23: this said the patent was the
+reason, as known; it is inferred). compress is back, Lite's, patch 189.
 
 ### XNU is read-only and partial
 

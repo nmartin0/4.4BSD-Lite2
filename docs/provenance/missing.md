@@ -31,8 +31,11 @@ way:
 Three things follow. The AT&T-derived programs and their manual pages
 were removed by marker, not by accident -- which settles the question
 this file had left open about m4's and ching's missing pages. zopen.c
-is redistributable and still absent, because usr.bin/compress was
-removed whole for the LZW patent rather than for its licence. And
+is redistributable and was still absent: 4.4BSD-Lite carried
+usr.bin/compress whole, and Lite2 left it out, for a reason Berkeley's
+history does not record -- most likely the LZW patent, not its licence
+(corrected 2026-10-23, which had the patent as the known reason;
+compress is back, Lite's, patch 189). And
 kvm_i386.c is absent from Berkeley's own tree, so no cut removed it:
 it was never written.
 
@@ -179,7 +182,9 @@ sendmail and uucp documents.
 			and OpenBSD already had dkstats.c in 1996.
   sbin/savecore		zopen.c, which came from usr.bin/compress.
 			Imported from NetBSD 1.0, the only file taken
-			from another system so far.
+			from another system so far. Since patch 189
+			built from usr.bin/compress again, as Lite2's
+			Makefile had it, and the copy removed.
 
 ## The host yacc, and what it costs
 

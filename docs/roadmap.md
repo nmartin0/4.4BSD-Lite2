@@ -109,7 +109,7 @@ two sample hosts from Lite2's example /etc/exports (deferred.md).
 **2. What the Lite cut took, to be decided one by one** (deferred.md,
 *Sources and directories named but absent*, *Programs the Lite cut
 emptied*, *Caldera's licence, and what the BSDs took under it*): ~~at~~
-(patch 181), bc, dc, compress, deroff, spell, units, file (contrib/file-3.12 is on
+(patch 181), bc, dc, ~~compress~~ (patch 189), deroff, spell, units, file (contrib/file-3.12 is on
 hand), quot, uucp, fsdb, icheck, ncheck, mkproto, graph, plot, spline,
 xsend, libmp, libplot, and libcompat's ecvt and gcvt (in the Single
 UNIX Specification until 2008, which removed them). Those no BSD

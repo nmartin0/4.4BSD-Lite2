@@ -70,7 +70,8 @@ and kept `%sccs.include.redist.c%` while dropping
 (`ed`, `expr`, `at`, `cron`, `sa`, and `bc` and `dc`, rewritten for
 OpenBSD in 2003); some OpenBSD and NetBSD restored from Berkeley's
 own 4.4 sources under Caldera's licence (`deroff`, `spell`); and
-`compress`, dropped for the LZW patent rather than the licence.
+`compress`, which Lite carried and Lite2 left out, most likely for
+the LZW patent rather than the licence (back, patch 189).
 Corrected 2026-10-16: this paragraph had `bc`, `dc` and `spell` among
 those no BSD has. See *Caldera's licence, and what the BSDs took
 under it*, below.
@@ -99,6 +100,35 @@ Makefile: a name with no directory stops the build, as it stopped
 Lite2's own `make build`. Sixty entries, in bin, lib, sbin, usr.bin,
 usr.sbin, share/man and share/doc/{psd,smm,usd}, each Makefile saying
 which. They come back by name if their programs do.
+
+**icheck, ncheck and mkproto stay out** (decided 2026-10-23). All
+three were Berkeley's, AT&T-derived (`new copyright; att/bsd/shared',
+April 1991), in the 4.4 lists, and working with 4.4's FFS. No BSD of
+the period shipped any of them: NetBSD's sbin/Makefile kept `# Missing:
+icheck ncheck' from 1994 on, FreeBSD's `# XXX MISSING: fsdb icheck
+ncheck' and `# XXX MISSING: mkproto' (Grimes, 28 May 1994), and fsck
+had taken icheck's place long before, as its own page said. fsdb,
+named with them, has a successor every BSD carried, John Kohl's of
+1995, and is taken up separately.
+
+**ncheck_ffs is deferred.** OpenBSD alone wrote an ncheck: Thomas
+Lockert's ncheck_ffs (SigmaSoft, 1995-96, a four-clause licence with
+an advertising clause until 2003), installed with an `ncheck' link.
+It is a separate program written from the manual page, not Berkeley's,
+which Berkeley never saw, and not fully compatible with it:
+
+- a file no directory reaches is not listed; Berkeley's printed it
+  under `???', or `...' for a loop -- the case fsck has just named by
+  inode number;
+- one file system per run, where Berkeley's took several;
+- a seven-place number column where Berkeley's had a tab;
+- -i reads numbers until one is not, where Berkeley's took a fixed
+  count; and it also takes a mount point and finds the raw device.
+
+-i, -a, -s and -m are otherwise Berkeley's. It builds here with its
+includes reordered (dinode.h before fs.h). Meanwhile `find -xdev
+-inum` names an inode on a mounted file system, `find -perm` does
+-s's audit, and fsdb inspects an inode on an unmounted one.
 
 ### Programs the Lite cut emptied
 
@@ -205,7 +235,8 @@ catch:
 	ching      NetBSD's ching.sh, hexagrams and macros, completing
 	           games/ching. As deroff
 	compress   Berkeley's own, `redist`, not Caldera's; the patent
-	           has expired; every BSD ships it
+	           has expired; every BSD ships it. Back: Lite's own,
+	           with Berkeley's 1995 fix (patch 189)
 	bc, dc     Otto Moerbeek's 2003 rewrites, ISC-licensed, all
 	           three BSDs -- preferred, not being Caldera's; dc
 	           needs libcrypto's bn(3), which this tree has not.

@@ -996,13 +996,33 @@ acct; sa exits 0, and 1 for an unknown option. ac, ac -p, ac -d and ac
 
 ## F -- Berkeley's own file, restored
 
-	sbin/savecore/zopen.c	741 lines	NetBSD 1.0
+	usr.bin/compress	Lite's, with Berkeley's 1995 fix
 	usr.sbin/sendmail	8.8.8		FreeBSD 2.2.8's tree
 
-Marked %sccs.include.redist.c% in Berkeley's tree. It is absent from
-the Lite releases because usr.bin/compress went whole for the LZW
-patent, not for its licence. NetBSD's copy is Berkeley's file, so this
-is that code coming back rather than another system's arriving.
+**usr.bin/compress** is Berkeley's compress, uncompress and zcat, and
+zopen(3), marked %sccs.include.redist.c% in Berkeley's tree, as
+4.4BSD-Lite released it (FreeBSD's import of Lite's usr.bin, 27 May
+1994; NetBSD's "new compress from Lite", 13 June 1994), with Berkeley's
+one later change, zopen.c 8.2 (28 April 1995, from Charles Hannum),
+which made -b work (decided 2026-10-23). Lite2 left the directory out,
+though its usr.bin/Makefile names compress and its savecore built
+zopen.c from it; Berkeley's history records no reason, and the LZW
+patent, which compress's doc/NOTES discusses, is the likely one --
+not its licence. Lite's Makefile installs Berkeley's zcat.sh as
+/usr/bin/zcat, which man.conf's .Z lines call; gzip's is gzcat here.
+
+Until patch 189, **sbin/savecore/zopen.c** was NetBSD 1.0's
+copy of the same file, 741 lines, put beside savecore.c because
+usr.bin/compress was not here. With compress back, savecore's Makefile
+is Lite2's again, building zopen.c from usr.bin/compress as NetBSD
+1.0, FreeBSD 2.0 to 2.2 and OpenBSD to 1997 did, and the copy is
+gone.
+
+Tested on a fresh install (patch 189): compress, uncompress and zcat
+round-trip /etc/termcap; `compress -b 12' writes 12 bits into the
+header (0214) and uncompress reads it back; gzip reads compress's
+output, with and without -b; and man shows a cat page compressed in
+place through man.conf's .0.Z line and /usr/bin/zcat.
 
 **usr.bin/diff** was here from patch 155 to patch 157: Berkeley's
 4.3-Reno diff and diff3, which the Lite cut removed as
