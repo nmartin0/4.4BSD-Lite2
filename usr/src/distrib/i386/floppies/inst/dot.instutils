@@ -171,6 +171,16 @@ Configure()
 	chroot ${ROOT} /usr/sbin/pwd_mkdb -p /etc/master.passwd
 	echo	" done."
 
+	# AI-ONLY NOTE: the mail aliases' database, by the installed system's
+	# own newaliases, as FreeBSD 2.2's sysinstall makes it on the new
+	# system (install.c, vsystem("newaliases")); without it sendmail
+	# finds no alias, postmaster's among them. OpenBSD's etc set carried
+	# it made; NetBSD 1.3's sendmail.cf rebuilds it when it is missing.
+	echo	""
+	echo -n	"Making the mail aliases' database..."
+	chroot ${ROOT} /usr/bin/newaliases > /dev/null
+	echo	" done."
+
 	echo	""
 	echo -n	"Making device nodes (may take a while)..."
 	chroot ${ROOT} /bin/sh -c 'cd /dev; sh MAKEDEV all'
