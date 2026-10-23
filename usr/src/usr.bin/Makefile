@@ -20,7 +20,7 @@
 # builds its own ar, ranlib, strip and strings only `.if
 # ${ELF_TOOLCHAIN:L} == "no"' and NetBSD from 1.4 used binutils'.
 # gcore NetBSD and OpenBSD dropped. ld likewise, below.
-# And not named: bc, compress, dc, deroff, diction, graph, learn,
+# And not named: bc, dc, deroff, diction, graph, learn,
 # plot, ptx, spell, spline, struct, units and xsend, programs the Lite
 # cut deleted with their directories. A name with no directory stops
 # the build here, as it stopped Lite2's own make, which ran each
@@ -28,9 +28,11 @@
 # named but absent*). crontab, which Berkeley's cron had not, is
 # Vixie cron's, built from usr.sbin/cron, as NetBSD 1.0 has it; and at
 # is named again, Thomas Koenig's, NetBSD 1.0's (docs/provenance/imports.md).
+# compress is named again: Berkeley's, as 4.4BSD-Lite had it, which
+# Lite2 left out (docs/provenance/imports.md).
 SUBDIR=	apply apropos at awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
-	comm cpp crontab ctags cut dirname du \
+	comm compress cpp crontab ctags cut dirname du \
 	env error expand false find finger fmt fold fpr from \
 	fsplit fstat ftp head hexdump id indent \
 	join jot kdump ktrace lam last lastcomm leave locate \
