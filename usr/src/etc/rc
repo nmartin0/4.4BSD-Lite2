@@ -173,7 +173,13 @@ echo clearing /tmp
     find . ! -name . ! -name lost+found ! -name quotas -type d -prune \
 	-exec rm -rf -- {} \;)
 
-echo 'turning on accounting';	accton /var/account/acct
+# AI-ONLY NOTE: changed (2026-10-23) -- accounting turned on when
+# /var/account/acct exists, as NetBSD 1.0's rc has it, and OpenBSD's;
+# nothing makes the file, and an administrator who wants accounting
+# creates it. FreeBSD 2.0 commented the line out.
+if [ -f /var/account/acct ]; then
+	echo 'turning on accounting';	accton /var/account/acct
+fi
 
 echo -n standard daemons:
 echo -n ' update';		update
