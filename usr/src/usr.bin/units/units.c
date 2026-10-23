@@ -117,12 +117,14 @@ readunits(char *userfile)
 					strcpy(separator, ":");
 				direc = strtok(env, separator);
 				while (direc) {
-					strcpy(filename, "");
-					strncat(filename, direc, 999);
-					strncat(filename, "/",
-					    999 - strlen(filename));
-					strncat(filename, UNITSFILE,
-					    999 - strlen(filename));
+					/*
+					 * AI-ONLY NOTE: changed (2026-10-23)
+					 * -- one snprintf for the three
+					 * strncats, as OpenBSD's units.c
+					 * (Todd Miller, 8 July 1997).
+					 */
+					snprintf(filename, sizeof(filename),
+					    "%s/%s", direc, UNITSFILE);
 					unitfile = fopen(filename, "rt");
 					if (unitfile)
 						break;
@@ -440,7 +442,14 @@ lookupunit(char *unit)
 		copy[strlen(copy) - 1] = 0;
 		for (i = 0; i < unitcount; i++) {
 			if (!strcmp(unittable[i].uname, copy)) {
-				strcpy(buffer, copy);
+				/*
+				 * AI-ONLY NOTE: changed (2026-10-23) --
+				 * bounded to buffer, here and below, as
+				 * OpenBSD's units.c (Todd Miller, 8 July
+				 * 1997).
+				 */
+				strncpy(buffer, copy, sizeof(buffer) - 1);
+				buffer[sizeof(buffer) - 1] = '\0';
 				free(copy);
 				return buffer;
 			}
@@ -452,7 +461,8 @@ lookupunit(char *unit)
 		copy[strlen(copy) - 1] = 0;
 		for (i = 0; i < unitcount; i++) {
 			if (!strcmp(unittable[i].uname, copy)) {
-				strcpy(buffer, copy);
+				strncpy(buffer, copy, sizeof(buffer) - 1);
+				buffer[sizeof(buffer) - 1] = '\0';
 				free(copy);
 				return buffer;
 			}
@@ -461,7 +471,8 @@ lookupunit(char *unit)
 			copy[strlen(copy) - 1] = 0;
 			for (i = 0; i < unitcount; i++) {
 				if (!strcmp(unittable[i].uname, copy)) {
-					strcpy(buffer, copy);
+					strncpy(buffer, copy, sizeof(buffer) - 1);
+					buffer[sizeof(buffer) - 1] = '\0';
 					free(copy);
 					return buffer;
 				}
@@ -474,9 +485,8 @@ lookupunit(char *unit)
 			strlen(prefixtable[i].prefixname))) {
 			unit += strlen(prefixtable[i].prefixname);
 			if (!strlen(unit) || lookupunit(unit)) {
-				strcpy(buffer, prefixtable[i].prefixval);
-				strcat(buffer, " ");
-				strcat(buffer, unit);
+				snprintf(buffer, sizeof(buffer),
+				    "%s %s", prefixtable[i].prefixval, unit);
 				return buffer;
 			}
 		}
@@ -670,8 +680,15 @@ main(int argc, char **argv)
 	readunits(userfile);
 
 	if (optind == argc - 2) {
-		strcpy(havestr, argv[optind]);
-		strcpy(wantstr, argv[optind + 1]);
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-23) -- bounded to the
+		 * 81-byte buffers, as OpenBSD's units.c (Todd Miller,
+		 * 8 July 1997); a longer argument overran them.
+		 */
+		strncpy(havestr, argv[optind], sizeof(havestr) - 1);
+		havestr[sizeof(havestr) - 1] = '\0';
+		strncpy(wantstr, argv[optind + 1], sizeof(wantstr) - 1);
+		wantstr[sizeof(wantstr) - 1] = '\0';
 		initializeunit(&have);
 		addunit(&have, havestr, 0);
 		completereduce(&have);
