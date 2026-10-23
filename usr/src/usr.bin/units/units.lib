@@ -160,7 +160,9 @@ mile			5280 ft
 mi			mile
 
 british			1200|3937 m/ft
-nmile			1852m
+/ AI-ONLY NOTE: changed (2026-10-23) -- a space before m, here and in
+/ Xunit, as NetBSD's units.lib (Chris Demetriou, 13 August 1995).
+nmile			1852 m
 
 acre			4840 yd2
 
@@ -539,7 +541,7 @@ tun			8 barrel
 water			gram g / cc
 wey			40 bu
 weymass			252 lb
-Xunit			1.00202e-13m
+Xunit			1.00202e-13 m
 k			1.38047e-16 erg/degC
 
 
