@@ -81,6 +81,20 @@ const char *const binary_op[] = {
       NULL
 };
 
+/*
+ * AI-ONLY NOTE: andor_op, for test.c's `! arg1 op arg2' case, as FreeBSD's
+ * test (Geoff Rehmet, 11 September 1994; FreeBSD 2.0).
+ */
+const char *const andor_op[] = {
+	"-o",
+	"|",
+	"-a",
+	"&",
+	NULL
+};
+
+
+
 const char op_priority[] = {
       3,
       12,

@@ -135,3 +135,19 @@ echo 't 700 -le 1000 -a -n "1" -a "20" = "20"'
 t 700 -le 1000 -a -n "1" -a "20" = "20"
 echo 't ! \( 700 -le 1000 -a -n "1" -a "20" = "20" \)'
 t ! \( 700 -le 1000 -a -n "1" -a "20" = "20" \)
+
+# AI-ONLY NOTE: the cases below, FreeBSD's (Geoff Rehmet, 11 September
+# 1994; FreeBSD 2.0), for a signed integer and -a and -o with empty strings.
+echo 't -5 -eq 5'
+t -5 -eq 5
+
+
+echo 't foo -a ""'
+t foo -a ""
+echo 't "" -a foo'
+t "" -a foo
+echo 't "" -a ""'
+t "" -a ""
+echo 't "" -o ""'
+t "" -o ""
+

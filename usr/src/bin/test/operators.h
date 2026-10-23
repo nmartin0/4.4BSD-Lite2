@@ -73,5 +73,7 @@
 
 extern const char *const unary_op[];
 extern const char *const binary_op[];
+/* AI-ONLY NOTE: andor_op, FreeBSD's (Rehmet, 1994); see operators.c. */
+extern const char *const andor_op[];
 extern const char op_priority[];
 extern const char op_argflag[];

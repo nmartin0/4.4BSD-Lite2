@@ -161,7 +161,14 @@ main(argc, argv)
 		}
 		break;
 	case 4:				/* % test ! arg1 op arg2 */
-		if (IS_BANG(argv[1])) {
+		/*
+		 * AI-ONLY NOTE: not when op is -a or -o, as FreeBSD's test
+		 * (Geoff Rehmet, 11 September 1994, after Andrew Moore's and
+		 * Adam David's work on FreeBSD 1.x's; FreeBSD 2.0): `test !
+		 * abc -o abc' is (! abc) -o abc, true, where this case took
+		 * it as ! (abc -o abc).
+		 */
+		if (IS_BANG(argv[1]) && lookup_op(argv[3], andor_op) < 0 ) {
 			ret_val = posix_binary_op(&argv[2]);
 			if (ret_val >= 0)
 				return (!ret_val);
@@ -528,7 +535,13 @@ get_int(v, lp)
 	char *ep;
 
 	for (; *v && isspace(*v); ++v);
-	if (isdigit(*v)) {
+
+	/*
+	 * AI-ONLY NOTE: a sign before the digits, as FreeBSD's test (Geoff
+	 * Rehmet, 11 September 1994; FreeBSD 2.0): `test -5 -eq 5' said -5
+	 * was a bad number.
+	 */
+	if (isdigit(*v) || ((*v == '-' || *v == '+') && isdigit(*(v+1)))) {
 		errno = 0;
 		val = strtol(v, &ep, 10);
 		if (*ep != '\0')
