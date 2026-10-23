@@ -46,6 +46,7 @@ static char sccsid[] = "@(#)test.c	8.3 (Berkeley) 4/2/94";
 
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/param.h>	/* AI-ONLY NOTE: NGROUPS, for ISEXEC's group list */
 
 #include <ctype.h>
 #include <err.h>
@@ -341,22 +342,51 @@ expr_operator(op, sp, fs)
 		sp->type = BOOLEAN;
 		break;
 	case ISEXIST:
+exist:
 		if (fs == NULL || fs->rcode == -1)
 			goto false;
 		else
 			goto true;
+	/*
+	 * AI-ONLY NOTE: the superuser's -r, -w and -x, and the group list, as
+	 * FreeBSD's test.c 1.5 to 1.9 (Andrey Chernov, 5 November 1994, the
+	 * last two "Pointed by Bruce"; FreeBSD 2.0): test told root that a
+	 * file was unreadable when it was readable, and looked at the
+	 * primary group alone. For root, -r is true of any file that
+	 * exists, and -w and -x of any with a write or execute bit, as
+	 * test(1) has them, "only that the write [execute] flag is on".
+	 */
 	case ISREAD:
+		if (geteuid() == 0)
+			goto exist;
 		i = S_IROTH;
 		goto permission;
 	case ISWRITE:
-		i = S_IWOTH;
+		if (geteuid() != 0)
+			i = S_IWOTH;
+		else {
+			i = S_IWOTH|S_IWGRP|S_IWUSR;
+			goto filebit;
+		}
 		goto permission;
 	case ISEXEC:
-		i = S_IXOTH;
-permission:	if (fs->stat.st_uid == geteuid())
-			i <<= 6;
-		else if (fs->stat.st_gid == getegid())
-			i <<= 3;
+		if (geteuid() != 0) {
+			i = S_IXOTH;
+permission:		if (fs->stat.st_uid == geteuid())
+				i <<= 6;
+			else {
+				gid_t grlist[NGROUPS];
+				int ngroups, j;
+
+				ngroups = getgroups(NGROUPS, grlist);
+				for (j = 0; j < ngroups; j++)
+					if (fs->stat.st_gid == grlist[j]) {
+						i <<= 3;
+						goto filebit;
+					}
+			}
+		} else
+			i = S_IXOTH|S_IXGRP|S_IXUSR;
 		goto filebit;	/* true if (stat.st_mode & i) != 0 */
 	case ISFILE:
 		i = S_IFREG;
