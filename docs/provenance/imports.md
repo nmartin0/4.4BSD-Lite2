@@ -131,6 +131,11 @@ history; no other system is needed to justify them.
 The code stays Berkeley's; the line taken exists in a tree that may be
 copied, and the commit names it with its release.
 
+  bin/test: signed integers, `! a -o b', "" as 0 (Rehmet, September
+    1994), and root's -r, -w and -x and the group list (Chernov, test.c
+    1.5 to 1.9, November 1994), FreeBSD 2.0 -- patch 184
+  etc/rc: nvi 1.43's own install/recover.script, as its reference
+    manual directs, for ex3.7preserve -- patch 184
   libc: file-scope static declarations, OpenBSD 1996
   lorder: pairs written directly, OpenBSD's current tree
   stdio.h, bsd.prog.mk, bsd.lib.mk, include/Makefile: DESTDIR and

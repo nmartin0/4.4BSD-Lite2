@@ -59,9 +59,15 @@ console log):
   a master on the network, and QEMU's has none.
 - `NFS not available`. nfsd and mountd start; GENERIC.i386 leaves out
   `options NFS`, which Berkeley's own i386 configurations carried.
-- `/usr/libexec/ex3.7preserve: not found`. /etc/rc preserves the old
-  ex's files; the system's editor is nvi, whose own recover script
-  does this.
+- ~~`/usr/libexec/ex3.7preserve: not found`~~ **Done** (patch 184):
+  /etc/rc runs nvi 1.43's own recover.script in its place, as nvi's
+  reference manual says to, with this system's sendmail; FreeBSD 2.2
+  and OpenBSD put the same script in rc (decided 2026-10-23). It found
+  a bug in Lite2's test: -r, -w and -x worked from the mode bits and
+  forgot the superuser and the group list, so root saw no user's
+  recovery file. Fixed as FreeBSD 2.0 fixed Berkeley's test, with
+  FreeBSD 2.0's two other fixes to it. Tested on a fresh install: an
+  editor killed mid-edit is mailed to its user at the next boot.
 - `/var/log/secure: No such file or directory`, at syslogd's start.
 - /etc/daily runs `sa -s`, and /etc/rc turns on accounting; sa and ac
   were deleted or emptied by the cut.
