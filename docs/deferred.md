@@ -812,6 +812,10 @@ Makefiles do not know.
   its usage is `su [-flm] [login]'. NetBSD 1.0's su passes the rest
   on (`np = *argv ? argv : argv-1'); FreeBSD 2.0's is Berkeley's.
   Found testing patch 181; not yet decided.
+- **Lite2's /etc/exports is an example.** It exports /usr to
+  `local_work_group' and `others', and mountd logs at every boot that
+  guest.far.away.domain does not resolve and that `others' is no
+  netgroup. Found testing patch 185; not yet compared with the BSDs'.
 - **A second `make install` needs single user.** init, login, su,
   passwd, rlogin, rsh, rdist, sliplogin, mail.local and chpass are
   installed immutable, which securelevel 1 will not undo; Berkeley's

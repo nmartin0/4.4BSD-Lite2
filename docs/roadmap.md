@@ -57,8 +57,16 @@ console log):
   install: timed starts at boot and answers timedc's trace and
   clockdiff; without -M it stays a slave, as timed(8) says, waiting for
   a master on the network, and QEMU's has none.
-- `NFS not available`. nfsd and mountd start; GENERIC.i386 leaves out
-  `options NFS`, which Berkeley's own i386 configurations carried.
+- ~~`NFS not available`~~ **Done** (patch 185): GENERIC.i386 has FIFO
+  and NFS, as every other GENERIC Berkeley wrote has them together;
+  NFS does not compile without FIFO here, and without FIFO there was
+  no named pipe at all (decided 2026-10-23). build/kernel.sh now
+  empties the objects when the options change, as it did for the
+  compiler. Tested on a fresh install: mountd, nfsd and nfsiod start,
+  a FIFO passes data, and the system mounts its own /usr over NFS,
+  reads it and is refused a write to it. Lite2's /etc/exports is an
+  example, and mountd names its sample hosts at every boot
+  (deferred.md).
 - ~~`/usr/libexec/ex3.7preserve: not found`~~ **Done** (patch 184):
   /etc/rc runs nvi 1.43's own recover.script in its place, as nvi's
   reference manual says to, with this system's sendmail; FreeBSD 2.2
