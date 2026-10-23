@@ -936,6 +936,7 @@ ordinary user needed the saved ids execve now sets (patch 181).
 ## F -- Berkeley's own file, restored
 
 	sbin/savecore/zopen.c	741 lines	NetBSD 1.0
+	usr.sbin/sendmail	8.8.8		FreeBSD 2.2.8's tree
 
 Marked %sccs.include.redist.c% in Berkeley's tree. It is absent from
 the Lite releases because usr.bin/compress went whole for the LZW
@@ -950,6 +951,44 @@ removed them by the maintainer's rule -- an alternative not derived
 from Caldera-licensed code is preferred (deferred.md, *Caldera's
 licence, and what the BSDs took under it*) -- and GNU diff 2.6, kind
 D, is the system's diff in their place.
+
+**usr.sbin/sendmail** is Eric Allman's sendmail, Berkeley's program
+under the Regents' licence. Berkeley's tree held 8.7.Beta.7 (21 June
+1995); Lite2's README says the beta was left off the tape at its
+developers' request, and named the release to fetch. Decided
+2026-10-23, after NetBSD 1.0 to 1.4, FreeBSD 2.0 to 3.0 and OpenBSD
+from its fork to 2.3 were read:
+
+	NetBSD   8.6.9 (1.0), 8.6.12 (1.1), 8.8.5 (1.2.1), 8.8.8 (1.3, 1.4)
+	FreeBSD  8.6.9 (2.0) to 8.6.12 (2.1), 8.8.5 (2.2.0), 8.8.7
+	         (2.2.5), 8.8.8 (2.2.8); contrib/ from 3.0
+	OpenBSD  NetBSD's 8.6 at the fork, 8.7.3 to 8.7.6 (2.0), 8.8.4 to
+	         8.8.8 (2.1 to 2.3), 8.9 from 1998
+
+8.8.8 (October 1997) is the last release under the Regents' licence --
+8.9 moved to the Sendmail License -- and the one all three shipped,
+with the fixes for CERT's CA-96.20, CA-96.24 (any local user root, 8.7
+to 8.8.2) and CA-97.05 (remote root by MIME, 8.8.3 and 8.8.4). The
+tree is FreeBSD 2.2.8's, which keeps sendmail's own top-level Makefile
+(8.15) and Berkeley's src/Makefile "for 4.4BSD only" (8.8), and whose
+own changes are a few lines; NetBSD's and OpenBSD's Makefiles were
+rewritten for their makes. Adapted, each change marked: the manual
+pages by their formatted names, install for ${INSTALL}; no NIS; the
+process title rewritten in place (SPT_REUSEARGV), sendmail's own
+lines for FreeBSD 2.x, since this system's ps_strings holds vectors;
+generic-bsd4.4.cf as /etc/sendmail.cf, with FreeBSD freebsd.mc's one
+line making /etc/sendmail.cw optional; /etc/rc starting it by full
+path, as all three did by 1996; and the installer running newaliases,
+as FreeBSD's sysinstall does.
+
+Tested on a fresh install (patch 182): the installer makes
+aliases.db; sendmail starts at boot, "accepting connections on port
+25" in ps; mail to root, to an ordinary user and to postmaster through
+its alias is delivered by mail.local; `sendmail -bv' tells known users
+from unknown; cron mails a job's output to its crontab's MAILTO;
+SIGHUP restarts the daemon by its path; and the system's own m4 makes
+the same sendmail.cf from cf/cf, but for the build stamp and three
+blank lines.
 
 ## G -- ours
 

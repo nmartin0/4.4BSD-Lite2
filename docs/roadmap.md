@@ -43,9 +43,12 @@ console log):
   1.0's, with NetBSD's fixes of 1995-97; and at and atrun, which
   /etc/crontab runs every fifteen minutes, NetBSD 1.0's with NetBSD's
   and OpenBSD's fixes (imports.md, kind E). /etc/daily and the rest
-  run; their output waits on sendmail, next.
-- `sendmail: not found`. /etc/rc starts the mail daemon; the Lite cut
-  emptied usr.sbin/sendmail. Mail is not delivered, not even locally.
+  run, and their output is mailed.
+- ~~`sendmail: not found`~~ **Done** (patch 182): sendmail 8.8.8, the
+  last under the Regents' licence and the one release all three BSDs
+  shipped, from FreeBSD 2.2.8's tree (decided 2026-10-23; imports.md,
+  kind F). Local mail is delivered by Lite2's own mail.local, and
+  /etc/sendmail.cf is sendmail's generic-bsd4.4.mc.
 - `timed: not found`. /etc/netstart asks for it; Berkeley's own
   usr.sbin/Makefile leaves timed off the i386's list.
 - `NFS not available`. nfsd and mountd start; GENERIC.i386 leaves out

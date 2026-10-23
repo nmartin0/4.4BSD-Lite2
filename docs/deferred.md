@@ -106,7 +106,8 @@ Patch 153. Ten more the cut did not delete but emptied, leaving a
 manual page, a README or a few subdirectories, and no Makefile:
 `usr.bin/diff` (diff and diff3), `usr.bin/ex`, `usr.bin/file`,
 `usr.bin/sort`, `usr.bin/uucp`, `usr.sbin/ac`, `usr.sbin/quot`,
-`usr.sbin/sendmail`, and `old`, the top-level directory of eight
+`usr.sbin/sendmail` (back: sendmail 8.8.8, patch 182), and `old`,
+the top-level directory of eight
 retired programs. None is named now, and their manual pages are not
 installed. contrib/ holds programs that could stand for some --
 nvi for ex and vi, file-3.12, sort -- outside contrib/Makefile's
