@@ -197,7 +197,14 @@ elif [ X${routedflags} != X"NO" ]; then
 	echo -n ' routed';	routed $routedflags
 fi
 
-echo -n ' named';		named
+# AI-ONLY NOTE: changed (2026-10-23) -- named only when netstart asks for
+# it and its boot file is there, as NetBSD 1.0's rc and FreeBSD 2.0's
+# have it; it ran on every boot, and without /etc/named.boot said so.
+# $name_server is imported from /etc/netstart;
+# if $name_server == YES, named is run.
+if [ X${name_server} = X"YES" -a -r /etc/named.boot ]; then
+	echo -n ' named';		named
+fi
 
 # $rwhod is imported from /etc/netstart;
 # if $rwhod is set to something other than NO, rwhod is run.

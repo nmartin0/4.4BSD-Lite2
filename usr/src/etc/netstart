@@ -11,6 +11,10 @@ routedflags=-q
 # exits on a word it does not expect, so from then timed never started.
 timedflags=
 rwhod=NO
+# AI-ONLY NOTE: added (2026-10-23) -- set to YES to run named, which rc
+# then starts if /etc/named.boot is there, as NetBSD 1.0's netstart and
+# FreeBSD 2.0's have it.
+name_server=NO
 
 # myname is my symbolic name
 # my-netmask is specified in /etc/networks
