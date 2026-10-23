@@ -95,8 +95,16 @@ console log):
   root's and an ordinary user's commands, and sa, sa -m, sa -u, sa -t
   and sa -s report them and exit 0 (1 for a bad option); ac, ac -p,
   ac -d and ac -w report the console login.
-- `/etc/named.boot: No such file or directory`: /etc/rc starts named
-  whether or not it has a configuration (measured with patch 186).
+- ~~`/etc/named.boot: No such file or directory`~~ **Done** (patch
+  188): netstart's name_server=NO, and rc runs named only when it is
+  YES and /etc/named.boot is readable, NetBSD 1.0's and FreeBSD 2.0's
+  lines (decided 2026-10-23). Tested on a fresh install: named does not
+  start; with name_server=YES and a boot file it starts at boot and
+  answers nslookup for 127.0.0.1.
+
+What the boot still says, with item 1 done: syslogd's
+/var/spool/uucp/ERRORS, which waits for uucp (item 2), and mountd's
+two sample hosts from Lite2's example /etc/exports (deferred.md).
 
 **2. What the Lite cut took, to be decided one by one** (deferred.md,
 *Sources and directories named but absent*, *Programs the Lite cut
