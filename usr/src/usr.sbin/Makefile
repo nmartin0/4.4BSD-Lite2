@@ -21,7 +21,13 @@ SUBDIR+=bad144 config config.new eeprom iostat timed
 .elif ${MACHINE} == "hp300"
 SUBDIR+=config iostat timed
 .elif ${MACHINE} == "i386"
-SUBDIR+=bad144 config iostat
+# AI-ONLY NOTE: timed, which every other port's line here builds, and
+# NetBSD 1.0, FreeBSD 2.0 and OpenBSD built for the i386. This line was
+# written for bad144 alone (William Jolitz, 15 January 1991), and timed
+# went into the other ports' lines when it left the common list (Bostic,
+# 6 May 1991); adjtime and settimeofday, all it needs, are the kernel's
+# own, machine-independent.
+SUBDIR+=bad144 config iostat timed
 .elif ${MACHINE} == "luna68k"
 SUBDIR+=config iostat timed
 .elif ${MACHINE} == "mips"
