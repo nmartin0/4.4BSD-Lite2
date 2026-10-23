@@ -38,6 +38,11 @@ static char rcsid[] = "$Id: pdb.c,v 1.1 1994/03/24 18:41:54 cgd Exp $";
 #include <errno.h>
 #include <fcntl.h>
 #include <stdio.h>
+/*
+ * AI-ONLY NOTE: added (2026-10-23) -- <string.h>, as FreeBSD's sa
+ * (Mike Pritchard, 22 January 1996).
+ */
+#include <string.h>
 #include "extern.h"
 #include "pathnames.h"
 
@@ -402,7 +407,16 @@ print_ci(cip, totalcip)
 		if (!uflow)
 			printf("%8.2fre/cp ", cip->ci_etime / (double) (cip->ci_utime + cip->ci_stime));
 		else
-			printf("%8 ", "*ignore*");
+			/*
+			 * AI-ONLY NOTE: changed (2026-10-23) -- the word
+			 * itself, as FreeBSD's sa (Mike Pritchard, 22
+			 * January 1996), "so that its output matches what
+			 * the man page says it prints". "%8 " names no
+			 * conversion, so *ignore* was never printed; the
+			 * word and its spaces fill the fourteen columns of
+			 * "%8.2fre/cp ".
+			 */
+			printf("*ignore*      ");
 
 	if (Dflag)
 		printf("%10qutio ", cip->ci_io);

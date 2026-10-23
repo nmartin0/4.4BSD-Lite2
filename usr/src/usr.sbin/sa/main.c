@@ -48,6 +48,11 @@ static char rcsid[] = "$Id: main.c,v 1.1 1994/03/24 18:41:51 cgd Exp $";
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+/*
+ * AI-ONLY NOTE: added (2026-10-23) -- <string.h>, as FreeBSD's sa
+ * (Mike Pritchard, 22 January 1996).
+ */
+#include <string.h>
 #include <unistd.h>
 #include "extern.h"
 #include "pathnames.h"
@@ -349,7 +354,12 @@ acct_load(pn, wr)
 			if (sflag || (mflag && !qflag))
 				usracct_add(&ci);
 		} else if (!qflag)
-			printf("%6u %12.2lf cpu %12quk mem %12qu io %s\n",
+			/*
+			 * AI-ONLY NOTE: changed (2026-10-23) -- %6lu for
+			 * the u_long uid and %12.2f for the double, as
+			 * FreeBSD's sa (Mike Pritchard, 22 January 1996).
+			 */
+			printf("%6lu %12.2f cpu %12quk mem %12qu io %s\n",
 			    ci.ci_uid,
 			    (ci.ci_utime + ci.ci_stime) / (double) AHZ,
 			    ci.ci_mem, ci.ci_io, ci.ci_comm);

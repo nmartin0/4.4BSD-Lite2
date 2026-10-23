@@ -37,6 +37,13 @@ static char rcsid[] = "$Id: usrdb.c,v 1.1 1994/03/24 18:42:01 cgd Exp $";
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+/*
+ * AI-ONLY NOTE: added (2026-10-23) -- <stdio.h> and <string.h>, as
+ * FreeBSD's sa (Mike Pritchard, 22 January 1996); usracct_update's
+ * unused uid and out: label removed with them, as there.
+ */
+#include <stdio.h>
+#include <string.h>
 #include "extern.h"
 #include "pathnames.h"
 
@@ -171,7 +178,6 @@ usracct_update()
 	DB *saved_usracct_db;
 	DBT key, data;
 	BTREEINFO bti;
-	u_long uid;
 	int error, serr, nerr;
 
 	bzero(&bti, sizeof bti);
@@ -211,7 +217,6 @@ usracct_update()
 		warn("syncing process accounting summary");
 		error = -1;
 	}
-out:
 	if (DB_CLOSE(saved_usracct_db) < 0) {
 		warn("closing process accounting summary");
 		error = -1;
@@ -242,7 +247,11 @@ usracct_print()
 		if (t < 0.0001)		/* kill divide by zero */
 			t = 0.0001;
 
-		printf("%12.2lf%s ", t / 60.0, "cpu");
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-23) -- %12.2f, as
+		 * FreeBSD's sa (Mike Pritchard, 22 January 1996).
+		 */
+		printf("%12.2f%s ", t / 60.0, "cpu");
 
 		/* ui->ui_calls is always != 0 */
 		if (dflag)
