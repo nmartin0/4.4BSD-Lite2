@@ -120,6 +120,17 @@ test.
 4. **Later releases**, stopping at the earliest that has the thing,
    and saying it is later.
 
+**A hard rule (the maintainer, 2026-10-23): every choice of donor
+surveys all three BSDs -- NetBSD, FreeBSD and OpenBSD -- across their
+releases, before any is picked.** Not one BSD, and not one release of
+each: the same program in NetBSD 1.0, 1.1, 1.2 and on, FreeBSD 2.0,
+2.1, 2.2 and on, and OpenBSD from its fork, read and dated, with what
+changed between them and why. A pick made on fewer is not a pick.
+cron and at (patch 181) are the model: NetBSD 1.0's was chosen, and
+its later releases then showed holes each fixed, which were taken
+too; sendmail (patch 182), where the survey settled both the version
+and whose tree.
+
 ### `sys/i386` is special
 
 Berkeley took NetBSD's changes into their own i386 port on **11 June
