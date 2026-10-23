@@ -139,6 +139,11 @@ inst root staff 644 /dev/null "$D/var/log/lastlog"
 inst root wheel 644 /dev/null "$D/var/log/messages"
 inst root wheel 644 /dev/null "$D/var/log/maillog"
 inst root wheel 644 /dev/null "$D/var/log/lpd-errs"
+# AI-ONLY NOTE: wtmp, secure and ftp.log, as etc/Makefile creates them
+# (NetBSD 1.3's and OpenBSD's of 1997).
+inst root wheel 644 /dev/null "$D/var/log/wtmp"
+inst root wheel 600 /dev/null "$D/var/log/secure"
+inst root wheel 600 /dev/null "$D/var/log/ftp.log"
 inst root utmp 664 /dev/null "$D/var/run/utmp"
 (cd etc.$MACHINE && inst root wheel 444 fstab.* "$D/etc")
 # The links, as the Makefile makes them, the second X11 replacing the

@@ -79,6 +79,15 @@ distribution:
 	    ${DESTDIR}/var/log/maillog
 	install -c -o root -g wheel -m 644 /dev/null \
 	    ${DESTDIR}/var/log/lpd-errs
+# AI-ONLY NOTE: wtmp, secure and ftp.log, the files syslog.conf and
+# login name that nothing else creates, as NetBSD 1.3's etc/Makefile
+# (1997) and OpenBSD's (1997) create theirs, at their modes.
+	install -c -o root -g wheel -m 644 /dev/null \
+	    ${DESTDIR}/var/log/wtmp
+	install -c -o root -g wheel -m 600 /dev/null \
+	    ${DESTDIR}/var/log/secure
+	install -c -o root -g wheel -m 600 /dev/null \
+	    ${DESTDIR}/var/log/ftp.log
 	install -c -o root -g utmp -m 664 /dev/null \
 	    ${DESTDIR}/var/run/utmp
 	(cd etc.${MACHINE}; install -c -o root -g wheel -m 444 \

@@ -76,7 +76,18 @@ console log):
   recovery file. Fixed as FreeBSD 2.0 fixed Berkeley's test, with
   FreeBSD 2.0's two other fixes to it. Tested on a fresh install: an
   editor killed mid-edit is mailed to its user at the next boot.
-- `/var/log/secure: No such file or directory`, at syslogd's start.
+- ~~`/var/log/secure: No such file or directory`~~ **Done** (patch
+  186): etc/Makefile creates /var/log/secure (600) and ftp.log (600),
+  which Lite2's syslog.conf names, and /var/log/wtmp (644), which
+  login and ftpd append to and never create, so no login had been
+  recorded and last(1) failed; as NetBSD 1.3's and OpenBSD's
+  etc/Makefile of 1997 create theirs (decided 2026-10-23). Tested on
+  a fresh install: syslogd starts quiet but for uucp's ERRORS, which
+  waits for uucp (item 2), and last(1) shows the console login.
+- `/var/account/acct: No such file or directory`, from accton at
+  boot (measured with patch 186); goes with sa and ac, below.
+- `/etc/named.boot: No such file or directory`: /etc/rc starts named
+  whether or not it has a configuration (measured with patch 186).
 - /etc/daily runs `sa -s`, and /etc/rc turns on accounting; sa and ac
   were deleted or emptied by the cut.
 

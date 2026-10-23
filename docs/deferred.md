@@ -109,7 +109,10 @@ manual page, a README or a few subdirectories, and no Makefile:
 `usr.sbin/sendmail` (back: sendmail 8.8.8, patch 182), and `old`,
 the top-level directory of eight
 retired programs. None is named now, and their manual pages are not
-installed. contrib/ holds programs that could stand for some --
+installed. Lite2's syslog.conf still sends uucp.info to
+/var/spool/uucp/ERRORS, and syslogd says at boot that it is missing;
+the line is kept as shipped, and the file comes with uucp, when uucp
+is taken up (roadmap.md, item 2; patch 186). contrib/ holds programs that could stand for some --
 nvi for ex and vi, file-3.12, sort -- outside contrib/Makefile's
 list; they are to be weighed with contrib/ (roadmap.md, *Next:
 contrib/*).
