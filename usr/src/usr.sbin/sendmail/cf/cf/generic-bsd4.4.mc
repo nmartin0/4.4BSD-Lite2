@@ -47,3 +47,9 @@ OSTYPE(bsd4.4)dnl
 DOMAIN(generic)dnl
 MAILER(local)dnl
 MAILER(smtp)dnl
+dnl AI-ONLY NOTE: /etc/sendmail.cw read if it is there (-o), as
+dnl FreeBSD 2.2's freebsd.mc, which is this file with this line and
+dnl FreeBSD's relays: DOMAIN(generic) asks for the file, and a system
+dnl without one could not start sendmail. NetBSD's and OpenBSD's
+dnl configurations leave DOMAIN(generic) out; none shipped the file.
+define(`confCW_FILE', `-o /etc/sendmail.cw')dnl

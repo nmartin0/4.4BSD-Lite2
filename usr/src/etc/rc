@@ -155,7 +155,10 @@ echo -n ' mountd';		mountd
 echo -n ' nfsd';		nfsd -u -t 6
 echo -n ' nfsiod';		nfsiod 4
 
-echo -n ' sendmail';		sendmail -bd -q30m
+# AI-ONLY NOTE: by its full path, as NetBSD 1.2's, FreeBSD 2.2's and
+# OpenBSD's rc start it, NetBSD's saying "so that SIGHUP works":
+# sendmail 8.7 and later restart on SIGHUP by executing their own name.
+echo -n ' sendmail';		/usr/sbin/sendmail -bd -q30m
 echo -n ' inetd';		inetd
 echo -n ' amd';
 	cd /; amd -l /var/log/amd -r -a /amd -p > /var/run/amd.pid \
