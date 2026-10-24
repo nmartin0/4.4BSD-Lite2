@@ -1,5 +1,8 @@
 .TH FILE 1 "Copyright but distributable"
-.\# $Id: file.man,v 1.23 1993/09/24 18:50:48 christos Exp $
+.\" AI-ONLY NOTE: changed (2026-10-24) -- .\" for the RCS line's .\#, which
+.\" swallowed the .SH NAME line after it, as NetBSD's file.1 (Charles
+.\" Hannum, 20 November 1993, from Thomas Eberhardt).
+.\" $Id: file.man,v 1.23 1993/09/24 18:50:48 christos Exp $
 .SH NAME
 .I file
 \- determine file type
