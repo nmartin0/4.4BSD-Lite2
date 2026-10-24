@@ -28,11 +28,14 @@ fsysdep_make_dirs (zfile, fpublic)
     {
       if (*z == '/' && z != zcopy)
 	{
-	  /* Some versions of uuto will send a double slash.  Some
-             systems will fail to create a directory ending in a
-             slash.  */
-	  if (z[-1] == '/')
-	    continue;
+	  /*
+	   * AI-ONLY NOTE: changed (2026-10-24) -- a run of slashes passed
+	   * after the mkdir, below, not before it, as OpenBSD's mkdirs.c
+	   * (Theo de Raadt, 3 December 1996, "handle path parsing
+	   * correctly", NetBSD PR 2970): with the test before, the
+	   * second of two slashes skipped the mkdir of the directory
+	   * before it.
+	   */
 	  *z = '\0';
 	  if (mkdir (zcopy, imode) != 0
 	      && errno != EEXIST
@@ -48,6 +51,11 @@ fsysdep_make_dirs (zfile, fpublic)
 	      return FALSE;
 	    }
 	  *z = '/';
+	  /* Some versions of uuto will send a double slash.  Some
+             systems will fail to create a directory ending in a
+             slash.  */
+      while (z[1] == '/')
+        z++;
 	}
     }
 
