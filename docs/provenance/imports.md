@@ -799,6 +799,8 @@ gives them.
 					later fixes
 	usr.sbin/sa, usr.sbin/ac	NetBSD 1.0, the three BSDs' later
 					fixes; ac.8 Berkeley's, merged
+	usr.bin/units			NetBSD 1.0, the three BSDs' later
+					fixes
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
@@ -993,6 +995,38 @@ user (root and the user apart), -u record by record, -t with its
 ratio column, and -s folds them into savacct and usracct and empties
 acct; sa exits 0, and 1 for an unknown option. ac, ac -p, ac -d and ac
 -w /var/log/wtmp -p report the console login.
+
+**usr.bin/units** is Adrian Mariano's units of 1993, first committed
+byte for byte as NetBSD's netbsd-1-0 branch has it (decided
+2026-10-23). Berkeley's units was V7's (`new copyright; att/bsd/shared',
+April 1991), and Berkeley's 4.4 to-do list has units under "Utility
+wish list". NetBSD 1.0 carried this clone, OpenBSD inherited it, and
+FreeBSD took NetBSD's in 2.2; FreeBSD 2.0 and 2.1 had no units. Its
+Makefile installs units.lib into /usr/share/misc as Berkeley's did.
+The fixes taken, each its own commit:
+
+	units.1	from-unit before to-unit, and -v: NetBSD (Conklin, 16
+		July 1994), NetBSD 1.1
+	units.lib nmile and Xunit read as bare numbers, so nmile, knot
+		and the rest gave "conformability error": NetBSD
+		(Demetriou, 13 August 1995), NetBSD 1.1
+	units	main returns int: NetBSD (Conklin, 21 March 1996), 1.2
+	units	exit status 0, and -q's stray newline at end of input:
+		FreeBSD (Langer, 8 June 1996), 2.2; OpenBSD 1996
+	units	getopt's result an int: NetBSD (1 April 1996), 1.2
+	units	command-line units and lookupunit's answers bounded:
+		OpenBSD (Miller, 8 July 1997); FreeBSD 2.2.8 and NetBSD
+		1.3 still overran on a long argument
+
+Not taken: NetBSD's <ctype.h> and unused-variable cleanup of 1994,
+which changes nothing on the i386; OpenBSD's 1999 rewrite of
+units.lib, out of period.
+
+Tested on a fresh install (patch 190): units.lib in /usr/share/misc;
+`units ft m', `units nmile m' and `units knot m/s' convert and exit 0;
+`units -q' at end of input prints nothing; a 170-character argument
+is cut short and refused, not overrun; man units shows the corrected
+synopsis.
 
 ## F -- Berkeley's own file, restored
 
