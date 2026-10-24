@@ -126,6 +126,15 @@ struct stat *sb;
 			    if ((tmp = strrchr(fn,  '/')) == NULL) {
 				tmp = buf; /* in current directory anyway */
 			    }
+			    /*
+			     * AI-ONLY NOTE: added (2026-10-24) -- a name too
+			     * long for buf2 refused, as OpenBSD's fsmagic.c
+			     * (Theo de Raadt, 6 December 1999, "oflow").
+			     */
+			    else if (strlen(fn) + strlen(buf) > sizeof(buf2)-1) {
+				ckfprintf(stdout, "name too long %s", fn);
+				return 1;
+			    }
 			    else {
 				strcpy (buf2, fn);  /* take directory part */
 				buf2[tmp-fn+1] = '\0';
