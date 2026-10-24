@@ -1135,6 +1135,7 @@ afterwards finds the file system clean, and ls -l, -lu and -lc show
 ## F -- Berkeley's own file, restored
 
 	usr.bin/compress	Lite's, with NetBSD 1.0's -b fix
+	usr.bin/deroff		Berkeley's 4.4, through OpenBSD 2002
 	usr.sbin/sendmail	8.8.8		FreeBSD 2.2.8's tree
 
 **usr.bin/compress** is Berkeley's compress, uncompress and zcat, and
@@ -1164,6 +1165,25 @@ round-trip /etc/termcap; `compress -b 12' writes 12 bits into the
 header (0214) and uncompress reads it back; gzip reads compress's
 output, with and without -b; and man shows a cat page compressed in
 place through man.conf's .0.Z line and /usr/bin/zcat.
+
+**usr.bin/deroff** is Berkeley's 4.4 deroff, and the code came through
+OpenBSD: its Makefile, deroff.c and deroff.1 byte for byte as OpenBSD
+first committed them (Todd Miller, 28 February 2002, "This is the
+4.4BSD deroff, now freed by Caldera"), ANSI C, getopt and the buffer
+overflows Miller fixed included; nothing is taken from Berkeley's
+history, which is read-only here (decided 2026-10-24). Berkeley's was
+marked AT&T-proprietary in 1991 and the Lite cut took it; Caldera's
+licence of 2002 freed it, and OpenBSD's file carries the Regents'
+notice and Caldera's. NetBSD's deroff is OpenBSD's; FreeBSD has none;
+no BSD had one from 1994 to 2001. Taken by the rule for
+Caldera-licensed code (deferred.md). OpenBSD's same-day corrections,
+each its own commit: memmove for an overlapping strcpy, and the
+page's synopsis and BUGS.
+
+Tested on a fresh install (patch 195): deroff strips requests, font
+changes and an .EQ block and keeps the text; -w gives a word a line;
+-me closes up a doubled quote in a quoted macro argument (the memmove);
+a missing file is reported by name; man deroff shows every -m letter.
 
 **usr.bin/diff** was here from patch 155 to patch 157: Berkeley's
 4.3-Reno diff and diff3, which the Lite cut removed as

@@ -194,5 +194,12 @@ twenty, and it should be settled before any of it begins.
 
 ## Modern tools
 
-To be listed. Shared libraries are to be settled (roadmap.md, *To
+To be listed. Carried over from 4.5BSD so far:
+
+- spell: OpenBSD's 2002 redesign, as NetBSD 2005 has it with a front
+  end in sh; Berkeley's needs AT&T's word list (deferred.md).
+- bc and dc: Otto Moerbeek's 2003 rewrites, with libcrypto's bn(3) for
+  dc (deferred.md); GNU bc 1.03 stands in 4.5BSD.
+- ncheck: OpenBSD's ncheck_ffs (deferred.md).
+ Shared libraries are to be settled (roadmap.md, *To
 settle*, and *Later: shared libraries*).

@@ -228,11 +228,17 @@ nmake. A candidate for ports, not the base system.
 **To loop back to**, under the rule, each with its precedent and its
 catch:
 
-	deroff     OpenBSD's 2002 import; NetBSD -- Caldera's, taken
-	           by two BSDs; no non-Caldera alternative in any
-	spell      NetBSD's 2005, whose front end is sh; OpenBSD's is
-	           ksh, which Lite2 has not. Uses share/dict/words.
-	           As deroff
+	deroff     Back: Berkeley's 4.4 deroff as OpenBSD took it in
+	           2002, the code through OpenBSD (patch 195)
+	spell      Deferred to 4.6BSD (decided 2026-10-24). No BSD had
+	           one from 1994 to 2001. Berkeley's hashes its lists
+	           from /usr/share/dict/words, AT&T's 25,000 words, which
+	           the Lite cut took and every BSD replaced with web2's
+	           235,000; its Makefile is empty in Berkeley's history.
+	           The only working lineage is OpenBSD's of 2002, a
+	           redesign (binary search of the plain lists, a new
+	           spellprog, a ksh front end), and NetBSD's of 2005,
+	           OpenBSD's with a front end in sh
 	ching      NetBSD's ching.sh, hexagrams and macros, completing
 	           games/ching. As deroff
 	compress   Berkeley's own, `redist`, not Caldera's; the patent
