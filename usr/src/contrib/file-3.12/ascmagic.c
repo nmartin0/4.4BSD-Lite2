@@ -80,6 +80,12 @@ int nbytes;	/* size actually read */
 	/* look for tokens from names.h - this is expensive! */
 	/* make a copy of the buffer here because strtok() will destroy it */
 	s = (unsigned char*) memcpy(nbuf, buf, nbytes);
+	/*
+	 * AI-ONLY NOTE: added (2026-10-24) -- the copy ended, as Darwin's
+	 * file 3.13 ("null termination bug from Don Seeley at BSDI") and
+	 * FreeBSD 2.0's ascmagic.c: strtok ran on past what was read.
+	 */
+	s[nbytes] = '\0';
 	has_escapes = (memchr(s, '\033', nbytes) != NULL);
 	while ((token = strtok((char*)s, " \t\n\r\f")) != NULL) {
 		s = NULL;	/* make strtok() keep on tokin' */
