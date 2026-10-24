@@ -194,8 +194,11 @@ struct magic *m;
 			(void) printf(m->desc, m->value.s);
 		}
 		else {
-			if ((rt = strchr(p->s, '\n')) != NULL)
-				*rt = '\0';
+			/*
+			 * AI-ONLY NOTE: changed (2026-10-24) -- the newline
+			 * is eaten in mconvert now, with the string ended,
+			 * as FreeBSD 2.0's softmagic.c (file 3.14, Christos Zoulas, May 1994).
+			 */
 			(void) printf(m->desc, p->s);
 		}
 		break;
@@ -221,13 +224,24 @@ mconvert(p, m)
 union VALUETYPE *p;
 struct magic *m;
 {
+	char *rt;
 
 	switch (m->type) {
 	case BYTE:
 	case SHORT:
 	case LONG:
 	case DATE:
+		return 1;
 	case STRING:
+		/*
+		 * AI-ONLY NOTE: added (2026-10-24) -- the string ended
+		 * within its buffer, as FreeBSD 2.0's softmagic.c (file 3.14, Christos Zoulas, May 1994): the bytes copied from the file
+		 * carry no NUL, and mprint's printf read past them.
+		 */
+		/* Null terminate and eat the return */
+		p->s[sizeof(p->s) - 1] = '\0';
+		if ((rt = strchr(p->s, '\n')) != NULL)
+			*rt = '\0';
 		return 1;
 	case BESHORT:
 		p->h = (short)((p->hs[0]<<8)|(p->hs[1]));
