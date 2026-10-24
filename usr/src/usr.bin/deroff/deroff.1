@@ -74,8 +74,14 @@
 .Sh SYNOPSIS
 .Nm deroff
 .Op Fl ikpw
-.Op Fl m Ar m | s | e | a | l
-.Ar file \&...
+.\" AI-ONLY NOTE: changed (2026-10-24) -- .Oo and .Oc, so that every -m
+.\" letter shows, and the file optional, as OpenBSD's deroff.1 (Todd
+.\" Miller, 28 February 2002, from Brian Poole).
+.Oo
+.Fl m
+.Ar m | s | e | a | l
+.Oc
+.Op Ar
 .Sh DESCRIPTION
 .Nm deroff
 reads each file in sequence and removes all
@@ -161,3 +167,9 @@ is not a complete
 .Xr troff 1
 interpreter, so it can be confused by subtle constructs.
 Most errors result in too much rather than too little output.
+.\" AI-ONLY NOTE: added (2026-10-24) -- as OpenBSD's deroff.1 (Todd
+.\" Miller, 28 February 2002, "another bug").
+.Pp
+The
+.Fl ml
+option does not correctly handle nested lists.
