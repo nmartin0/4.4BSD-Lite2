@@ -417,6 +417,47 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	contrib/grep-2.0		GNU grep 2.0, NetBSD 1.1's, the system's grep
 	contrib/bc-1.03			GNU bc 1.03 and dc, NetBSD 1.1's, the
 					system's bc and dc
+	contrib/uucp-1.06.1		Taylor UUCP 1.06.1, NetBSD 1.1's, the
+					system's uucp
+
+**contrib/uucp-1.06.1** is Ian Lance Taylor's UUCP 1.06.1, GPL, byte
+for byte as NetBSD 1.1's gnu/libexec/uucp (J.T. Conklin, 24 August
+1995, with John Kohl), with NetBSD's BSD Makefiles and pre-generated
+config.h and policy.h (decided 2026-10-24). Berkeley's uucp was
+AT&T-marked in 1991 and the Lite cut took its core, leaving five small
+programs in usr.bin/uucp that cannot build without it; every BSD put
+Taylor's in its place, and 1.06.1 is the version all three shipped,
+NetBSD 1.1 to 3, FreeBSD 2.1 to 4, OpenBSD 1995 to 2001. Built as
+NetBSD 1.1 builds it, its three libraries kept in their object
+directories; -lgnumalloc dropped, as OpenBSD did in 1996, and the
+section-8 pages named for Lite2's make. tip no longer links itself as
+cu, as NetBSD 1.0's tip Makefile has it, Taylor's cu taking the name.
+The fixes taken, each its own commit:
+
+	serial.c	a line speed of 0, over TCP, no longer a divisor
+			(SIGFPE): FreeBSD (Wunsch, 12 October 1996)
+	mkdirs.c	doubled slashes passed after the mkdir: OpenBSD
+			(de Raadt, 3 December 1996, NetBSD PR 2970)
+	uux.c		room for a forwarded command's NUL: OpenBSD (de
+			Raadt, 11 May 1998)
+	cu.c		the echo test while sending a file joined with &&:
+			OpenBSD (de Raadt, 24 February 1999, NetBSD PR 6834)
+	uuxqt.c		long options parsed, --config, --user and --debug
+			refused: NetBSD (itojun, 12 September 2001, OpenBSD
+			errata 033), a local root hole in every BSD's copy
+
+Not taken: OpenBSD's 1996 seteuid change for _POSIX_SAVED_IDS, since
+Lite2's setuid() already sets the real, effective and saved ids
+together. The system's side -- uucico's path for the uucp user and
+uucpd, /etc/uucp, the lock directory tip shares, the spool, daily and
+syslog -- is the next patch's.
+
+Tested on a fresh install (patch 197): the programs install where
+NetBSD 1.1 put them, owned by uucp, the set-user-id ones 4555;
+/usr/bin/cu is Taylor's ("cu: Taylor UUCP 1.06.1") and tip is tip
+alone; uuname -l names the host; uuchk reports Taylor's spool, public,
+lock and log locations; uucp copies a file into the public directory;
+uustat -a runs; man cu shows Taylor's page.
 
 **contrib/bc-1.03** is GNU bc 1.03 and the dc of its distribution,
 byte for byte as NetBSD 1.1's gnu/usr.bin/bc and gnu/usr.bin/dc,
