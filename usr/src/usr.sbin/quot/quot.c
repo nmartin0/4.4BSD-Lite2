@@ -74,7 +74,12 @@ static int headerlen;
 #ifdef	COMPAT
 #define	SIZE(n)	(n)
 #else
-#define	SIZE(n)	(((n) * 512 + blocksize - 1)/blocksize)
+/*
+ * AI-ONLY NOTE: changed (2026-10-24) -- the product taken as a quad_t,
+ * as FreeBSD's quot (Matthew Dillon, 13 December 1998, PR bin/8624):
+ * as a long it overflowed for a user with over 2 GB.
+ */
+#define	SIZE(n) ((int)(((quad_t)(n) * 512 + blocksize - 1)/blocksize))
 #endif
 
 #define	INOCNT(fs)	((fs)->fs_ipg)
