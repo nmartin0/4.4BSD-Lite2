@@ -55,7 +55,9 @@ blocks in files with this or lower size.
 For each user, display count of files and space occupied.
 .It Fl h
 Estimate the number of blocks in each file based on its size.
-Despite that this doesn't give the correct resuls (it doesn't
+.\" AI-ONLY NOTE: changed (2026-10-24) -- results, as FreeBSD's quot.8
+.\" (Mike Pritchard, 30 January 1996).
+Despite that this doesn't give the correct results (it doesn't
 account for the holes in files), this option isn't any faster
 and thus is discouraged.
 .It Fl k
@@ -77,13 +79,18 @@ to get a report of files and their owners.
 In addition to the default output, display the number of files
 not accessed within 30, 60 and 90 days.
 .El
-.Sh ENVIRONMENTAL VARIABLES
+.\" AI-ONLY NOTE: changed (2026-10-24) -- environment, here and below,
+.\" as OpenBSD's quot.8 (Theo de Raadt, 8 December 1995).
+.Sh ENVIRONMENT VARIABLES
 .Bl -tag -width BLOCKSIZE
 .It Ev BLOCKSIZE
-If the environmental variable
+If the environment variable
 .Ev BLOCKSIZE
 is set, and the
-.Gl k
+.\" AI-ONLY NOTE: changed (2026-10-24) -- .Fl, the flag macro; .Gl
+.\" is none, and the line printed nothing. As OpenBSD's quot.8 (11
+.\" March 1999); FreeBSD's after 2.2.8.
+.Fl k
 option is not specified, the block counts will be displayed in units of that
 size block.
 .El
