@@ -843,9 +843,14 @@ badformat:
     return 0;
 }
 
+/*
+ * AI-ONLY NOTE: changed (2026-10-24) -- mtime and atime set the times
+ * they name, where both set the inode's change time, as OpenBSD's
+ * fsdb.c (Theo de Raadt, 8 August 1998, from ms@xy.org).
+ */
 CMDFUNCSTART(chmtime)
 {
-    if (dotime(argv[1], &curinode->di_ctime, &curinode->di_ctimensec))
+    if (dotime(argv[1], &curinode->di_mtime, &curinode->di_mtimensec))
 	return 1;
     inodirty();
     printactive();
@@ -854,7 +859,7 @@ CMDFUNCSTART(chmtime)
 
 CMDFUNCSTART(chatime)
 {
-    if (dotime(argv[1], &curinode->di_ctime, &curinode->di_ctimensec))
+    if (dotime(argv[1], &curinode->di_atime, &curinode->di_atimensec))
 	return 1;
     inodirty();
     printactive();
