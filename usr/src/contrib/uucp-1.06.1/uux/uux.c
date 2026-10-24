@@ -532,7 +532,12 @@ main (argc, argv)
       else
 	{
 	  clen = zexclam - zcmd;
-	  zforward = zbufalc (clen);
+	  /*
+	   * AI-ONLY NOTE: changed (2026-10-24) -- room for the NUL
+	   * written below, as OpenBSD's uux.c (Theo de Raadt, 11 May
+	   * 1998, "tromping one byte too far").
+	   */
+	  zforward = zbufalc (clen + 1);
 	  memcpy (zforward, zcmd, clen);
 	  zforward[clen] = '\0';
 	  zcmd = zexclam + 1;
