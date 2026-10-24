@@ -49,6 +49,8 @@ static char sccsid[] = "@(#)ching.cno.c	8.1 (Berkeley) 5/31/93";
  * standard output for processing by "phx".
  */
 #include <stdio.h>
+/* AI-ONLY NOTE: added (2026-10-24) -- <stdlib.h>, for exit, as castching.c. */
+#include <stdlib.h>
 #include "ching.h"
 
 long	now;		/* current time */
@@ -71,6 +73,12 @@ main()
 	time(&now);
 	seed = (int)now + getquest() + getgid() + getuid() + getpid();	/* randomize */
 	printf("%s\n", change());
+	/*
+	 * AI-ONLY NOTE: added (2026-10-24) -- as NetBSD's castching.c,
+	 * this program under NetBSD's name (netbsd-4): main fell off its
+	 * end, and the exit status was printf's count, 7.
+	 */
+	exit(0);
 }
 
 /*
