@@ -239,15 +239,14 @@ int wid;
 		tryit(buf, nbytes, zflag);
 	}
 
-	if (inname != stdname) {
-		/*
-		 * Try to restore access, modification times if read it.
-		 */
-		utbuf.actime = sb.st_atime;
-		utbuf.modtime = sb.st_mtime;
-		(void) utime(inname, &utbuf); /* don't care if loses */
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-24) -- the access and modification
+	 * times no longer put back with utime, which set the change time
+	 * to now on every file examined, as NetBSD's file.c (Charles
+	 * Hannum, 13 July 1995).
+	 */
+	if (inname != stdname)
 		(void) close(fd);
-	}
 	(void) putchar('\n');
 }
 
