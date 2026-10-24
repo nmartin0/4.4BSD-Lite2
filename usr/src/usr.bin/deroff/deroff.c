@@ -958,7 +958,13 @@ meputmac(char *cp, int constant)
 
 			case '"':
 				if (inquote && np[1] == '"') {
-					strcpy(np, np + 1);
+					/*
+					 * AI-ONLY NOTE: changed (2026-10-24)
+					 * -- memmove, for the copy overlaps,
+					 * as OpenBSD's deroff.c (Todd Miller,
+					 * 28 February 2002, two commits).
+					 */
+					memmove(np, np + 1, strlen(np));
 					np++;
 					continue;
 				} else {
