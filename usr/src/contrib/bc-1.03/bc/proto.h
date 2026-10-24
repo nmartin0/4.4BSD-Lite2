@@ -164,5 +164,13 @@ _PROTOTYPE(int yyparse, (void));
 _PROTOTYPE(int yylex, (void)); 
 
 /* Other things... */
+/*
+ * AI-ONLY NOTE: changed (2026-10-24) -- declared only where <unistd.h>
+ * does not declare it, as GNU bc 1.04 and NetBSD 1.3's proto.h have it:
+ * Lite2's <unistd.h> gives getopt `char * const []', and the two
+ * declarations conflict.
+ */
+#ifndef HAVE_UNISTD_H
 _PROTOTYPE (int getopt, (int, char *[], CONST char *));
+#endif
 

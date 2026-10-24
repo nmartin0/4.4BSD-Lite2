@@ -22,7 +22,8 @@
 # builds its own ar, ranlib, strip and strings only `.if
 # ${ELF_TOOLCHAIN:L} == "no"' and NetBSD from 1.4 used binutils'.
 # gcore NetBSD and OpenBSD dropped. ld likewise, below.
-# And not named: bc, dc, deroff, diction, graph, learn,
+# And not named: bc and dc, which are GNU's from contrib/bc-1.03, and
+# deroff, diction, graph, learn,
 # plot, ptx, spell, spline, struct and xsend, programs the Lite
 # cut deleted with their directories. A name with no directory stops
 # the build here, as it stopped Lite2's own make, which ran each
