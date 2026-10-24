@@ -928,6 +928,50 @@ uqdo_xqt_file (puuconf, zfile, zbase, qsys, zlocalname, zcmd, pfprocessed)
 	 don't permit multiple arguments.  */
       for (i = 1; azQargs[i] != NULL; i++)
 	{
+	  /*
+	   * AI-ONLY NOTE: added (2026-10-24) -- long options parsed too,
+	   * and --config, --user and --debug refused as -I, -u and -x
+	   * are, as NetBSD's uuxqt.c (itojun, 12 September 2001, from
+	   * OpenBSD's errata 033, patch by Jeff Johnson via Todd Miller).
+	   */
+	  if (azQargs[i][0] == '-' && azQargs[i][1] == '-')
+	    {
+		char *zopts = azQargs[i] + 2;
+
+		/* The -g, -n, and -s options take an argument.  */
+		if (!strncmp(zopts, "grade", 5) && zopts[5] != '=')
+		  {
+		    if (azQargs[i+1] != NULL)
+		      ++i;
+		  }
+		if (!(strncmp(zopts, "notify", 6)
+		&&    strncmp(zopts, "status", 6)) && zopts[6] != '=')
+		  {
+		    if (azQargs[i+1] != NULL)
+		      ++i;
+		  }
+
+		/* The -I, -u and -x options are not permitted.  */
+		if (!strncmp(zopts, "config", 6))
+		  {
+		    if (zopts[6] != '=' && azQargs[i+1] != NULL)
+		      ++i;
+		    azQargs[i] = zbufcpy ("--nouucico");
+		  }
+		if (!strncmp(zopts, "user", 4))
+		  {
+		    if (zopts[4] != '=' && azQargs[i+1] != NULL)
+		      ++i;
+		    azQargs[i] = zbufcpy ("--nouucico");
+		  }
+		if (!strncmp(zopts, "debug", 5))
+		  {
+		    if (zopts[5] != '=' && azQargs[i+1] != NULL)
+		      ++i;
+		    azQargs[i] = zbufcpy ("--nouucico");
+		  }
+	    }
+	  else
 	  if (azQargs[i][0] == '-')
 	    {
 	      char *zopts;
