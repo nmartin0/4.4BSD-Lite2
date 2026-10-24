@@ -107,16 +107,27 @@ int *ndx, check;
 	char *t, *s;
 
 	if (nd+1 >= maxmagic){
+	    /*
+	     * AI-ONLY NOTE: changed (2026-10-24) -- realloc's result held
+	     * apart until it succeeds, and the old table freed if it does
+	     * not, as OpenBSD's apprentice.c (Theo de Raadt, 19 and 21
+	     * August 1998).
+	     */
+	    struct magic *mtmp;
+
 	    maxmagic += 20;
-	    if ((magic = (struct magic *) realloc(magic, 
+	    if ((mtmp = (struct magic *) realloc(magic, 
 						  sizeof(struct magic) * 
 						  maxmagic)) == NULL) {
 		(void) fprintf(stderr, "%s: Out of memory.\n", progname);
-		if (check)
+		if (check) {
+			if (magic)
+				free(magic);
 			return -1;
-		else
+		} else
 			exit(1);
 	    }
+	    magic = mtmp;
 	}
 	m = &magic[*ndx];
 	m->flag = 0;
