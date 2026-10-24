@@ -1136,6 +1136,7 @@ afterwards finds the file system clean, and ls -l, -lu and -lc show
 
 	usr.bin/compress	Lite's, with NetBSD 1.0's -b fix
 	usr.bin/deroff		Berkeley's 4.4, through OpenBSD 2002
+	games/ching: 4 files	Berkeley's 4.4, through NetBSD 2005
 	usr.sbin/sendmail	8.8.8		FreeBSD 2.2.8's tree
 
 **usr.bin/compress** is Berkeley's compress, uncompress and zcat, and
@@ -1184,6 +1185,24 @@ Tested on a fresh install (patch 195): deroff strips requests, font
 changes and an .EQ block and keeps the text; -w gives a word a line;
 -me closes up a doubled quote in a quoted macro argument (the memmove);
 a missing file is reported by name; man deroff shows every -m letter.
+
+**games/ching**'s ching.sh, hexagrams, macros and ching.6 are
+Berkeley's 4.4 files, and the code came through NetBSD: byte for byte
+as NetBSD's netbsd-4 branch has them, as Perry Metzger committed them
+on 30 June 2005, with Thomas Klausner's page edits of July 2005;
+nothing from Berkeley's history (decided 2026-10-24). They complete
+the cno and phx helpers and the Makefile Lite2 shipped. Berkeley's
+were AT&T-marked and the Lite cut took them; NetBSD's carry Caldera's
+notice beside the Regents'. FreeBSD and OpenBSD never had ching. One
+change: ching.sh calls Lite2's ching.cno and ching.phx in /usr/games,
+where NetBSD's calls its renamed castching and printching. And
+ching.cno exits 0, as NetBSD's castching.c does; it ran off main.
+
+Tested on a fresh install (patch 196): ching.cno casts a hexagram from
+a question on its input and exits 0; ching.phx prints a hexagram's
+text; ching with a hexagram and with a question formats the reading
+through the macros, both lines and trigrams drawn; man 6 ching shows
+NetBSD's page.
 
 **usr.bin/diff** was here from patch 155 to patch 157: Berkeley's
 4.3-Reno diff and diff3, which the Lite cut removed as

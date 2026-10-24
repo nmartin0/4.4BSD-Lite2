@@ -201,5 +201,6 @@ To be listed. Carried over from 4.5BSD so far:
 - bc and dc: Otto Moerbeek's 2003 rewrites, with libcrypto's bn(3) for
   dc (deferred.md); GNU bc 1.03 stands in 4.5BSD.
 - ncheck: OpenBSD's ncheck_ffs (deferred.md).
+- ecvt, fcvt and gcvt: OpenBSD's of 2002, in libc on __dtoa (deferred.md).
  Shared libraries are to be settled (roadmap.md, *To
 settle*, and *Later: shared libraries*).

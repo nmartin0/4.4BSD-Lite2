@@ -66,7 +66,11 @@ named by build lists and are not here. `b8596dbf` established that
 this is a **lookup, not an inference**: the Lite cut was mechanical
 and kept `%sccs.include.redist.c%` while dropping
 `%sccs.include.proprietary.c%`. Some no BSD has (`learn`, `struct`,
-`diction`, `ptx`); some every BSD has as its own later rewrite
+`diction`, `ptx`; and `graph`, `plot`, `spline` and `libplot`, every
+file of which Berkeley marked proprietary, Berkeley's own device
+drivers too, and which no BSD shipped in its base system at any
+release, nor restored under Caldera's licence -- kept out, decided
+2026-10-24); some every BSD has as its own later rewrite
 (`ed`, `expr`, `at`, `cron`, `sa`, and `bc` and `dc`, rewritten for
 OpenBSD in 2003); some OpenBSD and NetBSD restored from Berkeley's
 own 4.4 sources under Caldera's licence (`deroff`, `spell`); and
@@ -80,8 +84,16 @@ under it*, below.
 manual pages and no code at all -- `gtty`, `stty` and `ftime` are
 NetBSD 1.0's now (`3f74e1ef`), and `getpw`, `vlimit` and `vtimes`
 keep their pages and have no code, as there; `4.3` is missing `ecvt.c`, `gcvt.c`,
-`sibuf.c`, `sobuf.c`, `strout.c`. **`ecvt` and `gcvt` are POSIX** —
-this is a conformance hole, not just a missing file. `regex.c` was
+`sibuf.c`, `sobuf.c`, `strout.c`, all marked proprietary. They are kept
+out (decided 2026-10-24): NetBSD and FreeBSD never had any of the five
+-- their libcompat Makefiles still list them as missing -- and OpenBSD
+wrote new ecvt, fcvt and gcvt on libc's `__dtoa` in December 2002, in
+libc (a 4.6BSD candidate, roadmap-4.6.md). sibuf, sobuf and strout are
+V7 stdio internals no BSD restored. Corrected 2026-10-24: this said
+ecvt and gcvt were POSIX and their absence a conformance hole; they
+were in the X/Open System Interfaces, marked LEGACY in POSIX.1-2001
+and removed in POSIX.1-2008, and no BSD of the period had them.
+`regex.c` was
 restored from NetBSD 1.0 (`fd425062`), and `b8596dbf` found that it is
 *not* Berkeley's 407-line engine (marked proprietary) but a 93-line
 shim over the `regexp` engine already here.
@@ -239,8 +251,9 @@ catch:
 	           redesign (binary search of the plain lists, a new
 	           spellprog, a ksh front end), and NetBSD's of 2005,
 	           OpenBSD's with a front end in sh
-	ching      NetBSD's ching.sh, hexagrams and macros, completing
-	           games/ching. As deroff
+	ching      Back: NetBSD's ching.sh, hexagrams, macros and page,
+	           completing games/ching, the code through NetBSD
+	           (patch 196)
 	compress   Berkeley's own, `redist`, not Caldera's; the patent
 	           has expired; every BSD ships it. Back: Lite's own,
 	           with NetBSD 1.0's -b fix (patch 189)
