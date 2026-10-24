@@ -36,11 +36,7 @@
  */
 
 #if defined(LIBC_SCCS) && !defined(lint)
-/*
- * AI-ONLY NOTE: changed (2026-10-23) -- 8.2, Berkeley's revision with
- * the fix below (CSRG 09fc3bf9aa, 28 April 1995).
- */
-static char sccsid[] = "@(#)zopen.c	8.2 (Berkeley) 4/28/95";
+static char sccsid[] = "@(#)zopen.c	8.1 (Berkeley) 6/27/93";
 #endif /* LIBC_SCCS and not lint */
 
 /*-
@@ -260,8 +256,9 @@ zwrite(cookie, wbp, num)
 
 	/*
 	 * AI-ONLY NOTE: changed (2026-10-23) -- maxbits, the user's -b, in
-	 * place of BITS here and in the header byte below, as Berkeley's
-	 * zopen.c 8.2 (Bostic, 28 April 1995, from Charles Hannum).
+	 * place of BITS here and in the header byte below, as NetBSD 1.0's
+	 * zopen.c ("Don't ignore compress -b information", 19 September
+	 * 1994); Berkeley took the same lines from Charles Hannum in 1995.
 	 */
 	maxmaxcode = 1L << maxbits;
 	if (fwrite(magic_header,
@@ -716,7 +713,7 @@ zopen(fname, mode, bits)
 		return (NULL);
 
 	maxbits = bits ? bits : BITS;	/* User settable max # bits/code. */
-	/* AI-ONLY NOTE: changed (2026-10-23) -- maxbits, as Berkeley's 8.2. */
+	/* AI-ONLY NOTE: changed (2026-10-23) -- maxbits, as NetBSD 1.0's. */
 	maxmaxcode = 1 << maxbits;	/* Should NEVER generate this code. */
 	hsize = HSIZE;			/* For dynamic table sizing. */
 	free_ent = 0;			/* First unused entry. */

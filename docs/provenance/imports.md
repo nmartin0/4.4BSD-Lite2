@@ -1134,15 +1134,18 @@ afterwards finds the file system clean, and ls -l, -lu and -lc show
 
 ## F -- Berkeley's own file, restored
 
-	usr.bin/compress	Lite's, with Berkeley's 1995 fix
+	usr.bin/compress	Lite's, with NetBSD 1.0's -b fix
 	usr.sbin/sendmail	8.8.8		FreeBSD 2.2.8's tree
 
 **usr.bin/compress** is Berkeley's compress, uncompress and zcat, and
 zopen(3), marked %sccs.include.redist.c% in Berkeley's tree, as
 4.4BSD-Lite released it (FreeBSD's import of Lite's usr.bin, 27 May
-1994; NetBSD's "new compress from Lite", 13 June 1994), with Berkeley's
-one later change, zopen.c 8.2 (28 April 1995, from Charles Hannum),
-which made -b work (decided 2026-10-23). Lite2 left the directory out,
+1994; NetBSD's "new compress from Lite", 13 June 1994), with the -b
+fix as NetBSD 1.0's zopen.c has it ("Don't ignore compress -b
+information", 19 September 1994), which Berkeley took from Charles
+Hannum as zopen.c 8.2 in April 1995 (decided 2026-10-23; the lines
+taken from NetBSD 1.0, and the sccsid left at Lite's 8.1, corrected
+2026-10-24, as nothing is copied from Berkeley's history). Lite2 left the directory out,
 though its usr.bin/Makefile names compress and its savecore built
 zopen.c from it; Berkeley's history records no reason, and the LZW
 patent, which compress's doc/NOTES discusses, is the likely one --

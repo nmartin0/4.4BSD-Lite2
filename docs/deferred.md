@@ -237,7 +237,7 @@ catch:
 	           games/ching. As deroff
 	compress   Berkeley's own, `redist`, not Caldera's; the patent
 	           has expired; every BSD ships it. Back: Lite's own,
-	           with Berkeley's 1995 fix (patch 189)
+	           with NetBSD 1.0's -b fix (patch 189)
 	bc, dc     Back: GNU bc 1.03 and its dc, NetBSD 1.1's, the
 	           pair all three BSDs shipped in the period (patch
 	           194). Otto Moerbeek's 2003 rewrites, which OpenBSD
