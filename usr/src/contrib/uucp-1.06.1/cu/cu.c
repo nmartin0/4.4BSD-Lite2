@@ -2100,8 +2100,13 @@ fcusend_buf (qconn, zbufarg, cbufarg)
 	 mode.  Echo checking of a newline is different from checking
 	 of normal characters; when we send a newline we look for
 	 *zCuvar_echonl.  */
+      /*
+       * AI-ONLY NOTE: changed (2026-10-24) -- && for ||, as OpenBSD's
+       * cu.c (Theo de Raadt, 24 February 1999, "broken send file
+       * function fix", from Frederick Bruckman, NetBSD PR 6834).
+       */
       if ((fCuvar_echocheck && ! fCuvar_binary)
-	  || (fnl && *zCuvar_echonl != '\0'))
+	  && (fnl && *zCuvar_echonl != '\0'))
 	{
 	  long iend;
 
