@@ -234,13 +234,19 @@ cmdloop()
 
 	line = strdup(elline);
 	cmd_argv = crack(line, &cmd_argc);
-	/*
-	 * el_parse returns -1 to signal that it's not been handled
-	 * internally.
-	 */
-	if (el_parse(elptr, cmd_argc, cmd_argv) != -1)
-	    continue;
 	if (cmd_argc) {
+	    /*
+	     * AI-ONLY NOTE: changed (2026-10-24) -- el_parse called only
+	     * for a line with a word on it, as NetBSD's fsdb.c (Luke
+	     * Mewburn, 11 January 1997): Lite2's el_parse reads argv[0]
+	     * without looking at argc, and an empty line has none.
+	     */
+	    /*
+	     * el_parse returns -1 to signal that it's not been handled
+	     * internally.
+	     */
+	    if (el_parse(elptr, cmd_argc, cmd_argv) != -1)
+		continue;
 	    known = 0;
 	    for (cmdp = cmds; cmdp->cmd; cmdp++) {
 		if (!strcmp(cmdp->cmd, cmd_argv[0])) {
