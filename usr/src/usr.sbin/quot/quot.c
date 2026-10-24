@@ -36,9 +36,17 @@ static char rcsid[] = "$Id: quot.c,v 1.6 1994/06/13 20:56:47 cgd Exp $";
 #include <sys/param.h>
 #include <sys/mount.h>
 #include <sys/time.h>
+/*
+ * AI-ONLY NOTE: changed (2026-10-24) -- <ufs/ufs/dinode.h> before
+ * <ufs/ffs/fs.h>, as Lite2's dumpfs has them, and in place of
+ * <ufs/ufs/inode.h>, the kernel's in-core inode, of which quot uses
+ * only the struct dinode inside it: Lite2's fs.h declares its block
+ * numbers ufs_daddr_t, which dinode.h defines, where NetBSD 1.0's
+ * used daddr_t, and dinode.h may be read only once.
+ */
+#include <ufs/ufs/dinode.h>
 #include <ufs/ffs/fs.h>
 #include <ufs/ufs/quota.h>
-#include <ufs/ufs/inode.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -567,7 +575,13 @@ int main(argc,argv)
 	if (all) {
 		cnt = getmntinfo(&mp,MNT_NOWAIT);
 		for (; --cnt >= 0; mp++) {
-			if (!strncmp(mp->f_fstypename, MOUNT_UFS, MFSNAMELEN)) {
+			/*
+			 * AI-ONLY NOTE: changed (2026-10-24) -- "ufs", the
+			 * name Lite2's vfs_conf.c gives FFS and mountd
+			 * compares with; Lite2's <sys/mount.h> has no
+			 * MOUNT_UFS, which NetBSD 1.0's defined as "ufs".
+			 */
+			if (!strncmp(mp->f_fstypename, "ufs", MFSNAMELEN)) {
 				if (nm = strrchr(mp->f_mntfromname,'/')) {
 					sprintf(dev,"/dev/r%s",nm + 1);
 					nm = dev;

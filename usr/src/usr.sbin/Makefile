@@ -1,8 +1,8 @@
 #	@(#)Makefile	5.20 (Berkeley) 6/12/93
 
-# AI-ONLY NOTE: one not named that the Lite cut emptied, leaving a
-# manual page and no Makefile: quot (docs/deferred.md, *Programs the
-# Lite cut emptied*). sendmail, whose beta the tape left out at its
+# AI-ONLY NOTE: quot, which the Lite cut emptied, leaving its manual
+# page and no Makefile, is named again: Wolfgang Solfrank's, NetBSD
+# 1.0's (docs/provenance/imports.md). sendmail, whose beta the tape left out at its
 # developers' request, is named again: 8.8.8, FreeBSD 2.2.8's
 # (docs/provenance/imports.md).
 # And not named: mkproto, a program the Lite cut deleted with its
@@ -15,7 +15,7 @@
 # Berkeley's, which the settlement took (docs/provenance/imports.md).
 SUBDIR=	ac accton amd arp chown chroot cron dev_mkdb diskpart edquota \
 	inetd kgmon kvm_mkdb lpr mtree portmap pstat pwd_mkdb \
-	quotaon repquota rmt rwhod sa sendmail sliplogin sysctl \
+	quot quotaon repquota rmt rwhod sa sendmail sliplogin sysctl \
 	syslogd traceroute trpt trsp update vipw
 
 .if   make(clean) || make(cleandir)
