@@ -137,7 +137,7 @@ manual page, a README or a few subdirectories, and no Makefile:
 `usr.bin/diff` (diff and diff3), `usr.bin/ex`, `usr.bin/file` (back:
 contrib/file-3.12, patch 191),
 `usr.bin/sort`, `usr.bin/uucp`, `usr.sbin/ac` (back: NetBSD 1.0's,
-patch 187), `usr.sbin/quot`,
+patch 187), `usr.sbin/quot` (back: NetBSD 1.0's, patch 192),
 `usr.sbin/sendmail` (back: sendmail 8.8.8, patch 182), and `old`,
 the top-level directory of eight
 retired programs. None is named now, and their manual pages are not

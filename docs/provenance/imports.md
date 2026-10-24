@@ -818,6 +818,8 @@ gives them.
 					fixes; ac.8 Berkeley's, merged
 	usr.bin/units			NetBSD 1.0, the three BSDs' later
 					fixes
+	usr.sbin/quot			NetBSD 1.0, the three BSDs' later
+					fixes; Solfrank's page
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
@@ -1044,6 +1046,38 @@ Tested on a fresh install (patch 190): units.lib in /usr/share/misc;
 `units -q' at end of input prints nothing; a 170-character argument
 is cut short and refused, not overrun; man units shows the corrected
 synopsis.
+
+**usr.sbin/quot** is Wolfgang Solfrank's quot (TooLs GmbH, 1991 and
+1994, a four-clause licence), first committed byte for byte as NetBSD's
+netbsd-1-0 branch has it (decided 2026-10-23). Berkeley's quot was
+32V's (`new copyright; att/bsd/shared', May 1991), and the Lite cut
+took quot.c and left quot.8, Berkeley's page for it. NetBSD 1.0,
+OpenBSD from its fork, and FreeBSD from 2.2 carry this rewrite; FreeBSD
+2.0 shipped Berkeley's page alone. For this system: "ufs", the name
+Lite2 gives FFS, where NetBSD 1.0 had MOUNT_UFS, and <ufs/ufs/dinode.h>
+before <ufs/ffs/fs.h> in place of the kernel's inode.h, as Lite2's
+dumpfs has them. Solfrank's page replaces Berkeley's, which describes
+the old program. The fixes taken, each its own commit:
+
+	quot.8	results, FreeBSD (Pritchard, January 1996); environment,
+		OpenBSD (de Raadt, December 1995); .Fl k for .Gl k,
+		OpenBSD (March 1999)
+	quot	an inode's offset as off_t, for devices past 2 GB, and a
+		block size no file system has refused: Solfrank's quot.c
+		1.9, NetBSD 1.2 (pulled up 31 May 1996); FreeBSD made the
+		same cast in August 1997
+	quot	a user's total past 2 GB, in a quad_t: FreeBSD (Dillon,
+		13 December 1998, PR bin/8624); NetBSD and OpenBSD kept
+		the overflow through 1997
+
+Not taken: the rest of 1.9 -- style, and a routine for 4.2BSD-format
+file systems.
+
+Tested on a fresh install (patch 192): quot -a finds the root file
+system by "ufs" and lists each owner's blocks; -f with file counts,
+-v with the 30-, 60- and 90-day columns, -c's size histogram, and -n
+naming an inode's owner all work; a device that is not a file system
+is refused; and man quot shows the corrected page.
 
 ## F -- Berkeley's own file, restored
 
