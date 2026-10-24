@@ -2,10 +2,12 @@
 
 # AI-ONLY NOTE: awk, which 4.4BSD-Lite's lists had dropped with the
 # program itself; it is back as Kernighan's own -- see awk/Makefile.
-# And five not named that the Lite cut emptied, leaving a manual page
-# or two and no Makefile: diff (diff and diff3), ex, file, sort and
-# uucp. contrib/ has programs that could stand for some; until one is
-# chosen, nothing is built or installed by these names
+# And four not named that the Lite cut emptied, leaving a manual page
+# or two and no Makefile: diff (diff and diff3), ex, sort and uucp;
+# file, the fifth, is named again, Ian Darwin's from contrib/file-3.12,
+# with a Makefile of its own (docs/provenance/imports.md). contrib/
+# has programs that could stand for some; until one is chosen, nothing
+# is built or installed by these names
 # (docs/deferred.md, *Programs the Lite cut emptied*). For diff one is:
 # GNU diff 2.6, the system's diff, diff3 and sdiff, from
 # contrib/diff-2.6, as in NetBSD 1.0 and FreeBSD 2.0; and for sort:
@@ -35,7 +37,7 @@
 SUBDIR=	apply apropos at awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
 	comm compress cpp crontab ctags cut dirname du \
-	env error expand false find finger fmt fold fpr from \
+	env error expand false file find finger fmt fold fpr from \
 	fsplit fstat ftp head hexdump id indent \
 	join jot kdump ktrace lam last lastcomm leave locate \
 	lock logger login logname lorder m4 mail make man mesg mkdep \
