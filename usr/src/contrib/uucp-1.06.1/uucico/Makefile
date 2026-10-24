@@ -14,7 +14,9 @@ DPADD+=		$(LIBUNIX) $(LIBUUCONF) $(LIBUUCP)
 CFLAGS+=	-I$(.CURDIR)/../common_sources\
 		-DVERSION=\"$(VERSION)\" -DOWNER=\"$(owner)\" 
 
-MAN=		uucico.8
+# AI-ONLY NOTE: changed (2026-10-24) -- MAN8 and the formatted name, as
+# Lite2's bsd.man.mk wants it; NetBSD 1.1's make took MAN= foo.8.
+MAN8=		uucico.0
 
 .include <bsd.prog.mk>
 .PATH: $(.CURDIR)/../common_sources

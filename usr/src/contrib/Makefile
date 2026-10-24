@@ -19,12 +19,14 @@
 # the usr.bin/sort the Lite cut emptied; and grep-2.0, GNU's, NetBSD
 # 1.1's, the system's grep, egrep and fgrep in place of usr.bin/grep's;
 # and bc-1.03, GNU's, NetBSD 1.1's, the system's bc and dc for the
-# usr.bin/bc and usr.bin/dc the Lite cut deleted.
+# usr.bin/bc and usr.bin/dc the Lite cut deleted; and uucp-1.06.1,
+# Taylor UUCP, NetBSD 1.1's, the system's uucp for the usr.bin/uucp
+# the Lite cut emptied.
 .if ${MACHINE} == "i386"
 SUBDIR=	ansi bc-1.03 bib bind-4.9.2 binutils-2.11.2 diff-2.6 ed emacs-18.57 \
 	flex-2.5.2 gawk-2.15.2 gcc-2.95.3 grep-2.0 groff-1.08 gzip-1.2.4 \
 	hunt jove-4.14.6 kermit-5A.188 mh-6.8.3a nvi perl-4.036 rcs-V5.6 \
-	sort
+	sort uucp-1.06.1
 .else
 SUBDIR=	ansi bib bind-4.9.2 flex-2.5.2 gawk-2.15.2 emacs-18.57 gas-1.38 \
 	gcc-2.3.3 gdb-4.7.LBL groff-1.08 gzip-1.2.4 hunt jove-4.14.6 \

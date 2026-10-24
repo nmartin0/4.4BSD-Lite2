@@ -20,10 +20,14 @@ newconfigdir=	/etc/uucp
 # V2 (when using HAVE_V2_CONFIG) style configuration files.
 oldconfigdir=	/etc/uucp
 
+# AI-ONLY NOTE: removed (2026-10-24) -- NetBSD's -lgnumalloc for every
+# program, as OpenBSD removed it (Thorsten Lockert, 20 August 1996) and
+# NetBSD later (1999): this system has no libgnumalloc, and libc's
+# malloc serves, as it does contrib/diff-2.6 and grep-2.0.
 # this is sick, but much easier than putting in the individual programs'
 # makefiles.
-.if defined(PROG)
-# use gnu malloc
-LDADD+=	-lgnumalloc
-DPADD+= /usr/lib/libgnumalloc.a
-.endif
+#.if defined(PROG)
+## use gnu malloc
+#LDADD+=	-lgnumalloc
+#DPADD+= /usr/lib/libgnumalloc.a
+#.endif
