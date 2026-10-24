@@ -449,6 +449,13 @@ plot
 # ./usr/libexec/plot
 ..
 
+# AI-ONLY NOTE: added (2026-10-24) -- for Taylor UUCP's uucico, uuxqt,
+# uuchk and uuconv, as NetBSD 1.1's 4.4BSD.dist has it.
+# ./usr/libexec/uucp
+uucp
+# ./usr/libexec/uucp
+..
+
 # ./usr/libexec
 ..
 
