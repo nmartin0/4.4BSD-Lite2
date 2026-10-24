@@ -820,6 +820,8 @@ gives them.
 					fixes
 	usr.sbin/quot			NetBSD 1.0, the three BSDs' later
 					fixes; Solfrank's page
+	sbin/fsdb			NetBSD 1.1, NetBSD's and OpenBSD's
+					later fixes
 
 The same 93-line file is in NetBSD 1.1 and OpenBSD 1996 as well, with
 the same contributor line; FreeBSD 2.0.5's is 96 lines and differs. It
@@ -1078,6 +1080,34 @@ system by "ufs" and lists each owner's blocks; -f with file counts,
 -v with the 30-, 60- and 90-day columns, -c's size histogram, and -n
 naming an inode's owner all work; a device that is not a file system
 is refused; and man quot shows the corrected page.
+
+**sbin/fsdb** is John T. Kohl's fsdb of 1995 (a three-clause
+licence), first committed byte for byte as NetBSD's netbsd-1-1 branch
+has it (decided 2026-10-23). Berkeley's fsdb was Computer Consoles'
+code of 1988, which Bostic marked AT&T-proprietary on 3 April 1994;
+the Lite cut took it, though Lite2's sbin/Makefile still named it.
+OpenBSD's first tree carries NetBSD 1.1's file unchanged and FreeBSD
+2.2 took NetBSD's; NetBSD 1.2's moved to the NetBSD Foundation's
+four-clause licence. It builds Lite2's own fsck sources, all but
+main.c, into itself, and fsck's interface is the one it was written
+against; it links Lite2's libedit and termcap, as sh does. One line
+changed: MAN8=fsdb.0. The fixes taken, each its own commit:
+
+	fsdb	an empty line not passed to el_parse, which in Lite2's
+		libedit reads argv[0] unchecked: NetBSD (Mewburn, 11
+		January 1997), NetBSD 1.3
+	fsdb	mtime and atime set those times, not the change time:
+		OpenBSD (de Raadt, 8 August 1998, from ms@xy.org);
+		NetBSD kept the fault through 1.5, FreeBSD through 3.0
+
+Tested on a fresh install (patch 193), at a terminal, which Lite2's
+libedit requires (read from a pipe, el_gets returns at once): on the
+mounted root, opened read-only, fsdb shows inode 2 and lists the root
+directory, and an empty line is passed over; on a scratch disk, made
+with disklabel and newfs, `mtime' and `atime' set a file's
+modification and access times and leave its change time, fsck
+afterwards finds the file system clean, and ls -l, -lu and -lc show
+1995, 1996 and the time of creation.
 
 ## F -- Berkeley's own file, restored
 
