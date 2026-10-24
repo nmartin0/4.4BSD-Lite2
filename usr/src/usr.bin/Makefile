@@ -23,7 +23,7 @@
 # ${ELF_TOOLCHAIN:L} == "no"' and NetBSD from 1.4 used binutils'.
 # gcore NetBSD and OpenBSD dropped. ld likewise, below.
 # And not named: bc and dc, which are GNU's from contrib/bc-1.03, and
-# deroff, diction, graph, learn,
+# diction, graph, learn,
 # plot, ptx, spell, spline, struct and xsend, programs the Lite
 # cut deleted with their directories. A name with no directory stops
 # the build here, as it stopped Lite2's own make, which ran each
@@ -31,13 +31,15 @@
 # named but absent*). crontab, which Berkeley's cron had not, is
 # Vixie cron's, built from usr.sbin/cron, as NetBSD 1.0 has it; and at
 # is named again, Thomas Koenig's, NetBSD 1.0's (docs/provenance/imports.md).
+# deroff is named again: Berkeley's 4.4 deroff as OpenBSD took it in
+# 2002, under Caldera's licence (docs/provenance/imports.md).
 # compress is named again: Berkeley's, as 4.4BSD-Lite had it, which
 # Lite2 left out (docs/provenance/imports.md). units is named again:
 # Adrian Mariano's, NetBSD 1.0's, in place of Berkeley's, which the
 # settlement took (docs/provenance/imports.md).
 SUBDIR=	apply apropos at awk banner basename bdes biff cal calendar \
 	cap_mkdb checknr chflags chpass cksum col colcrt colrm column \
-	comm compress cpp crontab ctags cut dirname du \
+	comm compress cpp crontab ctags cut deroff dirname du \
 	env error expand false file find finger fmt fold fpr from \
 	fsplit fstat ftp head hexdump id indent \
 	join jot kdump ktrace lam last lastcomm leave locate \
