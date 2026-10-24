@@ -67,15 +67,20 @@
 #
 
 SHARE=/usr/share/games/ching
-PROGS=/usr/libexec/ching
+# AI-ONLY NOTE: changed (2026-10-24) -- Lite2's helpers, ching.cno and
+# ching.phx in /usr/games, as its cno and phx Makefiles install them,
+# where NetBSD renamed them castching and printching and put them in
+# /usr/libexec/ching. They take the hexagram as NetBSD's do: cno writes
+# it, and phx reads it as its argument.
+PROGS=/usr/games
 
 case $1 in
 	[6-9]*)	HEXAGRAM=$1; shift;;
 esac
 
 if [ -z "$HEXAGRAM" ]; then
-	HEXAGRAM=$($PROGS/castching)
+	HEXAGRAM=$($PROGS/ching.cno)
 	echo
 fi
 
-$PROGS/printching $HEXAGRAM | nroff $SHARE/macros - | ${PAGER-more}
+$PROGS/ching.phx $HEXAGRAM | nroff $SHARE/macros - | ${PAGER-more}
