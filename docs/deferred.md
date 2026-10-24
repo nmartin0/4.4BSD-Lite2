@@ -134,7 +134,8 @@ includes reordered (dinode.h before fs.h). Meanwhile `find -xdev
 
 Patch 153. Ten more the cut did not delete but emptied, leaving a
 manual page, a README or a few subdirectories, and no Makefile:
-`usr.bin/diff` (diff and diff3), `usr.bin/ex`, `usr.bin/file`,
+`usr.bin/diff` (diff and diff3), `usr.bin/ex`, `usr.bin/file` (back:
+contrib/file-3.12, patch 191),
 `usr.bin/sort`, `usr.bin/uucp`, `usr.sbin/ac` (back: NetBSD 1.0's,
 patch 187), `usr.sbin/quot`,
 `usr.sbin/sendmail` (back: sendmail 8.8.8, patch 182), and `old`,

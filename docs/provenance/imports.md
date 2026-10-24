@@ -322,6 +322,23 @@ copied, and the commit names it with its release.
   etc/root/dot.profile: TERM given a value before Berkeley's `export
     TERM for single user shells', FreeBSD 2.2's ${TERM:-cons25}, here
     pc3, Lite2's termcap entry for the console
+  contrib/file-3.12: Ian Darwin's file as Lite2 ships it, built from
+    usr.bin/file by a Makefile in NetBSD 1.0's shape, with /etc/magic
+    and Darwin's own pages in place of Berkeley's file.1, which
+    describes Berkeley's AT&T file; each BSD carried Darwin's file
+    (decided 2026-10-23) -- patch 191. Corrected, each its own commit:
+    file.man's RCS line a comment, NetBSD 1993 (Hannum, from Thomas
+    Eberhardt); ascmagic's copy ended, file 3.13 and FreeBSD 2.0; a
+    STRING value ended in its buffer, file 3.14 and FreeBSD 2.0, its
+    other change, the `u' prefix, not taken; no utime after reading,
+    which set every examined file's ctime, NetBSD 1.1 (Hannum, 1995);
+    the magic table kept when realloc fails, OpenBSD 1998 (de Raadt);
+    a symbolic link's path bounded, OpenBSD 1999 (de Raadt). Tested
+    on a fresh install: an ELF program, text, C source, a device, a
+    directory, compress's and gzip's output, and with -z their
+    contents, are each named; links, broken links and -L; file leaves
+    a file's ctime as it was; and man file and man 5 magic show
+    Darwin's pages with their NAME.
 
 ## C -- our judgement, no donor line
 
