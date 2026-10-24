@@ -38,8 +38,12 @@ CFLAGS+=-I${.CURDIR} \
 BINOWN=	uucp
 BINGRP=	dialer
 BINMODE=4510
-LINKS=	${BINDIR}/tip ${BINDIR}/cu
-MLINKS=	tip.1 cu.1
+# AI-ONLY NOTE: commented out (2026-10-24) -- cu is Taylor UUCP's, from
+# contrib/uucp-1.06.1, as NetBSD 1.0's Makefile comments these lines out
+# and FreeBSD 2.0's and OpenBSD's leave them out; the link here replaced
+# that cu with tip.
+# LINKS=	${BINDIR}/tip ${BINDIR}/cu
+# MLINKS=	tip.1 cu.1
 SRCS=	acu.c acutab.c cmds.c cmdtab.c cu.c hunt.c log.c partab.c \
 	remote.c tip.c tipout.c uucplock.c value.c vars.c \
 	biz22.c courier.c df.c dn11.c hayes.c t3000.c v3451.c v831.c ventel.c
