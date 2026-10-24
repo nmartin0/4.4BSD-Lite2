@@ -415,6 +415,29 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	kern/genassym.sh, sys/assym.h	FreeBSD 5.0, unmodified
 	contrib/diff-2.6		GNU diff 2.6, NetBSD 1.0's, the system's diff
 	contrib/grep-2.0		GNU grep 2.0, NetBSD 1.1's, the system's grep
+	contrib/bc-1.03			GNU bc 1.03 and dc, NetBSD 1.1's, the
+					system's bc and dc
+
+**contrib/bc-1.03** is GNU bc 1.03 and the dc of its distribution,
+byte for byte as NetBSD 1.1's gnu/usr.bin/bc and gnu/usr.bin/dc,
+imported by Phil Nelson on 1 December 1994 with his BSD Makefiles and
+his fix of October 1995 (decided 2026-10-24). Berkeley's bc, dc and
+libmp were AT&T's and the Lite cut took them. This is the bc and dc
+all three BSDs shipped in the period: NetBSD 1.1 and 1.2, FreeBSD 2.2,
+OpenBSD 1995-97; NetBSD 1.0 had bc 1.02 and no dc, FreeBSD 2.0 bc
+1.02 as generated C and GNU dc 0.2. GPL version 2. One change: getopt
+declared only without <unistd.h>, as bc 1.04 has it. Otto Moerbeek's
+bc and dc, which OpenBSD took in 2003 and FreeBSD by 9.0, are later,
+and his dc needs libcrypto's bn(3); deferred.md.
+
+Tested on a fresh install (patch 194): bc gives 2^100 exactly, pi to
+twenty places with -l, hexadecimal output, and "Divide by zero" for
+1/0; dc gives 2^100 and the square root of 2 to five places; man bc
+and man dc show their pages. A function defined on one line is a
+syntax error, as POSIX's grammar has it, a newline after `{' being
+required; GNU's later releases relaxed that. Defined over lines, as
+the page shows, factorial 30 is right (on the host, from the same
+sources).
 
 The csu files are ELF startup code, which did not exist in 1995 and
 could not have.

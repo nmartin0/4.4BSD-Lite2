@@ -109,8 +109,8 @@ two sample hosts from Lite2's example /etc/exports (deferred.md).
 **2. What the Lite cut took, to be decided one by one** (deferred.md,
 *Sources and directories named but absent*, *Programs the Lite cut
 emptied*, *Caldera's licence, and what the BSDs took under it*): ~~at~~
-(patch 181), bc, dc, ~~compress~~ (patch 189), deroff, spell, ~~units~~ (patch 190), ~~file~~ (patch 191), ~~quot~~ (patch 192), uucp, ~~fsdb~~ (patch 193), ~~icheck, ncheck, mkproto~~ (kept out, as no BSD of the period had them; deferred.md), graph, plot, spline,
-xsend, libmp, libplot, and libcompat's ecvt and gcvt (in the Single
+(patch 181), ~~bc, dc~~ (patch 194), ~~compress~~ (patch 189), deroff, spell, ~~units~~ (patch 190), ~~file~~ (patch 191), ~~quot~~ (patch 192), uucp, ~~fsdb~~ (patch 193), ~~icheck, ncheck, mkproto~~ (kept out, as no BSD of the period had them; deferred.md), graph, plot, spline,
+~~xsend~~ (kept out), ~~libmp~~ (deferred, with secure RPC), libplot, and libcompat's ecvt and gcvt (in the Single
 UNIX Specification until 2008, which removed them). Those no BSD
 has -- learn, struct, diction, ptx -- stay out.
 

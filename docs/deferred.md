@@ -238,10 +238,21 @@ catch:
 	compress   Berkeley's own, `redist`, not Caldera's; the patent
 	           has expired; every BSD ships it. Back: Lite's own,
 	           with Berkeley's 1995 fix (patch 189)
-	bc, dc     Otto Moerbeek's 2003 rewrites, ISC-licensed, all
-	           three BSDs -- preferred, not being Caldera's; dc
-	           needs libcrypto's bn(3), which this tree has not.
-	           Alternative: GNU bc, as FreeBSD 2.0 and NetBSD 1.0
+	bc, dc     Back: GNU bc 1.03 and its dc, NetBSD 1.1's, the
+	           pair all three BSDs shipped in the period (patch
+	           194). Otto Moerbeek's 2003 rewrites, which OpenBSD
+	           took in 2003 and FreeBSD by 9.0, are deferred: his dc
+	           needs libcrypto's bn(3), which this tree has not, and
+	           his bc's bc.library and page are Caldera's (2001-02),
+	           not ISC, as this entry had it (corrected 2026-10-24)
+	libmp      Deferred, with secure RPC: no BSD restored
+	           Berkeley's, which was AT&T's; FreeBSD 2.2 built one
+	           over GNU's GMP (LGPL) for keyserv and chkey, which
+	           this tree has in lib/librpc/secure_rpc, unbuilt. To
+	           be taken from FreeBSD 2.2 when those are
+	xsend,     Kept out: Berkeley's, AT&T's, and no BSD carried
+	xget,      them or a successor
+	enroll
 	documents  the Caldera-licensed 4.4 documents above, into
 	           share/doc, those OpenBSD, NetBSD or FreeBSD took
 
