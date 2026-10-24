@@ -102,7 +102,13 @@ static struct dinode *get_inode(fd,super,ino)
 			exit(1);
 		}
 		last = (ino / INOCNT(super)) * INOCNT(super);
-		if (lseek(fd,ino_to_fsba(super,last) << super->fs_fshift,0) < 0
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-24) -- the offset shifted
+		 * as an off_t, as NetBSD 1.2's quot (quot.c 1.9, Wolfgang
+		 * Solfrank's, pulled up 31 May 1996) and FreeBSD's of
+		 * August 1997: shifted as an int it overflowed past 2 GB.
+		 */
+		if (lseek(fd,(off_t)ino_to_fsba(super,last) << super->fs_fshift,0) < 0
 		    || read(fd,ip,INOSZ(super)) != INOSZ(super)) {
 			perror("read inodes");
 			exit(1);
@@ -513,7 +519,13 @@ quot(name,mp)
 		close(fd);
 		return;
 	}
-	if (((struct fs *)superblock)->fs_magic != FS_MAGIC) {
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-24) -- a block size no file system
+	 * can have refused too, as NetBSD 1.2's quot (Solfrank's 1.9).
+	 */
+	if (((struct fs *)superblock)->fs_magic != FS_MAGIC
+	    || ((struct fs *)superblock)->fs_bsize > MAXBSIZE
+	    || ((struct fs *)superblock)->fs_bsize < sizeof(struct fs)) {
 		fprintf(stderr,"%s: not a BSD filesystem\n",name);
 		close(fd);
 		return;
