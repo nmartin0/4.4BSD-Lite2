@@ -1302,12 +1302,12 @@ db_disasm(loc, altfmt)
 		}
 	}
 
-	if (altfmt == 0 && (inst == 0xe9 || inst == 0xeb)) {
-		/*
-		 * GAS pads to longword boundary after unconditional jumps.
-		 */
-		loc = (loc + (4-1)) & ~(4-1);
-	}
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- no skipping to a longword
+	 * boundary after an unconditional jmp, as FreeBSD's db_disasm.c
+	 * (bde, 8 June 1996): x/i passes altfmt 0, and the bytes it
+	 * skipped were code, not padding.
+	 */
 	db_printf("\n");
 	return (loc);
 }
