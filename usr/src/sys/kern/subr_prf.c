@@ -122,6 +122,14 @@ panic(fmt, va_alist)
 	if (boothowto & RB_KDB)
 		kdbpanic();
 #endif
+#ifdef DDB
+	/*
+	 * AI-ONLY NOTE: added (2026-10-26) -- a panic stops in ddb, as
+	 * NetBSD 1.0's panic() has it, and NetBSD's to 1.2 and OpenBSD's
+	 * of 1997; "continue" there goes on to the dump and reboot.
+	 */
+	Debugger();
+#endif
 	boot(bootopt);
 }
 
