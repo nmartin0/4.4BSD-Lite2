@@ -319,9 +319,19 @@ db_symbol_values(sym, namep, valuep)
  * bogus symbol associations, e.g. 3 might get some absolute
  * value like _INCLUDE_VERSION or something, therefore we do
  * not accept symbols whose value is zero (and use plain hex).
+ * Also, avoid printing as "end+0x????" which is useless.
+ * The variable db_lastsym is used instead of "end" in case we
+ * add support for symbols in loadable driver modules.
  */
 
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- no symbol for an address past
+ * the kernel's end, as NetBSD's db_sym.c (gwr, 24 May 1995, 1.9).
+ */
+extern char end[];
+unsigned int	db_lastsym = (int)end;
 unsigned int	db_maxoff = 0x10000000;
+
 
 void
 db_printsym(off, strategy)
@@ -335,19 +345,22 @@ db_printsym(off, strategy)
 	int 		linenum;
 	db_sym_t	cursym;
 
-	cursym = db_search_symbol(off, strategy, &d);
-	db_symbol_values(cursym, &name, &value);
-	if (name == 0 || d >= db_maxoff || value == 0) {
-		db_printf("%#n", off);
-		return;
+	if (off <= db_lastsym) {
+		cursym = db_search_symbol(off, strategy, &d);
+		db_symbol_values(cursym, &name, &value);
+		if (name && (d < db_maxoff) && value) {
+			db_printf("%s", name);
+			if (d)
+				db_printf("+%#r", d);
+			if (strategy == DB_STGY_PROC) {
+				if (db_line_at_pc(cursym, &filename, &linenum, off))
+					db_printf(" [%s:%d]", filename, linenum);
+			}
+			return;
+		}
 	}
-	db_printf("%s", name);
-	if (d)
-		db_printf("+%#r", d);
-	if (strategy == DB_STGY_PROC) {
-		if (db_line_at_pc(cursym, &filename, &linenum, off))
-			db_printf(" [%s:%d]", filename, linenum);
-	}
+	db_printf("%#n", off);
+	return;
 }
 
 
