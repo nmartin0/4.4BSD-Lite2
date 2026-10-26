@@ -118,18 +118,21 @@ if(cold) goto we_re_toast;
 	 * :256 -- and pmax and luna68k likewise mention curpcb zero
 	 * times. That is the source for this; the donors confirm it.
 	 *
-	 * There is no `if (p == 0) p = &proc0;' here, and an earlier
-	 * version of this had one, taken from NetBSD and justified by a
-	 * claim that curproc is null before the first context switch.
-	 * It is not: kern/init_main.c:84 is
-	 * `struct proc *curproc = &proc0;', so curproc is proc0 from
-	 * the moment the kernel starts. What was null is curpcb, which
-	 * is set only at the context switch in i386/locore.s:1689, and
-	 * that is what this change is about. Tested by removing the
-	 * guard: the kernel reaches the same place.
+	 * AI-ONLY NOTE: changed (2026-10-26) -- with NetBSD 1.0's
+	 * `if (p == 0) p = &proc0;', below. This note said there was no
+	 * need for it, since curproc is proc0 from the moment the kernel
+	 * starts (kern/init_main.c:84), and that holds until the first
+	 * context switch; but the idle loop in cpu_switch sets curproc to
+	 * 0 (i386/locore.s, "out of process"), so a trap taken in an
+	 * interrupt while the machine idles came here with p null, and
+	 * faulted on p->p_addr (CR2 0xec), recursing until the stack was
+	 * gone and the machine reset. ddb found it: a serial BREAK while
+	 * idle calls Debugger() from the com interrupt. NetBSD 1.0 says
+	 * the same in the lines quoted next.
 	 *
-	 * So this function is hp300's with nothing added. NetBSD 1.0's
-	 * trap.c:183-189 carries the same deriving and says why:
+	 * So this function is hp300's, with NetBSD 1.0's fallback.
+	 * NetBSD 1.0's trap.c:183-189 carries the same deriving and says
+	 * why:
 	 *
 	 *	if ((p = curproc) == 0)
 	 *		p = &proc0;
@@ -152,6 +155,8 @@ if(cold) goto we_re_toast;
 	 * dereferences proc0.p_addr->u_pcb itself at :1132 and :1155 --
 	 * so the fallback is valid long before interrupts are enabled.
 	 */
+	if (p == 0)
+		p = &proc0;
 	pcb = &p->p_addr->u_pcb;
 
 	if (pcb && pcb->pcb_onfault && frame.tf_trapno != 0xc) {
