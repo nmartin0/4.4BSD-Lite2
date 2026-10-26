@@ -346,4 +346,69 @@ ddb_init()
 #endif
 }
 
+#else	/* DB_NO_AOUT */
+
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- for a kernel whose symbols are not
+ * a.out (machine/db_machdep.h, DB_NO_AOUT): no symbol table is added,
+ * so db_sym.c finds none and ddb prints addresses alone, and these
+ * stand in for the a.out routines db_sym.c calls, finding nothing.
+ * ddb_init says so in the words db_aout.c uses for an empty table.
+ */
+db_sym_t
+X_db_lookup(stab, symstr)
+	db_symtab_t	*stab;
+	char *		symstr;
+{
+	return ((db_sym_t)0);
+}
+
+db_sym_t
+X_db_search_symbol(symtab, off, strategy, diffp)
+	db_symtab_t *	symtab;
+	db_addr_t	off;
+	db_strategy_t	strategy;
+	db_expr_t	*diffp;
+{
+	return ((db_sym_t)0);
+}
+
+void
+X_db_symbol_values(sym, namep, valuep)
+	db_sym_t	sym;
+	char		**namep;
+	db_expr_t	*valuep;
+{
+	if (namep)
+		*namep = 0;
+	if (valuep)
+		*valuep = 0;
+}
+
+boolean_t
+X_db_line_at_pc(symtab, cursym, filename, linenum, off)
+	db_symtab_t *	symtab;
+	db_sym_t	cursym;
+	char		**filename;
+	int		*linenum;
+	db_expr_t	off;
+{
+	return (FALSE);
+}
+
+boolean_t
+X_db_sym_numargs(symtab, cursym, nargp, argnamep)
+	db_symtab_t *	symtab;
+	db_sym_t	cursym;
+	int		*nargp;
+	char		**argnamep;
+{
+	return (FALSE);
+}
+
+ddb_init()
+{
+	printf("DDB: no symbols\n");
+}
+
 #endif	/* DB_NO_AOUT */

@@ -44,6 +44,14 @@
 #include <machine/frame.h>
 #include <machine/psl.h>
 
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- no a.out symbol table: the kernel
+ * is ELF, and db_aout.c reads a.out's. ddb runs without symbols, its
+ * addresses in hexadecimal, until it reads the kernel's ELF symbols
+ * (docs/roadmap.md, item 3); db_aout.c's DB_NO_AOUT arm stands in.
+ */
+#define	DB_NO_AOUT
+
 typedef	vm_offset_t	db_addr_t;	/* address - unsigned */
 typedef	int		db_expr_t;	/* expression - signed */
 
