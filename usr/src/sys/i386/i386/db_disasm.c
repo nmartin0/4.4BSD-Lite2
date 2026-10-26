@@ -221,13 +221,18 @@ struct inst	db_inst_0f9x[] = {
 /*9f*/	{ "setnle",TRUE,  NONE,  op1(Eb),     0 },
 };
 
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- shld and shrd print their
+ * operands as the assembler takes them, count, register, then r/m, as
+ * FreeBSD's db_disasm.c (bde, 12 July 1996).
+ */
 struct inst	db_inst_0fax[] = {
 /*a0*/	{ "push",  FALSE, NONE,  op1(Si),     0 },
 /*a1*/	{ "pop",   FALSE, NONE,  op1(Si),     0 },
 /*a2*/	{ "",      FALSE, NONE,  0,	      0 },
 /*a3*/	{ "bt",    TRUE,  LONG,  op2(R,E),    0 },
-/*a4*/	{ "shld",  TRUE,  LONG,  op3(Ib,E,R), 0 },
-/*a5*/	{ "shld",  TRUE,  LONG,  op3(CL,E,R), 0 },
+/*a4*/	{ "shld",  TRUE,  LONG,  op3(Ib,R,E), 0 },
+/*a5*/	{ "shld",  TRUE,  LONG,  op3(CL,R,E), 0 },
 /*a6*/	{ "",      FALSE, NONE,  0,	      0 },
 /*a7*/	{ "",      FALSE, NONE,  0,	      0 },
 
@@ -235,8 +240,8 @@ struct inst	db_inst_0fax[] = {
 /*a9*/	{ "pop",   FALSE, NONE,  op1(Si),     0 },
 /*aa*/	{ "",      FALSE, NONE,  0,	      0 },
 /*ab*/	{ "bts",   TRUE,  LONG,  op2(R,E),    0 },
-/*ac*/	{ "shrd",  TRUE,  LONG,  op3(Ib,E,R), 0 },
-/*ad*/	{ "shrd",  TRUE,  LONG,  op3(CL,E,R), 0 },
+/*ac*/	{ "shrd",  TRUE,  LONG,  op3(Ib,R,E), 0 },
+/*ad*/	{ "shrd",  TRUE,  LONG,  op3(CL,R,E), 0 },
 /*a6*/	{ "",      FALSE, NONE,  0,	      0 },
 /*a7*/	{ "imul",  TRUE,  LONG,  op2(E,R),    0 },
 };
