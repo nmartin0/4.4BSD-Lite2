@@ -963,15 +963,35 @@ db_print_address(seg, size, addrp)
 	if (seg)
 		db_printf("%s:", seg);
 
-	db_printsym((db_addr_t)addrp->disp, DB_STGY_ANY);
 	if (addrp->base != 0 || addrp->index != 0) {
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-26) -- a negative displacement
+		 * from a base register, such as a local at -4(%ebp), is a
+		 * signed number in the current radix. CMU's Mach 3.0
+		 * i386/db_disasm.c prints displacements as numbers when there is
+		 * a register (its log entry of 21 August 1990: "Print
+		 * instruction displacements in current radix (signed)"), but
+		 * with the unsigned %n, so it prints 0xfffffffc as well; %r,
+		 * which that file uses for its other displacements, is the
+		 * signed one. NetBSD, FreeBSD and OpenBSD all print every
+		 * displacement through db_printsym, 0xfffffffc(%ebp).
+		 * Anything else still goes through db_printsym, so that an
+		 * address used as a displacement ("table(,%eax,4)", or the
+		 * 0xf01d9360(%eax) of a pointer computation) is named; a
+		 * negative number is taken to be an offset only down to -64K.
+		 */
+		if (addrp->base != 0 && addrp->disp < 0 && addrp->disp > -0x10000)
+			db_printf("%#r", addrp->disp);
+		else
+			db_printsym((db_addr_t)addrp->disp, DB_STGY_ANY);
 		db_printf("(");
 		if (addrp->base)
 			db_printf("%s", addrp->base);
 		if (addrp->index)
 			db_printf(",%s,%d", addrp->index, 1<<addrp->ss);
 		db_printf(")");
-	}
+	} else
+		db_printsym((db_addr_t)addrp->disp, DB_STGY_ANY);
 }
 
 /*
