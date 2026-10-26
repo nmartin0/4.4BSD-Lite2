@@ -534,6 +534,22 @@ prints "(null)" for each function's name until there are symbols.
 Not working, as in NetBSD 1.0: watchpoints, which trap.c does not
 take; a breakpoint at the boot prompt before pmap_bootstrap.
 
+Patch 200 is the three BSDs' fixes to this ddb of 1994-97, each its own
+commit, with a note at each site. NetBSD's: db_recover is no longer
+left pointing into a dead stack after ddb is left (1994); the symbol
+printed for an address is not given for one past the kernel's end
+(db_sym.c); cmpxchg decodes at 0f b0/b1; `trace/t <pid>` (sommerfe,
+1997), where 1.0 used an uninitialised frame; `x/a` prints the address
+(gwr, 1994). FreeBSD's: the disassembler's tables and operand sizes
+(shld/shrd, aaa/daa, arpl, enter, movzx/movsx, the x87 integer sizes,
+16-bit displacements, the jmp padding of `x/i`); a trace that starts at
+a null %ebp, a function's second instruction or its ret (bde, 1996);
+and, in the manner of bde's of 1997, a trap inside a command returns to
+the prompt, by the db_recover the command loop keeps. Not taken:
+eb0fb17ea and af2f22807 (the limits of the kernel text, for which this
+kernel has no btext), 75680b05c (no console), and OpenBSD's line
+wrapping of 1997, as cosmetic or for code this kernel lacks.
+
 **contrib/bc-1.03** is GNU bc 1.03 and the dc of its distribution,
 byte for byte as NetBSD 1.1's gnu/usr.bin/bc and gnu/usr.bin/dc,
 imported by Phil Nelson on 1 December 1994 with his BSD Makefiles and
