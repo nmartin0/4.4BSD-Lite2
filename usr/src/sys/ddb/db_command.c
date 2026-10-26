@@ -294,13 +294,18 @@ db_map_print_cmd(addr, have_addr, count, modif)
 	db_expr_t	count;
 	char *		modif;
 {
-        extern void	_vm_map_print();
         boolean_t full = FALSE;
         
         if (modif[0] == 'f')
                 full = TRUE;
 
-        _vm_map_print(addr, full, db_printf);
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- this kernel's
+	 * vm_map_print (vm/vm_map.c), printing through printf, for
+	 * NetBSD's _vm_map_print with a print function, which Lite2's vm
+	 * has not got; FreeBSD 2.0's ddb calls Lite's vm_map_print too.
+	 */
+        vm_map_print((vm_map_t)addr, full);
 }
 
 /*ARGSUSED*/
@@ -311,13 +316,16 @@ db_object_print_cmd(addr, have_addr, count, modif)
 	db_expr_t	count;
 	char *		modif;
 {
-        extern void	_vm_object_print();
         boolean_t full = FALSE;
         
         if (modif[0] == 'f')
                 full = TRUE;
 
-        _vm_object_print(addr, full, db_printf);
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- vm_object_print, as
+	 * vm_map_print above.
+	 */
+        vm_object_print((vm_object_t)addr, full);
 }
 
 /*
