@@ -74,6 +74,12 @@ options		KERNFS
 # GENERIC's; NetBSD 1.1's, FreeBSD 2.0's and OpenBSD's i386 GENERIC of
 # the period all carry it.
 options		PROCFS		# /proc filesystem
+# AI-ONLY NOTE: added (2026-10-26) -- ddb, the in-kernel debugger,
+# NetBSD 1.0's (sys/ddb): entered at boot with howto 0x40, on a panic,
+# with Ctrl-Alt-Esc on the keyboard or a BREAK on the serial console.
+# The line is NetBSD 1.1's i386 GENERIC's, and OpenBSD's of 1995;
+# FreeBSD's GENERIC of the period left it out.
+options		DDB		# in-kernel debugger
 
 # AI-ONLY NOTE: root and swap on whichever disk the kernel finds at
 # boot (options GENERIC, below), where Berkeley's said `root on dk0
