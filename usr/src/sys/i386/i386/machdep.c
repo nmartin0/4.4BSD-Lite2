@@ -1195,6 +1195,17 @@ init386(first) { extern ssdtosd(), lgdt(), lidt(), lldt(), etext;
 	lidt(&r_idt);
 	lldt(GSEL(GLDT_SEL, SEL_KPL));
 
+#ifdef DDB
+	/*
+	 * AI-ONLY NOTE: added (2026-10-26) -- ddb set up, and entered at
+	 * once when booted with RB_KDB (boot's howto 0x40), as NetBSD
+	 * 1.0's init386 has it, here, after the descriptor tables.
+	 */
+	ddb_init();
+	if (boothowto & RB_KDB)
+		Debugger();
+#endif
+
 	/*
 	 * This memory size stuff is a real mess.  Here is a simple
 	 * setup that just believes the BIOS.  After the rest of
