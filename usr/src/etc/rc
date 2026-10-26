@@ -70,7 +70,11 @@ mount -a -t nfs >/dev/null 2>&1 &	# XXX shouldn't need background
 
 # clean up left-over files
 rm -f /etc/nologin
-rm -f /var/spool/uucp/LCK.*
+# AI-ONLY NOTE: changed (2026-10-25) -- the locks left by tip and Taylor
+# UUCP's cu and uucico are in /var/spool/lock (tip's pathnames.h), as
+# NetBSD 1.0's rc clears them, and OpenBSD's of 1995 and 1997; the
+# STST line below is kept as all three kept it.
+rm -f /var/spool/lock/LCK.*
 rm -f /var/spool/uucp/STST/*
 (cd /var/run && { rm -rf -- *; install -c -m 664 -g utmp /dev/null utmp; })
 
