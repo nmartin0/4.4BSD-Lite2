@@ -676,6 +676,12 @@ resetpriority(p)
  * NetBSD 1.1's, which walks Lite's allproc and zombproc lists (NetBSD
  * 1.0's walked the old p_next chain), without its emulation column,
  * since this kernel has but the one.
+ *
+ * The columns are FreeBSD 2.1.0's (ddb/db_ps.c): wmesg and wchan
+ * in fixed widths and the command name last. NetBSD's put the
+ * command, which can be as long as 16 characters, before them, and
+ * in a line wider than the 79 columns of $maxwidth ddb broke the line
+ * in the middle of the wchan number.
  */
 void
 db_show_all_procs(addr, haddr, count, modif)
@@ -689,27 +695,25 @@ db_show_all_procs(addr, haddr, count, modif)
 	struct proc *p, *pp;
     
 	p = allproc.lh_first;
-	db_printf("  pid proc     addr     %s comm         wchan\n",
-	    map ? "map     " : "uid  ppid  pgrp  flag stat ");
+	db_printf(map ? "  pid proc     addr     map      wmesg   wchan    comm\n" :
+	    "  pid proc     addr     uid  ppid  pgrp  flag stat wmesg   wchan    comm\n");
 	while (p != 0) {
 		pp = p->p_pptr;
 		if (p->p_stat) {
 			db_printf("%5d %06x %06x ",
 			    p->p_pid, p, p->p_addr);
 			if (map)
-				db_printf("%06x %s   ",
-				    p->p_vmspace, p->p_comm);
+				db_printf("%06x", p->p_vmspace);
 			else
-				db_printf("%3d %5d %5d  %06x  %d  %s   ",
+				db_printf("%3d %5d %5d  %06x  %d",
 				    p->p_cred->p_ruid, pp ? pp->p_pid : -1,
-				    p->p_pgrp->pg_id, p->p_flag, p->p_stat,
-				    p->p_comm);
-			if (p->p_wchan) {
-				if (p->p_wmesg)
-					db_printf("%s ", p->p_wmesg);
-				db_printf("%x", p->p_wchan);
-			}
-			db_printf("\n");
+				    p->p_pgrp->pg_id, p->p_flag, p->p_stat);
+			if (p->p_wchan)
+				db_printf("  %6s %08x", p->p_wmesg ? p->p_wmesg : "",
+				    p->p_wchan);
+			else
+				db_printf("                 ");
+			db_printf(" %s\n", p->p_comm);
 		}
 		p = p->p_list.le_next;
 		if (p == 0 && doingzomb == 0) {
