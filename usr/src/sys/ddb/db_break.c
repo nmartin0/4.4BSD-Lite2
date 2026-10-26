@@ -39,6 +39,7 @@
 
 #include <ddb/db_lex.h>
 #include <ddb/db_break.h>
+#include <ddb/db_command.h>
 #include <ddb/db_access.h>
 #include <ddb/db_sym.h>
 #include <ddb/db_break.h>
@@ -52,6 +53,7 @@ struct db_breakpoint	db_break_table[NBREAKPOINTS];
 db_breakpoint_t		db_next_free_breakpoint = &db_break_table[0];
 db_breakpoint_t		db_free_breakpoints = 0;
 db_breakpoint_t		db_breakpoint_list = 0;
+static int		db_breakpoint_number = 0;
 
 db_breakpoint_t
 db_breakpoint_alloc()
@@ -102,11 +104,13 @@ db_set_breakpoint(map, addr, count)
 	bkpt->map = map;
 	bkpt->address = addr;
 	bkpt->flags = 0;
+	bkpt->number = ++db_breakpoint_number;
 	bkpt->init_count = count;
 	bkpt->count = count;
 
 	bkpt->link = db_breakpoint_list;
 	db_breakpoint_list = bkpt;
+	db_printf("set breakpoint #%d\n", bkpt->number);
 }
 
 void
@@ -147,6 +151,22 @@ db_find_breakpoint(map, addr)
 	{
 	    if (db_map_equal(bkpt->map, map) &&
 		(bkpt->address == addr))
+		return (bkpt);
+	}
+	return (0);
+}
+
+db_breakpoint_t
+db_find_breakpoint_number(num)
+	int	num;
+{
+	register db_breakpoint_t	bkpt;
+
+	for (bkpt = db_breakpoint_list;
+	     bkpt != 0;
+	     bkpt = bkpt->link)
+	{
+	    if (bkpt->number == num)
 		return (bkpt);
 	}
 	return (0);
@@ -249,12 +269,12 @@ db_list_breakpoints()
 	    return;
 	}
 
-	db_printf(" Map      Count    Address\n");
+	db_printf(" No  Map      Count    Address\n");
 	for (bkpt = db_breakpoint_list;
 	     bkpt != 0;
 	     bkpt = bkpt->link)
 	{
-	    db_printf("%s%8x %5d    ",
+	    db_printf("%3d %s%8x %5d    ", bkpt->number,
 		      db_map_current(bkpt->map) ? "*" : " ",
 		      bkpt->map, bkpt->init_count);
 	    db_printsym(bkpt->address, DB_STGY_PROC);
@@ -262,15 +282,49 @@ db_list_breakpoints()
 	}
 }
 
-/* Delete breakpoint */
-/*ARGSUSED*/
+/* Delete breakpoint, by address or by number (#N) */
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- as in CMU's Mach 3.0
+ * ddb/db_break.c, delete reads its own arguments so that "#<number>"
+ * names a breakpoint by the number "break" printed (ddb.4: "delete
+ * <addr>|#<number>"). With the standard syntax "#" was the
+ * round-up operator of an expression, so "delete #2" deleted the
+ * breakpoint at dot rounded to 2. With no argument it deletes the
+ * one at dot, as the standard syntax did. Mach 3.0's modifiers for
+ * tasks, threads and user space are not taken: this kernel has one
+ * address space per map and no ddb thread support.
+ */
 void
-db_delete_cmd(addr, have_addr, count, modif)
-	db_expr_t	addr;
-	int		have_addr;
-	db_expr_t	count;
-	char *		modif;
+db_delete_cmd()
 {
+	db_expr_t	addr;
+	db_breakpoint_t	bkpt;
+	int		t;
+
+	t = db_read_token();
+	if (t == tHASH) {
+	    if (db_read_token() != tNUMBER) {
+		db_printf("Bad break point number #%s\n", db_tok_string);
+		db_error(0);
+		/*NOTREACHED*/
+	    }
+	    if ((bkpt = db_find_breakpoint_number(db_tok_number)) == 0) {
+		db_printf("No such break point #%d\n", db_tok_number);
+		db_error(0);
+		/*NOTREACHED*/
+	    }
+	    db_delete_breakpoint(bkpt->map, bkpt->address);
+	    db_skip_to_eol();
+	    return;
+	}
+	db_unread_token(t);
+	if (db_expression(&addr)) {
+	    db_dot = (db_addr_t) addr;
+	    db_last_addr = db_dot;
+	}
+	else
+	    addr = (db_expr_t) db_dot;
+	db_skip_to_eol();
 	db_delete_breakpoint(db_map_addr(addr), (db_addr_t)addr);
 }
 

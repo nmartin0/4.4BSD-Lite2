@@ -42,6 +42,7 @@
 struct db_breakpoint {
 	vm_map_t map;			/* in this map */
 	db_addr_t address;		/* set here */
+	int	number;			/* breakpoint number, for "delete #N" */
 	int	init_count;		/* number of times to skip bkpt */
 	int	count;			/* current count */
 	int	flags;			/* flags: */
@@ -54,6 +55,7 @@ typedef struct db_breakpoint *db_breakpoint_t;
 
 extern db_breakpoint_t	db_find_breakpoint();
 extern db_breakpoint_t	db_find_breakpoint_here();
+extern db_breakpoint_t	db_find_breakpoint_number();
 extern void		db_set_breakpoints();
 extern void		db_clear_breakpoints();
 
