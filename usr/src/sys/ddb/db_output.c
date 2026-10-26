@@ -327,6 +327,15 @@ reswitch:	switch (ch = *(u_char *)fmt++) {
 			break;
 		case 's':
 			p = va_arg(ap, char *);
+			/*
+			 * AI-ONLY NOTE: changed (2026-10-26) -- a NULL
+			 * string printed as "(null)", as FreeBSD's
+			 * db_output.c (bde, 30 October 1994): trace prints
+			 * the name of each function, NULL where there is no
+			 * symbol, and strlen(NULL) faulted in ddb.
+			 */
+			if (p == NULL)
+				p = "(null)";
 			width -= strlen (p);
 			if (!ladjust && width > 0)
 				while (width--)
