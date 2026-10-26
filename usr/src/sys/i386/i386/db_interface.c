@@ -143,7 +143,6 @@ kdb_trap(type, code, regs)
 	db_global_jmpbuf_valid = FALSE;
 	cnpollc(FALSE);
 	db_active--;
-	splx(s);
 
 	regs->tf_es     = ddb_regs.tf_es;
 	regs->tf_ds     = ddb_regs.tf_ds;
@@ -162,6 +161,24 @@ kdb_trap(type, code, regs)
 		regs->tf_esp    = ddb_regs.tf_esp;
 		regs->tf_ss     = ddb_regs.tf_ss;
 	}
+
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- splx(s) was before the copy
+	 * of ddb_regs back into the trap frame, as NetBSD 1.0 through 1.3
+	 * and OpenBSD have it. splx() enables interrupts, so a tick that
+	 * was pending could run here and enter ddb again (a breakpoint in
+	 * hardclock does this); the nested trap overwrote the global
+	 * ddb_regs, and this frame was then restored from the nested
+	 * trap's registers and returned to garbage.
+	 *
+	 * CMU's own i386 kdb_trap (Mach 3.0 kernel/i386/db_interface.c, the
+	 * log entry "Fixed kdb_trap to disable interrupts" of 12 January
+	 * 1991) takes splhigh() first and does splx(s) last, after the
+	 * registers are restored, and so does its kdb_kentry. NetBSD 1.0's
+	 * pc532 db_interface.c ends the same way (*regs = ddb_regs; splx(s)),
+	 * and its m68k one restores the registers before spl7().
+	 */
+	splx(s);
 
 	return (1);
 }
