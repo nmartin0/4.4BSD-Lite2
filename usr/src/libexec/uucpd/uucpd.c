@@ -95,7 +95,12 @@ char **argv;
 	close(1); close(2);
 	dup(0); dup(0);
 	hisaddrlen = sizeof (hisctladdr);
-	if (getpeername(0, &hisctladdr, &hisaddrlen) < 0) {
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-25) -- the cast NetBSD 1.0's
+	 * uucpd.c and FreeBSD 2.0's have, now that BSDINETD is defined
+	 * (Makefile) and this is the code compiled.
+	 */
+	if (getpeername(0, (struct sockaddr *)&hisctladdr, &hisaddrlen) < 0) {
 		fprintf(stderr, "%s: ", argv[0]);
 		perror("getpeername");
 		_exit(1);
@@ -120,7 +125,6 @@ char **argv;
 	bzero((char *)&myctladdr, sizeof (myctladdr));
 	myctladdr.sin_family = AF_INET;
 	myctladdr.sin_port = sp->s_port;
-#ifdef BSD4_2
 	tcp_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (tcp_socket < 0) {
 		perror("uucpd: socket");
@@ -150,7 +154,6 @@ char **argv;
 		}
 		close(s);
 	}
-#endif BSD4_2
 
 #endif	!BSDINETD
 }
@@ -195,14 +198,20 @@ struct sockaddr_in *sinp;
 	sprintf(Username, "USER=%s", user);
 	dologin(pw, sinp);
 	setgid(pw->pw_gid);
-#ifdef BSD4_2
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-25) -- as NetBSD 1.0's uucpd.c:
+	 * nothing defines BSD4_2, so the groups were never set and uucico
+	 * never run, and uucpd only said "uucico server: execl"; and the
+	 * execl named UUCICO, defined nowhere, for pathnames.h's
+	 * _PATH_UUCICO. NetBSD 1.0 took the BSD4_2 conditionals out, here
+	 * and around the stand-alone daemon's socket and fcntl.h;
+	 * FreeBSD 2.0 had the same execl, and its Makefile defined BSD42,
+	 * not BSD4_2.
+	 */
 	initgroups(pw->pw_name, pw->pw_gid);
-#endif BSD4_2
 	chdir(pw->pw_dir);
 	setuid(pw->pw_uid);
-#ifdef BSD4_2
-	execl(UUCICO, "uucico", (char *)0);
-#endif BSD4_2
+	execl(_PATH_UUCICO, "uucico", (char *)0);
 	perror("uucico server: execl");
 }
 
@@ -226,9 +235,7 @@ register int n;
 }
 
 #include <utmp.h>
-#ifdef BSD4_2
 #include <fcntl.h>
-#endif BSD4_2
 
 #define	SCPYN(a, b)	strncpy(a, b, sizeof (a))
 
