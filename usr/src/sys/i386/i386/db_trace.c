@@ -175,6 +175,8 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 	char		*modif;
 {
 	struct i386_frame *frame, *lastframe;
+	struct i386_frame *actframe;
+	boolean_t	first;
 	int		*argp;
 	db_addr_t	callpc;
 	int		is_trap;
@@ -203,6 +205,8 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 
 	if (!have_addr) {
 		frame = (struct i386_frame *)ddb_regs.tf_ebp;
+		if (frame == 0)
+			frame = (struct i386_frame *)(ddb_regs.tf_esp - 4);
 		callpc = (db_addr_t)ddb_regs.tf_eip;
 	} else if (trace_thread) {
 		printf ("db_trace.c: can't trace thread\n");
@@ -213,6 +217,7 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 	}
 
 	lastframe = 0;
+	first = TRUE;
 	while (count && frame != 0) {
 		int		narg;
 		char *	name;
@@ -224,18 +229,52 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 		sym = db_search_symbol(callpc, DB_STGY_ANY, &offset);
 		db_symbol_values(sym, &name, NULL);
 
-		if (lastframe == 0 && sym == NULL) {
-			/* Symbol not found, peek at code */
-			int	instr = db_get_value(callpc, 4, FALSE);
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-26) -- the first frame
+		 * found as FreeBSD's db_trace.c finds it (bde, 27 March
+		 * 1996): stopped at a function's first instruction, at its
+		 * second, the movl %esp,%ebp, or at its ret, the caller's
+		 * pc is at the top of the stack, not in %ebp's frame; and a
+		 * null %ebp, as in the idle loop, begins from %esp. NetBSD
+		 * 1.0 knew only the first case, and only without a symbol,
+		 * lost the caller at the other two, and printed nothing for
+		 * a null %ebp.
+		 *
+		 * Attempt to determine a (possibly fake) frame that gives
+		 * the caller's pc.  It may differ from `frame' if the
+		 * current function never sets up a standard frame or hasn't
+		 * set one up yet or has just discarded one.  The last two
+		 * cases can be guessed fairly reliably for code generated
+		 * by gcc.
+		 */
+		actframe = frame;
+		if (first && !have_addr) {
+			int	instr;
 
-			offset = 1;
-			if ((instr & 0x00ffffff) == 0x00e58955 ||
-					/* enter: pushl %ebp, movl %esp, %ebp */
-			    (instr & 0x0000ffff) == 0x0000e589
-					/* enter+1: movl %esp, %ebp */) {
-				offset = 0;
+			instr = db_get_value(callpc, 4, FALSE);
+			if ((instr & 0x00ffffff) == 0x00e58955) {
+				/* pushl %ebp; movl %esp, %ebp */
+				actframe = (struct i386_frame *)
+					   (ddb_regs.tf_esp - 4);
+			} else if ((instr & 0x0000ffff) == 0x0000e589) {
+				/* movl %esp, %ebp */
+				actframe = (struct i386_frame *)
+					   ddb_regs.tf_esp;
+				if (ddb_regs.tf_ebp == 0) {
+					/* Fake the caller's frame better. */
+					frame = actframe;
+				}
+			} else if ((instr & 0x000000ff) == 0x000000c3) {
+				/* ret */
+				actframe = (struct i386_frame *)
+					   (ddb_regs.tf_esp - 4);
+			} else if (offset == 0) {
+				/* Probably a symbol in assembler code. */
+				actframe = (struct i386_frame *)
+					   (ddb_regs.tf_esp - 4);
 			}
 		}
+		first = FALSE;
 		if (INKERNEL((int)frame) && name) {
 			if (!strcmp(name, "_trap")) {
 				is_trap = TRAP;
@@ -267,15 +306,7 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 
 		db_printf("%s(", name);
 
-		if (lastframe == 0 && offset == 0 && !have_addr) {
-			/*
-			 * We have a breakpoint before the frame is set up
-			 * Use %esp instead
-			 */
-			argp = &((struct i386_frame *)(ddb_regs.tf_esp-4))->f_arg0;
-		} else {
-			argp = &frame->f_arg0;
-		}
+		argp = &actframe->f_arg0;
 
 		while (narg) {
 			if (argnp)
@@ -289,11 +320,11 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 		db_printsym(callpc, DB_STGY_PROC);
 		db_printf("\n");
 
-		if (lastframe == 0 && offset == 0 && !have_addr) {
-			/* Frame really belongs to next callpc */
-			lastframe = (struct i386_frame *)(ddb_regs.tf_esp-4);
+		if (actframe != frame) {
+			/* `frame' belongs to caller. */
+			lastframe = actframe;
 			callpc = (db_addr_t)
-				 db_get_value((int)&lastframe->f_retaddr, 4, FALSE);
+			    db_get_value((int)&actframe->f_retaddr, 4, FALSE);
 			continue;
 		}
 
