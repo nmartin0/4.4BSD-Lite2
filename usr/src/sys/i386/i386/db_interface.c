@@ -34,13 +34,18 @@
 #include <sys/proc.h>
 #include <sys/reboot.h>
 #include <sys/systm.h> /* just for boothowto --eichin */
-#include <setjmp.h>
 
 #include <vm/vm.h>
 
 #include <machine/db_machdep.h>
 
-extern jmp_buf	*db_recover;
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- label_t and the kernel's own
+ * setjmp and longjmp (i386/i386/locore.s), for <setjmp.h>'s jmp_buf:
+ * the kernel is built with -nostdinc and has no <setjmp.h>, which
+ * NetBSD 1.0 took from the host. NetBSD 1.2's ddb has label_t so.
+ */
+extern label_t	*db_recover;
 
 int	db_active = 0;
 

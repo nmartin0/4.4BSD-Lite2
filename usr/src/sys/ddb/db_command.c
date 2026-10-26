@@ -38,13 +38,18 @@
 #include <ddb/db_output.h>
 #include <ddb/db_command.h>
 
-#include <setjmp.h>
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- label_t and the kernel's own
+ * setjmp and longjmp (i386/i386/locore.s), for <setjmp.h>'s jmp_buf:
+ * the kernel is built with -nostdinc and has no <setjmp.h>, which
+ * NetBSD 1.0 took from the host. NetBSD 1.2's ddb has label_t so.
+ */
 
 /*
  * Exported global variables
  */
 boolean_t	db_cmd_loop_done;
-jmp_buf		*db_recover;
+label_t		*db_recover;
 db_addr_t	db_dot;
 db_addr_t	db_last_addr;
 db_addr_t	db_prev;
@@ -414,8 +419,8 @@ db_help_cmd()
 void
 db_command_loop()
 {
-	jmp_buf		db_jmpbuf;
-	jmp_buf		*savejmp = db_recover;
+	label_t		db_jmpbuf;
+	label_t		*savejmp = db_recover;
 	extern int	db_output_line;
 
 	/*
@@ -425,7 +430,7 @@ db_command_loop()
 	db_next = db_dot;
 
 	db_cmd_loop_done = 0;
-	(void) setjmp(*(db_recover = &db_jmpbuf));
+	(void) setjmp(db_recover = &db_jmpbuf);
 
 	while (!db_cmd_loop_done) {
 		if (db_print_position() != 0)
@@ -448,7 +453,7 @@ db_error(s)
 	if (s)
 	    db_printf(s);
 	db_flush_lex();
-	longjmp(*db_recover, 1);
+	longjmp(db_recover);
 }
 
 

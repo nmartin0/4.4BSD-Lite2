@@ -38,7 +38,12 @@
 #include <ddb/db_command.h>
 #include <ddb/db_break.h>
 
-#include <setjmp.h>
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- label_t and the kernel's own
+ * setjmp and longjmp (i386/i386/locore.s), for <setjmp.h>'s jmp_buf:
+ * the kernel is built with -nostdinc and has no <setjmp.h>, which
+ * NetBSD 1.0 took from the host. NetBSD 1.2's ddb has label_t so.
+ */
 
 extern void		db_restart_at_pc();
 extern boolean_t	db_stop_at_pc();
@@ -47,15 +52,15 @@ extern int		db_inst_count;
 extern int		db_load_count;
 extern int		db_store_count;
 
-extern jmp_buf		*db_recover;
+extern label_t		*db_recover;
 
 db_trap(type, code)
 	int	type, code;
 {
 	boolean_t	bkpt;
 	boolean_t	watchpt;
-	jmp_buf		db_jmpbuf;
-	jmp_buf		*savejmp = db_recover;
+	label_t		db_jmpbuf;
+	label_t		*savejmp = db_recover;
 
 	bkpt = IS_BREAKPOINT_TRAP(type, code);
 	watchpt = IS_WATCHPOINT_TRAP(type, code);
@@ -72,7 +77,7 @@ db_trap(type, code)
 	    else
 		db_printf("Stopped at\t");
 	    db_dot = PC_REGS(DDB_REGS);
-	    if (!setjmp(*(db_recover = &db_jmpbuf)))
+	    if (!setjmp(db_recover = &db_jmpbuf))
 		db_print_loc_and_inst(db_dot);
 
 	    db_command_loop();
