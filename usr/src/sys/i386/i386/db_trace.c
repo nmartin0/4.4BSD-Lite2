@@ -209,7 +209,20 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 			frame = (struct i386_frame *)(ddb_regs.tf_esp - 4);
 		callpc = (db_addr_t)ddb_regs.tf_eip;
 	} else if (trace_thread) {
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-26) -- return after the
+		 * message. NetBSD 1.0, OpenBSD and FreeBSD 2.0 and 2.1 print
+		 * it and go on to trace from a frame pointer that was never
+		 * set. Here every process runs its kernel stack at one
+		 * address in its own address space, so a sleeping process's
+		 * saved frame pointer cannot be read from ddb, which runs on
+		 * the current one: roadmap-4.6.md, "ddb: tracing another
+		 * process or thread". NetBSD 1.3 (sommerfe, March 1997) is
+		 * the first to trace by pid; it gives each process's kernel
+		 * stack an address of its own.
+		 */
 		printf ("db_trace.c: can't trace thread\n");
+		return;
 	} else {
 		frame = (struct i386_frame *)addr;
 		callpc = (db_addr_t)

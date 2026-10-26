@@ -122,6 +122,28 @@ Solaris's, adaptable by a thin layer and by mapping mutex_enter to
 mtx_enter or rw_enter and cv_wait to msleep or rwsleep; then
 FreeBSD's, whose hardware knowledge carries over and little else.
 
+**ddb: tracing another process or thread (2026-10-26).** ddb's
+`trace/t <pid>` is for 4.6BSD, not 4.5BSD. In Lite2 every process runs
+its kernel stack at the same address, the one just under the top of
+user space, and the address means the stack of whichever process the
+processor is running. A sleeping process's saved frame pointer is such
+an address, so ddb, which runs on the current process's stack, would
+read the current process's frames and print rubbish; its u-area has
+another address (`p->p_addr`), but the frame pointers inside the
+stack do not follow it. So the 4.5BSD ddb prints "can't trace thread"
+and returns, as NetBSD 1.0, OpenBSD and FreeBSD 2.0 and 2.1 do for this
+reason (they have the same fixed stack; they then went on to use an
+unset frame pointer, which 4.5BSD does not). ddb.4 does not document
+`/t`. The first to trace by process was NetBSD 1.3 (sommerfe, March
+1997), which gave each process's kernel stack an address of its own;
+FreeBSD 5.0 (2003) does it for threads from the saved `pcb_ebp`, and
+CMU Mach 3.0 does it for threads from the saved state of the thread.
+Giving each kernel thread a kernel stack at a unique address is what
+threads need anyway, and once 4.6BSD has it `trace/t` is NetBSD 1.3's
+block: `pfind`, `P_INMEM`, the pcb's saved frame pointer (Lite2
+calls it `pcb_fp`), printed as "trace: pid N at <frame>", and then the
+frame walk ddb already has.
+
 ## Modern hardware
 
 Each of these is a measured absence, not a stylistic gap. Counts are
