@@ -102,19 +102,22 @@ console log):
   start; with name_server=YES and a boot file it starts at boot and
   answers nslookup for 127.0.0.1.
 
-What the boot still says, with item 1 done: syslogd's
-/var/spool/uucp/ERRORS, which waits for uucp (item 2), and mountd's
-two sample hosts from Lite2's example /etc/exports (deferred.md).
+What the boot still says, with item 1 done: mountd's two sample hosts
+from Lite2's example /etc/exports (deferred.md). syslogd's
+/var/spool/uucp/ERRORS went with uucp (patch 198).
 
 **2. What the Lite cut took, to be decided one by one** (deferred.md,
 *Sources and directories named but absent*, *Programs the Lite cut
 emptied*, *Caldera's licence, and what the BSDs took under it*): ~~at~~
-(patch 181), ~~bc, dc~~ (patch 194), ~~compress~~ (patch 189), ~~deroff~~ (patch 195), ~~spell~~ (deferred to 4.6BSD), ~~units~~ (patch 190), ~~file~~ (patch 191), ~~quot~~ (patch 192), uucp, ~~fsdb~~ (patch 193), ~~icheck, ncheck, mkproto~~ (kept out, as no BSD of the period had them; deferred.md), ~~graph, plot, spline~~,
+(patch 181), ~~bc, dc~~ (patch 194), ~~compress~~ (patch 189), ~~deroff~~ (patch 195), ~~spell~~ (deferred to 4.6BSD), ~~units~~ (patch 190), ~~file~~ (patch 191), ~~quot~~ (patch 192), ~~uucp~~ (patches 197-198), ~~fsdb~~ (patch 193), ~~icheck, ncheck, mkproto~~ (kept out, as no BSD of the period had them; deferred.md), ~~graph, plot, spline~~,
 ~~xsend~~ (kept out), ~~libmp~~ (deferred, with secure RPC), ~~libplot~~, and ~~libcompat's ecvt and gcvt~~
 (kept out, as no BSD of the period had them; deferred.md). Those no
 BSD has -- learn, struct, diction, ptx -- stay out. ching is back
 (patch 196); uucp is Taylor UUCP 1.06.1, as all three BSDs shipped it
-from 1995 (decided 2026-10-24), to come over several patches.
+from 1995 (decided 2026-10-24): the programs in patch 197, the
+system's side -- the uucp user, uucpd, tip's locks, the directories,
+rc, daily, syslog.conf, and cu for the dialer group (decided
+2026-10-25) -- in patch 198. Item 2 is done.
 
 **3. A debugger.** gdb-4.7.LBL reads a.out only; a gdb that reads ELF
 is to come (*After Tier 1½*, below). And ddb, which the kernel has

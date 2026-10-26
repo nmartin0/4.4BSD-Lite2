@@ -448,9 +448,41 @@ The fixes taken, each its own commit:
 
 Not taken: OpenBSD's 1996 seteuid change for _POSIX_SAVED_IDS, since
 Lite2's setuid() already sets the real, effective and saved ids
-together. The system's side -- uucico's path for the uucp user and
-uucpd, /etc/uucp, the lock directory tip shares, the spool, daily and
-syslog -- is the next patch's.
+together.
+
+The system's side (patch 198), each its own commit: the uucp user's
+shell and uucpd's _PATH_UUCICO are /usr/libexec/uucp/uucico, as all
+three BSDs (master.passwd takes no comment lines, so its note is
+here); uucpd is built for inetd with NetBSD 1.0's -DBSDINETD and
+without the BSD4_2 conditionals, under which Lite2's never ran uucico,
+and its remote host name is terminated, as OpenBSD's (de Raadt, 27
+August 1996); tip locks in /var/spool/lock with the pid in ASCII, as
+Taylor's cu and uucico do, NetBSD 1.0's pathnames.h and uucplock.c,
+and takes over a stale lock, lseek given an off_t (jtc, 26 September
+1995, PR 1346; the same commit's cmds.c fix, for a null eofwrite, is
+tip's alone and is left with tip);
+4.4BSD.dist makes /etc/uucp and /var/spool/lock, /var/spool/uucp
+without Berkeley uucp's subdirectories, and the public directory
+sticky, as NetBSD 1.0's; rc clears /var/spool/lock/LCK.*, daily runs
+uustat -a for uusnap, as NetBSD 1.0's; syslog.conf's uucp.info line is
+commented out, as NetBSD's from 1.3; and cu is run by the dialer group
+alone, 4554, as tip is, OpenBSD's Makefile (de Raadt, 3 September
+1996; decided 2026-10-25). Kept as shipped, as NetBSD and OpenBSD
+kept them: weekly's /usr/lib/uucp/clean.weekly and daily's
+/etc/uuclean.daily, each run only if the file is there, crontab's two
+commented uucp lines, rc's STST line, inetd.conf's uucpd line
+commented, and Berkeley's five programs in usr.bin/uucp unbuilt.
+
+Tested on a fresh install (patch 198): the uucp user's shell, the
+directories and modes as listed; cu 4554 uucp:dialer beside tip's
+4510; syslogd's boot is quiet about ERRORS, and daily's uucp section
+runs uustat -a. With uucpd's inetd line uncommented and two nodes
+configured, uucico called over TCP, uucpd logged it into wtmp and ran
+uucico, the two shook hands (protocol t) and a file arrived intact in
+the public directory. tip reports "all ports busy" for a line locked
+in Taylor's form by a live process, overrides a stale lock and writes
+its own pid in ASCII, and cu then reports "Line in use"; cu takes over
+a stale lock tip would.
 
 Tested on a fresh install (patch 197): the programs install where
 NetBSD 1.1 put them, owned by uucp, the set-user-id ones 4555;
