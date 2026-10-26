@@ -780,6 +780,21 @@ loop:
 	/* Check for cntl-alt-del */
 	if ((dt == 83)&&ctls&&alts) reset_cpu();
 
+#ifdef DDB
+	/*
+	 * AI-ONLY NOTE: added (2026-10-26) -- Ctrl-Alt-Esc enters ddb, as
+	 * NetBSD 1.0's pccons.c has it in sget(), with this driver's own
+	 * ctls and alts for its shift_state.
+	 */
+	/*
+	 * Check for cntl-alt-esc.
+	 */
+	if ((dt == 1) && ctls && alts) {
+		Debugger();
+		dt |= 0x80;	/* discard esc (ddb discarded ctl-alt) */
+	}
+#endif
+
 	/* Check for make/break */
 	if (dt & 0x80) {
 		/* break */
