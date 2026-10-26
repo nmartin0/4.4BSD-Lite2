@@ -276,12 +276,20 @@ struct sockaddr_in *sin;
 	struct hostent *hp = gethostbyaddr((char *)&sin->sin_addr,
 		sizeof (struct in_addr), AF_INET);
 
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-25) -- the host name terminated,
+	 * as OpenBSD's uucpd.c has it (de Raadt, 27 August 1996, "strncpy
+	 * correctly"): a name of 32 characters or more, from the caller's
+	 * address, was left without its NUL and copied by the strcpy
+	 * below into line[32], past its end.
+	 */
 	if (hp) {
-		strncpy(remotehost, hp->h_name, sizeof (remotehost));
+		strncpy(remotehost, hp->h_name, sizeof(remotehost)-1);
 		endhostent();
 	} else
 		strncpy(remotehost, inet_ntoa(sin->sin_addr),
-		    sizeof (remotehost));
+		    sizeof(remotehost)-1);
+	remotehost[sizeof(remotehost)-1] = '\0';
 	wtmp = open(_PATH_WTMP, O_WRONLY|O_APPEND);
 	if (wtmp >= 0) {
 		/* hack, but must be unique and no tty line */
