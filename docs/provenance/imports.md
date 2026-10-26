@@ -419,6 +419,8 @@ are small, and every one says so in its own AI-ONLY NOTE.
 					system's bc and dc
 	contrib/uucp-1.06.1		Taylor UUCP 1.06.1, NetBSD 1.1's, the
 					system's uucp
+	sys/ddb, i386 db_*.c, db_machdep.h	NetBSD 1.0, adapted
+	share/man/man4/ddb.4		NetBSD 1.0, unmodified
 
 **contrib/uucp-1.06.1** is Ian Lance Taylor's UUCP 1.06.1, GPL, byte
 for byte as NetBSD 1.1's gnu/libexec/uucp (J.T. Conklin, 24 August
@@ -490,6 +492,47 @@ NetBSD 1.1 put them, owned by uucp, the set-user-id ones 4555;
 alone; uuname -l names the host; uuchk reports Taylor's spool, public,
 lock and log locations; uucp copies a file into the public directory;
 uustat -a runs; man cu shows Taylor's page.
+
+**sys/ddb** is the kernel debugger David Golub and others wrote at
+Carnegie Mellon for Mach, as NetBSD 1.0 carries it, with its i386
+part from NetBSD 1.0's arch/i386 (db_disasm.c, db_interface.c,
+db_trace.c, db_machdep.h) and ddb.4 (patch 199; decided 2026-10-25):
+28 files under CMU's licence alone, imported unchanged and adapted in
+commits of their own. The adaptations: label_t and the kernel's own
+setjmp for <setjmp.h>'s jmp_buf, as NetBSD 1.2's; db_machdep.h names
+frame.h and psl.h, and frame.h is guarded, as FreeBSD 2.0's; show map
+and show object call Lite's vm_map_print and vm_object_print, as
+FreeBSD 2.0's ddb; kdbprinttrap prints the trap's number, as FreeBSD
+2.0's; and DB_NO_AOUT, with an arm of ours in db_aout.c that adds no
+symbol table, since the kernel is ELF and db_aout.c reads a.out
+(reading the ELF symbols is to come, roadmap.md item 3). With them
+FreeBSD's fix printing a NULL string as "(null)" (bde, 30 October
+1994), without which trace faulted where there is no symbol;
+db_show_all_procs, NetBSD 1.1's on Lite's process lists without its
+emulation column, and db_show_callout, NetBSD 1.0's, in kern; libkern's
+strncmp, Lite2's libc file, as FreeBSD 2.1's libkern has it. The
+hooks are NetBSD 1.0's: trap.c (a fatal kernel trap, the kernel trace
+trap, NMI), init386 (ddb_init, and Debugger with howto 0x40), panic,
+pccons's Ctrl-Alt-Esc; and com.c's BREAK on the serial console, NetBSD
+1.1's. GENERIC.i386 has options DDB, as NetBSD 1.1's and OpenBSD's of
+1995. config's file lists take no comments, so the ddb lines in
+conf/files and files.i386 are noted here.
+
+ddb found a bug of this tree's: trap() took its pcb from curproc
+unguarded, and the idle loop sets curproc to 0, so a trap taken in an
+interrupt while idle recursed to a reset. NetBSD 1.0's fallback to
+proc0 is restored, and the note in trap.c that said it was not needed
+is corrected.
+
+Tested by the shim with the installed disk: "DDB: no symbols" and a
+prompt at boot with howto 0x40; show registers, x/i, x/x; a breakpoint
+on getpid taken during boot, trace, s, delete, and the boot goes on to
+the login prompt; a BREAK on the serial console from the shell gives
+the prompt, ps and trace work, and c returns to the shell; a panic
+called from ddb stops in ddb, and c goes on to sync the disks. trace
+prints "(null)" for each function's name until there are symbols.
+Not working, as in NetBSD 1.0: watchpoints, which trap.c does not
+take; a breakpoint at the boot prompt before pmap_bootstrap.
 
 **contrib/bc-1.03** is GNU bc 1.03 and the dc of its distribution,
 byte for byte as NetBSD 1.1's gnu/usr.bin/bc and gnu/usr.bin/dc,

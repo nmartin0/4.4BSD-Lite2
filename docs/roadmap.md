@@ -120,9 +120,11 @@ rc, daily, syslog.conf, and cu for the dialer group (decided
 2026-10-25) -- in patch 198. Item 2 is done.
 
 **3. A debugger.** gdb-4.7.LBL reads a.out only; a gdb that reads ELF
-is to come (*After Tier 1½*, below). And ddb, which the kernel has
-not got: CMU Mach's, as NetBSD 1.0 and FreeBSD 2.0 carry it (*Later, and
-noted: a test framework and a kernel debugger*, below).
+is to come (*After Tier 1½*, below). ~~ddb~~ **Done** (patch 199):
+NetBSD 1.0's, CMU Mach's, without symbols (decided 2026-10-25;
+imports.md, kind D); next, the three BSDs' ddb fixes of 1994-97, each
+its own commit (patch 200), then reading the kernel's ELF symbols, to
+be decided on its own.
 
 **4. Ports** (decided 2026-10-14; *Ports*, below): FreeBSD 2.2.2's
 framework, and what it needs from FreeBSD 2.2 -- pkg_install, md5,
@@ -133,7 +135,10 @@ tests (below).
 
 **6. The kernel's loose ends of the period**, each in deferred.md or
 status.md: a statistics clock (FreeBSD 2.0.5's and OpenBSD 1996's, on
-IRQ 8); `CLKF_INTR`; the FPU registers for ptrace, once npx saves on
+IRQ 8; decided 2026-10-25, Wollman's of 1994); `CLKF_INTR` (decided
+2026-10-26: Bruce Evans's FreeBSD count of nested interrupts, December
+1994, for OpenBSD's 1997 selector test, which miscounts after a switch
+from the AST path); the FPU registers for ptrace, once npx saves on
 demand; dial-out devices for the serial ports; vmstat's `??0` drive
 names; fd's debugging printf; the kernel linked without a linker
 script; the kernel's warnings, not yet audited. The `vinvalbuf`
@@ -201,9 +206,9 @@ sed.test, the m4 and libterm/libedit test programs, and sys/tests
 (benchmarks, filesystem tests, Sun's Connectathon NFS suite). NetBSD
 1.0's regress/ (1994) is the period's framework, wrapped around
 Berkeley's own db test; OpenBSD kept regress/ to this day; NetBSD and
-FreeBSD later moved to ATF and Kyua. Lite2 has no ddb -- only kgdb
-stubs, and kadb named in the configurations with its sources cut --
-and ddb, CMU Mach's via 386BSD, is in NetBSD 1.0 and FreeBSD 2.0.
+FreeBSD later moved to ATF and Kyua. Lite2 had no ddb -- only kgdb
+stubs, and kadb named in the configurations with its sources cut;
+ddb, CMU Mach's, as NetBSD 1.0 carries it, came in patch 199 (item 3).
 
 **Later: shared libraries** (noted 2026-10-22). The system links
 every program statically, as 4.4BSD did; Lite2 has no shared
