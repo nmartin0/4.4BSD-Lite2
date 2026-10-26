@@ -358,6 +358,18 @@ comeint(unit, stat, com)
 
 	tp = &com_tty[unit];
 	c = inb(com+com_data);
+#ifdef DDB
+	/*
+	 * AI-ONLY NOTE: added (2026-10-26) -- a BREAK on the serial
+	 * console enters ddb, as NetBSD 1.1's com.c has it (October 1995),
+	 * for a console with no keyboard and so no Ctrl-Alt-Esc; this
+	 * driver sees a BREAK here, as a line-status interrupt.
+	 */
+	if ((stat & LSR_BI) && unit == comconsole) {
+		Debugger();
+		return;
+	}
+#endif
 	if ((tp->t_state & TS_ISOPEN) == 0) {
 #ifdef KGDB
 		/* we don't care about parity errors */
