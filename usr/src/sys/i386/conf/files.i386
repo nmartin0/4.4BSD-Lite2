@@ -1,6 +1,9 @@
 i386/i386/autoconf.c	standard device-driver
 i386/i386/conf.c		standard
 i386/i386/cons.c		standard
+i386/i386/db_disasm.c	optional ddb
+i386/i386/db_interface.c	optional ddb
+i386/i386/db_trace.c	optional ddb
 i386/isa/pccons.c	optional pc device-driver
 i386/isa/clock.c	standard
 i386/i386/kdb_machdep.c	optional kadb
