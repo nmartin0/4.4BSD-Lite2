@@ -625,7 +625,7 @@ struct inst db_inst_table[256] = {
 
 /*60*/	{ "pusha", FALSE, LONG,  0,	     0 },
 /*61*/	{ "popa",  FALSE, LONG,  0,	     0 },
-/*62*/  { "bound", TRUE,  LONG,  op2(E, R),  0 },
+/*62*/  { "bound", TRUE,  LONG,  op2(R, E),  0 },
 /*63*/	{ "arpl",  TRUE,  NONE,  op2(Rw,Ew), 0 },
 
 /*64*/	{ "",      FALSE, NONE,  0,	     0 },
