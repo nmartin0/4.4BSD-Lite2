@@ -355,6 +355,7 @@ struct db_command db_show_cmds[] = {
 };
 
 extern void	db_print_cmd(), db_examine_cmd(), db_set_cmd();
+extern void	db_examine_forward(), db_examine_backward();
 extern void	db_search_cmd();
 extern void	db_write_cmd();
 extern void	db_delete_cmd(), db_breakpoint_cmd();
@@ -373,6 +374,8 @@ struct db_command db_command_table[] = {
 	{ "print",	db_print_cmd,		0,		0 },
 	{ "examine",	db_examine_cmd,		CS_SET_DOT, 	0 },
 	{ "x",		db_examine_cmd,		CS_SET_DOT, 	0 },
+	{ "xf",		db_examine_forward,	CS_SET_DOT,	0 },
+	{ "xb",		db_examine_backward,	CS_SET_DOT,	0 },
 	{ "search",	db_search_cmd,		CS_OWN|CS_SET_DOT, 0 },
 	{ "set",	db_set_cmd,		CS_OWN,		0 },
 	{ "write",	db_write_cmd,		CS_MORE|CS_SET_DOT, 0 },

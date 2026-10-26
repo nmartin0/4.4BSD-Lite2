@@ -40,6 +40,8 @@
 #include <ddb/db_sym.h>
 
 char	db_examine_format[TOK_STRING_SIZE] = "x";
+int	db_examine_count = 1;
+db_addr_t	db_examine_prev_addr = 0;
 
 extern	db_addr_t db_disasm(/* db_addr_t, boolean_t */);
 			/* instruction disassembler */
@@ -65,8 +67,40 @@ db_examine_cmd(addr, have_addr, count, modif)
 
 	if (count == -1)
 		count = 1;
+	db_examine_count = count;
 
 	db_examine((db_addr_t) addr, db_examine_format, count);
+}
+
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- "xf" and "xb", from CMU's Mach
+ * 3.0 ddb/db_examine.c (log entry "Added db_examine_{forward,
+ * backward}", Revision 2.7, 9 October 1991) and ddb.4: examine
+ * again with the last format and count, forward from the address
+ * after the last one shown, or backward by the size of the last
+ * display. No NetBSD, FreeBSD or OpenBSD release has them.
+ */
+/*ARGSUSED*/
+void
+db_examine_forward(addr, have_addr, count, modif)
+	db_expr_t	addr;
+	int		have_addr;
+	db_expr_t	count;
+	char *		modif;
+{
+	db_examine(db_next, db_examine_format, db_examine_count);
+}
+
+/*ARGSUSED*/
+void
+db_examine_backward(addr, have_addr, count, modif)
+	db_expr_t	addr;
+	int		have_addr;
+	db_expr_t	count;
+	char *		modif;
+{
+	db_examine(db_examine_prev_addr - (db_next - db_examine_prev_addr),
+		   db_examine_format, db_examine_count);
 }
 
 db_examine(addr, fmt, count)
@@ -81,6 +115,7 @@ db_examine(addr, fmt, count)
 	int		width;
 	char *		fp;
 
+	db_examine_prev_addr = addr;
 	while (--count >= 0) {
 		fp = fmt;
 		size = 4;
