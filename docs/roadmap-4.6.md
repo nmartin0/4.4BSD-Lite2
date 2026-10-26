@@ -144,6 +144,50 @@ block: `pfind`, `P_INMEM`, the pcb's saved frame pointer (Lite2
 calls it `pcb_fp`), printed as "trace: pid N at <frame>", and then the
 frame walk ddb already has.
 
+**ddb: watchpoints (2026-10-26).** `watch`, `dwatch` and `show
+watches` are in ddb and in ddb.4, and do nothing, as they did in every
+BSD of the period: the pages are made read-only (db_set_watchpoints,
+pmap_protect) and nothing looks at the fault. 4.5BSD leaves them so.
+Tried, and why it does not work here, for whoever takes it up:
+
+- *Mach 3.0's way*, which is what db_watch.c is written for: after
+  vm_fault succeeds on a write fault, trap.c asks db_find_watchpoint
+  and enters ddb with T_WATCHPOINT (FreeBSD 2.0 has the matching
+  IS_WATCHPOINT_TRAP and a T_KDBTRAP case in kdb_trap; trap.c never
+  makes the call). It rests on vm_fault making the page writable
+  again, which is so for memory a vm_object holds. Lite2's kernel text,
+  data and bss are not held by one: vm_fault on them gives a fresh
+  zero-filled page, and the first store to a watched global
+  (`hostname`) replaced the real page; `msgbufp` read back as 0,
+  kprintf faulted on it again and again, and the kernel stack ran out
+  (QEMU: a page fault repeated to a double fault). So the page scheme
+  can watch only malloc'd or user memory, never a kernel global, which
+  is most of what one wants to watch.
+- *pmap_protect and pmap_remove read `curproc->p_vmspace` with no
+  check*, and ddb reaches them from the idle loop, where `curproc` is
+  NULL (a fault at address 0x20). FreeBSD 2.2.0 and 3.0.0 write the
+  guard in other places of their i386 pmap.c, `!curproc || (pmap !=
+  &curproc->p_vmspace->vm_pmap)`. pmap_protect also does not flush the
+  TLB (its TBIS is commented out), so ddb needs a pmap_update() after
+  it, as db_write_bytes has one.
+- *The debug registers*, which would watch a global: DR0-DR3 and DR7
+  set by `watch` (four at most), a trap after the store. NetBSD
+  1.0-1.3 and OpenBSD have the other half only: locore.s's debug vector
+  saves %dr6 in the trap frame's error slot and db_machdep.h tests
+  `(type)==T_TRCTRAP && (code)&15`, but trap.c passes kdb_trap a code of
+  0 and nothing sets DR7. Mach 3.0 has dr0() to dr3() in locore.s and a
+  T_DEBUG case in kdb_trap that reads dr6, and nothing in ddb that calls
+  them; FreeBSD 2.1 to 4.1 print "Watchpoints are not supported. The
+  debug exception type is in %dr6 and not yet in the args to this
+  macro". No BSD of 1994-97 wired it up. (QEMU is said to implement them
+  in its TCG; not tried.)
+- Left for 4.6BSD: hardware watchpoints on the debug registers, with the
+  vector change, a DR7 setter and the code passed through trap(); then
+  either remove the page-protect scheme or keep it for allocated memory,
+  with the two pmap guards above. The experiment's diff is not kept; the
+  hook is the `db_find_watchpoint` call above at the point where
+  user_page_fault returns KERN_SUCCESS.
+
 ## Modern hardware
 
 Each of these is a measured absence, not a stylistic gap. Counts are
