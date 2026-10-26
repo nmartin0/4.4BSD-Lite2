@@ -83,6 +83,15 @@ sliphome
 # ./etc/sliphome
 ..
 
+# AI-ONLY NOTE: added (2026-10-25) -- Taylor UUCP's configuration
+# directory (contrib/uucp-1.06.1, Makefile.inc, newconfigdir), empty
+# until the administrator writes sys, port and the rest, as NetBSD
+# 1.0's list has it and OpenBSD's of 1995 and 1997.
+# ./etc/uucp
+uucp
+# ./etc/uucp
+..
+
 # ./etc
 ..
 
@@ -1565,6 +1574,15 @@ pub               mode=0777
 # ./var/spool/ftp
 ..
 
+# AI-ONLY NOTE: added (2026-10-25) -- the lock directory tip and Taylor
+# UUCP's cu and uucico share (tip's pathnames.h; contrib/uucp-1.06.1,
+# common_sources/policy.h, LOCKDIR), owned by uucp, as all three run:
+# NetBSD 1.0's list, word for word, and OpenBSD's of 1995 and 1997.
+# ./var/spool/lock
+lock		uname=uucp gname=daemon
+# ./var/spool/lock
+..
+
 # ./var/spool/mqueue
 mqueue
 # ./var/spool/mqueue
@@ -1656,90 +1674,20 @@ X11	mode=777
 ..
 
 /set uname=uucp gname=daemon
+# AI-ONLY NOTE: changed (2026-10-25) -- Taylor UUCP's spool (patch 197),
+# which makes its own subdirectories as it needs them; Berkeley's uucp
+# kept its work in the AUDIT, C., D., LCK, LOG, STST, TM., X. and XTMP
+# made here, and the Lite cut took that uucp. NetBSD 1.0's list has
+# /var/spool/uucp alone, and OpenBSD's of 1995 and 1997. The public
+# directory is sticky, 01777, as NetBSD 1.0's and OpenBSD's of 1995
+# have it, so that one caller cannot remove another's files.
 # ./var/spool/uucp
 uucp
-
-# ./var/spool/uucp/AUDIT
-AUDIT
-# ./var/spool/uucp/AUDIT
-..
-
-# ./var/spool/uucp/C.
-C.
-# ./var/spool/uucp/C.
-..
-
-# ./var/spool/uucp/CORRUPT
-CORRUPT
-# ./var/spool/uucp/CORRUPT
-..
-
-# ./var/spool/uucp/D.
-D.
-# ./var/spool/uucp/D.
-..
-
-# ./var/spool/uucp/LCK
-LCK              mode=0777
-# ./var/spool/uucp/LCK
-..
-
-# ./var/spool/uucp/LOG
-LOG
-
-# ./var/spool/uucp/LOG/uucico
-uucico
-# ./var/spool/uucp/LOG/uucico
-..
-
-# ./var/spool/uucp/LOG/uucp
-uucp
-# ./var/spool/uucp/LOG/uucp
-..
-
-# ./var/spool/uucp/LOG/uux
-uux
-# ./var/spool/uucp/LOG/uux
-..
-
-# ./var/spool/uucp/LOG/uuxqt
-uuxqt
-# ./var/spool/uucp/LOG/uuxqt
-..
-
-# ./var/spool/uucp/LOG/xferstats
-xferstats
-# ./var/spool/uucp/LOG/xferstats
-..
-
-# ./var/spool/uucp/LOG
-..
-
-# ./var/spool/uucp/STST
-STST
-# ./var/spool/uucp/STST
-..
-
-# ./var/spool/uucp/TM.
-TM.
-# ./var/spool/uucp/TM.
-..
-
-# ./var/spool/uucp/X.
-X.
-# ./var/spool/uucp/X.
-..
-
-# ./var/spool/uucp/XTMP
-XTMP
-# ./var/spool/uucp/XTMP
-..
-
 # ./var/spool/uucp
 ..
 
 # ./var/spool/uucppublic
-uucppublic       mode=0777
+uucppublic       mode=01777
 # ./var/spool/uucppublic
 ..
 
