@@ -87,6 +87,16 @@
 #define	STI	32			/* FP stack */
 #define	X	33			/* extended FP op */
 #define	XA	34			/* for 'fstcw %ax' */
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- three operand kinds, as FreeBSD's
+ * db_disasm.c adds them (bde, 4 January 1997): a long r/m operand
+ * whatever the operand size, for moves to and from the special
+ * registers; a long register in the instruction, for bswap; and the
+ * byte that follows aam and aad, which are not modrm instructions.
+ */
+#define	El	35			/* address, long size */
+#define	Ril	36			/* long register in instruction */
+#define	Iba	37			/* byte immediate, don't print if 0xa */
 
 struct inst {
 	char *	i_name;			/* name */
@@ -176,13 +186,13 @@ struct inst db_inst_0f0x[] = {
 };
 
 struct inst	db_inst_0f2x[] = {
-/*20*/	{ "mov",   TRUE,  LONG,  op2(CR,E),   0 }, /* use E for reg */
-/*21*/	{ "mov",   TRUE,  LONG,  op2(DR,E),   0 }, /* since mod == 11 */
-/*22*/	{ "mov",   TRUE,  LONG,  op2(E,CR),   0 },
-/*23*/	{ "mov",   TRUE,  LONG,  op2(E,DR),   0 },
-/*24*/	{ "mov",   TRUE,  LONG,  op2(TR,E),   0 },
+/*20*/	{ "mov",   TRUE,  LONG,  op2(CR,El),  0 },
+/*21*/	{ "mov",   TRUE,  LONG,  op2(DR,El),  0 },
+/*22*/	{ "mov",   TRUE,  LONG,  op2(El,CR),  0 },
+/*23*/	{ "mov",   TRUE,  LONG,  op2(El,DR),  0 },
+/*24*/	{ "mov",   TRUE,  LONG,  op2(TR,El),  0 },
 /*25*/	{ "",      FALSE, NONE,  0,	      0 },
-/*26*/	{ "mov",   TRUE,  LONG,  op2(E,TR),   0 },
+/*26*/	{ "mov",   TRUE,  LONG,  op2(El,TR),  0 },
 /*27*/	{ "",      FALSE, NONE,  0,	      0 },
 
 /*28*/	{ "",      FALSE, NONE,  0,	      0 },
@@ -294,14 +304,14 @@ struct inst	db_inst_0fcx[] = {
 /*c5*/	{ "",	   FALSE, NONE,	 0,	      0 },
 /*c6*/	{ "",	   FALSE, NONE,	 0,	      0 },
 /*c7*/	{ "",	   FALSE, NONE,	 0,	      0 },
-/*c8*/	{ "bswap", FALSE, LONG,  op1(Ri),     0 },
-/*c9*/	{ "bswap", FALSE, LONG,  op1(Ri),     0 },
-/*ca*/	{ "bswap", FALSE, LONG,  op1(Ri),     0 },
-/*cb*/	{ "bswap", FALSE, LONG,  op1(Ri),     0 },
-/*cc*/	{ "bswap", FALSE, LONG,  op1(Ri),     0 },
-/*cd*/	{ "bswap", FALSE, LONG,  op1(Ri),     0 },
-/*ce*/	{ "bswap", FALSE, LONG,  op1(Ri),     0 },
-/*cf*/	{ "bswap", FALSE, LONG,  op1(Ri),     0 },
+/*c8*/	{ "bswap", FALSE, LONG,  op1(Ril),    0 },
+/*c9*/	{ "bswap", FALSE, LONG,  op1(Ril),    0 },
+/*ca*/	{ "bswap", FALSE, LONG,  op1(Ril),    0 },
+/*cb*/	{ "bswap", FALSE, LONG,  op1(Ril),    0 },
+/*cc*/	{ "bswap", FALSE, LONG,  op1(Ril),    0 },
+/*cd*/	{ "bswap", FALSE, LONG,  op1(Ril),    0 },
+/*ce*/	{ "bswap", FALSE, LONG,  op1(Ril),    0 },
+/*cf*/	{ "bswap", FALSE, LONG,  op1(Ril),    0 },
 };
 
 struct inst *db_inst_0f[] = {
@@ -744,8 +754,8 @@ struct inst db_inst_table[256] = {
 /*d1*/	{ "",	   TRUE,  LONG,  op2(o1, E),  (char *)db_Grp2 },
 /*d2*/	{ "",	   TRUE,  BYTE,  op2(CL, E),  (char *)db_Grp2 },
 /*d3*/	{ "",	   TRUE,  LONG,  op2(CL, E),  (char *)db_Grp2 },
-/*d4*/	{ "aam",   TRUE,  NONE,  0,	      0 },
-/*d5*/	{ "aad",   TRUE,  NONE,  0,	      0 },
+/*d4*/	{ "aam",   FALSE, NONE,  op1(Iba),    0 },
+/*d5*/	{ "aad",   FALSE, NONE,  op1(Iba),    0 },
 /*d6*/	{ "",      FALSE, NONE,  0,	      0 },
 /*d7*/	{ "xlat",  FALSE, BYTE,  op1(BX),     0 },
 
@@ -884,7 +894,7 @@ db_read_address(loc, short_addr, regmodrm, addrp)
 		switch (mod) {
 		    case 0:
 			if (rm == 6) {
-				get_value_inc(disp, loc, 2, TRUE);
+				get_value_inc(disp, loc, 2, FALSE);
 				addrp->disp = disp;
 				addrp->base = 0;
 			} else {
@@ -894,11 +904,12 @@ db_read_address(loc, short_addr, regmodrm, addrp)
 			break;
 		    case 1:
 			get_value_inc(disp, loc, 1, TRUE);
+			disp &= 0xFFFF;
 			addrp->disp = disp;
 			addrp->base = db_index_reg_16[rm];
 			break;
 		    case 2:
-			get_value_inc(disp, loc, 2, TRUE);
+			get_value_inc(disp, loc, 2, FALSE);
 			addrp->disp = disp;
 			addrp->base = db_index_reg_16[rm];
 			break;
@@ -1218,6 +1229,9 @@ db_disasm(loc, altfmt)
 			db_printf("*");
 			db_print_address(seg, size, &address);
 			break;
+		    case El:
+			db_print_address(seg, LONG, &address);
+			break;
 		    case Ew:
 			db_print_address(seg, WORD, &address);
 			break;
@@ -1232,6 +1246,9 @@ db_disasm(loc, altfmt)
 			break;
 		    case Ri:
 			db_printf("%s", db_reg[size][f_rm(inst)]);
+			break;
+		    case Ril:
+			db_printf("%s", db_reg[LONG][f_rm(inst)]);
 			break;
 		    case S:
 			db_printf("%s", db_seg_reg[f_reg(regmodrm)]);
@@ -1270,6 +1287,16 @@ db_disasm(loc, altfmt)
 		    case TR:
 			db_printf("%%tr%d", f_reg(regmodrm));
 			break;
+		    /*
+		     * AI-ONLY NOTE: changed (2026-10-26) -- operand sizes, as
+		     * FreeBSD's db_disasm.c (bde, 4 January 1997): immediates
+		     * fetched unsigned, a signed byte cut to 16 bits under a
+		     * word operand size, direct addresses and jump and call
+		     * displacements fetched in the operand or address size and
+		     * cut to 16 bits under the word size, and the offset of a far
+		     * call or jmp in the operand size; with 16-bit addressing
+		     * (db_read_address) the displacements likewise.
+		     */
 		    case I:
 			len = db_lengths[size];
 			get_value_inc(imm, loc, len, FALSE);/* unsigned */
@@ -1277,15 +1304,22 @@ db_disasm(loc, altfmt)
 			break;
 		    case Is:
 			len = db_lengths[size];
-			get_value_inc(imm, loc, len, TRUE);	/* signed */
+			get_value_inc(imm, loc, len, FALSE);
 			db_printf("$%#r", imm);
 			break;
 		    case Ib:
 			get_value_inc(imm, loc, 1, FALSE);	/* unsigned */
 			db_printf("$%#n", imm);
 			break;
+		    case Iba:
+			get_value_inc(imm, loc, 1, FALSE);
+			if (imm != 0x0a)
+				db_printf("$%#n", imm);
+			break;
 		    case Ibs:
 			get_value_inc(imm, loc, 1, TRUE);	/* signed */
+			if (size == WORD)
+				imm &= 0xFFFF;
 			db_printf("$%#r", imm);
 			break;
 		    case Iw:
@@ -1297,10 +1331,8 @@ db_disasm(loc, altfmt)
 			db_printf("$%#n", imm);
 			break;
 		    case O:
-			if (short_addr)
-				get_value_inc(displ, loc, 2, TRUE);
-			else
-				get_value_inc(displ, loc, 4, TRUE);
+			len = (short_addr ? 2 : 4);
+			get_value_inc(displ, loc, len, FALSE);
 			if (seg)
 				db_printf("%s:%#r",seg, displ);
 			else
@@ -1308,11 +1340,18 @@ db_disasm(loc, altfmt)
 			break;
 		    case Db:
 			get_value_inc(displ, loc, 1, TRUE);
-			db_printsym((db_addr_t)(displ + loc), DB_STGY_XTRN);
+			displ += loc;
+			if (size == WORD)
+				displ &= 0xFFFF;
+			db_printsym((db_addr_t)displ, DB_STGY_XTRN);
 			break;
 		    case Dl:
-			get_value_inc(displ, loc, 4, TRUE);
-			db_printsym((db_addr_t)(displ + loc), DB_STGY_XTRN);
+			len = db_lengths[size];
+			get_value_inc(displ, loc, len, FALSE);
+			displ += loc;
+			if (size == WORD)
+				displ &= 0xFFFF;
+			db_printsym((db_addr_t)displ, DB_STGY_XTRN);
 			break;
 		    case o1:
 			db_printf("$1");
@@ -1321,7 +1360,8 @@ db_disasm(loc, altfmt)
 			db_printf("$3");
 			break;
 		    case OS:
-			get_value_inc(imm, loc, 4, FALSE);	/* offset */
+			len = db_lengths[size];
+			get_value_inc(imm, loc, len, FALSE);	/* offset */
 			get_value_inc(imm2, loc, 2, FALSE);	/* segment */
 			db_printf("$%#n,%#n", imm2, imm);
 			break;
