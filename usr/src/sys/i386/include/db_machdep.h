@@ -36,6 +36,13 @@
 #include <sys/param.h>
 #include <vm/vm.h>
 #include <machine/trap.h>
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- frame.h and psl.h named, for
+ * struct trapframe and PSL_T: NetBSD 1.0's <machine/param.h> brings
+ * them in by way of cpu.h, and this kernel's does not.
+ */
+#include <machine/frame.h>
+#include <machine/psl.h>
 
 typedef	vm_offset_t	db_addr_t;	/* address - unsigned */
 typedef	int		db_expr_t;	/* expression - signed */

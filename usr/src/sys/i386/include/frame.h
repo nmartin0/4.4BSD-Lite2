@@ -37,6 +37,15 @@
  */
 
 /*
+ * AI-ONLY NOTE: changed (2026-10-26) -- guarded against a second
+ * reading, as FreeBSD 2.0's frame.h is (_MACHINE_FRAME_H_): ddb's
+ * <machine/db_machdep.h> names it, as FreeBSD 2.0's does, in files
+ * that have it already by way of <machine/cpu.h>.
+ */
+#ifndef _MACHINE_FRAME_H_
+#define _MACHINE_FRAME_H_ 1
+
+/*
  * System stack frames.
  */
 
@@ -114,3 +123,5 @@ struct syscframe {
 	int	sf_esp;
 	int	sf_ss;
 };
+
+#endif /* _MACHINE_FRAME_H_ */
