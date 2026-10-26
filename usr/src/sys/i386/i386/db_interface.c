@@ -50,6 +50,16 @@ extern label_t	*db_recover;
 int	db_active = 0;
 
 /*
+ * AI-ONLY NOTE: changed (2026-10-26) -- as Bruce Evans's change to
+ * FreeBSD's db_interface.c of 28 March 1997: a global jump buffer, so
+ * that an unexpected trap inside a ddb command, `call' of a function
+ * with a breakpoint in it among them, returns to ddb's command loop and
+ * is not fatal. FreeBSD's is a jmp_buf; here a label_t, as above.
+ */
+static label_t	db_global_jmpbuf;
+static int	db_global_jmpbuf_valid;
+
+/*
  * Received keyboard interrupt sequence.
  */
 kdb_kbd_trap(regs)
@@ -88,6 +98,14 @@ kdb_trap(type, code, regs)
 		}
 	}
 
+	/*
+	 * This handles unexpected traps in ddb commands, including calls to
+	 * non-ddb functions.  db_recover only applies to memory accesses by
+	 * internal ddb commands.
+	 */
+	if (db_global_jmpbuf_valid)
+		longjmp(&db_global_jmpbuf);
+
 	/* Should switch to kdb`s own stack here. */
 
 	ddb_regs = *regs;
@@ -109,7 +127,10 @@ kdb_trap(type, code, regs)
 	s = splhigh();
 	db_active++;
 	cnpollc(TRUE);
+	(void) setjmp(&db_global_jmpbuf);
+	db_global_jmpbuf_valid = TRUE;
 	db_trap(type, code);
+	db_global_jmpbuf_valid = FALSE;
 	cnpollc(FALSE);
 	db_active--;
 	splx(s);
