@@ -177,6 +177,16 @@ copyfault:	frame.tf_eip = (int)pcb->pcb_onfault;
 		if (kdb_trap(&psl))
 			return;
 #endif
+#ifdef DDB
+		/*
+		 * AI-ONLY NOTE: added (2026-10-26) -- ddb takes the trap, as
+		 * NetBSD 1.0's trap.c has it, and FreeBSD 2.0's; the type
+		 * read from the frame, since a trap while cold comes here
+		 * before type is set above, as the boot's Debugger() does.
+		 */
+		if (kdb_trap(frame.tf_trapno, 0, &frame))
+			return;
+#endif
 
 		printf("trap type %d code = %x eip = %x cs = %x eflags = %x ",
 			frame.tf_trapno, frame.tf_err, frame.tf_eip,
@@ -313,11 +323,18 @@ copyfault:	frame.tf_eip = (int)pcb->pcb_onfault;
 		break;
 	    }
 
+#ifndef DDB
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- not with DDB, so that a
+	 * kernel trace trap reaches ddb's single step by way of the
+	 * default case, as NetBSD 1.0's trap.c has it.
+	 */
 	case T_TRCTRAP:	 /* trace trap -- someone single stepping lcall's */
 		frame.tf_eflags &= ~PSL_T;
 
 			/* Q: how do we turn it on again? */
 		return;
+#endif
 	
 	case T_BPTFLT|T_USER:		/* bpt instruction fault */
 	case T_TRCTRAP|T_USER:		/* trace trap */
@@ -330,6 +347,15 @@ copyfault:	frame.tf_eip = (int)pcb->pcb_onfault;
 	case T_NMI:
 	case T_NMI|T_USER:
 		/* machine/parity/power fail/"kitchen sink" faults */
+#ifdef DDB
+		/*
+		 * AI-ONLY NOTE: added (2026-10-26) -- as NetBSD 1.0's trap.c.
+		 */
+		/* NMI can be hooked up to a pushbutton for debugging */
+		printf ("NMI ... going to debugger\n");
+		if (kdb_trap (type, 0, &frame))
+			return;
+#endif
 		if(isa_nmi(code) == 0) return;
 		else goto we_re_toast;
 #endif
