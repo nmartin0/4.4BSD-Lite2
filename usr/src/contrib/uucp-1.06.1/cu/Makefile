@@ -3,7 +3,13 @@
 
 BINDIR=		$(bindir)
 BINOWN=		$(owner)
-BINMODE=	4555
+# AI-ONLY NOTE: changed (2026-10-25) -- the dialer group alone may run
+# cu, as it alone may run tip (usr.bin/tip/Makefile, 4510), and as
+# Lite2's cu, tip under another name, was run: OpenBSD's Makefile
+# (de Raadt, 3 September 1996, "like tip, group dialer access only").
+# NetBSD 1.1's installs it 4555.
+BINGRP=		dialer
+BINMODE=	4554
 
 PROG=		cu
 SRCS=		cu.c prot.c log.c chat.c conn.c copy.c
