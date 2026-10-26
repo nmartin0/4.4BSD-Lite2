@@ -141,6 +141,20 @@ char *	db_Grp8[] = {
 	"btc"
 };
 
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- the opcode tables corrected
+ * as FreeBSD's db_disasm.c corrects them (bde, 4 January 1997): movz
+ * and movs name a byte or word source; fucompp is da e9, not da e1;
+ * the rr forms d9 d8-df, dc d0-df are not instructions; the integer
+ * FPU operations are long at da and db and word at de and df, and
+ * df /5 and /7 are fild and fistp, quad; call and jmp through Grp5
+ * show their size; byte operations at 04, 14, 1c, 2c, 3c and 82 take
+ * an unsigned immediate; aaa is 37 and daa 27; arpl and enter take
+ * their operands the other way round; push at 6a sign-extends its
+ * byte; and an FPU slot with no name is a bad instruction, where it
+ * printed nothing. FreeBSD's additions in that commit (cpuid, rsm,
+ * cmpxchg8b, fneni, fndisi, fsetpm, .byte for d6 and f1) are not taken.
+ */
 struct inst db_inst_0f0x[] = {
 /*00*/	{ "",	   TRUE,  NONE,  op1(Ew),     (char *)db_Grp6 },
 /*01*/	{ "",	   TRUE,  NONE,  op1(Ew),     (char *)db_Grp7 },
@@ -258,8 +272,8 @@ struct inst	db_inst_0fbx[] = {
 /*b3*/	{ "btr",   TRUE,  LONG,  op2(R, E),   0 },
 /*b4*/	{ "lfs",   TRUE,  LONG,  op2(E, R),   0 },
 /*b5*/	{ "lgs",   TRUE,  LONG,  op2(E, R),   0 },
-/*b6*/	{ "movzb", TRUE,  LONG,  op2(E, R),   0 },
-/*b7*/	{ "movzw", TRUE,  LONG,  op2(E, R),   0 },
+/*b6*/	{ "movzb", TRUE,  LONG,  op2(Eb, R),  0 },
+/*b7*/	{ "movzw", TRUE,  LONG,  op2(Ew, R),  0 },
 
 /*b8*/	{ "",      FALSE, NONE,  0,	      0 },
 /*b9*/	{ "",      FALSE, NONE,  0,	      0 },
@@ -267,8 +281,8 @@ struct inst	db_inst_0fbx[] = {
 /*bb*/	{ "btc",   TRUE,  LONG,  op2(R, E),   0 },
 /*bc*/	{ "bsf",   TRUE,  LONG,  op2(E, R),   0 },
 /*bd*/	{ "bsr",   TRUE,  LONG,  op2(E, R),   0 },
-/*be*/	{ "movsb", TRUE,  LONG,  op2(E, R),   0 },
-/*bf*/	{ "movsw", TRUE,  LONG,  op2(E, R),   0 },
+/*be*/	{ "movsb", TRUE,  LONG,  op2(Eb, R),  0 },
+/*bf*/	{ "movsw", TRUE,  LONG,  op2(Ew, R),  0 },
 };
 
 struct inst	db_inst_0fcx[] = {
@@ -312,9 +326,6 @@ struct inst *db_inst_0f[] = {
 char *	db_Esc92[] = {
 	"fnop",	"",	"",	"",	"",	"",	"",	""
 };
-char *	db_Esc93[] = {
-	"",	"",	"",	"",	"",	"",	"",	""
-};
 char *	db_Esc94[] = {
 	"fchs",	"fabs",	"",	"",	"ftst",	"fxam",	"",	""
 };
@@ -329,7 +340,7 @@ char *	db_Esc97[] = {
 	"fprem","fyl2xp1","fsqrt","fsincos","frndint","fscale","fsin","fcos"
 };
 
-char *	db_Esca4[] = {
+char *	db_Esca5[] = {
 	"",	"fucompp","",	"",	"",	"",	"",	""
 };
 
@@ -360,7 +371,7 @@ struct finst db_Esc9[] = {
 /*0*/	{ "fld",    SNGL,  op1(STI),	0 },
 /*1*/	{ "",       NONE,  op1(STI),	"fxch" },
 /*2*/	{ "fst",    SNGL,  op1(X),	(char *)db_Esc92 },
-/*3*/	{ "fstp",   SNGL,  op1(X),	(char *)db_Esc93 },
+/*3*/	{ "fstp",   SNGL,  0,		0 },
 /*4*/	{ "fldenv", NONE,  op1(X),	(char *)db_Esc94 },
 /*5*/	{ "fldcw",  NONE,  op1(X),	(char *)db_Esc95 },
 /*6*/	{ "fnstenv",NONE,  op1(X),	(char *)db_Esc96 },
@@ -368,21 +379,21 @@ struct finst db_Esc9[] = {
 };
 
 struct finst db_Esca[] = {
-/*0*/	{ "fiadd",  WORD,  0,		0 },
-/*1*/	{ "fimul",  WORD,  0,		0 },
-/*2*/	{ "ficom",  WORD,  0,		0 },
-/*3*/	{ "ficomp", WORD,  0,		0 },
-/*4*/	{ "fisub",  WORD,  op1(X),	(char *)db_Esca4 },
-/*5*/	{ "fisubr", WORD,  0,		0 },
-/*6*/	{ "fidiv",  WORD,  0,		0 },
-/*7*/	{ "fidivr", WORD,  0,		0 }
+/*0*/	{ "fiadd",  LONG,  0,		0 },
+/*1*/	{ "fimul",  LONG,  0,		0 },
+/*2*/	{ "ficom",  LONG,  0,		0 },
+/*3*/	{ "ficomp", LONG,  0,		0 },
+/*4*/	{ "fisub",  LONG,  0,		0 },
+/*5*/	{ "fisubr", LONG,  op1(X),	(char *)db_Esca5 },
+/*6*/	{ "fidiv",  LONG,  0,		0 },
+/*7*/	{ "fidivr", LONG,  0,		0 }
 };
 
 struct finst db_Escb[] = {
-/*0*/	{ "fild",   WORD,  0,		0 },
+/*0*/	{ "fild",   LONG,  0,		0 },
 /*1*/	{ "",       NONE,  0,		0 },
-/*2*/	{ "fist",   WORD,  0,		0 },
-/*3*/	{ "fistp",  WORD,  0,		0 },
+/*2*/	{ "fist",   LONG,  0,		0 },
+/*3*/	{ "fistp",  LONG,  0,		0 },
 /*4*/	{ "",       WORD,  op1(X),	(char *)db_Escb4 },
 /*5*/	{ "fld",    EXTR,  0,		0 },
 /*6*/	{ "",       WORD,  0,		0 },
@@ -392,8 +403,8 @@ struct finst db_Escb[] = {
 struct finst db_Escc[] = {
 /*0*/	{ "fadd",   DBLR,  op2(ST,STI),	0 },
 /*1*/	{ "fmul",   DBLR,  op2(ST,STI),	0 },
-/*2*/	{ "fcom",   DBLR,  op2(ST,STI),	0 },
-/*3*/	{ "fcomp",  DBLR,  op2(ST,STI),	0 },
+/*2*/	{ "fcom",   DBLR,  0,		0 },
+/*3*/	{ "fcomp",  DBLR,  0,		0 },
 /*4*/	{ "fsub",   DBLR,  op2(ST,STI),	"fsubr" },
 /*5*/	{ "fsubr",  DBLR,  op2(ST,STI),	"fsub" },
 /*6*/	{ "fdiv",   DBLR,  op2(ST,STI),	"fdivr" },
@@ -412,25 +423,25 @@ struct finst db_Escd[] = {
 };
 
 struct finst db_Esce[] = {
-/*0*/	{ "fiadd",  LONG,  op2(ST,STI),	"faddp" },
-/*1*/	{ "fimul",  LONG,  op2(ST,STI),	"fmulp" },
-/*2*/	{ "ficom",  LONG,  0,		0 },
-/*3*/	{ "ficomp", LONG,  op1(X),	(char *)db_Esce3 },
-/*4*/	{ "fisub",  LONG,  op2(ST,STI),	"fsubrp" },
-/*5*/	{ "fisubr", LONG,  op2(ST,STI),	"fsubp" },
-/*6*/	{ "fidiv",  LONG,  op2(ST,STI),	"fdivrp" },
-/*7*/	{ "fidivr", LONG,  op2(ST,STI),	"fdivp" },
+/*0*/	{ "fiadd",  WORD,  op2(ST,STI),	"faddp" },
+/*1*/	{ "fimul",  WORD,  op2(ST,STI),	"fmulp" },
+/*2*/	{ "ficom",  WORD,  0,		0 },
+/*3*/	{ "ficomp", WORD,  op1(X),	(char *)db_Esce3 },
+/*4*/	{ "fisub",  WORD,  op2(ST,STI),	"fsubrp" },
+/*5*/	{ "fisubr", WORD,  op2(ST,STI),	"fsubp" },
+/*6*/	{ "fidiv",  WORD,  op2(ST,STI),	"fdivrp" },
+/*7*/	{ "fidivr", WORD,  op2(ST,STI),	"fdivp" },
 };
 
 struct finst db_Escf[] = {
-/*0*/	{ "fild",   LONG,  0,		0 },
-/*1*/	{ "",       LONG,  0,		0 },
-/*2*/	{ "fist",   LONG,  0,		0 },
-/*3*/	{ "fistp",  LONG,  0,		0 },
+/*0*/	{ "fild",   WORD,  0,		0 },
+/*1*/	{ "",       NONE,  0,		0 },
+/*2*/	{ "fist",   WORD,  0,		0 },
+/*3*/	{ "fistp",  WORD,  0,		0 },
 /*4*/	{ "fbld",   NONE,  op1(XA),	(char *)db_Escf4 },
-/*5*/	{ "fld",    QUAD,  0,		0 },
+/*5*/	{ "fild",   QUAD,  0,		0 },
 /*6*/	{ "fbstp",  NONE,  0,		0 },
-/*7*/	{ "fstp",   QUAD,  0,		0 },
+/*7*/	{ "fistp",  QUAD,  0,		0 },
 };
 
 struct finst *db_Esc_inst[] = {
@@ -485,10 +496,10 @@ struct inst	db_Grp4[] = {
 struct inst	db_Grp5[] = {
 	{ "inc",   TRUE, LONG, op1(E),   0 },
 	{ "dec",   TRUE, LONG, op1(E),   0 },
-	{ "call",  TRUE, NONE, op1(Eind),0 },
-	{ "lcall", TRUE, NONE, op1(Eind),0 },
-	{ "jmp",   TRUE, NONE, op1(Eind),0 },
-	{ "ljmp",  TRUE, NONE, op1(Eind),0 },
+	{ "call",  TRUE, LONG, op1(Eind),0 },
+	{ "lcall", TRUE, LONG, op1(Eind),0 },
+	{ "jmp",   TRUE, LONG, op1(Eind),0 },
+	{ "ljmp",  TRUE, LONG, op1(Eind),0 },
 	{ "push",  TRUE, LONG, op1(E),   0 },
 	{ "",      TRUE, NONE, 0,	 0 }
 };
@@ -498,7 +509,7 @@ struct inst db_inst_table[256] = {
 /*01*/	{ "add",   TRUE,  LONG,  op2(R, E),  0 },
 /*02*/	{ "add",   TRUE,  BYTE,  op2(E, R),  0 },
 /*03*/	{ "add",   TRUE,  LONG,  op2(E, R),  0 },
-/*04*/	{ "add",   FALSE, BYTE,  op2(Is, A), 0 },
+/*04*/	{ "add",   FALSE, BYTE,  op2(I, A),  0 },
 /*05*/	{ "add",   FALSE, LONG,  op2(Is, A), 0 },
 /*06*/	{ "push",  FALSE, NONE,  op1(Si),    0 },
 /*07*/	{ "pop",   FALSE, NONE,  op1(Si),    0 },
@@ -516,7 +527,7 @@ struct inst db_inst_table[256] = {
 /*11*/	{ "adc",   TRUE,  LONG,  op2(R, E),  0 },
 /*12*/	{ "adc",   TRUE,  BYTE,  op2(E, R),  0 },
 /*13*/	{ "adc",   TRUE,  LONG,  op2(E, R),  0 },
-/*14*/	{ "adc",   FALSE, BYTE,  op2(Is, A), 0 },
+/*14*/	{ "adc",   FALSE, BYTE,  op2(I, A),  0 },
 /*15*/	{ "adc",   FALSE, LONG,  op2(Is, A), 0 },
 /*16*/	{ "push",  FALSE, NONE,  op1(Si),    0 },
 /*17*/	{ "pop",   FALSE, NONE,  op1(Si),    0 },
@@ -525,7 +536,7 @@ struct inst db_inst_table[256] = {
 /*19*/	{ "sbb",   TRUE,  LONG,  op2(R, E),  0 },
 /*1a*/	{ "sbb",   TRUE,  BYTE,  op2(E, R),  0 },
 /*1b*/	{ "sbb",   TRUE,  LONG,  op2(E, R),  0 },
-/*1c*/	{ "sbb",   FALSE, BYTE,  op2(Is, A), 0 },
+/*1c*/	{ "sbb",   FALSE, BYTE,  op2(I, A),  0 },
 /*1d*/	{ "sbb",   FALSE, LONG,  op2(Is, A), 0 },
 /*1e*/	{ "push",  FALSE, NONE,  op1(Si),    0 },
 /*1f*/	{ "pop",   FALSE, NONE,  op1(Si),    0 },
@@ -537,13 +548,13 @@ struct inst db_inst_table[256] = {
 /*24*/	{ "and",   FALSE, BYTE,  op2(I, A),  0 },
 /*25*/	{ "and",   FALSE, LONG,  op2(I, A),  0 },
 /*26*/	{ "",      FALSE, NONE,  0,	     0 },
-/*27*/	{ "aaa",   FALSE, NONE,  0,	     0 },
+/*27*/	{ "daa",   FALSE, NONE,  0,	     0 },
 
 /*28*/	{ "sub",   TRUE,  BYTE,  op2(R, E),  0 },
 /*29*/	{ "sub",   TRUE,  LONG,  op2(R, E),  0 },
 /*2a*/	{ "sub",   TRUE,  BYTE,  op2(E, R),  0 },
 /*2b*/	{ "sub",   TRUE,  LONG,  op2(E, R),  0 },
-/*2c*/	{ "sub",   FALSE, BYTE,  op2(Is, A), 0 },
+/*2c*/	{ "sub",   FALSE, BYTE,  op2(I, A),  0 },
 /*2d*/	{ "sub",   FALSE, LONG,  op2(Is, A), 0 },
 /*2e*/	{ "",      FALSE, NONE,  0,	     0 },
 /*2f*/	{ "das",   FALSE, NONE,  0,	     0 },
@@ -555,13 +566,13 @@ struct inst db_inst_table[256] = {
 /*34*/	{ "xor",   FALSE, BYTE,  op2(I, A),  0 },
 /*35*/	{ "xor",   FALSE, LONG,  op2(I, A),  0 },
 /*36*/	{ "",      FALSE, NONE,  0,	     0 },
-/*37*/	{ "daa",   FALSE, NONE,  0,	     0 },
+/*37*/	{ "aaa",   FALSE, NONE,  0,	     0 },
 
 /*38*/	{ "cmp",   TRUE,  BYTE,  op2(R, E),  0 },
 /*39*/	{ "cmp",   TRUE,  LONG,  op2(R, E),  0 },
 /*3a*/	{ "cmp",   TRUE,  BYTE,  op2(E, R),  0 },
 /*3b*/	{ "cmp",   TRUE,  LONG,  op2(E, R),  0 },
-/*3c*/	{ "cmp",   FALSE, BYTE,  op2(Is, A), 0 },
+/*3c*/	{ "cmp",   FALSE, BYTE,  op2(I, A),  0 },
 /*3d*/	{ "cmp",   FALSE, LONG,  op2(Is, A), 0 },
 /*3e*/	{ "",      FALSE, NONE,  0,	     0 },
 /*3f*/	{ "aas",   FALSE, NONE,  0,	     0 },
@@ -605,7 +616,7 @@ struct inst db_inst_table[256] = {
 /*60*/	{ "pusha", FALSE, LONG,  0,	     0 },
 /*61*/	{ "popa",  FALSE, LONG,  0,	     0 },
 /*62*/  { "bound", TRUE,  LONG,  op2(E, R),  0 },
-/*63*/	{ "arpl",  TRUE,  NONE,  op2(Ew,Rw), 0 },
+/*63*/	{ "arpl",  TRUE,  NONE,  op2(Rw,Ew), 0 },
 
 /*64*/	{ "",      FALSE, NONE,  0,	     0 },
 /*65*/	{ "",      FALSE, NONE,  0,	     0 },
@@ -614,7 +625,7 @@ struct inst db_inst_table[256] = {
 
 /*68*/	{ "push",  FALSE, LONG,  op1(I),     0 },
 /*69*/  { "imul",  TRUE,  LONG,  op3(I,E,R), 0 },
-/*6a*/	{ "push",  FALSE, LONG,  op1(Ib),    0 },
+/*6a*/	{ "push",  FALSE, LONG,  op1(Ibs),   0 },
 /*6b*/  { "imul",  TRUE,  LONG,  op3(Ibs,E,R),0 },
 /*6c*/	{ "ins",   FALSE, BYTE,  op2(DX, DI), 0 },
 /*6d*/	{ "ins",   FALSE, LONG,  op2(DX, DI), 0 },
@@ -641,7 +652,7 @@ struct inst db_inst_table[256] = {
 
 /*80*/  { "",	   TRUE,  BYTE,  op2(I, E),   (char *)db_Grp1 },
 /*81*/  { "",	   TRUE,  LONG,  op2(I, E),   (char *)db_Grp1 },
-/*82*/  { "",	   TRUE,  BYTE,  op2(Is,E),   (char *)db_Grp1 },
+/*82*/  { "",	   TRUE,  BYTE,  op2(I, E),   (char *)db_Grp1 },
 /*83*/  { "",	   TRUE,  LONG,  op2(Ibs,E),  (char *)db_Grp1 },
 /*84*/	{ "test",  TRUE,  BYTE,  op2(R, E),   0 },
 /*85*/	{ "test",  TRUE,  LONG,  op2(R, E),   0 },
@@ -720,7 +731,7 @@ struct inst db_inst_table[256] = {
 /*c6*/	{ "mov",   TRUE,  BYTE,  op2(I, E),   0 },
 /*c7*/	{ "mov",   TRUE,  LONG,  op2(I, E),   0 },
 
-/*c8*/	{ "enter", FALSE, NONE,  op2(Ib, Iw), 0 },
+/*c8*/	{ "enter", FALSE, NONE,  op2(Iw, Ib), 0 },
 /*c9*/	{ "leave", FALSE, NONE,  0,           0 },
 /*ca*/	{ "lret",  FALSE, NONE,  op1(Iw),     0 },
 /*cb*/	{ "lret",  FALSE, NONE,  0,	      0 },
@@ -974,6 +985,10 @@ db_disasm_esc(loc, inst, short_addr, size, seg)
 	fp = &db_Esc_inst[inst - 0xd8][f_reg(regmodrm)];
 	mod = f_mod(regmodrm);
 	if (mod != 3) {
+		if (*fp->f_name == '\0') {
+			db_printf("<bad instruction>");
+			return (loc);
+		}
 		/*
 		 * Normal address modes.
 		 */
@@ -1021,13 +1036,19 @@ db_disasm_esc(loc, inst, short_addr, size, seg)
 			db_printf("%s\t%%st(%d)",name, f_rm(regmodrm));
 			break;
 		    case op1(X):
-			db_printf("%s", ((char **)fp->f_rrname)[f_rm(regmodrm)]);
+			name = ((char **)fp->f_rrname)[f_rm(regmodrm)];
+			if (*name == '\0')
+				goto bad;
+			db_printf("%s", name);
 			break;
 		    case op1(XA):
-			db_printf("%s\t%%ax",
-				  ((char **)fp->f_rrname)[f_rm(regmodrm)]);
+			name = ((char **)fp->f_rrname)[f_rm(regmodrm)];
+			if (*name == '\0')
+				goto bad;
+			db_printf("%s\t%%ax", name);
 			break;
 		    default:
+		    bad:
 			db_printf("<bad instruction>");
 			break;
 		}
