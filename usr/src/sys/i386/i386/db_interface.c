@@ -118,10 +118,20 @@ kdb_trap(type, code, regs)
 #if 0
 		ddb_regs.ss   = KERNEL_DS;
 #endif
-		asm(" movw %%ss,%%ax; movl %%eax,%0 " 
-		    : "=g" (ddb_regs.tf_ss) 
-		    :
-		    : "ax");
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-26) -- %ss is read into a
+		 * u_short, as Bruce Evans's change to FreeBSD's db_interface.c
+		 * of 14 January 1995 reads it (the rss() there). NetBSD 1.0
+		 * moved the 16 bits into %ax and stored all of %eax, so show
+		 * registers printed whatever was in the upper half of %eax
+		 * as part of ss (0xefbf0010).
+		 */
+		{
+			u_short ss;
+
+			asm volatile("movl %%ss,%0" : "=r" (ss));
+			ddb_regs.tf_ss = ss;
+		}
 	}
 
 	s = splhigh();
