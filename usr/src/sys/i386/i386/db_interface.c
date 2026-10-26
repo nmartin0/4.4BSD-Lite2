@@ -135,20 +135,19 @@ kdb_trap(type, code, regs)
 	return (1);
 }
 
-extern char *trap_type[];
-extern int trap_types;
-
 /*
  * Print trap reason.
+ *
+ * AI-ONLY NOTE: changed (2026-10-26) -- the trap's number, as FreeBSD
+ * 2.0's db_interface.c prints it: this kernel has no trap_type[] of
+ * names, and its trap numbers are Lite's (machine/trap.h), not those
+ * NetBSD 1.0's table is indexed by.
  */
 kdbprinttrap(type, code)
 	int type, code;
 {
 	printf("kernel: ");
-	if (type >= trap_types || type < 0)
-		printf("type %d", type);
-	else
-		printf("%s", trap_type[type]);
+	printf("type %d", type);
 	printf(" trap, code=%x\n", code);
 }
 
