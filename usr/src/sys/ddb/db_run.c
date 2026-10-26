@@ -155,6 +155,22 @@ db_stop_at_pc(is_breakpoint)
 		return (FALSE);	/* continue */
 	    }
 	}
+	/*
+	 * AI-ONLY NOTE: added (2026-10-26) -- a breakpoint whose count has
+	 * not run out does not stop here. CMU's Mach 3.0 ddb/db_run.c has,
+	 * at the end of db_stop_at_pc,
+	 *
+	 *	if (db_find_breakpoint_here(task, pc))
+	 *		return(FALSE);
+	 *
+	 * (its breakpoint is counted in db_cond_check, ours in the
+	 * --bkpt->count above). Without it every counted breakpoint
+	 * ("break addr,N") fell through to here on its first N-1 hits and
+	 * stopped as if it were a step. NetBSD 1.0-1.3, FreeBSD 2.0-3.0
+	 * and OpenBSD all lack the test.
+	 */
+	if (db_find_breakpoint_here(pc))
+		return (FALSE);
 	db_run_mode = STEP_NONE;
 	return (TRUE);
 }
