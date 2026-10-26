@@ -197,7 +197,18 @@ db_readline(lstart, lsize)
 	db_force_whitespace();	/* synch output position */
 
 	db_lbuf_start = lstart;
-	db_lbuf_end   = lstart + lsize;
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- the end of the line is one
+	 * byte before the end of the buffer, as CMU's Mach 3.0
+	 * ddb/db_input.c has it (lstart + lsize - 1; its log entry "Fixed
+	 * incorrect db_lbuf_end setting", 29 August 1991, tak). With
+	 * lstart + lsize a full line took the whole buffer and the
+	 * newline stored at db_le went one byte past it. NetBSD 1.0-1.3,
+	 * FreeBSD 2.0-3.0 and OpenBSD kept the old setting. The NUL that
+	 * db_readline stores after the newline is still one byte past a
+	 * line that fills the buffer; Mach 3.0 has the same.
+	 */
+	db_lbuf_end   = lstart + lsize - 1;
 	db_lc = lstart;
 	db_le = lstart;
 
