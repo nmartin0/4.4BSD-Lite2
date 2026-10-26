@@ -84,7 +84,18 @@ db_examine(addr, fmt, count)
 	while (--count >= 0) {
 		fp = fmt;
 		size = 4;
-		width = 16;
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-26) -- a long's column is
+		 * 12 wide, as in NetBSD's db_examine.c since gwr's change of
+		 * 14 November 1994 ("so you can fit four per line"). NetBSD
+		 * 1.0, FreeBSD 2.0 through 3.0 and the file as imported had
+		 * 16, with which five longs overrun the 80-column line and
+		 * ddb breaks a number in two at the margin.
+		 * db_print_loc_and_inst, in the same change, prints the
+		 * instruction in the default form (db_disasm's second
+		 * argument FALSE) as NetBSD's does.
+		 */
+		width = 12;
 		while ((c = *fp++) != 0) {
 			/*
 			 * AI-ONLY NOTE: changed (2026-10-26) -- gwr's change
@@ -111,7 +122,7 @@ db_examine(addr, fmt, count)
 				break;
 			case 'l':	/* long-word */
 				size = 4;
-				width = 16;
+				width = 12;
 				break;
 			case 'a':	/* address */
 				db_printf("= 0x%x\n", addr);
@@ -238,7 +249,7 @@ db_print_loc_and_inst(loc)
 {
 	db_printsym(loc, DB_STGY_PROC);
 	db_printf(":\t");
-	(void) db_disasm(loc, TRUE);
+	(void) db_disasm(loc, FALSE);
 }
 
 db_strcpy(dst, src)
