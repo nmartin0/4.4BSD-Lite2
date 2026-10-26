@@ -534,21 +534,49 @@ prints "(null)" for each function's name until there are symbols.
 Not working, as in NetBSD 1.0: watchpoints, which trap.c does not
 take; a breakpoint at the boot prompt before pmap_bootstrap.
 
-Patch 200 is the three BSDs' fixes to this ddb of 1994-97, each its own
-commit, with a note at each site. NetBSD's: db_recover is no longer
-left pointing into a dead stack after ddb is left (1994); the symbol
-printed for an address is not given for one past the kernel's end
-(db_sym.c); cmpxchg decodes at 0f b0/b1; `trace/t <pid>` (sommerfe,
-1997), where 1.0 used an uninitialised frame; `x/a` prints the address
-(gwr, 1994). FreeBSD's: the disassembler's tables and operand sizes
-(shld/shrd, aaa/daa, arpl, enter, movzx/movsx, the x87 integer sizes,
-16-bit displacements, the jmp padding of `x/i`); a trace that starts at
-a null %ebp, a function's second instruction or its ret (bde, 1996);
-and, in the manner of bde's of 1997, a trap inside a command returns to
-the prompt, by the db_recover the command loop keeps. Not taken:
-eb0fb17ea and af2f22807 (the limits of the kernel text, for which this
-kernel has no btext), 75680b05c (no console), and OpenBSD's line
-wrapping of 1997, as cosmetic or for code this kernel lacks.
+Patch 200 is the fixes to this ddb, each its own commit with a note
+at the site. The three BSDs' of 1994-97. NetBSD's: db_recover is no
+longer left pointing into a dead stack after ddb is left (gwr, 1994);
+the symbol printed for an address is not given for one past the
+kernel's end (db_sym.c); cmpxchg decodes at 0f b0/b1; `x/a` prints the
+address (gwr, 1994); a long in `x` is 12 columns wide (gwr, 1994).
+FreeBSD's: the disassembler's tables and operand sizes (shld/shrd,
+aaa/daa, arpl, enter, movzx/movsx, the x87 integer sizes, 16-bit
+displacements, the jmp padding of `x/i`); a trace that starts at a null
+%ebp, a function's second instruction or its ret (bde, 1996); a trap
+inside a command returns to the prompt, by FreeBSD's global jump buffer
+(bde, 1997); %ss as 16 bits (bde, 1995). Not taken: eb0fb17ea and
+af2f22807 (the limits of the kernel text, for which this kernel has no
+btext), 75680b05c (no console), and OpenBSD's line wrapping of 1997,
+as cosmetic or for code this kernel lacks.
+
+CMU's Mach 3.0 ddb, from the GitHub mirror Prajna/mach (commit
+9c2e1a8), is the precedent for what the BSDs lost from it and what
+ddb.4 documents: kdb_trap restores the registers before splx(), as
+Mach's does and NetBSD's i386 port does not (a breakpoint in hardclock,
+deleted and continued from, killed the system); the input line ends at
+lsize - 1; a breakpoint with a count does not stop until the count is
+out (the last test of db_stop_at_pc); breakpoints are numbered and
+`delete #N` deletes by number; `xf` and `xb`; scas through %edi. From
+FreeBSD 2.1.0, the columns of `ps`. Not from any of them: `bound`'s
+operands in the assembler's order, checked against the toolchain's as,
+and a negative displacement from a register printed signed (Mach's
+shape, with its %r; Mach's own code prints the unsigned form).
+
+Left as the BSDs had them: `trace/t <pid>` prints "can't trace thread"
+and returns (NetBSD 1.0's, which then used an unset frame pointer);
+NetBSD 1.3's, which works, needs a kernel stack address for each
+process; `watch` and its two commands, which do nothing; the Pentium
+and P6 opcodes the disassembler prints as ???; the NUL after a full
+input line, one byte over, as in Mach. Why, and what 4.6BSD is to do:
+roadmap-4.6.md, *ddb: tracing another process or thread* and *ddb:
+watchpoints*.
+
+Tested on QEMU, boot with RB_KDB, by driving the console: every
+command of ddb.4 against the source, but `watch`; 400 instructions
+of the kernel against objdump; `break hardclock`, continued forty times
+and then deleted and continued, twice; `break addr,5` stops at the fifth
+hit; `delete #N`; `xf` and `xb`; a fault inside a command; `ps`.
 
 **contrib/bc-1.03** is GNU bc 1.03 and the dc of its distribution,
 byte for byte as NetBSD 1.1's gnu/usr.bin/bc and gnu/usr.bin/dc,

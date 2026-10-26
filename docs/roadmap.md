@@ -122,9 +122,11 @@ rc, daily, syslog.conf, and cu for the dialer group (decided
 **3. A debugger.** gdb-4.7.LBL reads a.out only; a gdb that reads ELF
 is to come (*After Tier 1½*, below). ~~ddb~~ **Done** (patch 199):
 NetBSD 1.0's, CMU Mach's, without symbols (decided 2026-10-25;
-imports.md, kind D); next, the three BSDs' ddb fixes of 1994-97, each
-its own commit (patch 200), then reading the kernel's ELF symbols, to
-be decided on its own.
+imports.md, kind D); ~~the three BSDs' ddb fixes of 1994-97~~, and
+Mach 3.0's for what ddb.4 documents, each its own commit, **done**
+(patch 200); `watch` and `trace/t` left as the BSDs had them
+(roadmap-4.6.md); next, reading the kernel's ELF symbols, to be
+decided on its own.
 
 **4. Ports** (decided 2026-10-14; *Ports*, below): FreeBSD 2.2.2's
 framework, and what it needs from FreeBSD 2.2 -- pkg_install, md5,
