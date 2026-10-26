@@ -526,3 +526,37 @@ sysctl_clockrate(where, sizep)
 	clkinfo.stathz = stathz ? stathz : hz;
 	return (sysctl_rdstruct(where, sizep, NULL, &clkinfo, sizeof(clkinfo)));
 }
+
+#ifdef DDB
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- ddb's "show callout", NetBSD 1.0's.
+ */
+#include <ddb/db_access.h>
+#include <ddb/db_sym.h>
+
+void db_show_callout(long addr, int haddr, int count, char *modif)
+{
+	register struct callout *p1;
+	register int	cum;
+	register int	s;
+	db_expr_t	offset;
+	char		*name;
+
+        db_printf("      cum     ticks      arg  func\n");
+	s = splhigh();
+	for (cum = 0, p1 = calltodo.c_next; p1; p1 = p1->c_next) {
+		register int t = p1->c_time;
+
+		if (t > 0)
+			cum += t;
+
+		db_find_sym_and_offset(p1->c_func, &name, &offset);
+		if (name == NULL)
+			name = "?";
+
+                db_printf("%9d %9d %8x  %s (%x)\n",
+			  cum, t, p1->c_arg, name, p1->c_func);
+	}
+	splx(s);
+}
+#endif

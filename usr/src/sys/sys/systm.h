@@ -168,4 +168,13 @@ void	startprofclock __P((struct proc *));
 void	stopprofclock __P((struct proc *));
 void	setstatclockrate __P((int hzrate));
 
+#ifdef DDB
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- ddb's entry point, as NetBSD
+ * 1.0's systm.h declares it.
+ */
+/* debugger entry points */
+int	Debugger __P((void));	/* in DDB only */
+#endif
+
 #include <libkern/libkern.h>

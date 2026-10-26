@@ -669,3 +669,53 @@ resetpriority(p)
 	if (newpriority < curpriority)
 		need_resched();
 }
+
+#ifdef DDB
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- ddb's "show all procs" and "ps",
+ * NetBSD 1.1's, which walks Lite's allproc and zombproc lists (NetBSD
+ * 1.0's walked the old p_next chain), without its emulation column,
+ * since this kernel has but the one.
+ */
+void
+db_show_all_procs(addr, haddr, count, modif)
+	long addr;
+	int haddr;
+	int count;
+	char *modif;
+{
+	int map = modif[0] == 'm';
+	int doingzomb = 0;
+	struct proc *p, *pp;
+    
+	p = allproc.lh_first;
+	db_printf("  pid proc     addr     %s comm         wchan\n",
+	    map ? "map     " : "uid  ppid  pgrp  flag stat ");
+	while (p != 0) {
+		pp = p->p_pptr;
+		if (p->p_stat) {
+			db_printf("%5d %06x %06x ",
+			    p->p_pid, p, p->p_addr);
+			if (map)
+				db_printf("%06x %s   ",
+				    p->p_vmspace, p->p_comm);
+			else
+				db_printf("%3d %5d %5d  %06x  %d  %s   ",
+				    p->p_cred->p_ruid, pp ? pp->p_pid : -1,
+				    p->p_pgrp->pg_id, p->p_flag, p->p_stat,
+				    p->p_comm);
+			if (p->p_wchan) {
+				if (p->p_wmesg)
+					db_printf("%s ", p->p_wmesg);
+				db_printf("%x", p->p_wchan);
+			}
+			db_printf("\n");
+		}
+		p = p->p_list.le_next;
+		if (p == 0 && doingzomb == 0) {
+			doingzomb = 1;
+			p = zombproc.lh_first;
+		}
+	}
+}
+#endif
