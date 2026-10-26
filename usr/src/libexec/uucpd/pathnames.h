@@ -35,4 +35,12 @@
 
 #include <paths.h>
 
-#define	_PATH_UUCICO	"/usr/lib/uucp/uucico"
+/*
+ * AI-ONLY NOTE: changed (2026-10-25) -- Taylor UUCP's uucico, in
+ * /usr/libexec/uucp (patch 197); Berkeley's was /usr/lib/uucp/uucico,
+ * which the Lite cut took. NetBSD 1.0's pathnames.h names
+ * /usr/libexec/uucp/uucico, as FreeBSD 2.1's and OpenBSD's of 1995
+ * and 1997 do. It is also the uucp user's shell in master.passwd, which
+ * uucpd checks.
+ */
+#define	_PATH_UUCICO	"/usr/libexec/uucp/uucico"
