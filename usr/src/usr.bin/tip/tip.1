@@ -417,7 +417,7 @@ and
 .Ev ${PHONES}
 are also exported.
 .Sh FILES
-.Bl -tag -width /var/spool/uucp/LCK..* -compact
+.Bl -tag -width /var/spool/lock/LCK..* -compact
 .It Pa /etc/remote
 Global system descriptions.
 .It Pa /etc/phones
@@ -432,7 +432,7 @@ Initialization file.
 Record file.
 .It /var/log/aculog
 Line access log.
-.It Pa /var/spool/uucp/LCK..*
+.It Pa /var/spool/lock/LCK..*
 Lock file to avoid conflicts with
 .Xr uucp .
 .El

@@ -35,6 +35,17 @@
 static char sccsid[] = "@(#)uucplock.c	8.1 (Berkeley) 6/6/93";
 #endif /* not lint */
 
+/*
+ * AI-ONLY NOTE: changed (2026-10-25) -- the lock file holds the pid in
+ * ASCII, ten digits and a newline, the HDB form Taylor UUCP's cu and
+ * uucico write and read (contrib/uucp-1.06.1, common_sources/policy.h,
+ * HAVE_HDB_LOCKFILES), in place of the binary int of Berkeley's uucp;
+ * a stale lock is reported as it is overridden, and a failure names
+ * the lock file. This is NetBSD 1.0's uucplock.c, from line 39 on;
+ * OpenBSD's of 1995 and 1997 locks the same way. The directory is
+ * pathnames.h's.
+ */
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/dir.h>
@@ -54,6 +65,8 @@ uu_lock(ttyname)
 	int fd, pid;
 	char tbuf[sizeof(_PATH_LOCKDIRNAME) + MAXNAMLEN];
 	off_t lseek();
+	char text_pid[81];
+	int len;
 
 	(void)sprintf(tbuf, _PATH_LOCKDIRNAME, ttyname);
 	fd = open(tbuf, O_RDWR|O_CREAT|O_EXCL, 0660);
@@ -64,14 +77,19 @@ uu_lock(ttyname)
 		 */
 		fd = open(tbuf, O_RDWR, 0);
 		if (fd < 0) {
-			perror("lock open");
+			perror(tbuf);
+			fprintf(stderr, "Can't open lock file.\n");
 			return(-1);
 		}
-		if (read(fd, &pid, sizeof(pid)) != sizeof(pid)) {
+		len = read(fd, text_pid, sizeof(text_pid)-1);
+		if(len<=0) {
+			perror(tbuf);
 			(void)close(fd);
-			perror("lock read");
+			fprintf(stderr, "Can't read lock file.\n");
 			return(-1);
 		}
+		text_pid[len] = 0;
+		pid = atol(text_pid);
 
 		if (kill(pid, 0) == 0 || errno != ESRCH) {
 			(void)close(fd);	/* process is still running */
@@ -81,15 +99,20 @@ uu_lock(ttyname)
 		 * The process that locked the file isn't running, so
 		 * we'll lock it ourselves
 		 */
+		fprintf(stderr, "Stale lock on %s PID=%d... overriding.\n",
+			ttyname, pid);
 		if (lseek(fd, 0L, L_SET) < 0) {
+			perror(tbuf);
 			(void)close(fd);
-			perror("lock lseek");
+			fprintf(stderr, "Can't seek lock file.\n");
 			return(-1);
 		}
 		/* fall out and finish the locking process */
 	}
 	pid = getpid();
-	if (write(fd, (char *)&pid, sizeof(pid)) != sizeof(pid)) {
+	sprintf(text_pid, "%10d\n", pid);
+	len = strlen(text_pid);
+	if (write(fd, text_pid, len) != len) {
 		(void)close(fd);
 		(void)unlink(tbuf);
 		perror("lock write");

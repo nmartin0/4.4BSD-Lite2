@@ -36,9 +36,13 @@
 #include <paths.h>
 
 #define	_PATH_ACULOG		"/var/log/aculog"
-#define	_PATH_LOCKDIRNAME	"/var/spool/uucp/LCK..%s"
-#ifdef notdef
-#define	_PATH_LOCKDIRNAME	"/var/spool/uucp/LCK/LCK..%s"
-#endif
+/*
+ * AI-ONLY NOTE: changed (2026-10-25) -- the lock directory Taylor UUCP's
+ * cu and uucico use (contrib/uucp-1.06.1, common_sources/policy.h,
+ * LOCKDIR), so that tip and they keep out of each other's line: NetBSD
+ * 1.0's pathnames.h, as OpenBSD's of 1995 and 1997 has it, and
+ * FreeBSD's from 2.0.5 (tip/pathnames.h).
+ */
+#define	_PATH_LOCKDIRNAME	"/var/spool/lock/LCK..%s"
 #define	_PATH_PHONES		"/etc/phones"
 #define	_PATH_REMOTE		"/etc/remote"
