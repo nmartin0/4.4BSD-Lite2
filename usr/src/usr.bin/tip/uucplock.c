@@ -46,6 +46,7 @@ static char sccsid[] = "@(#)uucplock.c	8.1 (Berkeley) 6/6/93";
  * pathnames.h's.
  */
 #include <stdio.h>
+#include <unistd.h>
 #include <sys/types.h>
 #include <sys/file.h>
 #include <sys/dir.h>
@@ -61,10 +62,8 @@ static char sccsid[] = "@(#)uucplock.c	8.1 (Berkeley) 6/6/93";
 uu_lock(ttyname)
 	char *ttyname;
 {
-	extern int errno;
 	int fd, pid;
 	char tbuf[sizeof(_PATH_LOCKDIRNAME) + MAXNAMLEN];
-	off_t lseek();
 	char text_pid[81];
 	int len;
 
@@ -101,7 +100,14 @@ uu_lock(ttyname)
 		 */
 		fprintf(stderr, "Stale lock on %s PID=%d... overriding.\n",
 			ttyname, pid);
-		if (lseek(fd, 0L, L_SET) < 0) {
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-25) -- lseek's offset is an
+		 * off_t, 64 bits in 4.4BSD, and 0L under the old declaration
+		 * passed 32, so the seek failed (EINVAL) and a stale lock was
+		 * never taken over: NetBSD's uucplock.c (jtc, 26 September
+		 * 1995, PR 1346), with <unistd.h> for the prototype.
+		 */
+		if (lseek(fd, (off_t)0, L_SET) < 0) {
 			perror(tbuf);
 			(void)close(fd);
 			fprintf(stderr, "Can't seek lock file.\n");
