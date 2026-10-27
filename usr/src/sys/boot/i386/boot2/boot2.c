@@ -28,7 +28,8 @@
  *   - struct bootinfo, the BIOS memory and disk-geometry probes that
  *     filled it, and the symbol table loaded after the kernel for it.
  *     This kernel reads none of them; it sizes memory itself, and
- *     ps and kvm_mkdb read /vmunix.
+ *     ps and kvm_mkdb read /vmunix. ddb's symbols are loaded instead
+ *     as NetBSD's boot loads them, below (load).
  *   - the third stage, /boot/loader, tried before the kernel.
  *   - DOS slices. Lite2's wd driver reads its label from sector 1 of
  *     the disk and knows no partition table, so boot2 does the same.
@@ -290,9 +291,11 @@ load(const char *fname)
 	Elf32_Ehdr eh;
     } hdr;
     Elf32_Phdr ep[2];
-    caddr_t p;
+    Elf32_Shdr *shp;
+    Elf32_Ehdr *elf;
+    caddr_t p, ssym;
     ino_t ino;
-    uint32_t addr;
+    uint32_t addr, kend, off, esym;
     int i, j;
 
     if (!(ino = lookup(fname))) {
@@ -319,9 +322,72 @@ load(const char *fname)
 	if (xfsread(ino, p, ep[i].p_filesz))
 	    return;
     }
+    /*
+     * AI-ONLY NOTE: added (2026-10-26) -- with -d, the kernel's symbols
+     * for ddb: its ELF header, its section headers, and its symbol and
+     * string tables, loaded after the kernel's bss, the copied header
+     * made to describe them where they lie, and the end passed to the
+     * kernel as the fifth word, esym, which locore.s takes; 0 without
+     * -d. This is NetBSD 1.3's alpha boot, stand/common/loadfile.c
+     * elf_exec(), from "Copy the ELF and section headers" to "Frob the
+     * copied ELF header", the layout NetBSD 1.3's ddb/db_elf.c reads;
+     * written with boot2's fs_off and xfsread for its lseek and read,
+     * and the kernel's end, its ffp_save, taken from the segments
+     * loaded above. Its progress printing is left out, as boot2
+     * prints none. Loading only for -d is Berkeley's, the condition
+     * vax/stand/boot.c and tahoe/stand/boot.c load symbols under,
+     * `howto & RB_KDB'.
+     */
+    esym = 0;
+    if (opts & 1 << RBX_KDB) {
+	kend = 0;
+	for (i = 0; i < j; i++)
+	    if (kend < (ep[i].p_paddr & 0xffffff) + ep[i].p_memsz)
+		kend = (ep[i].p_paddr & 0xffffff) + ep[i].p_memsz;
+	/*
+	 * Copy the ELF and section headers.
+	 */
+	p = ssym = PTOV(roundup(kend, sizeof(long)));
+	memcpy(p, &hdr.eh, sizeof(Elf32_Ehdr));
+	p += sizeof(Elf32_Ehdr);
+	fs_off = hdr.eh.e_shoff;
+	if (xfsread(ino, p, hdr.eh.e_shnum * sizeof(Elf32_Shdr)))
+	    return;
+	shp = (Elf32_Shdr *)p;
+	p += roundup((hdr.eh.e_shnum * sizeof(Elf32_Shdr)), sizeof(long));
+
+	/*
+	 * Now load the symbol sections themselves.  Make sure the
+	 * sections are aligned.
+	 */
+	off = roundup((sizeof(Elf32_Ehdr) + (hdr.eh.e_shnum *
+	    sizeof(Elf32_Shdr))), sizeof(long));
+	for (i = 0; i < hdr.eh.e_shnum; i++) {
+	    if (shp[i].sh_type == Elf_sht_symtab ||
+		shp[i].sh_type == Elf_sht_strtab) {
+		fs_off = shp[i].sh_offset;
+		if (xfsread(ino, p, shp[i].sh_size))
+		    return;
+		p += roundup(shp[i].sh_size, sizeof(long));
+		shp[i].sh_offset = off;
+		off += roundup(shp[i].sh_size, sizeof(long));
+	    }
+	}
+	esym = VTOP(p);
+
+	/*
+	 * Frob the copied ELF header to give information relative
+	 * to ssym.
+	 */
+	elf = (Elf32_Ehdr *)ssym;
+	elf->e_phoff = 0;
+	elf->e_shoff = sizeof(Elf32_Ehdr);
+	elf->e_phentsize = 0;
+	elf->e_phnum = 0;
+    }
     addr = hdr.eh.e_entry & 0xffffff;
     __exec((caddr_t)addr, opts & RBX_MASK,
-	   MAKEBOOTDEV(dev_maj[dsk.type], 0, 0, dsk.unit, dsk.part), 0);
+	   MAKEBOOTDEV(dev_maj[dsk.type], 0, 0, dsk.unit, dsk.part), 0, esym);
 }
 
 static int
