@@ -289,6 +289,34 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 		}
 		first = FALSE;
 		if (INKERNEL((int)frame) && name) {
+			/*
+			 * AI-ONLY NOTE: added (2026-10-26) -- the names as an
+			 * ELF kernel's symbols spell them, without the leading
+			 * underscore a.out gave every C name: thorpej's "Make
+			 * traces work with ELF kernels" (NetBSD 8f31d96853, 7
+			 * June 1999, db_trace.c 1.25), as it is. GCC here
+			 * defines __ELF__.
+			 */
+#ifdef __ELF__
+			if (!strcmp(name, "trap")) {
+				is_trap = TRAP;
+			} else if (!strcmp(name, "syscall")) {
+				is_trap = SYSCALL;
+			} else if (name[0] == 'X') {
+				if (!strncmp(name, "Xintr", 5) ||
+				    !strncmp(name, "Xresume", 7) ||
+				    !strncmp(name, "Xstray", 6) ||
+				    !strncmp(name, "Xhold", 5) ||
+				    !strncmp(name, "Xrecurse", 8) ||
+				    !strcmp(name, "Xdoreti") ||
+				    !strncmp(name, "Xsoft", 5)) {
+					is_trap = INTERRUPT;
+				} else
+					goto normal;
+			} else
+				goto normal;
+			narg = 0;
+#else
 			if (!strcmp(name, "_trap")) {
 				is_trap = TRAP;
 			} else if (!strcmp(name, "_syscall")) {
@@ -307,6 +335,7 @@ db_stack_trace_cmd(addr, have_addr, count, modif)
 			} else
 				goto normal;
 			narg = 0;
+#endif /* __ELF__ */
 		} else {
 		normal:
 			is_trap = NONE;
