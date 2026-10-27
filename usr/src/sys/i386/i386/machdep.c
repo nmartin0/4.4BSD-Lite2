@@ -597,6 +597,7 @@ int ptrace_write_u(p, off, data)
 }
 
 int	waittime = -1;
+struct pcb dumppcb;
 
 boot(arghowto)
 	int arghowto;
@@ -667,6 +668,18 @@ extern int cold;
 		for (;;) ;
 	} else {
 		if (howto & RB_DUMP) {
+			/*
+			 * AI-ONLY NOTE: the two lines before dumpsys are
+			 * FreeBSD 2.0 and 2.0.5's boot() (machdep.c:766-768,
+			 * :869-871), with dumppcb below. The registers and
+			 * page directory at the moment of the dump are what a
+			 * debugger on the saved core file starts from;
+			 * kvm-fbsd.c in gdb 4.16 (FreeBSD 2.2.8's) reads
+			 * dumppcb and stops with `kernel symbol dumppcb not
+			 * found' without it.
+			 */
+			savectx(&dumppcb, 0);
+			dumppcb.pcb_ptd = rcr3();
 			dumpsys();	
 			/*NOTREACHED*/
 		}
