@@ -230,9 +230,14 @@ rm -f "$COMPILE/vmunix"
 # the old one, measured: the release kernel kept 182 of the labels.
 # cksum of cc1 and the assembler, which compile and assemble every
 # object.
+#
+# And the Makefile's CFLAGS line, which is the compiler's flags: a flag
+# added there -- -mpreferred-stack-boundary=2 was one -- is no file
+# change either, and a kernel built after it kept the objects compiled
+# before it: 5721 of the 5795 padding instructions the flag removes.
 stamp="$KCC $KAS
 $(cksum "$($KCC -print-prog-name=cc1)" "$TOOLS/$GT-as" | cut -d' ' -f1,2)
-$(grep '^IDENT=\|^PARAM=' "$COMPILE/Makefile")"
+$(grep '^IDENT=\|^PARAM=\|^CFLAGS=' "$COMPILE/Makefile")"
 if [ "$(cat "$COMPILE/.kcc" 2>/dev/null)" != "$stamp" ]; then
 	rm -f "$COMPILE"/*.o "$COMPILE/assym.s"
 	printf '%s\n' "$stamp" > "$COMPILE/.kcc"
