@@ -912,14 +912,15 @@ Makefiles do not know.
 - **contrib/gdb-4.7.LBL still reads the s register offsets and
   FM_TRAP** (i386b-nat.c, i386bsd-xdep.c). It is not built; the gdb
   that reads ELF replaces it (roadmap.md item 3).
-- **ddb's trace prints a bogus argument list for a function called
-  from code that GCC 2.95 pads the stack for** -- `Debugger()` shows
-  some sixty arguments. `db_numargs` reads the instruction after the
-  call: `popl %ecx` is one argument, `addl $n,%esp` is n/4, anything
-  else five. GCC 2.95 pads calls to 16 bytes, so after a call with no
-  arguments comes `addl $-12,%esp`, whose 0xf4 is read as 244. FreeBSD
-  (to 4.0), NetBSD (to 1.5, and its history to 2001) and OpenBSD 1996
-  all have this function as it is here. To be decided.
+- ~~**ddb's trace printed a bogus argument list**~~ **FIXED** (patch
+  203): `Debugger()` showed some sixty arguments. `db_numargs` reads
+  the instruction after a call (`popl %ecx` is one argument, `addl
+  $n,%esp` is n/4, anything else five), and GCC 2.95 pads calls to 16
+  bytes, so after a call with no arguments came `addl $-12,%esp`,
+  whose 0xf4 was read as 244. FreeBSD, NetBSD and OpenBSD all had
+  `db_numargs` as it is here, to FreeBSD 4.0, NetBSD 1.5 and OpenBSD
+  1996 at least; the fix is FreeBSD 4.0's, compiling the kernel
+  `-mpreferred-stack-boundary=2` (i386 Makefile).
 
 ## 6. Things established that change how the rest reads
 

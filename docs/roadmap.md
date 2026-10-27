@@ -127,8 +127,9 @@ Mach 3.0's for what ddb.4 documents, each its own commit, **done**
 (roadmap-4.6.md); ~~reading the kernel's ELF symbols~~ **done**
 (patch 201: NetBSD 1.3's db_elf.c, loaded with -d); ~~`syscall()` on
 a trapframe~~, FreeBSD's of January 1994, **done** (patch 202); next,
-the `Debugger()` argument count in trace (deferred.md), then the gdb
-that reads ELF.
+~~the `Debugger()` argument count in trace~~, FreeBSD 4.0's
+`-mpreferred-stack-boundary=2`, **done** (patch 203); next, the gdb that
+reads ELF.
 
 **4. Ports** (decided 2026-10-14; *Ports*, below): FreeBSD 2.2.2's
 framework, and what it needs from FreeBSD 2.2 -- pkg_install, md5,

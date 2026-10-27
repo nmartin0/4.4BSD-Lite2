@@ -589,6 +589,20 @@ wait; fork; ptrace's registers, refusals, step and continue; /proc's
 regs equal to ptrace's) and by ddb: break in getpid, trace shows
 `--- syscall (number 20) ---`.
 
+Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
+2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
+i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and
+wastes about 12 bytes of it per call). GCC 2.95's i386 default is 16
+bytes (i386.c:394). With it, a call with no arguments is no longer
+followed by `addl $-12,%esp`, which db_numargs read as 61 arguments;
+trace's argument lists are sane and Debugger() shows five, as any
+function it cannot size. The padding instructions in the kernel go from
+5795 to 4 and vmunix is 34 KB smaller. NetBSD 1.5, 7 and 8 and OpenBSD
+1996 and current have no such flag in their i386 configuration or
+shared makefiles; no earlier FreeBSD has it (3.0.0 does not). build/
+kernel.sh now records the Makefile's CFLAGS line with the compiler, so
+a flag added there empties the objects, which it had not.
+
 Patch 200 is the fixes to this ddb, each its own commit with a note
 at the site. The three BSDs' of 1994-97. NetBSD's: db_recover is no
 longer left pointing into a dead stack after ddb is left (gwr, 1994);
