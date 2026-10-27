@@ -26,6 +26,24 @@ settle*.
   (decided 2026-10-22; roadmap.md, *Later: GCC's other languages*).
 - **Changes made for GCC 14** are kept in the tree for these
   compilers (deferred.md, section 5).
+- **The i386 stack alignment, to be checked against the System V ABI
+  (2026-10-27).** 4.5BSD compiles the kernel `-mpreferred-stack-boundary=2`,
+  a 4-byte stack, as FreeBSD 4.0 does, because GCC 2.95's 16-byte
+  default padded every call and made ddb's trace read sixty arguments
+  for `Debugger()` (imports.md, patch 203). The belief behind it is
+  that the original System V i386 ABI, which the systems of the
+  period follow, requires only 4-byte alignment, and that 16 bytes
+  came later with SSE: Apple's i386 ABI first, then a revision of the
+  System V i386 psABI. That is from memory and has not been checked
+  against either document. Before 4.6BSD moves to a newer compiler or
+  ABI: read the System V i386 psABI and its revisions for the exact
+  alignment each version requires and when; follow the version 4.6BSD
+  targets, in the kernel and in userland (the flag here touches only
+  the kernel's own compilation, and userland keeps GCC's default);
+  drop or change the flag if the ABI asks for 16; and look for kernel
+  code that depends on either alignment (SSE or aligned vector types,
+  assembly that assumes it, ddb's `db_numargs`, which reads the
+  instruction after a call and is only right for an unpadded call).
 - **Permissive binary tools**, when they mature: nm and size from
   OpenBSD, ar and ranlib from FreeBSD 8, strip and objcopy from
   elftoolchain; a permissive assembler and linker (yasm, elftoolchain
