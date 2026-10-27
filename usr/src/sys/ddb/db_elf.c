@@ -274,9 +274,23 @@ X_db_search_symbol(symtab, off, strategy, diffp)
 	for (symp = symtab_start; symp < symtab_end; symp++) {
 		if (symp->st_name == 0)
 			continue;
+		/*
+		 * AI-ONLY NOTE: changed (2026-10-26) -- the type test kept
+		 * out, as eeh (Eduardo Horvath) kept it out of NetBSD's
+		 * between revisions 1.2 and 1.8 (NetBSD 1.4's, 8 January
+		 * 1999, which has it), his comment with it.
+		 * The assembler gives the entry points it defines no ELF
+		 * type, and this kernel has 167 such symbols -- the Xintr
+		 * vectors, setjmp, copyout and the rest of locore.s --
+		 * which the test passed over: an address in one was named
+		 * for the function before it, or for nothing.
+		 */
+#if 0
+		/* This prevents me from seeing anythin in locore.s -- eeh */
 		if (ELF_SYM_TYPE(symp->st_info) != Elf_estt_object &&
 		    ELF_SYM_TYPE(symp->st_info) != Elf_estt_func)
 			continue;
+#endif
 
 		if (off >= symp->st_value) {
 			if ((off - symp->st_value) < diff) {
