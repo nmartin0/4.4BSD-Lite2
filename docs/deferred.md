@@ -529,6 +529,31 @@ boots multi-user. The record as it stood:
 before this change… `debug1` has an incomplete type at what is now
 line 974."
 
+### Machine-dependent knowledge in the machine-independent directories
+
+Kept as a survey, not a defect: the aim is for 4.5BSD to stay as
+portable across architectures as Lite2 was, and these are the places
+where this tree knows more about the i386 than Lite2's machine-independent
+directories did. Counted 2026-10-27 against Lite2, NetBSD 1.0 and
+NetBSD 1.3.
+
+- **The interface itself.** Machine-independent code reaches the port
+  through about 22 `cpu_*`, `sendsig`, `setregs`, `need_resched` and
+  `CLKF_*` names, 28 pmap entry points, and `<machine/cpu.h>`, which 26
+  files include. That is Berkeley's design and is not a leak.
+- **`#ifdef i386` in machine-independent directories.** Lite2 has 7
+  (`vm_glue.c` four times, `vm_page.c`, `netisr.h`, `disklabel.h`);
+  NetBSD 1.0 has 11 and NetBSD 1.3 has 4; this tree had 8. The extra
+  one was `kern/exec_elf.c`, which now takes its machine types from
+  `<machine/elf_machdep.h>` as NetBSD 1.3 does (the commit after patch
+  203), leaving 7.
+- **PC partition tables.** `subr_diskslice.c` and `diskslice.h`
+  (FreeBSD's) put the PC partition format in machine-independent
+  directories. NetBSD and OpenBSD keep it in the port.
+- **Growth.** About 45 files and 5.6 thousand lines have been added to
+  machine-independent directories since Lite2, mostly FreeBSD and
+  NetBSD imports.
+
 ## 3. Interfaces frozen at the old spelling
 
 | what | current state | the named answer | commit |
