@@ -33,7 +33,8 @@ extern void i386_float_info PARAMS ((void));
 
 #define FLOAT_INFO i386_float_info ()
 
-#define IN_SOLIB_CALL_TRAMPOLINE(pc, name) STREQ (name, "_DYNAMIC")
+/* AI-ONLY NOTE: FreeBSD 2.2.8's IN_SOLIB_CALL_TRAMPOLINE, for solib.c,
+   is out (2026-10-27) with shared libraries; see nm.h.  */
 
 /* FRAME_CHAIN takes a frame's nominal address and produces the frame's
    chain-pointer.

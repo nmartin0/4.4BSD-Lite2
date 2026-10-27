@@ -22,8 +22,15 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 #include <errno.h>
 #include <signal.h>
 #include <fcntl.h>
-#include <sys/sysctl.h>
+/* AI-ONLY NOTE: <sys/param.h> first, and NBPG, PGSHIFT and PGOFSET for
+   PAGE_SIZE, PAGE_SHIFT and PAGE_MASK below (2026-10-27): Lite2's
+   headers, which have no include guards and no dependencies of their
+   own, want <sys/param.h> before <sys/sysctl.h>, and its PAGE_SIZE is
+   cnt.v_page_size, a variable of the kernel. Lite2's own libkvm
+   (kvm_i386.c) uses NBPG, PGSHIFT and PGOFSET. Nor can <machine/pcb.h>
+   be included again after <sys/user.h>, which has it. */
 #include <sys/param.h>
+#include <sys/sysctl.h>
 #include <sys/time.h>
 #include <sys/proc.h>
 #include <sys/user.h>
@@ -40,7 +47,7 @@ Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.  */
 #include <vm/vm_param.h>
 
 #include <machine/vmparam.h>
-#include <machine/pcb.h>
+/* <machine/pcb.h> is out: <sys/user.h> above includes it, and Lite2's has no guard. */
 #include <machine/frame.h>
 
 static void kcore_files_info PARAMS ((struct target_ops *));
@@ -792,11 +799,11 @@ kvtophys (fd, addr)
   /*
    * Read the second-level page table.
    */
-  v = (pte&PG_FRAME) + ((addr >> PAGE_SHIFT)&(NPTEPG-1)) * sizeof pte;
+  v = (pte&PG_FRAME) + ((addr >> PGSHIFT)&(NPTEPG-1)) * sizeof pte;
   if (physrd (fd, v, (char *) &pte, sizeof (pte)) < 0 || (pte&PG_V) == 0)
     return (~0);
 
-  addr = (pte & PG_FRAME) + (addr & PAGE_MASK);
+  addr = (pte & PG_FRAME) + (addr & PGOFSET);
 #if 0
   printf ("vtophys (%x) -> %x\n", oldaddr, addr);
 #endif
@@ -877,7 +884,7 @@ kernel_core_file_hook (fd, addr, buf, len)
 	  break;
 	}
       /* we can't read across a page boundary */
-      i = min (len, PAGE_SIZE - (addr & PAGE_MASK));
+      i = min (len, NBPG - (addr & PGOFSET));
       if ( (cc = physrd (fd, paddr, cp, i)) <= 0)
 	{
 	  memset (cp, '\000', len);

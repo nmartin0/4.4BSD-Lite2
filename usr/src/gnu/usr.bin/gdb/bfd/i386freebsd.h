@@ -3,7 +3,11 @@
 #include <machine/param.h>
 #include <machine/vmparam.h>
 
-#define NBPG			PAGE_SIZE
+/* AI-ONLY NOTE: FreeBSD 2.2.8's `#define NBPG PAGE_SIZE' is out (2026-10-27):
+   this system's <machine/param.h>, which Lite2 wrote, defines NBPG as 4096,
+   and its PAGE_SIZE is cnt.v_page_size, a variable in the kernel's
+   address space. HOST_PAGE_SIZE below then is NBPG, as GNU's own
+   bfd/hosts/i386bsd.h and gdb/config/i386/xm-i386bsd.h have it.  */
 #define	HOST_PAGE_SIZE		NBPG
 #define	HOST_MACHINE_ARCH	bfd_arch_i386
 #define	HOST_TEXT_START_ADDR		USRTEXT
