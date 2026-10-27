@@ -190,6 +190,13 @@ _C_LABEL(cpu):	.long	0		# are we 386, 386sx, or 486
 _C_LABEL(cold):	.long	1		# cold till we are not
 _C_LABEL(atdevbase):	.long	0	# location of start of iomem in virtual
 _C_LABEL(atdevphys):	.long	0	# location of device mapping ptes (phys)
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- esym, the end of the kernel's
+ * symbol table where a boot program has loaded one after the kernel,
+ * for ddb; NetBSD 1.0's locore.s:153,158, declaration and comment.
+ */
+	.globl	_C_LABEL(esym)
+_C_LABEL(esym):	.long	0		# ptr to end of syms
 
 	.globl	_C_LABEL(IdlePTD), _C_LABEL(KPTphys)
 _C_LABEL(IdlePTD):	.long	0
@@ -205,7 +212,7 @@ start:	movw	$0x1234,%ax
 	.space	0x500		# skip over warm boot shit
 
 	/*
-	 * pass parameters on stack (howto, bootdev, unit, cyloffset)
+	 * pass parameters on stack (howto, bootdev, unit, cyloffset, esym)
 	 * note: 0(%esp) is return address of boot
 	 * ( if we want to hold onto /boot, it's physical %esp up to _C_LABEL(end))
 	 */
@@ -216,6 +223,23 @@ start:	movw	$0x1234,%ax
 	movl	%eax,_C_LABEL(bootdev)-SYSTEM
 	movl	12(%esp),%eax
 	movl	%eax, _C_LABEL(cyloffset)-SYSTEM
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- esym, the fifth word: the
+ * physical end of the symbols the boot program loaded after the
+ * kernel, or 0 when it loaded none. NetBSD 1.0's locore.s:188-190
+ * takes it from 16(%esp), as Mach 3.0's i386 boot pushed it (argv[4]
+ * = esym, i386at/boot/asm.s:163) and NetBSD 1.0's boot still does;
+ * these four lines are OpenBSD's (locore.s, as of fe42373db59, 17
+ * April 2003), which leave a 0 at 0 where NetBSD 1.0 added KERNBASE
+ * to it whatever it was. boot2 passes 0 when it is not given -d, so
+ * NetBSD 1.0's form would make every such boot place its page tables
+ * at physical 0, below.
+ */
+	movl	16(%esp),%eax
+	testl	%eax,%eax
+	jz	1f
+	addl	$SYSTEM,%eax
+1:	movl	%eax,_C_LABEL(esym)-SYSTEM
 
 /*
  * AI-ONLY NOTE: the CPU detection, which stood here behind
@@ -314,22 +338,59 @@ start:	movw	$0x1234,%ax
 	movl	%eax,_C_LABEL(Maxmem)-SYSTEM
 #endif
 
-/* find end of kernel image */
-	movl	$_C_LABEL(end)-SYSTEM,%ecx
-	addl	$ NBPG-1,%ecx
-	andl	$~(NBPG-1),%ecx
-	movl	%ecx,%esi
-
-/* clear bss and memory for bootstrap pagetables. */
-	movl	$_C_LABEL(edata)-SYSTEM,%edi
-	subl	%edi,%ecx
-	addl	$(UPAGES+2+NKPDE)*NBPG,%ecx	# ptd, stack, usr stk map, kpts
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- the bss cleared on its own, and
+ * the bootstrap page tables placed after the symbols when esym says a
+ * boot program loaded them, where one pass from edata cleared the bss
+ * and the tables together and would have cleared the symbols with
+ * them. NetBSD 1.0's locore.s:348-385: its two clears, its `edi =
+ * esym ?: end' block under the same #if, and its picture of the
+ * address space, [syms] and all. Its bss clear sized itself as
+ * `(_end-_edata+3)>>2', a difference of two symbols the linker
+ * defines, which an a.out assembler left to the linker and an ELF one
+ * rejects; the five lines that clear it here are OpenBSD's (locore.s,
+ * fe42373db59, April 2003), which made the same change for ELF. The
+ * tables' size is this file's own, (UPAGES+2+NKPDE)*NBPG, which is
+ * NetBSD 1.0's; so are its page rounding, NBPG-1 where NetBSD writes
+ * PGOFSET, and its byte clear of the tables where NetBSD clears
+ * longwords -- the same work, left as this file wrote it.
+ */
 /*
  * Virtual address space of kernel:
  *
- *	text | data | bss | page dir | proc0 kernel stack | usr stk map | Sysmap
- *			     0               1       2       3             4
+ * text | data | bss | [syms] | page dir | proc0 kernel stack | usr stk map | Sysmap
+ *			      0               1       2       3             4
  */
+	/* Clear the BSS. */
+	movl	$_C_LABEL(edata)-SYSTEM,%edi
+	movl	$_C_LABEL(end),%ecx
+	subl	$_C_LABEL(edata),%ecx
+	addl	$3,%ecx
+	shrl	$2,%ecx
+	xorl	%eax,%eax
+	cld
+	rep
+	stosl
+
+	/* Find end of kernel image. */
+	movl	$_C_LABEL(end)-SYSTEM,%ecx
+#if defined(DDB) && !defined(SYMTAB_SPACE)
+	/* Save the symbols (if loaded). */
+	movl	_C_LABEL(esym)-SYSTEM,%eax
+	testl	%eax,%eax
+	jz	1f
+	movl	%eax,%ecx
+	subl	$SYSTEM,%ecx
+1:
+#endif
+	movl	%ecx,%edi		# edi = esym ?: end
+	addl	$ NBPG-1,%ecx		# page align up
+	andl	$~(NBPG-1),%ecx
+	movl	%ecx,%esi		# esi = start of tables
+	subl	%edi,%ecx
+	addl	$(UPAGES+2+NKPDE)*NBPG,%ecx	# ptd, stack, usr stk map, kpts
+
+	/* Clear memory for bootstrap tables. */
 	xorl	%eax,%eax	# pattern
 	cld
 	rep
