@@ -6,7 +6,7 @@
 # the Kerberos parts of login, su, rlogind and the rest are
 # (docs/deferred.md, *Kerberos*); NetBSD 1.0's top-level Makefile
 # guards its line in `build' the same way, with `.if exists'.
-SUBDIR=	bin contrib games include lib libexec sbin \
+SUBDIR=	bin contrib games gnu include lib libexec sbin \
 	share usr.bin usr.sbin
 .if defined(KERBEROS)
 SUBDIR+=kerberosIV
