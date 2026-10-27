@@ -503,9 +503,9 @@ setjmp for <setjmp.h>'s jmp_buf, as NetBSD 1.2's; db_machdep.h names
 frame.h and psl.h, and frame.h is guarded, as FreeBSD 2.0's; show map
 and show object call Lite's vm_map_print and vm_object_print, as
 FreeBSD 2.0's ddb; kdbprinttrap prints the trap's number, as FreeBSD
-2.0's; and DB_NO_AOUT, with an arm of ours in db_aout.c that adds no
+2.0's; and DB_NO_AOUT, with an arm of ours in db_aout.c that added no
 symbol table, since the kernel is ELF and db_aout.c reads a.out
-(reading the ELF symbols is to come, roadmap.md item 3). With them
+(replaced in patch 201, below). With them
 FreeBSD's fix printing a NULL string as "(null)" (bde, 30 October
 1994), without which trace faulted where there is no symbol;
 db_show_all_procs, NetBSD 1.1's on Lite's process lists without its
@@ -524,15 +524,42 @@ interrupt while idle recursed to a reset. NetBSD 1.0's fallback to
 proc0 is restored, and the note in trap.c that said it was not needed
 is corrected.
 
-Tested by the shim with the installed disk: "DDB: no symbols" and a
-prompt at boot with howto 0x40; show registers, x/i, x/x; a breakpoint
+Tested by the shim with the installed disk (before patch 201 gave it
+symbols): "DDB: no symbols" and a prompt at boot with howto 0x40; show registers, x/i, x/x; a breakpoint
 on getpid taken during boot, trace, s, delete, and the boot goes on to
 the login prompt; a BREAK on the serial console from the shell gives
 the prompt, ps and trace work, and c returns to the shell; a panic
 called from ddb stops in ddb, and c goes on to sync the disks. trace
-prints "(null)" for each function's name until there are symbols.
+prints "(null)" for each function's name where there are no symbols.
 Not working, as in NetBSD 1.0: watchpoints, which trap.c does not
 take; a breakpoint at the boot prompt before pmap_bootstrap.
+
+Patch 201 gives ddb the kernel's ELF symbols (decided 2026-10-27; kind
+D). The reader is NetBSD 1.3's db_elf.c (rev 1.2), with the interface
+of db_aout.c 1.17 and db_sym.c 1.14 (thorpej, 26 June 1997): exactly
+one of db_aout.c and db_elf.c is compiled, by DB_AOUT_SYMBOLS or
+DB_ELF_SYMBOLS in db_machdep.h; ddb_init(start, end) is in db_elf.c;
+exec_elf.h, elf_machdep.h and ALIGNED_POINTER are NetBSD 1.3's. Two
+fixes to it, both NetBSD's own later: the string table is the symbol
+table's sh_link (1.4's), and a symbol without an ELF type is searched
+(1.4's). The symbols are passed as Berkeley, NetBSD and OpenBSD pass
+them, an esym argument and not FreeBSD's bootinfo: boot2 with -d
+loads the ELF header, the section headers and each symbol and string
+section after the kernel's bss as NetBSD 1.3's loadfile.c does, and
+passes the end as the fifth word on the kernel's stack (0 without
+-d); locore.s keeps the symbols out of its bss clear and places the
+page tables after them, OpenBSD's guarded load of esym. The kernel
+derives the start as &end. Without -d nothing is loaded, as before,
+and ddb shows addresses only. The table is named vmunix, as each
+system named its own. The kernel is linked -X, as Lite2's own
+Makefile and FreeBSD 2.0-3.0 link, so ddb has the names of static
+functions; GCC 2.95.3 is configured to emit no gcc2_compiled. label
+(bsd44-elf.h; its OSF/1 i386 targets define it empty), where FreeBSD
+removed it after the link; db_trace.c names the trap and syscall
+frames by their ELF names. Tested by the shim and by the installed
+disk through boot1 and boot2, with and without -d, and on kernels
+linked -x, -X and -X with -g. The trace through a syscall frame
+misdecodes until syscall() takes a trapframe (patch 202).
 
 Patch 200 is the fixes to this ddb, each its own commit with a note
 at the site. The three BSDs' of 1994-97. NetBSD's: db_recover is no
@@ -717,8 +744,9 @@ to BTX. Not taken: btxldr, the third-stage loader and libi386, mbr,
 boot0, kgzldr, cdldr, pxeldr, and btxld's ELF header template.
 
 Shrink-wrapped, each change noted at its site: boot2 reads ELF only,
-one PT_LOAD or two; no bootinfo, BIOS probes or symbol table, which
-this kernel does not read; no third stage; no DOS slices, since
+one PT_LOAD or two; no bootinfo or BIOS probes; the symbol table is
+loaded for ddb as NetBSD's boot loads it, with -d (patch 201, in the
+ddb section above); no third stage; no DOS slices, since
 Lite2's wd driver reads its label from sector 1 and knows no
 partition table; the flags this kernel has (-a -s -r -d) passed and
 the console ones kept; this tree's majors in the boot device; and
