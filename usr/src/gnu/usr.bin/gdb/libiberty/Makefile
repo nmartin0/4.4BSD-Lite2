@@ -16,4 +16,15 @@ SRCS= argv.c basename.c concat.c cplus-dem.c fdmatch.c getopt.c \
 
 CFLAGS+= -I$(.CURDIR) -I$(.CURDIR)/../gdb/.
 
+# AI-ONLY NOTE: FreeBSD 2.2.8 sets INTERNALLIB and INTERNALSTATICLIB,
+# which its bsd.lib.mk reads; Lite2's does not, and installed this
+# library and its profiled twin into /usr/lib. Made as bfd/Makefile
+# here is, which does what FreeBSD 3.0's does: NOPROFILE, NOPIC and an
+# empty install.
+NOPROFILE=no
+NOPIC=no
+
+install:
+	@echo -n
+
 .include <bsd.lib.mk>
