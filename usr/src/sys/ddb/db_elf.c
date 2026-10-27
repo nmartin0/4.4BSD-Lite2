@@ -390,8 +390,13 @@ ddb_init(sym_start, sym_end)
 	void *sym_start, *sym_end;
 {
 
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- the table named for the
+	 * kernel's file, vmunix, as each system named its own: Mach
+	 * "mach", NetBSD "netbsd", OpenBSD "bsd", FreeBSD "kernel".
+	 */
 	if (sym_end > sym_start)
-		X_db_sym_init(sym_start, sym_end, "netbsd");
+		X_db_sym_init(sym_start, sym_end, "vmunix");
 }
 
 #endif /* DB_ELF_SYMBOLS */

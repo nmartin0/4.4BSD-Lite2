@@ -354,15 +354,20 @@ X_db_sym_numargs(symtab, cursym, nargp, argnamep)
  */
 ddb_init()
 {
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- the table named for the
+	 * kernel's file, vmunix, as each system named its own: Mach
+	 * "mach", NetBSD "netbsd", OpenBSD "bsd", FreeBSD "kernel".
+	 */
 #ifndef SYMTAB_SPACE
 	extern char	*esym;
 	extern int	end;
 
 	if (esym > (char *)&end) {
-	    X_db_sym_init((int *)&end, esym, "netbsd");
+	    X_db_sym_init((int *)&end, esym, "vmunix");
 	}
 #else
-	X_db_sym_init (db_symtab, 0, "netbsd");
+	X_db_sym_init (db_symtab, 0, "vmunix");
 #endif
 }
 
