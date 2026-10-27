@@ -230,6 +230,31 @@ enum AuxID {
 
 #define	ELF_HDR_SIZE	(sizeof(Elf32_Ehdr))
 
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- the machine's own ELF
+ * definitions and the size-independent names, for ddb's reader of the
+ * kernel's ELF symbols, NetBSD 1.3's ddb/db_elf.c, which is written
+ * against them. Taken from NetBSD 1.3's revision of this file, 1.11 of
+ * 10 June 1997, its last lines before `#ifdef _KERNEL': the include of
+ * <machine/elf_machdep.h>, and of the ELFSIZE == 32 names, those whose
+ * Elf32_ types this file has. Left there: Elf_Rel, Elf_RelA, Elf_Dyn,
+ * Elf_Note, ELF_R_SYM, ELF_R_TYPE and AuxInfo, whose Elf32_ forms are
+ * not here, and the ELFSIZE == 64 arm, there being no Elf64_ types.
+ */
+#include <machine/elf_machdep.h>
+
+#if defined(ELFSIZE) && (ELFSIZE == 32)
+#define	Elf_Ehdr	Elf32_Ehdr
+#define	Elf_Phdr	Elf32_Phdr
+#define	Elf_Shdr	Elf32_Shdr
+#define	Elf_Sym		Elf32_Sym
+#define	Elf_Word	Elf32_Word
+#define	Elf_Addr	Elf32_Addr
+#define	Elf_Off		Elf32_Off
+
+#define	Elf_e_ident	Elf32_e_ident
+#define	Elf_e_siz	Elf32_e_siz
+#endif
 
 /*
  * AI-ONLY NOTE: KERNEL, where NetBSD 1.1 wrote _KERNEL. This tree

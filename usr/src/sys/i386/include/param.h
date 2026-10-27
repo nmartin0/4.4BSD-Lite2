@@ -51,6 +51,19 @@
 #define	ALIGNBYTES	3
 #define	ALIGN(p)	(((u_int)(p) + ALIGNBYTES) &~ ALIGNBYTES)
 
+/*
+ * AI-ONLY NOTE: added (2026-10-26) -- ALIGNED_POINTER, which ddb's
+ * db_elf.c (NetBSD 1.3) tests the symbol table's addresses with.
+ * NetBSD 1.3's i386 param.h, with its comment: the i386 fetches any
+ * type from any address.
+ *
+ * ALIGNED_POINTER is a boolean macro that checks whether an address
+ * is valid to fetch data elements of type t from on this architecture.
+ * This does not reflect the optimal alignment, just the possibility
+ * (within reasonable limits).
+ */
+#define	ALIGNED_POINTER(p,t)	1
+
 #define	NBPG		4096		/* bytes/page */
 #define	PGOFSET		(NBPG-1)	/* byte offset into page */
 #define	PGSHIFT		12		/* LOG2(NBPG) */
