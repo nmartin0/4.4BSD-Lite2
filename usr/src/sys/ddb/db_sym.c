@@ -296,7 +296,13 @@ db_symbol_values(sym, namep, valuep)
 		return;
 	}
 
-	X_db_symbol_values(sym, namep, &value);
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- the symbol table passed,
+	 * as NetBSD's db_sym.c 1.14 (thorpej, b2fbe9a0d, 26 June 1997)
+	 * passes it: db_elf.c finds a symbol's name through its table's
+	 * string table.
+	 */
+	X_db_symbol_values(db_last_symtab, sym, namep, &value);
 
 	if (db_symbol_is_ambiguous(sym))
 		*namep = db_qualify(sym, db_last_symtab->name);

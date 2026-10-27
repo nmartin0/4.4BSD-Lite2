@@ -1200,8 +1200,19 @@ init386(first) { extern ssdtosd(), lgdt(), lidt(), lldt(), etext;
 	 * AI-ONLY NOTE: added (2026-10-26) -- ddb set up, and entered at
 	 * once when booted with RB_KDB (boot's howto 0x40), as NetBSD
 	 * 1.0's init386 has it, here, after the descriptor tables.
+	 *
+	 * AI-ONLY NOTE: changed (2026-10-26) -- given where the symbols
+	 * are: from the kernel's end to esym, where the boot program
+	 * loaded them and locore.s left them, as NetBSD 1.3's alpha
+	 * machdep.c gives db_elf.c's ddb_init its ksym_start and
+	 * ksym_end. With no symbols esym is 0, and ddb_init adds none.
 	 */
-	ddb_init();
+	{
+		extern int end;
+		extern char *esym;
+
+		ddb_init(&end, esym);
+	}
 	if (boothowto & RB_KDB)
 		Debugger();
 #endif

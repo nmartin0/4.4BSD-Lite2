@@ -35,7 +35,19 @@
 
 #include <ddb/db_sym.h>
 
-#ifndef	DB_NO_AOUT
+/*
+ * AI-ONLY NOTE: changed (2026-10-26) -- NetBSD's interface of 26 June
+ * 1997 for more than one symbol format (thorpej, d0aa39b91, db_aout.c
+ * 1.17, in NetBSD 1.3), which db_elf.c is the other side of: this file
+ * is compiled when <machine/db_machdep.h> defines DB_AOUT_SYMBOLS,
+ * where it was unless DB_NO_AOUT; X_db_sym_init takes void * and
+ * checks its start is aligned; X_db_symbol_values is given the symbol
+ * table. The i386 now defines DB_ELF_SYMBOLS and not this, so this
+ * file compiles to nothing there; the stand-ins for a kernel without
+ * a.out symbols, which stood at its end, go with DB_NO_AOUT. The
+ * alignment message's %p is %x: this kernel's printf has no %p.
+ */
+#ifdef	DB_AOUT_SYMBOLS
 
 #define _AOUT_INCLUDE_
 #include <nlist.h>
@@ -62,9 +74,9 @@ int db_symtab[SYMTAB_SPACE/sizeof(int)] = { 0, 1 };
 /*
  * Find the symbol table and strings; tell ddb about them.
  */
-X_db_sym_init(symtab, esymtab, name)
-	int *	symtab;		/* pointer to start of symbol table */
-	char *	esymtab;	/* pointer to end of string table,
+X_db_sym_init(vsymtab, vesymtab, name)
+	void *	vsymtab;	/* pointer to start of symbol table */
+	void *	vesymtab;	/* pointer to end of string table,
 				   for checking - rounded up to integer
 				   boundary */
 	char *	name;
@@ -74,6 +86,13 @@ X_db_sym_init(symtab, esymtab, name)
 	register char *	strtab;
 	register int	strlen;
 	char *		estrtab;
+	int *symtab = vsymtab;
+	char *esymtab = vesymtab;
+
+	if (ALIGNED_POINTER(symtab, int) == 0) {
+		printf("DDB: bad symtol table start address %x\n", symtab);
+		return;
+	}
 
 #ifdef SYMTAB_SPACE
 	if (*symtab < sizeof(int)) {
@@ -210,7 +229,8 @@ X_db_search_symbol(symtab, off, strategy, diffp)
  * Return the name and value for a symbol.
  */
 void
-X_db_symbol_values(sym, namep, valuep)
+X_db_symbol_values(symtab, sym, namep, valuep)
+	db_symtab_t	*symtab;
 	db_sym_t	sym;
 	char		**namep;
 	db_expr_t	*valuep;
@@ -346,69 +366,4 @@ ddb_init()
 #endif
 }
 
-#else	/* DB_NO_AOUT */
-
-/*
- * AI-ONLY NOTE: added (2026-10-26) -- for a kernel whose symbols are not
- * a.out (machine/db_machdep.h, DB_NO_AOUT): no symbol table is added,
- * so db_sym.c finds none and ddb prints addresses alone, and these
- * stand in for the a.out routines db_sym.c calls, finding nothing.
- * ddb_init says so in the words db_aout.c uses for an empty table.
- */
-db_sym_t
-X_db_lookup(stab, symstr)
-	db_symtab_t	*stab;
-	char *		symstr;
-{
-	return ((db_sym_t)0);
-}
-
-db_sym_t
-X_db_search_symbol(symtab, off, strategy, diffp)
-	db_symtab_t *	symtab;
-	db_addr_t	off;
-	db_strategy_t	strategy;
-	db_expr_t	*diffp;
-{
-	return ((db_sym_t)0);
-}
-
-void
-X_db_symbol_values(sym, namep, valuep)
-	db_sym_t	sym;
-	char		**namep;
-	db_expr_t	*valuep;
-{
-	if (namep)
-		*namep = 0;
-	if (valuep)
-		*valuep = 0;
-}
-
-boolean_t
-X_db_line_at_pc(symtab, cursym, filename, linenum, off)
-	db_symtab_t *	symtab;
-	db_sym_t	cursym;
-	char		**filename;
-	int		*linenum;
-	db_expr_t	off;
-{
-	return (FALSE);
-}
-
-boolean_t
-X_db_sym_numargs(symtab, cursym, nargp, argnamep)
-	db_symtab_t *	symtab;
-	db_sym_t	cursym;
-	int		*nargp;
-	char		**argnamep;
-{
-	return (FALSE);
-}
-
-ddb_init()
-{
-	printf("DDB: no symbols\n");
-}
-
-#endif	/* DB_NO_AOUT */
+#endif	/* DB_AOUT_SYMBOLS */

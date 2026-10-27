@@ -45,12 +45,17 @@
 #include <machine/psl.h>
 
 /*
- * AI-ONLY NOTE: added (2026-10-26) -- no a.out symbol table: the kernel
- * is ELF, and db_aout.c reads a.out's. ddb runs without symbols, its
- * addresses in hexadecimal, until it reads the kernel's ELF symbols
- * (docs/roadmap.md, item 3); db_aout.c's DB_NO_AOUT arm stands in.
+ * AI-ONLY NOTE: changed (2026-10-26) -- the kernel is ELF, and ddb
+ * reads its symbols with db_elf.c, NetBSD 1.3's; these two lines are
+ * NetBSD 1.3's alpha db_machdep.h's, with the i386's size, 32, as
+ * NetBSD's i386 db_machdep.h 1.14 (thorpej, 4 December 1998) has it.
+ * They replace DB_NO_AOUT, which said no symbols were read at all.
  */
-#define	DB_NO_AOUT
+/*
+ * We use Elf32 symbols in DDB.
+ */
+#define	DB_ELF_SYMBOLS
+#define	DB_ELFSIZE	32
 
 typedef	vm_offset_t	db_addr_t;	/* address - unsigned */
 typedef	int		db_expr_t;	/* expression - signed */
