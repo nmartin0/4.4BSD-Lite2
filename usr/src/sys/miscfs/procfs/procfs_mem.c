@@ -87,7 +87,21 @@ procfs_rwmem(p, uio)
 		int fix_prot;
 
 		uva = (vm_offset_t) uio->uio_offset;
-		if (uva > VM_MAXUSER_ADDRESS) {
+		/*
+		 * AI-ONLY NOTE: USRSTACK, where this said
+		 * VM_MAXUSER_ADDRESS.
+		 *
+		 * On this port the user stack's top page lies above
+		 * VM_MAXUSER_ADDRESS (0xEFBFD000) and ends at USRSTACK
+		 * (0xEFBFE000), so the old bound refused every read of the
+		 * stack: ptrace PT_READ_D failed with EINVAL, and gdb could
+		 * print no argument, local or backtrace. FreeBSD 2.0.5
+		 * through 2.2.8 and NetBSD 1.6 define USRSTACK as
+		 * VM_MAXUSER_ADDRESS, so their `uva >= VM_MAXUSER_ADDRESS'
+		 * is this test; here the two differ by a page, as
+		 * kern_exec.c's note on `- NBPG' says.
+		 */
+		if (uva >= USRSTACK) {
 			error = 0;
 			break;
 		}
