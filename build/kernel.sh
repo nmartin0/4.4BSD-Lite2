@@ -222,7 +222,16 @@ rm -f "$COMPILE/vmunix"
 # later had config write the options into headers (opt_*.h) that
 # make depend can follow. Here the two lines are recorded with the
 # compiler, and a change empties the objects as a compiler's does.
+#
+# And the compiler is recorded by its contents too, not by its command
+# line alone: build/sysroot.sh rebuilds GCC in the same place, so a
+# change to the compiler itself -- `gcc-2.95.3: no gcc2_compiled. label
+# in this system's objects' was one -- left every object compiled by
+# the old one, measured: the release kernel kept 182 of the labels.
+# cksum of cc1 and the assembler, which compile and assemble every
+# object.
 stamp="$KCC $KAS
+$(cksum "$($KCC -print-prog-name=cc1)" "$TOOLS/$GT-as" | cut -d' ' -f1,2)
 $(grep '^IDENT=\|^PARAM=' "$COMPILE/Makefile")"
 if [ "$(cat "$COMPILE/.kcc" 2>/dev/null)" != "$stamp" ]; then
 	rm -f "$COMPILE"/*.o "$COMPILE/assym.s"
