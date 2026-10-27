@@ -559,7 +559,35 @@ removed it after the link; db_trace.c names the trap and syscall
 frames by their ELF names. Tested by the shim and by the installed
 disk through boot1 and boot2, with and without -d, and on kernels
 linked -x, -X and -X with -g. The trace through a syscall frame
-misdecodes until syscall() takes a trapframe (patch 202).
+misdecoded until syscall() took a trapframe (patch 202, below).
+
+Patch 202 converts i386 syscall() to a struct trapframe (decided
+2026-10-27; kind D). FreeBSD's c8a13ecd0 (David Greenman, 3 January
+1994, "Convert syscall to trapframe. Based on work done by John
+Brezak.") is the model. Lite2, like 386BSD, had two register frames: a
+trap built a struct trapframe, and a system call, entering by the
+lcall gate, a struct syscframe, with the pcb's FM_TRAP saying which a
+process had entered on, so sendsig, sigreturn, setregs, ptrace, procfs
+and ddb each branched on it, and the way out of a system call popped
+the whole frame and pushed it again as an interrupt frame. Now
+IDTVEC(syscall) pushes a trapframe (room for tf_err and tf_trapno, then
+pushal, %ds, %es), the call gate copies one word (gd_stkcpy 1, as
+FreeBSD's and NetBSD 1.0's) so the frame has a place for tf_eflags, and
+the way out is doreti with T_ASTFLT as a trap's. struct syscframe, the
+sEDI..sSS offsets and FM_TRAP are gone. NetBSD 1.0 and OpenBSD 1996
+have one frame too, built by an INTRENTRY macro which this tree does
+not have; FreeBSD's text is the smaller change to Lite2's locore.s and
+held to release 2.1.0. Kept where FreeBSD deleted them: PC, SP, PS, R0
+and R1 in reg.h, now on the t offsets, since cpu_setstack and
+compat_43_wait use them. Needed here and in no donor's diff: the
+bootstrap stack reserves a whole trapframe (68 bytes) for proc 1's
+first entry to user mode, where 48 did, and genassym's MD_EIP and
+MD_ESP follow reg.h. Tested on the shim with the installed disk by a
+program built for it (signals sent inside a system call and taken from
+a trap, both returned through sigreturn; SA_RESTART and EINTR; the old
+wait; fork; ptrace's registers, refusals, step and continue; /proc's
+regs equal to ptrace's) and by ddb: break in getpid, trace shows
+`--- syscall (number 20) ---`.
 
 Patch 200 is the fixes to this ddb, each its own commit with a note
 at the site. The three BSDs' of 1994-97. NetBSD's: db_recover is no

@@ -888,6 +888,38 @@ Makefiles do not know.
   setup guide runs at 0 only while single user. The installer marks
   chpass so on a new system, so even the first install from the
   system's own sources is done single user.
+- **A traced process's single step does not carry over a system call.**
+  The lcall gate does not clear the trace flag, so the trace trap taken
+  on the gate's first instruction is the kernel's (`T_TRCTRAP` in
+  trap.c, Berkeley's, which clears `PSL_T` in the kernel's frame) and
+  the flag is not in the flags the entry then saves. A `PT_STEP` over
+  an `lcall` stops at the next instruction only once. NetBSD 1.0's
+  entry clears the bit in the flags (`andb $~(PSL_T>>8)`, then
+  `popfl`) before it builds its frame, which is a different design
+  from Berkeley's trap case. Found reading the three entries for
+  patch 202; the behaviour here is reasoned from the code and not yet
+  tested.
+- **PT_SETREGS and /proc/N/regs write %ds and %es unchecked.** They
+  did so on a trap frame already, and now do on every frame (the
+  system call frame had neither). A selector that is not a valid user
+  data selector faults in the kernel when the frame is popped. FreeBSD
+  2.2 does the same; the check on %cs and the flags is the only one
+  made.
+- **`bpttraps` in locore.s pushes %es and %ds in the wrong order**
+  (under `#ifdef KGDB`, not built). FreeBSD's c8a13ecd0 swapped them
+  in the same change that converted syscall; left here because KGDB is
+  not configured.
+- **contrib/gdb-4.7.LBL still reads the s register offsets and
+  FM_TRAP** (i386b-nat.c, i386bsd-xdep.c). It is not built; the gdb
+  that reads ELF replaces it (roadmap.md item 3).
+- **ddb's trace prints a bogus argument list for a function called
+  from code that GCC 2.95 pads the stack for** -- `Debugger()` shows
+  some sixty arguments. `db_numargs` reads the instruction after the
+  call: `popl %ecx` is one argument, `addl $n,%esp` is n/4, anything
+  else five. GCC 2.95 pads calls to 16 bytes, so after a call with no
+  arguments comes `addl $-12,%esp`, whose 0xf4 is read as 244. FreeBSD
+  (to 4.0), NetBSD (to 1.5, and its history to 2001) and OpenBSD 1996
+  all have this function as it is here. To be decided.
 
 ## 6. Things established that change how the rest reads
 

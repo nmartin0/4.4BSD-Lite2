@@ -125,9 +125,10 @@ NetBSD 1.0's, CMU Mach's (decided 2026-10-25; imports.md, kind D); ~~the three B
 Mach 3.0's for what ddb.4 documents, each its own commit, **done**
 (patch 200); `watch` and `trace/t` left as the BSDs had them
 (roadmap-4.6.md); ~~reading the kernel's ELF symbols~~ **done**
-(patch 201: NetBSD 1.3's db_elf.c, loaded with -d); next, `syscall()`
-on a trapframe, as FreeBSD's of January 1994, then the `Debugger()`
-argument count in trace, then the gdb that reads ELF.
+(patch 201: NetBSD 1.3's db_elf.c, loaded with -d); ~~`syscall()` on
+a trapframe~~, FreeBSD's of January 1994, **done** (patch 202); next,
+the `Debugger()` argument count in trace (deferred.md), then the gdb
+that reads ELF.
 
 **4. Ports** (decided 2026-10-14; *Ports*, below): FreeBSD 2.2.2's
 framework, and what it needs from FreeBSD 2.2 -- pkg_install, md5,
