@@ -1,8 +1,15 @@
 #	$Id: Makefile,v 1.13.2.6 1997/05/02 11:26:03 gj Exp $
 
+# AI-ONLY NOTE: FreeBSD 2.2.8's, changed (2026-10-27) for this system:
+# GDB 4.16 is contrib/gdb-4.16; the readline is the one built beside
+# the bfd and libiberty, GDB 4.16's own (FreeBSD linked its
+# lib/libreadline), and so is its regex, gnu-regex.c, where FreeBSD
+# linked -lgnuregex and NetBSD 1.3 compiled it in as here; and there
+# are no shared libraries, which this system has none of: solib.c is out
+# (see nm.h).
 PROG = gdb
 
-GDBDIR=	${.CURDIR}/../../../../contrib/gdb
+GDBDIR=	${.CURDIR}/../../../../contrib/gdb-4.16
 .PATH:	${GDBDIR}/gdb
 .PATH:	${GDBDIR}/opcodes
 
@@ -13,12 +20,12 @@ XSRCS = annotate.c blockframe.c breakpoint.c buildsym.c c-lang.c \
 	corelow.c cp-valprint.c \
 	dcache.c dbxread.c demangle.c dwarfread.c \
 	elfread.c environ.c eval.c exec.c expprint.c \
-	findvar.c fork-child.c i386b-nat.c gdbtypes.c \
+	findvar.c fork-child.c i386b-nat.c gdbtypes.c gnu-regex.c \
 	i386-tdep.c infcmd.c inflow.c infptrace.c \
 	infrun.c inftarg.c language.c \
 	m2-lang.c m2-typeprint.c m2-valprint.c main.c maint.c \
 	mem-break.c minsyms.c objfiles.c parse.c \
-	printcmd.c remote.c remote-utils.c solib.c source.c \
+	printcmd.c remote.c remote-utils.c source.c \
 	stabsread.c stack.c symfile.c symmisc.c \
 	symtab.c target.c thread.c top.c \
 	typeprint.c utils.c valarith.c valops.c \
@@ -32,7 +39,7 @@ XSRCS = annotate.c blockframe.c breakpoint.c buildsym.c c-lang.c \
 XSRCS+= i386-dis.c dis-buf.c disassemble.c
 SRCS=	init.c ${XSRCS}
 
-CFLAGS+= -I$(.CURDIR) -I${DESTDIR}/usr/include/readline -I$(.CURDIR)/../bfd
+CFLAGS+= -I$(.CURDIR) -I${GDBDIR}/readline -I$(.CURDIR)/../bfd
 # use phkmalloc
 CFLAGS+= -DNO_MMALLOC
 # uncomment the next line if you want to debug gdb
@@ -50,8 +57,13 @@ LDADD+=   -L${.CURDIR}/../bfd/ -lbfd
 DPADD+=   ${.CURDIR}/../bfd/libbfd.a
 .endif
 
-DPADD+= ${LIBREADLINE} ${LIBGNUREGEX}
-LDADD+= -lreadline  -lgnuregex
+.if exists(${.OBJDIR}/../readline)
+LDADD+=   -L${.OBJDIR}/../readline -lreadline
+DPADD+=   ${.OBJDIR}/../readline/libreadline.a
+.else
+LDADD+=   -L${.CURDIR}/../readline/ -lreadline
+DPADD+=   ${.CURDIR}/../readline/libreadline.a
+.endif
 
 .if exists(${.OBJDIR}/../libiberty)
 LDADD+=   -L${.OBJDIR}/../libiberty -liberty

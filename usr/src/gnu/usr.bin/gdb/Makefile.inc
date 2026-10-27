@@ -3,7 +3,7 @@ GDB_MAKEFILE_INC_BEEN_HERE=yes
 
 # this may be defined in other places
 .if !defined(GDBDIR)
-GDBDIR=	${.CURDIR}/../../../../contrib/gdb
+GDBDIR=	${.CURDIR}/../../../../contrib/gdb-4.16
 .endif
 
 CFLAGS+= -I${GDBDIR}/include/. -I${GDBDIR}/gdb/. -I${GDBDIR}/bfd/.
