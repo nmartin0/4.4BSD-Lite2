@@ -72,13 +72,32 @@ fetch_core_registers (core_reg_sect, core_reg_size, which, ignore)
 
 #include <machine/reg.h>
 
+/* Some systems don't provide all the registers on a trap.  Use SS as a
+   default if so.  */
+
+#ifndef tDS
+#define tDS tSS
+#endif
+#ifndef tES
+#define tES tSS
+#endif
+#ifndef tFS
+#define tFS tSS
+#endif
+#ifndef tGS
+#define tGS tSS
+#endif
+
+/* These tables map between the registers on a trap frame, and the register
+   order used by the rest of GDB.  */
 /* this table must line up with REGISTER_NAMES in tm-i386.h */
 /* symbols like 'tEAX' come from <machine/reg.h> */
 static int tregmap[] = 
 {
   tEAX, tECX, tEDX, tEBX,
   tESP, tEBP, tESI, tEDI,
-  tEIP, tEFLAGS, tCS, tSS
+  tEIP, tEFLAGS, tCS, tSS,
+  tDS, tES, tFS, tGS
 };
 
 #ifdef sEAX
@@ -97,7 +116,8 @@ static int sregmap[] =
 {
   tEAX, tECX, tEDX, tEBX,
   tESP, tEBP, tESI, tEDI,
-  tEIP, tEFLAGS, tCS, tSS
+  tEIP, tEFLAGS, tCS, tSS,
+  tDS, tES, tFS, tGS
 };
 #endif /* No sEAX */
 
@@ -125,11 +145,11 @@ i386_register_u_addr (blockend, regnum)
 #endif /* !FETCH_INFERIOR_REGISTERS */
 
 #ifdef FLOAT_INFO
+#include "expression.h"
 #include "language.h"			/* for local_hex_string */
 #include "floatformat.h"
 
 #include <sys/param.h>
-#include <sys/dir.h>
 #include <signal.h>
 #include <sys/ioctl.h>
 #include <fcntl.h>
@@ -151,6 +171,37 @@ extern void print_387_status_word ();
 
 #define	fpstate		save87
 #define	U_FPSTATE(u)	u.u_pcb.pcb_savefpu
+
+static void
+i387_to_double (from, to)
+     char *from;
+     char *to;
+{
+  long *lp;
+  /* push extended mode on 387 stack, then pop in double mode
+   *
+   * first, set exception masks so no error is generated -
+   * number will be rounded to inf or 0, if necessary
+   */
+  asm ("pushl %eax"); 		/* grab a stack slot */
+  asm ("fstcw (%esp)");		/* get 387 control word */
+  asm ("movl (%esp),%eax");	/* save old value */
+  asm ("orl $0x3f,%eax");		/* mask all exceptions */
+  asm ("pushl %eax");
+  asm ("fldcw (%esp)");		/* load new value into 387 */
+
+  asm ("movl 8(%ebp),%eax");
+  asm ("fldt (%eax)");		/* push extended number on 387 stack */
+  asm ("fwait");
+  asm ("movl 12(%ebp),%eax");
+  asm ("fstpl (%eax)");		/* pop double */
+  asm ("fwait");
+
+  asm ("popl %eax");		/* flush modified control word */
+  asm ("fnclex");			/* clear exceptions */
+  asm ("fldcw (%esp)");		/* restore original control word */
+  asm ("popl %eax");		/* flush saved copy */
+}
 
 struct env387 
 {
@@ -195,7 +246,7 @@ print_387_status (status, ep)
     }
   
   print_387_control_word ((unsigned int)ep->control);
-  printf_unfiltered ("last exception: ");
+  printf_unfiltered ("last instruction: ");
   printf_unfiltered ("opcode %s; ", local_hex_string(ep->opcode));
   printf_unfiltered ("pc %s:", local_hex_string(ep->code_seg));
   printf_unfiltered ("%s; ", local_hex_string(ep->eip));
@@ -204,12 +255,18 @@ print_387_status (status, ep)
 
   top = (ep->status >> 11) & 7;
   
-  printf_unfiltered ("regno     tag  msb              lsb  value\n");
+  printf_unfiltered (" regno     tag  msb              lsb  value\n");
   for (fpreg = 7; fpreg >= 0; fpreg--) 
     {
+      int st_regno;
       double val;
       
-      printf_unfiltered ("%s %d: ", fpreg == top ? "=>" : "  ", fpreg); 
+      /* The physical regno `fpreg' is only relevant as an index into the
+       * tag word.  Logical `%st' numbers are required for indexing ep->regs.
+       */
+      st_regno = (fpreg + 8 - top) & 7;
+
+      printf_unfiltered ("%%st(%d) %s ", st_regno, fpreg == top ? "=>" : "  ");
 
       switch ((ep->tag >> (fpreg * 2)) & 3) 
 	{
@@ -219,14 +276,14 @@ print_387_status (status, ep)
 	case 3: printf_unfiltered ("empty "); break;
 	}
       for (i = 9; i >= 0; i--)
-	printf_unfiltered ("%02x", ep->regs[fpreg][i]);
+	printf_unfiltered ("%02x", ep->regs[st_regno][i]);
       
-      floatformat_to_double(&floatformat_i387_ext, (char *) ep->regs[fpreg], 
-			      &val);
+      i387_to_double((char *) ep->regs[st_regno], (char *) &val);
       printf_unfiltered ("  %g\n", val);
     }
 }
 
+void
 i386_float_info ()
 {
   struct user u; /* just for address computations */
@@ -271,9 +328,15 @@ i386_float_info ()
       skip = 0;
 #endif
     }
-  
+
+#ifdef	__FreeBSD__
+  fpstatep = (struct fpstate *)(buf + skip);
+  print_387_status (fpstatep->sv_ex_sw, (struct env387 *)fpstatep);
+#else
   print_387_status (0, (struct env387 *)buf);
+#endif
 }
+#endif /* FLOAT_INFO */
 
 int
 kernel_u_size ()
@@ -281,4 +344,16 @@ kernel_u_size ()
   return (sizeof (struct user));
 }
 
-#endif
+#ifdef	SETUP_ARBITRARY_FRAME
+#include "frame.h"
+struct frame_info *
+setup_arbitrary_frame (argc, argv)
+	int argc;
+	CORE_ADDR *argv;
+{
+    if (argc != 2)
+	error ("i386 frame specifications require two arguments: sp and pc");
+
+    return create_new_frame (argv[0], argv[1]);
+}
+#endif	/* SETUP_ARBITRARY_FRAME */
