@@ -37,3 +37,19 @@
   -dc -dp \
   %{!nostdlib:%{!r*:%{!e*:-e __start}}} \
   %{static:-static}"
+
+/* AI-ONLY NOTE: added (2026-10-26) -- no `gcc2_compiled.' label at the
+   start of each file's code.  netbsd-elf.h writes one into every object
+   compiled without -g, for a debugger to know the compiler by; in the
+   kernel, linked -X so ddb has its static functions' names, the label
+   sat at the address of each file's first function, and where that
+   function was static ddb named it `gcc2_compiled.'.  GCC's own
+   definitions for the i386 under OSF/1, which runs on Mach, leave the
+   label out in these words, i386/osf1elf.h and i386/osfrose.h: "We
+   don't need or want this for OSF1", with OSF/1's reason given beside
+   it: "To keep symbol space down, and not confuse kdb" -- Mach's
+   kernel debugger, which ddb is.  With -g the label is a stabs entry,
+   which gdb reads, written by ASM_IDENTIFY_GCC_AFTER_SOURCE; that is
+   kept.  */
+#undef ASM_IDENTIFY_GCC
+#define ASM_IDENTIFY_GCC(FILE)
