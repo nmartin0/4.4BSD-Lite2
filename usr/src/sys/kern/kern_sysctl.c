@@ -676,6 +676,17 @@ fill_eproc(p, ep)
 		ep->e_vm.vm_tsize = vm->vm_tsize;
 		ep->e_vm.vm_dsize = vm->vm_dsize;
 		ep->e_vm.vm_ssize = vm->vm_ssize;
+		/*
+		 * AI-ONLY NOTE: the three addresses, from FreeBSD 2.2.8's
+		 * fill_eproc (kern_proc.c:424-427), which copies them and
+		 * vm_minsaddr, a field Lite2's vmspace does not have.
+		 * gdb 4.16 takes a core file's data address from
+		 * u.u_kproc.kp_eproc.e_vm.vm_daddr (bfd/i386freebsd.h's
+		 * HOST_DATA_START_ADDR); left out, it read 0.
+		 */
+		ep->e_vm.vm_taddr = vm->vm_taddr;
+		ep->e_vm.vm_daddr = vm->vm_daddr;
+		ep->e_vm.vm_maxsaddr = vm->vm_maxsaddr;
 #ifndef sparc
 		ep->e_vm.vm_pmap = vm->vm_pmap;
 #endif
