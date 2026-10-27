@@ -79,16 +79,16 @@ elf_check_header(eh, type)
 	if (bcmp(eh->e_ident, Elf32_e_ident, Elf32_e_siz) != 0)
 		return ENOEXEC;
 
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-27) -- the machine types come from
+	 * <machine/elf_machdep.h> as NetBSD 1.3's exec_elf32.c has them,
+	 * which spells it ELFDEFNNAME(MACHDEP_ID_CASES); this tree has no
+	 * ELF64 and no such pasting macro, so the Elf32 name is written out.
+	 * Replaces the #ifdef i386 and #ifdef sparc cases (and the XXX).
+	 */
 	switch (eh->e_machine) {
-	/* XXX */
-#ifdef i386
-	case Elf32_em_386:
-	case Elf32_em_486:
-#endif
-#ifdef sparc
-	case Elf32_em_sparc:
-#endif
-		break;
+
+	ELF32_MACHDEP_ID_CASES
 
 	default:
 		return ENOEXEC;
