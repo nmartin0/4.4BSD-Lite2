@@ -92,7 +92,7 @@ X_db_sym_init(symtab, esymtab, name)
 	Elf_Shdr *shp;
 	Elf_Sym *symp, *symtab_start, *symtab_end;
 	char *strtab_start, *strtab_end;
-	int i;
+	int i, j;
 
 	if (ALIGNED_POINTER(symtab, long) == 0) {
 		printf("DDB: bad symbol table start address %x\n", symtab);
@@ -132,42 +132,36 @@ X_db_sym_init(symtab, esymtab, name)
 	}
 
 	/*
-	 * We need to avoid the section header string table (small string
-	 * table which names the sections).  We do this by assuming that
-	 * the following two conditions will be true:
-	 *
-	 *	(1) .shstrtab will be smaller than one page.
-	 *	(2) .strtab will be larger than one page.
-	 *
-	 * When we encounter what we think is the .shstrtab, we change
-	 * its section type Elf_sht_null so that it will be ignored
-	 * later.
+	 * AI-ONLY NOTE: changed (2026-10-26) -- the symbol table is the
+	 * first SHT_SYMTAB section, and its string table the section its
+	 * sh_link names, as bjh21 (Ben Harris) made NetBSD's find them
+	 * (af2da9ab87, 31 July 2001, revision 1.15), the end of jhawk's
+	 * change of a year before (b7a225dec8, 1.12), which stopped
+	 * multiple string tables being an error. Revision 1.2 took the
+	 * string table to be the one string-table section of a page or
+	 * more, and gave up with "multiple string tables" if there were
+	 * two: a kernel compiled with -g has its stabs' strings in
+	 * .stabstr too, and booted with it ddb had no symbols at all.
+	 * The two messages and their labels go with the test, as jhawk
+	 * took them out.
+	 */
+	/*
+	 * Find the first (and, we hope, only) SHT_SYMTAB section in
+	 * the file, and the SHT_STRTAB section that goes with it.
 	 */
 	shp = (Elf_Shdr *)(symtab + elf->e_shoff);
 	for (i = 0; i < elf->e_shnum; i++) {
-		switch (shp[i].sh_type) {
-		case Elf_sht_strtab:
-			if (shp[i].sh_size < NBPG) {
-				shp[i].sh_type = Elf_sht_null;
-				continue;
-			}
-			if (strtab_start != NULL)
-				goto multiple_strtab;
-			strtab_start = (char *)(symtab + shp[i].sh_offset);
-			strtab_end = (char *)(symtab + shp[i].sh_offset +
-			    shp[i].sh_size);
-			break;
-		
-		case Elf_sht_symtab:
-			if (symtab_start != NULL)
-				goto multiple_symtab;
+		if (shp[i].sh_type == Elf_sht_symtab) {
+			/* Got the symbol table. */
 			symtab_start = (Elf_Sym *)(symtab + shp[i].sh_offset);
 			symtab_end = (Elf_Sym *)(symtab + shp[i].sh_offset +
 			    shp[i].sh_size);
-			break;
-
-		default:
-			/* Ignore all other sections. */
+			/* Find the string table to go with it. */
+			j = shp[i].sh_link;
+			strtab_start = (char *)(symtab + shp[j].sh_offset);
+			strtab_end = (char *)(symtab + shp[j].sh_offset +
+			    shp[j].sh_size);
+			/* There should only be one symbol table. */
 			break;
 		}
 	}
@@ -195,14 +189,6 @@ X_db_sym_init(symtab, esymtab, name)
  badheader:
 	db_printf("[ %s symbol table not valid ]\n", name);
 	return;
-
- multiple_strtab:
-	db_printf("[ %s has multiple string tables ]\n", name);
-	return;
-
- multiple_symtab:
-	db_printf("[ %s has multiple symbol tables ]\n", name);
-	return;
 }
 
 /*
@@ -217,9 +203,13 @@ db_elf_find_strtab(stab)
 	Elf_Shdr *shp = STAB_TO_SHDR(stab, elf);
 	int i;
 
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-26) -- the string table linked
+	 * to the symbol table, as above (af2da9ab87).
+	 */
 	for (i = 0; i < elf->e_shnum; i++) {
-		if (shp[i].sh_type == Elf_sht_strtab)
-			return (stab->private + shp[i].sh_offset);
+		if (shp[i].sh_type == Elf_sht_symtab)
+			return (stab->private + shp[shp[i].sh_link].sh_offset);
 	}
 
 	return (NULL);
