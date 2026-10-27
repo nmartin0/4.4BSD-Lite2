@@ -56,6 +56,7 @@ struct ehdr {
 	u16 e_ehsize, e_phentsize, e_phnum, e_shentsize, e_shnum, e_shstrndx;
 };
 struct phdr { u32 p_type, p_offset, p_vaddr, p_paddr, p_filesz, p_memsz, p_flags, p_align; };
+struct shdr { u32 sh_name, sh_type, sh_flags, sh_addr, sh_offset, sh_size, sh_link, sh_info, sh_addralign, sh_entsize; };
 
 static void outb(unsigned p, unsigned char v)
 	{ __asm__ __volatile__("outb %0,%w1" :: "a"(v), "d"(p)); }
@@ -71,7 +72,7 @@ static void *mymove(void *d, const void *s, u32 n)
 	{ char *a = d; const char *b = s; while (n--) *a++ = *b++; return d; }
 static void myzero(void *d, u32 n) { char *a = d; while (n--) *a++ = 0; }
 
-extern void jump_kernel(u32 entry, u32 howto, u32 opendev, u32 cyloffset);
+extern void jump_kernel(u32 entry, u32 howto, u32 opendev, u32 esym);
 
 void
 shim_main(u32 magic, struct mbinfo *mb)
@@ -79,7 +80,7 @@ shim_main(u32 magic, struct mbinfo *mb)
 	struct module *mod;
 	struct ehdr *eh;
 	struct phdr *ph;
-	u32 base, i, entry, howto;
+	u32 base, i, entry, howto, kend, off, esym;
 
 	outb(0x3f9,0); outb(0x3fb,0x80); outb(0x3f8,1); outb(0x3f9,0);
 	outb(0x3fb,3); outb(0x3fc,3);
@@ -171,9 +172,55 @@ shim_main(u32 magic, struct mbinfo *mb)
 	}
 
 
+	/*
+	 * With RB_KDB, the kernel's symbols for ddb, laid out after it as
+	 * boot2 lays them out (sys/boot/i386/boot2/boot2.c, load(), which
+	 * says where that comes from): the ELF header, the section
+	 * headers, then each symbol and string table, each rounded to a
+	 * long, the copied header made to describe them where they lie.
+	 * Their physical end goes to the kernel as the fifth word, esym;
+	 * 0 without RB_KDB.
+	 */
+	esym = 0;
+	if (howto & 0x40) {
+		struct shdr *sh;
+		char *p, *ssym;
+
+		kend = 0;
+		ph = (struct phdr *)(base + eh->e_phoff);
+		for (i = 0; i < eh->e_phnum; i++, ph++)
+			if (ph->p_type == 1 && ph->p_vaddr >= KERNBASE &&
+			    kend < ph->p_vaddr - KERNBASE + ph->p_memsz)
+				kend = ph->p_vaddr - KERNBASE + ph->p_memsz;
+		p = ssym = (char *)((kend + 3) & ~3);
+		mymove(p, eh, sizeof(struct ehdr));
+		p += sizeof(struct ehdr);
+		mymove(p, (void *)(base + eh->e_shoff),
+		    eh->e_shnum * sizeof(struct shdr));
+		sh = (struct shdr *)p;
+		p += (eh->e_shnum * sizeof(struct shdr) + 3) & ~3;
+		off = (sizeof(struct ehdr) +
+		    eh->e_shnum * sizeof(struct shdr) + 3) & ~3;
+		for (i = 0; i < eh->e_shnum; i++)
+			if (sh[i].sh_type == 2 || sh[i].sh_type == 3) {
+				mymove(p, (void *)(base + sh[i].sh_offset),
+				    sh[i].sh_size);
+				p += (sh[i].sh_size + 3) & ~3;
+				sh[i].sh_offset = off;
+				off += (sh[i].sh_size + 3) & ~3;
+			}
+		esym = (u32)p;
+		((struct ehdr *)ssym)->e_phoff = 0;
+		((struct ehdr *)ssym)->e_shoff = sizeof(struct ehdr);
+		((struct ehdr *)ssym)->e_phentsize = 0;
+		((struct ehdr *)ssym)->e_phnum = 0;
+		puts_("shim: symbols "); puthex((u32)ssym);
+		puts_(" - "); puthex(esym); puts_("\n");
+	}
+
 	entry = eh->e_entry - KERNBASE;
 	puts_("shim: entering kernel at "); puthex(entry);
 	puts_(" howto "); puthex(howto); puts_("\n\n");
-	jump_kernel(entry, howto, 0, 0);
+	jump_kernel(entry, howto, 0, esym);
 	puts_("shim: kernel returned\n");
 }

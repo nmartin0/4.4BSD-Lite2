@@ -25,16 +25,18 @@ _start:
 	jmp	1b
 
 /*
- * jump_kernel(entry, howto, opendev, cyloffset)
+ * jump_kernel(entry, howto, opendev, esym)
  * Build the stack boot.c builds -- (howto, opendev, 0, cyloffset)
- * above a return address -- and enter the kernel.
+ * above a return address -- and enter the kernel; the word at
+ * 16(%esp), which locore.s takes as esym, carries esym, where boot.c
+ * put a cyloffset this kernel does not read there.
  */
 	.globl	jump_kernel
 jump_kernel:
 	movl	4(%esp), %eax			/* entry */
 	movl	8(%esp), %ecx			/* howto */
 	movl	12(%esp), %edx			/* opendev */
-	movl	16(%esp), %ebx			/* cyloffset */
+	movl	16(%esp), %ebx			/* esym */
 	movl	$0x80000, %esp			/* a stack out of the way */
 	pushl	%ebx
 	pushl	$0
