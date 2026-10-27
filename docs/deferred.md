@@ -934,9 +934,23 @@ Makefiles do not know.
   (under `#ifdef KGDB`, not built). FreeBSD's c8a13ecd0 swapped them
   in the same change that converted syscall; left here because KGDB is
   not configured.
-- **contrib/gdb-4.7.LBL still reads the s register offsets and
-  FM_TRAP** (i386b-nat.c, i386bsd-xdep.c). It is not built; the gdb
-  that reads ELF replaces it (roadmap.md item 3).
+- ~~**contrib/gdb-4.7.LBL still reads the s register offsets and
+  FM_TRAP**~~ **replaced** (patch 204): gdb 4.16 is built instead, and
+  4.7.LBL is not.
+- **`gdb -k` does not work on this system yet** (patch 204). Opened on
+  the live kernel, `gdb -k /vmunix /dev/mem` reads the kernel's ELF
+  symbols but prints `IdlePTD 0` and `current pcb at ffffffff`, and its
+  backtrace is empty garbage: kvm-fbsd.c (FreeBSD 2.2.8's, verbatim
+  apart from header fixes) finds the u-area by walking IdlePTD to
+  `kstack`, and either the walk or the value is wrong for this
+  kernel's layout (IdlePTD is stored by locore.s as a physical
+  address; it reads 0 through /dev/mem). A crash dump could not be
+  tried: the test image has no swap partition to dump to, and `reboot
+  -d` there never came back. To do with the dump path itself
+  (dumpsys, wd's d_dump, savecore) -- ddb is the kernel debugger meanwhile.
+- **Attaching gdb to a process asleep in a system call** works to
+  read it (bt, registers) but `stepi` waits until the sleep ends, as
+  it must; single-stepping across a system call is the item above.
 - ~~**ddb's trace printed a bogus argument list**~~ **FIXED** (patch
   203): `Debugger()` showed some sixty arguments. `db_numargs` reads
   the instruction after a call (`popl %ecx` is one argument, `addl
