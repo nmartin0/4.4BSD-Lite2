@@ -429,6 +429,20 @@ again:
 	ap = ucp - ssize;
 	ssize += nc;
 	cpu_setstack(p, ap);
+	/*
+	 * AI-ONLY NOTE: the stack's depth so far, as the core file and
+	 * ps count it. FreeBSD 2.0.5 through 2.2.8 set vm_ssize at exec
+	 * (`vmspace->vm_ssize = SGROWSIZ >> PAGE_SHIFT') and NetBSD
+	 * 1.6's execve sets it from the pack (`vm->vm_ssize =
+	 * btoc(pack.ep_ssize)'); both put it where the stack is made.
+	 * This body made it 0 above and left the count to trap.c's
+	 * stack hack, and a process that takes no stack fault after
+	 * exec -- gdb's `crash' is one -- dumped a core file with no
+	 * stack in it. The depth is what the strings and vectors above
+	 * have used: USRSTACK down to the new stack pointer, rounded as
+	 * trap.c rounds it.
+	 */
+	vm->vm_ssize = clrnd(btoc(USRSTACK - ap));
 	(void) suword((caddr_t)ap, na-ne);
 	arginfo.ps_argvstr = (char **)(ap + NBPW);
 	nc = 0;
