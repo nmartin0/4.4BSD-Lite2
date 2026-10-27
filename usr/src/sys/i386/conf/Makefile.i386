@@ -34,7 +34,17 @@ I386=	$S/i386
 
 INCLUDES= -I. -I$S -I$S/sys
 COPTS+=	${INCLUDES} ${IDENT} -DKERNEL
-CFLAGS=	-O ${COPTS}
+# AI-ONLY NOTE: added (2026-10-27) -- -mpreferred-stack-boundary=2, as
+# FreeBSD 4.0's share/mk/bsd.kern.mk has it for the i386, with its
+# comment: GCC 2.95 otherwise aligns the stack to 16 bytes, adding code
+# to the entry and exit of every function and wasting about 12 bytes of
+# stack per call. GCC 2.95's i386 default is 16 bytes (i386.c:394, 128
+# bits); 2 is 4 bytes, the alignment the i386 needs and the one ddb's
+# trace assumes: db_numargs counts a call's arguments from the
+# instruction after it, popl %ecx or addl $n,%esp. Padded, a call
+# with no arguments is followed by addl $-12,%esp, and trace showed
+# sixty arguments for Debugger().
+CFLAGS=	-O ${COPTS} -mpreferred-stack-boundary=2
 
 # compile rules: rules are named ${TYPE}_${SUFFIX}${CONFIG_DEP}
 # where TYPE is NORMAL, DRIVER, or PROFILE}; SUFFIX is the file suffix,
