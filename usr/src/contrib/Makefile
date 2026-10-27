@@ -7,7 +7,8 @@
 # one at a time (docs/roadmap.md, *Next: contrib/*). Not gcc-2.3.3,
 # gas-1.38 and gdb-4.7.LBL: they make and read a.out, and this system is
 # ELF; GCC 2.95.3 and binutils 2.11.2 stand in for the first two, and a
-# gdb that reads ELF is to come. Nor libg++-2.3, written for g++ 2.3:
+# gdb that reads ELF is gdb-4.16, which is built from gnu/usr.bin/gdb
+# (patch 204). Nor libg++-2.3, written for g++ 2.3:
 # GCC 2.95.3's libstdc++ is the system's C++ library, as each BSD
 # dropped libg++ when it took egcs or GCC 2.95 -- NetBSD in 1.4, OpenBSD
 # in May 1999 ("old libg++, replaced by part of egcs"), FreeBSD by 4.0

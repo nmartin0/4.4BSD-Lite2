@@ -589,6 +589,28 @@ wait; fork; ptrace's registers, refusals, step and continue; /proc's
 regs equal to ptrace's) and by ddb: break in getpid, trace shows
 `--- syscall (number 20) ---`.
 
+Patch 204 brings in gdb 4.16 (decided 2026-10-27; kind A for GNU's
+release, D for the rest): GNU's tarball whole in contrib/gdb-4.16 (1820
+files), then the twelve files FreeBSD 2.2.8 changed in it as their own
+commit, then FreeBSD 2.2.8's gnu/usr.bin/gdb (BSD makefiles, hand-made
+config.h/bfd.h, i386b-nat.c and core-aout.c reading registers with
+PT_READ_U, kvm-fbsd.c for `gdb -k`) verbatim, then this tree's fitting
+of that glue to Lite2's headers and make. FreeBSD 3.0's port (PT_GETREGS,
+16 registers) does not fit this kernel's trapframe; NetBSD 1.3 and
+OpenBSD also use gnu/usr.bin/gdb. No shared libraries, so no solib. It
+reads the stabs-in-ELF GCC 2.95.3 writes. Found and fixed with it,
+each its own commit: procfs_rwmem refused the stack's top page (the bound
+was VM_MAXUSER_ADDRESS, a page below USRSTACK here; FreeBSD 2.0.5-2.2.8
+and NetBSD 1.6 mean USRSTACK by it); fill_eproc left vm_taddr, vm_daddr
+and vm_maxsaddr out (FreeBSD 2.2.8 copies them), so a core file's data
+address read 0; execve left vm_ssize 0 (FreeBSD 2.0.5-2.2.8 and NetBSD
+1.6 set it at exec), so a process that took no stack fault dumped a core
+file with no stack. The exec_elf machine check now takes
+ELF32_MACHDEP_ID_CASES from <machine/elf_machdep.h> as NetBSD 1.3
+does. Tested on the booted system: source listing, break, run, bt, step,
+next, finish, up, info locals/registers, a core file. Not yet: attach,
+`gdb -k`, floating-point registers (item 6).
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

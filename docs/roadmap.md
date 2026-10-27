@@ -119,8 +119,8 @@ system's side -- the uucp user, uucpd, tip's locks, the directories,
 rc, daily, syslog.conf, and cu for the dialer group (decided
 2026-10-25) -- in patch 198. Item 2 is done.
 
-**3. A debugger.** gdb-4.7.LBL reads a.out only; a gdb that reads ELF
-is to come (*After Tier 1½*, below). ~~ddb~~ **Done** (patch 199):
+**3. A debugger.** gdb-4.7.LBL reads a.out only; the gdb that reads ELF
+is gdb 4.16 (patch 204, below). ~~ddb~~ **Done** (patch 199):
 NetBSD 1.0's, CMU Mach's (decided 2026-10-25; imports.md, kind D); ~~the three BSDs' ddb fixes of 1994-97~~, and
 Mach 3.0's for what ddb.4 documents, each its own commit, **done**
 (patch 200); `watch` and `trace/t` left as the BSDs had them
@@ -128,8 +128,9 @@ Mach 3.0's for what ddb.4 documents, each its own commit, **done**
 (patch 201: NetBSD 1.3's db_elf.c, loaded with -d); ~~`syscall()` on
 a trapframe~~, FreeBSD's of January 1994, **done** (patch 202); next,
 ~~the `Debugger()` argument count in trace~~, FreeBSD 4.0's
-`-mpreferred-stack-boundary=2`, **done** (patch 203); next, the gdb that
-reads ELF.
+`-mpreferred-stack-boundary=2`, **done** (patch 203); ~~the gdb that
+reads ELF~~, gdb 4.16 with FreeBSD 2.2.8's port, **done** (patch 204;
+attach and `gdb -k` untested, FPU registers in item 6).
 
 **4. Ports** (decided 2026-10-14; *Ports*, below): FreeBSD 2.2.2's
 framework, and what it needs from FreeBSD 2.2 -- pkg_install, md5,
@@ -616,8 +617,8 @@ object directory (decided 2026-10-19, superseding object directories
 for all, 2026-10-16); OpenBSD's Makefile.bsd-wrapper is the name of
 the file for those configured by GNU's configure.
 gcc-2.3.3, gas-1.38 and gdb-4.7.LBL are not named for the i386: they
-make and read a.out; GCC 2.95.3 and binutils 2.11.2 stand in, and a
-gdb that reads ELF is to come.
+make and read a.out; GCC 2.95.3 and binutils 2.11.2 stand in, and
+gdb 4.16 (gnu/usr.bin/gdb, patch 204) reads ELF.
 
 Done: binutils 2.11.2 (patch 153); ansi, nvi, flex as /usr/bin/lex,
 gawk as /usr/contrib/bin/gawk beside Kernighan's awk, and gzip (patch
