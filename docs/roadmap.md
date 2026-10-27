@@ -130,7 +130,7 @@ a trapframe~~, FreeBSD's of January 1994, **done** (patch 202); next,
 ~~the `Debugger()` argument count in trace~~, FreeBSD 4.0's
 `-mpreferred-stack-boundary=2`, **done** (patch 203); ~~the gdb that
 reads ELF~~, gdb 4.16 with FreeBSD 2.2.8's port, **done** (patch 204;
-attach and `gdb -k` untested, FPU registers in item 6).
+attach works; `gdb -k` does not yet, deferred.md; FPU registers in item 6).
 
 **4. Ports** (decided 2026-10-14; *Ports*, below): FreeBSD 2.2.2's
 framework, and what it needs from FreeBSD 2.2 -- pkg_install, md5,

@@ -608,8 +608,10 @@ address read 0; execve left vm_ssize 0 (FreeBSD 2.0.5-2.2.8 and NetBSD
 file with no stack. The exec_elf machine check now takes
 ELF32_MACHDEP_ID_CASES from <machine/elf_machdep.h> as NetBSD 1.3
 does. Tested on the booted system: source listing, break, run, bt, step,
-next, finish, up, info locals/registers, a core file. Not yet: attach,
-`gdb -k`, floating-point registers (item 6).
+next, finish, up, info locals/registers, a core file. Patch 205: attach, bt, stepi and detach
+work; libiberty is no longer installed in /usr/lib; make install puts
+gdb in /usr/bin and its page in cat1. Not working: `gdb -k` (deferred.md),
+floating-point registers (item 6).
 
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
