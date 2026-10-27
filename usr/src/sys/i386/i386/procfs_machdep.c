@@ -50,13 +50,12 @@
  * for it. Changed from Pendry's, each for this tree:
  *
  *  - SLOAD and p_regs are Lite2's P_INMEM and p_md.md_regs;
- *  - this port saves two kinds of frame (<machine/frame.h>): trap()
- *    a struct trapframe, syscall() a struct syscframe, and the pcb's
- *    FM_TRAP says which md_regs points at, as sendsig() and Lite2's
- *    own gdb (contrib/gdb-4.7.LBL, i386b-nat.c) read it. So the hooks
- *    use reg.h's tXXX or sXXX offsets accordingly. A system-call frame
- *    has no %es or %ds; the return path in locore.s loads both with
- *    _udatasel, which is what is read, and a write to them is ignored;
+ *  - the registers are in a struct trapframe (<machine/frame.h>),
+ *    whether the process entered the kernel by a trap or by a system
+ *    call, so the hooks use reg.h's tXXX offsets. (Before 2026-10-27
+ *    syscall() saved a struct syscframe of its own and the pcb's
+ *    FM_TRAP said which; that frame had no %es or %ds, so the hooks
+ *    read _udatasel for both and ignored a write to them.)
  *  - the flags are checked with OpenBSD's PSL_USERSTATIC, as sigreturn
  *    checks them, in place of Pendry's USERCLR and USERSET test, and
  *    a new %cs must be a user selector, as OpenBSD's check has it;
@@ -104,7 +103,6 @@
 #include <machine/segments.h>	/* after procfs.h: it defines d_type */
 
 extern int kstack[];		/* XXX */
-extern int _udatasel;
 
 procfs_read_regs(p, regs)
 	struct proc *p;
@@ -118,37 +116,20 @@ procfs_read_regs(p, regs)
 	tp = (int *) ((char *) p->p_addr +
 		((char *) p->p_md.md_regs - (char *) kstack));
 
-	if (p->p_addr->u_pcb.pcb_flags & FM_TRAP) {
-		regs->r_es = tp[tES];
-		regs->r_ds = tp[tDS];
-		regs->r_edi = tp[tEDI];
-		regs->r_esi = tp[tESI];
-		regs->r_ebp = tp[tEBP];
-		regs->r_ebx = tp[tEBX];
-		regs->r_edx = tp[tEDX];
-		regs->r_ecx = tp[tECX];
-		regs->r_eax = tp[tEAX];
-		regs->r_eip = tp[tEIP];
-		regs->r_cs = tp[tCS];
-		regs->r_eflags = tp[tEFLAGS];
-		regs->r_esp = tp[tESP];
-		regs->r_ss = tp[tSS];
-	} else {
-		regs->r_es = _udatasel;
-		regs->r_ds = _udatasel;
-		regs->r_edi = tp[sEDI];
-		regs->r_esi = tp[sESI];
-		regs->r_ebp = tp[sEBP];
-		regs->r_ebx = tp[sEBX];
-		regs->r_edx = tp[sEDX];
-		regs->r_ecx = tp[sECX];
-		regs->r_eax = tp[sEAX];
-		regs->r_eip = tp[sEIP];
-		regs->r_cs = tp[sCS];
-		regs->r_eflags = tp[sEFLAGS];
-		regs->r_esp = tp[sESP];
-		regs->r_ss = tp[sSS];
-	}
+	regs->r_es = tp[tES];
+	regs->r_ds = tp[tDS];
+	regs->r_edi = tp[tEDI];
+	regs->r_esi = tp[tESI];
+	regs->r_ebp = tp[tEBP];
+	regs->r_ebx = tp[tEBX];
+	regs->r_edx = tp[tEDX];
+	regs->r_ecx = tp[tECX];
+	regs->r_eax = tp[tEAX];
+	regs->r_eip = tp[tEIP];
+	regs->r_cs = tp[tCS];
+	regs->r_eflags = tp[tEFLAGS];
+	regs->r_esp = tp[tESP];
+	regs->r_ss = tp[tSS];
 
 	return (0);
 }
@@ -163,48 +144,32 @@ procfs_write_regs(p, regs)
 	struct proc *p;
 	struct reg *regs;
 {
-	int *tp, trap;
+	int *tp;
 
 	if ((p->p_flag & P_INMEM) == 0)
 		return (EIO);
 
 	tp = (int *) ((char *) p->p_addr +
 		((char *) p->p_md.md_regs - (char *) kstack));
-	trap = p->p_addr->u_pcb.pcb_flags & FM_TRAP;
 
-	if (((regs->r_eflags ^ tp[trap ? tEFLAGS : sEFLAGS]) &
+	if (((regs->r_eflags ^ tp[tEFLAGS]) &
 	    PSL_USERSTATIC) != 0 || ISPL(regs->r_cs) != SEL_UPL)
 		return (EPERM);
 
-	if (trap) {
-		tp[tES] = regs->r_es;
-		tp[tDS] = regs->r_ds;
-		tp[tEDI] = regs->r_edi;
-		tp[tESI] = regs->r_esi;
-		tp[tEBP] = regs->r_ebp;
-		tp[tEBX] = regs->r_ebx;
-		tp[tEDX] = regs->r_edx;
-		tp[tECX] = regs->r_ecx;
-		tp[tEAX] = regs->r_eax;
-		tp[tEIP] = regs->r_eip;
-		tp[tCS] = regs->r_cs;
-		tp[tEFLAGS] = regs->r_eflags;
-		tp[tESP] = regs->r_esp;
-		tp[tSS] = regs->r_ss;
-	} else {
-		tp[sEDI] = regs->r_edi;
-		tp[sESI] = regs->r_esi;
-		tp[sEBP] = regs->r_ebp;
-		tp[sEBX] = regs->r_ebx;
-		tp[sEDX] = regs->r_edx;
-		tp[sECX] = regs->r_ecx;
-		tp[sEAX] = regs->r_eax;
-		tp[sEIP] = regs->r_eip;
-		tp[sCS] = regs->r_cs;
-		tp[sEFLAGS] = regs->r_eflags;
-		tp[sESP] = regs->r_esp;
-		tp[sSS] = regs->r_ss;
-	}
+	tp[tES] = regs->r_es;
+	tp[tDS] = regs->r_ds;
+	tp[tEDI] = regs->r_edi;
+	tp[tESI] = regs->r_esi;
+	tp[tEBP] = regs->r_ebp;
+	tp[tEBX] = regs->r_ebx;
+	tp[tEDX] = regs->r_edx;
+	tp[tECX] = regs->r_ecx;
+	tp[tEAX] = regs->r_eax;
+	tp[tEIP] = regs->r_eip;
+	tp[tCS] = regs->r_cs;
+	tp[tEFLAGS] = regs->r_eflags;
+	tp[tESP] = regs->r_esp;
+	tp[tSS] = regs->r_ss;
 
 	return (0);
 }

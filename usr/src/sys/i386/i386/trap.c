@@ -167,7 +167,6 @@ copyfault:	frame.tf_eip = (int)pcb->pcb_onfault;
 	if (ISPL(frame.tf_cs) == SEL_UPL) {
 		type |= T_USER;
 		p->p_md.md_regs = (int *)&frame;
-		pcb->pcb_flags |= FM_TRAP;	/* used by sendsig */
 		sticks = p->p_sticks;
 	}
 
@@ -406,7 +405,6 @@ out:
 		}
 	}
 	curpriority = p->p_priority;
-	pcb->pcb_flags &= ~FM_TRAP;	/* used by sendsig */
 }
 
 /*
@@ -416,7 +414,16 @@ out:
  */
 /*ARGSUSED*/
 syscall(frame)
-	volatile struct syscframe frame;
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-27) -- a struct trapframe, built
+	 * by IDTVEC(syscall) as every trap's is, where it was a struct
+	 * syscframe, and the sf_ members are the tf_ ones. FreeBSD's
+	 * c8a13ecd0 (David Greenman, 3 January 1994, based on John
+	 * Brezak's work) makes this change to this function; the pcb flag
+	 * FM_TRAP, which said which of the two frames sendsig() and ptrace
+	 * had to read, is gone with it from here and from trap().
+	 */
+	volatile struct trapframe frame;
 {
 	register int *locr0 = ((int *)&frame);
 	register caddr_t params;
@@ -432,26 +439,17 @@ syscall(frame)
 	r0 = 0; r0 = r0; r1 = 0; r1 = r1;
 #endif
 	sticks = p->p_sticks;
-	if (ISPL(frame.sf_cs) != SEL_UPL)
+	if (ISPL(frame.tf_cs) != SEL_UPL)
 		panic("syscall");
 
-	code = frame.sf_eax;
+	code = frame.tf_eax;
 	p->p_md.md_regs = (int *)&frame;
-	/*
-	 * AI-ONLY NOTE: still curpcb here, unlike trap() above. A
-	 * system call can only arrive from user mode -- the panic two
-	 * lines up enforces it -- so a process is current and curpcb
-	 * is set. NetBSD 1.0's syscall() uses curpcb likewise; its
-	 * comment about curpcb being possibly null is in trap(), which
-	 * is reached before the first context switch, and this is not.
-	 */
-	curpcb->pcb_flags &= ~FM_TRAP;	/* used by sendsig */
-	params = (caddr_t)frame.sf_esp + sizeof (int) ;
+	params = (caddr_t)frame.tf_esp + sizeof (int) ;
 
 	/*
 	 * Reconstruct pc, assuming lcall $X,y is 7 bytes, as it is always.
 	 */
-	opc = frame.sf_eip - 7;
+	opc = frame.tf_eip - 7;
 	/*
 	 * AI-ONLY NOTE: the two indirect system calls, in hp300's form --
 	 * hp300/hp300/trap.c:919-956. luna68k's switch is the same text;
@@ -531,8 +529,8 @@ syscall(frame)
 	 */
 	if ((i = callp->sy_argsize) &&
 	    (error = copyin(params, (caddr_t)args, (u_int)i))) {
-		frame.sf_eax = error;
-		frame.sf_eflags |= PSL_C;	/* carry bit */
+		frame.tf_eax = error;
+		frame.tf_eflags |= PSL_C;	/* carry bit */
 #ifdef KTRACE
 		if (KTRPOINT(p, KTR_SYSCALL))
 			ktrsyscall(p->p_tracep, code, callp->sy_argsize, &args);
@@ -544,18 +542,18 @@ syscall(frame)
 		ktrsyscall(p->p_tracep, code, callp->sy_argsize, &args);
 #endif
 	rval[0] = 0;
-	rval[1] = frame.sf_edx;
+	rval[1] = frame.tf_edx;
 	error = (*callp->sy_call)(p, args, rval);
 	if (error == ERESTART)
-		frame.sf_eip = opc;
+		frame.tf_eip = opc;
 	else if (error != EJUSTRETURN) {
 		if (error) {
-			frame.sf_eax = error;
-			frame.sf_eflags |= PSL_C;	/* carry bit */
+			frame.tf_eax = error;
+			frame.tf_eflags |= PSL_C;	/* carry bit */
 		} else {
-			frame.sf_eax = rval[0];
-			frame.sf_edx = rval[1];
-			frame.sf_eflags &= ~PSL_C;	/* carry bit */
+			frame.tf_eax = rval[0];
+			frame.tf_edx = rval[1];
+			frame.tf_eflags &= ~PSL_C;	/* carry bit */
 		}
 	}
 	/* else if (error == EJUSTRETURN) */
@@ -594,10 +592,10 @@ done:
 		if (ticks) {
 #ifdef PROFTIMER
 			extern int profscale;
-			addupc(frame.sf_eip, &p->p_stats->p_prof,
+			addupc(frame.tf_eip, &p->p_stats->p_prof,
 			    ticks * profscale);
 #else
-			addupc(frame.sf_eip, &p->p_stats->p_prof, ticks);
+			addupc(frame.tf_eip, &p->p_stats->p_prof, ticks);
 #endif
 		}
 	}

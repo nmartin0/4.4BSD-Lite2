@@ -102,26 +102,12 @@ struct intrframe {
 };
 
 /*
- * Call Gate/System Call Stack Frame
+ * AI-ONLY NOTE: struct syscframe, the call gate's own frame, is gone
+ * (2026-10-27): a system call now builds a struct trapframe, as a trap
+ * does. FreeBSD's c8a13ecd0 (David Greenman, 3 January 1994, "Convert
+ * syscall to trapframe. Based on work done by John Brezak.") removed
+ * it from this same file; NetBSD 1.0 and OpenBSD 1996 have no such
+ * structure either.
  */
-
-struct syscframe {
-	int	sf_edi;
-	int	sf_esi;
-	int	sf_ebp;
-	int	:32;		/* redundant save of isp */
-	int	sf_ebx;
-	int	sf_edx;
-	int	sf_ecx;
-	int	sf_eax;
-	int	sf_eflags;
-	/* below portion defined in 386 hardware */
-/*	int	sf_args[N]; 	/* if call gate copy args enabled!*/
-	int	sf_eip;
-	int	sf_cs;
-	/* below only when transitting rings (e.g. user to kernel) */
-	int	sf_esp;
-	int	sf_ss;
-};
 
 #endif /* _MACHINE_FRAME_H_ */

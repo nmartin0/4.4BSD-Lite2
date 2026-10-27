@@ -62,21 +62,12 @@
 #define	tESP	(15)
 #define	tSS	(16)
 
-/* During a system call, registers are at these offsets instead of above. */
-
-#define	sEDI	(0)
-#define	sESI	(1)
-#define	sEBP	(2)
-
-#define	sEBX	(4)
-#define	sEDX	(5)
-#define	sECX	(6)
-#define	sEAX	(7)
-#define	sEFLAGS	(8)
-#define	sEIP	(9)
-#define	sCS	(10)
-#define	sESP	(11)
-#define	sSS	(12)
+/*
+ * AI-ONLY NOTE: the offsets a system call's frame had, sEDI through
+ * sSS, are gone (2026-10-27): a system call builds the same frame a
+ * trap does, so the t offsets above serve for both. FreeBSD's
+ * c8a13ecd0 (3 January 1994) removes them from this file.
+ */
 
 /*
  * AI-ONLY NOTE: struct reg and struct fpreg, which procfs_regs.c,
@@ -91,8 +82,7 @@
 
 /*
  * Registers accessible to ptrace(2) and /proc/$pid/regs.
- * procfs_machdep.c fills these from whichever frame,
- * trap or syscall, the process entered the kernel on.
+ * procfs_machdep.c fills these from the process's trap frame.
  */
 struct reg {
 	unsigned int	r_es;
@@ -126,11 +116,21 @@ struct fpreg {
 	unsigned char	fpr_pad[64];
 };
 
-#define	PC	sEIP
-#define	SP	sESP
-#define	PS	sEFLAGS
-#define	R0	sEDX
-#define	R1	sECX
+/*
+ * AI-ONLY NOTE: on the trap frame's offsets now, where they stood on
+ * the system call frame's (2026-10-27). cpu_setstack (machine/cpu.h)
+ * and compat_43_wait (kern/kern_exit.c) use them. FreeBSD's c8a13ecd0
+ * deleted these five from reg.h; its kern_exit.c and cpu.h kept
+ * using them (release 2.1.0), so they were defined elsewhere there.
+ * Here the names stay and follow the frame, as Berkeley's own
+ * sys_process.c spelled them for the trap frame
+ * (#define PC tEIP, SP tESP, PS tEFLAGS, R0 tEDX, R1 tECX).
+ */
+#define	PC	tEIP
+#define	SP	tESP
+#define	PS	tEFLAGS
+#define	R0	tEDX
+#define	R1	tECX
 /*
  * Registers accessible to ptrace(2) syscall for debugger
  */

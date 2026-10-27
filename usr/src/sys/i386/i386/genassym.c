@@ -89,7 +89,8 @@ ASSYM(I386_CR3PAT, I386_CR3PAT);
 
 /*
  * AI-ONLY NOTE: MD_EIP and MD_ESP, the byte offsets of
- * md_regs[sEIP] and md_regs[sESP].
+ * md_regs[tEIP] and md_regs[tESP] (2026-10-27: they were sEIP and sESP
+ * while a system call had a frame of its own).
  *
  * i386/locore.s builds the frame it lrets to user with and
  * needs both out of it. It named them 11*4 and 9*4, which are
@@ -100,8 +101,17 @@ ASSYM(I386_CR3PAT, I386_CR3PAT);
  * than in the assembly, where a change to reg.h would not reach
  * it.
  */
-ASSYM(MD_EIP, sEIP * sizeof(int));
-ASSYM(MD_ESP, sESP * sizeof(int));
+ASSYM(MD_EIP, tEIP * sizeof(int));
+ASSYM(MD_ESP, tESP * sizeof(int));
+/*
+ * AI-ONLY NOTE: TF_TRAPNO, TF_ERR and TF_EFLAGS, for IDTVEC(syscall)
+ * in locore.s, which fills in the frame's trap number, error code and
+ * flags itself. FreeBSD's genassym.c and NetBSD 1.0's define them
+ * the same way, and their syscall entries use them.
+ */
+ASSYM(TF_TRAPNO, offsetof(struct trapframe, tf_trapno));
+ASSYM(TF_ERR, offsetof(struct trapframe, tf_err));
+ASSYM(TF_EFLAGS, offsetof(struct trapframe, tf_eflags));
 ASSYM(UDOT_SZ, sizeof(struct user));
 ASSYM(P_FORW, offsetof(struct proc, p_forw));
 ASSYM(P_BACK, offsetof(struct proc, p_back));

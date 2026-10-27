@@ -376,6 +376,14 @@ extern int kstack[];
  * resets the signal mask, the stack, and the
  * frame pointer, it returns to the user
  * specified pc, psl.
+ *
+ * AI-ONLY NOTE: changed (2026-10-27) -- the registers are in a struct
+ * trapframe whether the process entered the kernel by a trap or by a
+ * system call, so sendsig, sigreturn, setregs and the ptrace functions
+ * below read the t offsets only, where each chose between those and
+ * the s offsets by the pcb's FM_TRAP. FreeBSD's c8a13ecd0 (David
+ * Greenman, 3 January 1994) makes the same change to its sendsig,
+ * sigreturn and setregs, and to the ptrace functions it had then.
  */
 void
 /*
@@ -398,11 +406,10 @@ sendsig(catcher, sig, mask, code)
 	register int *regs;
 	register struct sigframe *fp;
 	struct sigacts *psp = p->p_sigacts;
-	int oonstack, frmtrap;
+	int oonstack;
 
 	regs = p->p_md.md_regs;
         oonstack = psp->ps_sigstk.ss_flags & SA_ONSTACK;
-	frmtrap = curpcb->pcb_flags & FM_TRAP;
 	/*
 	 * Allocate and validate space for the signal handler
 	 * context. Note that if the stack is in P0 space, the
@@ -417,12 +424,8 @@ sendsig(catcher, sig, mask, code)
 		    psp->ps_sigstk.ss_size - sizeof(struct sigframe));
 		psp->ps_sigstk.ss_flags |= SA_ONSTACK;
 	} else {
-		if (frmtrap)
-			fp = (struct sigframe *)(regs[tESP]
-				- sizeof(struct sigframe));
-		else
-			fp = (struct sigframe *)(regs[sESP]
-				- sizeof(struct sigframe));
+		fp = (struct sigframe *)(regs[tESP]
+			- sizeof(struct sigframe));
 	}
 
 	if ((unsigned)fp <= USRSTACK - ctob(p->p_vmspace->vm_ssize)) 
@@ -451,35 +454,20 @@ sendsig(catcher, sig, mask, code)
 	fp->sf_handler = catcher;
 
 	/* save scratch registers */
-	if(frmtrap) {
-		fp->sf_eax = regs[tEAX];
-		fp->sf_edx = regs[tEDX];
-		fp->sf_ecx = regs[tECX];
-	} else {
-		fp->sf_eax = regs[sEAX];
-		fp->sf_edx = regs[sEDX];
-		fp->sf_ecx = regs[sECX];
-	}
+	fp->sf_eax = regs[tEAX];
+	fp->sf_edx = regs[tEDX];
+	fp->sf_ecx = regs[tECX];
 	/*
 	 * Build the signal context to be used by sigreturn.
 	 */
 	fp->sf_sc.sc_onstack = oonstack;
 	fp->sf_sc.sc_mask = mask;
-	if(frmtrap) {
-		fp->sf_sc.sc_sp = regs[tESP];
-		fp->sf_sc.sc_fp = regs[tEBP];
-		fp->sf_sc.sc_pc = regs[tEIP];
-		fp->sf_sc.sc_ps = regs[tEFLAGS];
-		regs[tESP] = (int)fp;
-		regs[tEIP] = (int)((struct pcb *)kstack)->pcb_sigc;
-	} else {
-		fp->sf_sc.sc_sp = regs[sESP];
-		fp->sf_sc.sc_fp = regs[sEBP];
-		fp->sf_sc.sc_pc = regs[sEIP];
-		fp->sf_sc.sc_ps = regs[sEFLAGS];
-		regs[sESP] = (int)fp;
-		regs[sEIP] = (int)((struct pcb *)kstack)->pcb_sigc;
-	}
+	fp->sf_sc.sc_sp = regs[tESP];
+	fp->sf_sc.sc_fp = regs[tEBP];
+	fp->sf_sc.sc_pc = regs[tEIP];
+	fp->sf_sc.sc_ps = regs[tEFLAGS];
+	regs[tESP] = (int)fp;
+	regs[tEIP] = (int)((struct pcb *)kstack)->pcb_sigc;
 }
 
 /*
@@ -505,15 +493,15 @@ sigreturn(p, uap, retval)
 	register int *regs = p->p_md.md_regs;
 
 
-	fp = (struct sigframe *) regs[sESP] ;
+	fp = (struct sigframe *) regs[tESP] ;
 
 	if (useracc((caddr_t)fp, sizeof (*fp), 0) == 0)
 		return(EINVAL);
 
 	/* restore scratch registers */
-	regs[sEAX] = fp->sf_eax ;
-	regs[sEDX] = fp->sf_edx ;
-	regs[sECX] = fp->sf_ecx ;
+	regs[tEAX] = fp->sf_eax ;
+	regs[tEDX] = fp->sf_edx ;
+	regs[tECX] = fp->sf_ecx ;
 
 	scp = fp->sf_scp;
 	if (useracc((caddr_t)scp, sizeof (*scp), 0) == 0)
@@ -526,7 +514,7 @@ sigreturn(p, uap, retval)
 	 * port I/O. This sigcontext carries no %cs, so OpenBSD's
 	 * selector test has nothing to look at here.
 	 */
-	if (((scp->sc_ps ^ regs[sEFLAGS]) & PSL_USERSTATIC) != 0)
+	if (((scp->sc_ps ^ regs[tEFLAGS]) & PSL_USERSTATIC) != 0)
 		return(EINVAL);
 	if (scp->sc_onstack & 01)
 		p->p_sigacts->ps_sigstk.ss_flags |= SA_ONSTACK;
@@ -534,20 +522,18 @@ sigreturn(p, uap, retval)
 		p->p_sigacts->ps_sigstk.ss_flags &= ~SA_ONSTACK;
 	p->p_sigmask = scp->sc_mask &~
 	    (sigmask(SIGKILL)|sigmask(SIGCONT)|sigmask(SIGSTOP));
-	regs[sEBP] = scp->sc_fp;
-	regs[sESP] = scp->sc_sp;
-	regs[sEIP] = scp->sc_pc;
-	regs[sEFLAGS] = scp->sc_ps;
+	regs[tEBP] = scp->sc_fp;
+	regs[tESP] = scp->sc_sp;
+	regs[tEIP] = scp->sc_pc;
+	regs[tEFLAGS] = scp->sc_ps;
 	return(EJUSTRETURN);
 }
 
 /*
  * AI-ONLY NOTE: ptrace(2)'s two machine-dependent functions, from
  * FreeBSD 2.1.0's and 2.2's i386/machdep.c, as kern/sys_process.c is
- * FreeBSD 2.2's; FreeBSD's comment below. Changed for this port: it
- * saves two kinds of frame, and the pcb's FM_TRAP says which md_regs
- * points at, so the frame's size and the offsets of %eip, %cs and the
- * flags follow it; and the flags are checked with PSL_USERSTATIC, as
+ * FreeBSD 2.2's; FreeBSD's comment below. Changed for this port: the
+ * flags are checked with PSL_USERSTATIC, as
  * sigreturn and procfs_write_regs check them, where FreeBSD had
  * EFLAGS_SECURE. Writes to the user area are confined to the register
  * frame and the FPU save area, as FreeBSD confines them: anywhere
@@ -567,14 +553,13 @@ sigreturn(p, uap, retval)
 #define	TF_REGP(p)	((int *) \
 			 ((char *)(p)->p_addr \
 			  + ((char *)(p)->p_md.md_regs - (char *)kstack)))
-#define	TF_TRAP(p)	((p)->p_addr->u_pcb.pcb_flags & FM_TRAP)
 
 int
 ptrace_set_pc(p, addr)
 	struct proc *p;
 	unsigned int addr;
 {
-	TF_REGP(p)[TF_TRAP(p) ? tEIP : sEIP] = addr;
+	TF_REGP(p)[tEIP] = addr;
 	return (0);
 }
 
@@ -585,22 +570,20 @@ int ptrace_write_u(p, off, data)
 {
 	int frame_copy[sizeof(struct trapframe) / sizeof(int)];
 	vm_offset_t min;
-	int *tp, trap, size;
+	int *tp, size;
 
 	/*
 	 * Privileged kernel state is scattered all over the user area.
 	 * Only allow write access to parts of regs and to fpregs.
 	 */
-	trap = TF_TRAP(p);
-	size = trap ? sizeof(struct trapframe) : sizeof(struct syscframe);
+	size = sizeof(struct trapframe);
 	min = (char *)p->p_md.md_regs - (char *)kstack;
 	if (off >= min && off <= min + size - sizeof(int)) {
 		tp = TF_REGP(p);
 		bcopy(tp, frame_copy, size);
 		frame_copy[(off - min) / sizeof(int)] = data;
-		if (((frame_copy[trap ? tEFLAGS : sEFLAGS] ^
-		    tp[trap ? tEFLAGS : sEFLAGS]) & PSL_USERSTATIC) != 0 ||
-		    ISPL(frame_copy[trap ? tCS : sCS]) != SEL_UPL)
+		if (((frame_copy[tEFLAGS] ^ tp[tEFLAGS]) & PSL_USERSTATIC) != 0 ||
+		    ISPL(frame_copy[tCS]) != SEL_UPL)
 			return (EINVAL);
 		*(int*)((char *)p->p_addr + off) = data;
 		return (0);
@@ -856,8 +839,8 @@ setregs(p, entry, retval)
 	u_long entry;
 	int retval[2];
 {
-	p->p_md.md_regs[sEBP] = 0;	/* bottom of the fp chain */
-	p->p_md.md_regs[sEIP] = entry;
+	p->p_md.md_regs[tEBP] = 0;	/* bottom of the fp chain */
+	p->p_md.md_regs[tEIP] = entry;
 
 	p->p_addr->u_pcb.pcb_flags = 0;	/* no fp at all */
 	load_cr0(rcr0() | CR0_EM);	/* start emulating */
@@ -1263,7 +1246,15 @@ init386(first) { extern ssdtosd(), lgdt(), lidt(), lldt(), etext;
 	x = (int) &IDTVEC(syscall);
 	gdp->gd_looffset = x++;
 	gdp->gd_selector = GSEL(GCODE_SEL,SEL_KPL);
-	gdp->gd_stkcpy = 0;
+	/*
+	 * AI-ONLY NOTE: 1 where it was 0 (2026-10-27). The gate copies one
+	 * word of the user's stack, and the frame has a place for it:
+	 * where a trap frame has tf_eflags, which IDTVEC(syscall) fills
+	 * in. FreeBSD's c8a13ecd0 sets it with the comment `Leaves room
+	 * for eflags like a trap'; NetBSD 1.0's init386 sets it the same
+	 * way, with `leaves room for eflags like a trap'.
+	 */
+	gdp->gd_stkcpy = 1;
 	gdp->gd_type = SDT_SYS386CGT;
 	gdp->gd_dpl = SEL_UPL;
 	gdp->gd_p = 1;

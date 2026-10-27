@@ -561,7 +561,14 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
 	movl	%edx,_C_LABEL(Crtat)
 
 	/* set up bootstrap stack */
-	movl	$ _C_LABEL(kstack)+UPAGES*NBPG-4*12,%esp	# bootstrap stack end location
+	/*
+	 * AI-ONLY NOTE: 4*17 bytes reserved at the top, a struct trapframe,
+	 * where it was 4*12 (2026-10-27). main's framep points here and
+	 * proc 1's md_regs with it (see the note at the call to main);
+	 * md_regs[tESP] and md_regs[tSS] are at 60 and 64, past the forty-
+	 * eight bytes that did for the old frame's sESP at 44 and sSS at 48.
+	 */
+	movl	$ _C_LABEL(kstack)+UPAGES*NBPG-4*17,%esp	# bootstrap stack end location
 	xorl	%eax,%eax		# mark end of frames
 	movl	%eax,%ebp
 	movl	_C_LABEL(proc0paddr), %eax
@@ -643,12 +650,12 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
  *
  * execve writes both: cpu_setstack is `(p)->p_md.md_regs[SP] = ap' at
  * machine/cpu.h:72, and setregs at i386/machdep.c:773 sets
- * md_regs[sEIP] to the ELF entry point. MD_ESP and MD_EIP are their
- * byte offsets, 44 and 36, which i386/genassym.c computes from
- * <machine/reg.h>'s sESP and sEIP -- the same route PCB_ONFAULT and
- * PCB_CR3 take in this file, so that a change to reg.h reaches here.
- * Both are inside the forty-eight bytes the bootstrap stack
- * reserves.
+ * md_regs[tEIP] to the ELF entry point. MD_ESP and MD_EIP are their
+ * byte offsets, 60 and 48 (44 and 36 while a system call had a frame
+ * of its own), which i386/genassym.c computes from <machine/reg.h>'s
+ * tESP and tEIP -- the same route PCB_ONFAULT and PCB_CR3 take in
+ * this file, so that a change to reg.h reaches here. Both are inside
+ * the sixty-eight bytes the bootstrap stack reserves.
  *
  * Pushing constants threw both away. The process reached this lret
  * with an instruction pointer of zero and a stack pointer that was not
@@ -670,9 +677,9 @@ begin: /* now running relocated at SYSTEM where the system is linked to run */
  * pointer that was pushed for main.
  */
 	pushl	%ecx		# user ss
-	pushl	MD_ESP(%esi)	# user esp, md_regs[sESP], from cpu_setstack
+	pushl	MD_ESP(%esi)	# user esp, md_regs[tESP], from cpu_setstack
 	pushl	%eax		# user cs
-	pushl	MD_EIP(%esi)	# user ip, md_regs[sEIP], from setregs
+	pushl	MD_EIP(%esi)	# user ip, md_regs[tEIP], from setregs
 	movw	%cx,%ds
 	movw	%cx,%es
 	movw	%ax,%fs		# double map cs to fs
@@ -2185,37 +2192,41 @@ bpttraps:
 
 	ALIGN32
 IDTVEC(syscall)
-	pushfl	# only for stupid carry bit and more stupid wait3 cc kludge
-	pushal	# only need eax,ecx,edx - trap resaves others
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-27) -- the frame built here is a
+	 * struct trapframe, as every other entry builds, where it was a
+	 * frame of its own (struct syscframe) that this code had to turn
+	 * into an interrupt frame on the way out by popping it all and
+	 * pushing it again. FreeBSD's c8a13ecd0 (David Greenman, 3 January
+	 * 1994, "Convert syscall to trapframe. Based on work done by John
+	 * Brezak.") is this text; it held to release 2.1.0 (2.2 records
+	 * the size of the lcall in tf_err, for restarting a call).
+	 * NetBSD 1.0 builds its frame the same way, with its INTRENTRY
+	 * macro, which this file does not have, and sets the gate's copy
+	 * count to 1 as init386 does now: the word the gate copies from the
+	 * user's stack lands where tf_eflags goes, and the first pushfl
+	 * below, which lands where tf_err goes, is the user's flags -- a
+	 * call gate does not change them -- copied up into it. The second
+	 * pushfl is room for tf_trapno.
+	 */
+	pushfl					/* room for tf_err */
+	pushfl					/* room for tf_trapno */
+	pushal
 	nop
+	push	%ds
+	push	%es
 	movl	$KDSEL,%eax		# switch to kernel segments
 	movw	%ax,%ds
 	movw	%ax,%es
+	movl	TF_ERR(%esp),%eax	# copy eflags from tf_err to tf_eflags
+	movl	%eax,TF_EFLAGS(%esp)
+	movl	$0,TF_ERR(%esp)		# zero tf_err
 	incl	_C_LABEL(cnt)+V_SYSCALL  # kml 3/25/93
 	call	_C_LABEL(syscall)
 	/*
-	 * Return through doreti to handle ASTs.  Have to change syscall frame
-	 * to interrupt frame.
-	 *
-	 * XXX - we should have set up the frame earlier to avoid the
-	 * following popal/pushal (not much can be done to avoid shuffling
-	 * the flags).  Consistent frames would simplify things all over.
+	 * Return through doreti to handle ASTs.
 	 */
-	movl	32+0(%esp),%eax	/* old flags, shuffle to above cs:eip */
-	movl	32+4(%esp),%ebx	/* `int' frame should have been ef, eip, cs */
-	movl	32+8(%esp),%ecx
-	movl	%ebx,32+0(%esp)
-	movl	%ecx,32+4(%esp)
-	movl	%eax,32+8(%esp)
-	popal
-	nop
-	pushl	$0		/* dummy error code */
-	pushl	$T_ASTFLT
-	pushal
-	nop
-	movl	_C_LABEL(_udatasel),%eax	/* switch back to user segments */
-	push	%eax		/* XXX - better to preserve originals? */
-	push	%eax
+	movl	$T_ASTFLT,TF_TRAPNO(%esp)	/* new trap type (err code not used) */
 	pushl	_C_LABEL(cpl)
 	pushl	$0
 	jmp	doreti
