@@ -937,17 +937,26 @@ Makefiles do not know.
 - ~~**contrib/gdb-4.7.LBL still reads the s register offsets and
   FM_TRAP**~~ **replaced** (patch 204): gdb 4.16 is built instead, and
   4.7.LBL is not.
-- **`gdb -k` does not work on this system yet** (patch 204). Opened on
-  the live kernel, `gdb -k /vmunix /dev/mem` reads the kernel's ELF
-  symbols but prints `IdlePTD 0` and `current pcb at ffffffff`, and its
-  backtrace is empty garbage: kvm-fbsd.c (FreeBSD 2.2.8's, verbatim
-  apart from header fixes) finds the u-area by walking IdlePTD to
-  `kstack`, and either the walk or the value is wrong for this
-  kernel's layout (IdlePTD is stored by locore.s as a physical
-  address; it reads 0 through /dev/mem). A crash dump could not be
-  tried: the test image has no swap partition to dump to, and `reboot
-  -d` there never came back. To do with the dump path itself
-  (dumpsys, wd's d_dump, savecore) -- ddb is the kernel debugger meanwhile.
+- ~~**`gdb -k` did not work**~~ **works** (patch 206), and the earlier
+  failure was the test's: `/vmunix` on the test disk was not the
+  kernel that was running, so every symbol address was wrong (dmesg,
+  savecore and libkvm read garbage the same way). With the running
+  kernel as `/vmunix`: `gdb -k /vmunix /dev/mem` reads the live kernel;
+  `reboot(RB_DUMP)` dumps (16 MB, to wd0b at offset 10576 -- the swap
+  partition must be larger than memory), rc's savecore writes
+  /var/crash/vmcore.N, and `gdb -k /vmunix /var/crash/vmcore.N` gives
+  `boot <- reboot <- syscall <- the program`. What it needed:
+  `dumppcb`, set in boot() before dumpsys as FreeBSD 2.0 and 2.0.5 do
+  (patch 206). The kernel is not compiled -g, so `bt` has function names
+  only and no arguments; `info registers` shows what savectx keeps
+  (the callee-saved ones), as it does for FreeBSD. /proc must be
+  mounted for `bt` to go past the kernel frames.
+- **`reboot` with a CD (cd9660) mounted panics**: `vinvalbuf: dirty
+  bufs`, from vfs_unmountall -> dounmount -> ffs_unmount -> spec_close
+  -> vinvalbuf, on the root file system. With only / mounted, or after
+  `umount /mnt`, the same reboot (and a dump) succeeds. Not looked into
+  further. `reboot(8)` here has no `-d` (NetBSD 1.0's does) so a dump
+  needs reboot(2) with RB_DUMP.
 - **Attaching gdb to a process asleep in a system call** works to
   read it (bt, registers) but `stepi` waits until the sleep ends, as
   it must; single-stepping across a system call is the item above.
