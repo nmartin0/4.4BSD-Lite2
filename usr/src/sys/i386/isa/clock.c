@@ -258,11 +258,39 @@ extern V(rtc)();
 enablertclock() {
 	INTREN(IRQ0);
 	setidt(ICU_OFFSET+0, &V(clk), SDT_SYS386IGT, SEL_KPL);
-	INTREN(IRQ8);
+	/*
+	 * AI-ONLY NOTE: the vector is in place before IRQ 8 is let
+	 * through, not after, and register C is read before the periodic
+	 * interrupt is enabled. The chip holds its line until C is read
+	 * and the 8259 wants an edge, so a flag left set by an earlier
+	 * system (or the BIOS) keeps the line up and the clock never
+	 * starts; OpenBSD drains at attach for this (ho, February 2001,
+	 * c76869a91b8). startrtclock has already written register B
+	 * without the periodic bit, as FreeBSD 2.2.8's does at the same
+	 * point, so nothing new can set the flag meanwhile.
+	 */
 	setidt(ICU_OFFSET+8, &V(rtc), SDT_SYS386IGT, SEL_KPL);
+	(void)rtcin(RTC_INTR);
+	INTREN(IRQ8);
 	outb(IO_RTC, RTC_STATUSB);
 	outb(IO_RTC+1, RTCSB_PINTR | RTCSB_24HR);
 	splnone();
+}
+
+/*
+ * AI-ONLY NOTE: the periodic interrupt is switched off on the way
+ * down, from boot(), so that what boots next (the BIOS, a boot
+ * loader, another system) is not handed a line that is asserted
+ * until register C is read. None of the donors of the period does
+ * this; FreeBSD 2.2.8 only clears the bit again at its own start,
+ * as startrtclock does here.
+ */
+void
+disablertclock()
+{
+	outb(IO_RTC, RTC_STATUSB);
+	outb(IO_RTC+1, RTCSB_24HR);
+	(void)rtcin(RTC_INTR);
 }
 
 /*

@@ -689,6 +689,22 @@ flags are saved rather than assumed because the interrupt handler calls
 it too. The direct outb(IO_RTC) pairs in clock.c need nothing: they run
 at splstatclock or before the periodic interrupt is enabled.
 
+Patch 213 (decided 2026-10-28; kind D) finishes the RTC's start and stop.
+enablertclock now sets the vector before IRQ 8 is unmasked (it was after,
+so a stale interrupt would have gone to the stray vector) and reads
+register C before it enables the periodic bit, OpenBSD's drain
+(c76869a91b8, 2001); FreeBSD 2.2.8 clears the bit at the start, which
+startrtclock already did here, and loops in rtcintr, which patch 208
+took, but does not drain. disablertclock, new, writes register B without
+the bit and reads C, and boot() calls it after splhigh(): the chip's
+registers survive a warm reset, and the line stays up until C is read.
+No donor of the period does that at shutdown; it is mine. Register B is
+still written as a constant (24 hour, BCD, no daylight saving), as
+startrtclock and FreeBSD 2.2.8 do, which is what bcd() in inittodr
+assumes. Tested under QEMU: profil ticks 271 of 296 expected with the
+statistics clock running as before; a kernel that calls disablertclock
+at root mount accrues no cpu time and no ticks afterwards.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

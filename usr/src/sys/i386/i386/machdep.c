@@ -661,6 +661,7 @@ extern int cold;
 		DELAY(10000);			/* wait for printf to finish */
 	}
 	splhigh();
+	disablertclock();	/* no periodic interrupt left for whatever boots next */
 	devtype = major(rootdev);
 	if (howto&RB_HALT) {
 		printf("halting (in tight loop); hit reset\n\n");
