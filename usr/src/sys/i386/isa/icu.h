@@ -103,8 +103,8 @@ extern	unsigned short netmask; /* group of interrupts masked with splimp() */
  * master only for the slave's 15. Without this the driver on the
  * line took the spurious interrupt for its own and finished the
  * command in flight (seen as a crash in atapi_enqueue with the
- * statistics clock running; under load spurious IRQ 15s outnumber
- * real ones a hundredfold in QEMU).
+ * statistics clock running; under a disk load in QEMU spurious IRQ
+ * 15s outnumber the real ones, by six to some thousands to one).
  * The check is the 8259A data sheet's; no donor of the period has it.
  * spurintr[0] counts IRQ 7, spurintr[1] counts IRQ 15.
  */

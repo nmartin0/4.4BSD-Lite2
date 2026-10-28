@@ -657,13 +657,20 @@ in atapi_enqueue, where an IRQ 15 delivered under splbio ran the
 completion of the command in flight between the tests of tail; the
 saved priority at the interrupt had IRQ 15's own bit set. 8 of 8 runs
 clean after, against about 40 per cent crashing before; spurious IRQ 15
-counts run from 4,000 to 1,900,000 against 741 real ones. No donor of
+counts run from 4,500 to 2,000,000 against 741 real ones. No donor of
 the period has the check (FreeBSD 2.0.5 and 2.2.8, NetBSD 1.0 to 1.3
 log or ignore it); it is the 8259A data sheet's. (2) schedcpu divided
 p_cpticks by hz; statclock counts them at stathz, so ps showed 124 per
-cent for a spinning process and shows 99.3 now (NetBSD's and FreeBSD's
-is the same stathz-or-hz expression). (3) trap.c's addupc calls for
-system ticks gain the psratio hp300/trap.c has. Also corrected: the
+cent for a spinning process and shows 99.3 now. This one is a later
+donor's: FreeBSD 4.0 (realstathz) and NetBSD 1.4 (clkhz) have it,
+FreeBSD 2.x and 3.0 and NetBSD 1.0 to 1.3 do not, and hp300 never
+needed it (stathz is hz there). (3) trap.c's addupc calls for system
+ticks gain the psratio that hp300/trap.c, NetBSD 1.0's i386 trap.c and
+FreeBSD 2.2.8's have; a process in a read loop on /dev/zero, 6000
+reads, profiled 54 ticks of 358 before and 312 of 317 after. A
+software int to vectors 0x27 and 0x2f, with no in-service bit set, is
+dropped and counted (IRQ 7's check has been run that way; no device
+in GENERIC is on IRQ 7). Also corrected: the
 failure mechanism in clock.c's note and the cause of the vinvalbuf
 panic in deferred.md.
 

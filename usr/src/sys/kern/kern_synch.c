@@ -192,8 +192,11 @@ schedcpu(arg)
 		/*
 		 * AI-ONLY NOTE: p_cpticks is counted by statclock(), so
 		 * it is per second of stathz, not of hz; they differ
-		 * once there is a statistics clock (NetBSD and FreeBSD
-		 * divide by the same expression).
+		 * once there is a statistics clock. FreeBSD 4.0's
+		 * schedcpu has this, under this name; NetBSD 1.4's as
+		 * clkhz. Not in the 1994-97 donors (FreeBSD 2.x and 3.0,
+		 * NetBSD 1.0 to 1.3 divide by hz); hp300 never needed it,
+		 * its stathz being hz.
 		 */
 		p->p_pctcpu += (realstathz == 100)?
 			((fixpt_t) p->p_cpticks) << (FSHIFT - CCPU_SHIFT):
