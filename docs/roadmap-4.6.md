@@ -276,6 +276,110 @@ scheduling and there is no thread abstraction to carry forward.
 Which one 4.6BSD targets decides whether this is six items or
 twenty, and it should be settled before any of it begins.
 
+## Backporting: which donor, how far, and how much
+
+4.6BSD's changes are backports, not new engineering, and the aim is to
+change what exists and leave its interfaces alone. Measured
+2026-10-28 against the donor trees. The method: each of this tree's
+363 `.c` and `.h` files in `kern`, `vm`, `net`, `netinet`, `sys`,
+`ufs`, `miscfs`, `nfs` and `isofs` was diffed (`diff -w`) against the
+same file, or the one file of that name, in each donor; the figure is
+the share of this tree's lines that survive. Machine-dependent code and
+drivers are not in it. It measures text, not compatibility, so for the
+two interfaces that matter most the operation names were counted too.
+
+| Donor | source lines kept | header lines kept |
+|---|---|---|
+| OpenBSD 1997-06 | 81% | 85% |
+| OpenBSD 1999-12 | 80% | 84% |
+| NetBSD 1.3 | 78% | 83% |
+| FreeBSD 2.0.5 | 76% | 81% |
+| FreeBSD 2.2.8 | 75% | 81% |
+| FreeBSD 3.0 | 70% | 78% |
+| NetBSD 1.4 | 67% | 80% |
+| OpenBSD 2002-01 | 66% | 72% |
+| FreeBSD 4.0 | 65% | 72% |
+| NetBSD 1.5 | 62% | 76% |
+| FreeBSD 5.0 | 38% | 56% |
+
+**NetBSD 1.3 and OpenBSD 1997-99 are the continuation; take from them
+first.** The break is UVM, in NetBSD 1.4 and in OpenBSD by 2002
+(`sys/vm` gone), and, in FreeBSD, 3.0 for the VM and VFS and 5.0 for
+the rest.
+
+- **VFS.** This tree has 42 vnode operations. OpenBSD 1997 has 41
+  (no `revoke`), OpenBSD 1999 all 42 and `balloc`, NetBSD 1.3 40
+  (`poll` for `select`), FreeBSD 2.0.5 39. FreeBSD 3.0 moves seven
+  UFS operations out of the generic set (`blkatoff`, `seek`, `select`,
+  `truncate`, `update`, `valloc`, `vfree`) and adds seven: the
+  interface changes there.
+- **pmap.** 26 entry points in `vm/pmap.h`. NetBSD 1.3 and OpenBSD
+  1997 keep all 26; OpenBSD 1999 loses one; NetBSD 1.4 and 1.5 lose
+  four to six (UVM); FreeBSD 2.2.8 loses five and adds fifteen. The
+  pmap boundary is the seam under any VM.
+- **VM.** FreeBSD's `sys/vm` keeps 39-66% of this tree's source lines;
+  NetBSD 1.3 and OpenBSD 1997-99 keep 88-92%, being Lite2's VM with
+  fixes. To keep the Lite2 VM interface, take from them.
+- **Shrink-wrap set.** 149 of the 363 files (41,848 lines) keep 90%
+  or more in all three of NetBSD 1.3, OpenBSD 1997 and OpenBSD 1999;
+  215 keep it in at least one; 14 are gone from all three. By
+  directory, 90% or more in all three: `sys` 54 of 92, `vm` 23 of 32,
+  `net` 14 of 27, `netinet` 14 of 39, `miscfs` 12 of 39, `ufs` 11 of
+  44, `kern` 9 of 57, `nfs` 7 of 21, `isofs` 5 of 12. The list, with
+  every figure, is `docs/provenance/shrinkwrap-4.6.tsv`. A file in it is
+  one whose donors' version is a few changes from this one, so the
+  changes can be taken as bug fixes and not as an interface move.
+
+**Additions that have no counterpart here, sized at the nearest
+donor** (lines of `.c`, `.h`, `.s`):
+
+| Item | Donor | Lines |
+|---|---|---|
+| kernel threads | FreeBSD 4.0 `kern_kthread.c` | 144 |
+| zone allocator | FreeBSD 3.0 `vm_zone`; Mach 3.0 `zalloc`; NetBSD 1.4 `pool` | 599; 1,409; 1,543 |
+| loadable modules | FreeBSD 2.2.8 `kern_lkm.c`, `lkm.h` | 1,329 |
+| SMP, i386 | FreeBSD 3.0 `mp_machdep.c`, `mpapic.c`, `mpboot.s`, `simplelock.s`, APIC headers and vectors | 6,236 |
+| autoconf, `device.h` | NetBSD 1.3 | 803 |
+| PCI core, `pcidevs` | NetBSD 1.3 `dev/pci`, `arch/i386/pci` (core files) | 1,927 (all of `dev/pci`: 32,658) |
+| `bus_space`, `bus_dma` | NetBSD 1.3 i386 | 1,016 |
+| `config(8)` | NetBSD 1.3 `usr.sbin/config` | 6,039 |
+| ATA, ATAPI, PCI IDE | NetBSD 1.4 | 8,189 |
+| USB | NetBSD 1.4 / OpenBSD 1999-12 | 16,715 / 18,812 |
+| IPv6 (KAME) | NetBSD 1.5 `netinet6` | 37,532 |
+| amd64 | FreeBSD 5.3 `sys/amd64` | 39,920 |
+| ACPI | FreeBSD 5.3 `dev/acpica`, `contrib/dev/acpica` | 138,901 |
+| AHCI | FreeBSD 8.0 `dev/ahci` | 2,408 |
+| NVMe | FreeBSD 10.0 `dev/nvme` | 5,866 |
+| virtio | FreeBSD 10.0 `dev/virtio` | 12,115 |
+| UEFI loader | FreeBSD 10.0 `boot/efi`; 12.0 `stand/efi` | 7,067; 18,274 |
+
+For scale, this tree's `sys/kern` is 32.7k lines, `sys/vm` 13.8k,
+`sys/netinet` 13.4k, `sys/i386` 36.8k and all of `sys` 579k. UVM
+(NetBSD 1.4, 23,170 lines) and FreeBSD 3.0's VM (18,011) are larger than
+this tree's 13.8k.
+
+**SMP from FreeBSD, and what it asks of the VM.** FreeBSD 3.0's SMP is
+a big kernel lock (`mp_lock`, taken on kernel entry and given up in
+sleep), not a re-entrant VM: `sys/vm` has 16 lines that mention SMP or
+a simple lock, in four files, and most of those are `vm_zone`.
+`struct lock` and `simple_lock` are already in Lite2. The work is in
+the machine-dependent code, by grep: `sys/i386/i386` 683 lines in 20
+files (`mp_machdep.c` 314, `mpapic.c` 96, `pmap.c` 89, `globals.s`
+76, `mplock.s` 48, `swtch.s` 34), `i386/include` 175, `i386/isa`
+267 (`apic_vector.s` 67, `apic_ipl.s` 47), `kern` 110 in 17 files.
+pmap's part is a private page table per CPU (`prv_CMAP`, `SMP_prvpt`)
+and TLB shootdown by inter-processor interrupt. The difficulty is not
+the VM but that those hooks are written against FreeBSD's i386 base,
+and this tree's i386 files share little with it: against FreeBSD
+2.2.8, 3.0 and 4.0 this tree's `pmap.c` keeps 36%, `trap.c` 27-28%,
+`machdep.c` 33-35%, `locore.s` 9%, `isa/clock.c` 27-28%; against NetBSD
+1.3 and OpenBSD 1997, `pmap.c` 49-51%, `trap.c` 34%, `locore.s`
+22-23%. FreeBSD 3.0's interrupt and `spl` handling for SMP (`cpl`
+under a spin lock, `ipl.s`, `ipl_funcs.c`) is the larger piece and
+touches every driver's interrupt path. NetBSD 1.3 to 1.5 and OpenBSD
+1997 to January 2002 have no APIC or MP file under `arch/i386`
+(checked 2026-10-28), so FreeBSD is the only donor in the window.
+
 ## Modern tools
 
 To be listed. Carried over from 4.5BSD so far:
