@@ -674,6 +674,21 @@ in GENERIC is on IRQ 7). Also corrected: the
 failure mechanism in clock.c's note and the cause of the vinvalbuf
 panic in deferred.md.
 
+Patch 212 (decided 2026-10-28; kind D, a later donor's) makes rtcin() in
+locore.s atomic: pushfl, cli, the index write and the data read, popfl.
+rtcintr reads register C through the same routine, so an interrupt
+between the two instructions of a process-level read (inittodr's, at
+root mount, after the clocks are running; machdep.c's memory sizes
+before) left register C's index in the chip and the process read C
+instead of the register it asked for. Shown with a loop of 1,500,000
+reads of a constant register (0x15, base memory) in inittodr: 18
+mismatches before, 0 after (300,000 reads gave 1 before). The test loop
+is not in the patch. The pair is FreeBSD 4.0's, which brackets it with
+splhigh(); FreeBSD 2.0.5 to 3.0 and NetBSD 1.0 to 1.5 leave it bare. The
+flags are saved rather than assumed because the interrupt handler calls
+it too. The direct outb(IO_RTC) pairs in clock.c need nothing: they run
+at splstatclock or before the periodic interrupt is enabled.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

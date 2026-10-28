@@ -790,9 +790,21 @@ _C_LABEL(inw):	movl	4(%esp),%edx
 	.globl	_C_LABEL(rtcin)
 	ALIGN32
 _C_LABEL(rtcin):	movl	4(%esp),%eax
+	/*
+	 * AI-ONLY NOTE: the index write and the data read are a pair; the
+	 * statistics clock's interrupt (rtcintr, IRQ 8) reads register C
+	 * through this same routine and would leave its own index in the
+	 * chip between the two. Interrupts are off across the pair, and
+	 * left as they were found, since this is called from the
+	 * interrupt handler as well. FreeBSD 4.0's rtcin makes the pair
+	 * atomic with splhigh(); none of the donors of the period do.
+	 */
+	pushfl
+	cli
 	outb	%al,$0x70
 	subl	%eax,%eax	# clr eax
 	inb	$0x71,%al	# Compaq SystemPro 
+	popfl
 	ret
 
 	.globl	_C_LABEL(outb)
