@@ -165,6 +165,7 @@ schedcpu(arg)
 	register struct proc *p;
 	register int s;
 	register unsigned int newcpu;
+	register int realstathz = stathz ? stathz : hz;
 
 	wakeup((caddr_t)&lbolt);
 	for (p = allproc.lh_first; p != 0; p = p->p_list.le_next) {
@@ -188,13 +189,19 @@ schedcpu(arg)
 		 * p_pctcpu is only for ps.
 		 */
 #if	(FSHIFT >= CCPU_SHIFT)
-		p->p_pctcpu += (hz == 100)?
+		/*
+		 * AI-ONLY NOTE: p_cpticks is counted by statclock(), so
+		 * it is per second of stathz, not of hz; they differ
+		 * once there is a statistics clock (NetBSD and FreeBSD
+		 * divide by the same expression).
+		 */
+		p->p_pctcpu += (realstathz == 100)?
 			((fixpt_t) p->p_cpticks) << (FSHIFT - CCPU_SHIFT):
                 	100 * (((fixpt_t) p->p_cpticks)
-				<< (FSHIFT - CCPU_SHIFT)) / hz;
+				<< (FSHIFT - CCPU_SHIFT)) / realstathz;
 #else
 		p->p_pctcpu += ((FSCALE - ccpu) *
-			(p->p_cpticks * FSCALE / hz)) >> FSHIFT;
+			(p->p_cpticks * FSCALE / realstathz)) >> FSHIFT;
 #endif
 		p->p_cpticks = 0;
 		newcpu = (u_int) decay_cpu(loadfac, p->p_estcpu) + p->p_nice;

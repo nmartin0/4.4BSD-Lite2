@@ -958,11 +958,11 @@ Makefiles do not know.
   only and no arguments; `info registers` shows what savectx keeps
   (the callee-saved ones), as it does for FreeBSD. /proc must be
   mounted for `bt` to go past the kernel frames.
-- **`reboot` with a CD (cd9660) mounted panics**: `vinvalbuf: dirty
+- **`reboot` with daemons running panics**: `vinvalbuf: dirty
   bufs`, from vfs_unmountall -> dounmount -> ffs_unmount -> spec_close
-  -> vinvalbuf, on the root file system. With only / mounted, or after
-  `umount /mnt`, the same reboot (and a dump) succeeds. Not looked into
-  further. `reboot(8)` here has no `-d` (NetBSD 1.0's does) so a dump
+  -> vinvalbuf, on the root file system. This was first put down to a
+  CD (cd9660) being mounted; that was wrong (corrected in patch 210):
+  it is a direct reboot(2) with live daemons still running. `reboot(8)` here has no `-d` (NetBSD 1.0's does) so a dump
   needs reboot(2) with RB_DUMP.
 - **Attaching gdb to a process asleep in a system call** works to
   read it (bt, registers) but `stepi` waits until the sleep ends, as

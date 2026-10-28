@@ -90,6 +90,50 @@ extern	unsigned short netmask; /* group of interrupts masked with splimp() */
 	outb	%al,$ IO_ICU2+1	; \
 	sti ;
 
+/*
+ * AI-ONLY NOTE: spurious interrupts on the last line of each 8259A.
+ * The slave's output reaches the master as an edge on IRQ 2 and the
+ * master latches it. If the slave's line is masked after that and
+ * before the CPU answers, the latch remains, the CPU acknowledges,
+ * and the slave, with nothing left to give, answers with its line 7
+ * (IRQ 15); the master's line 7 does the same for a line masked
+ * under it. The in-service register (OCW3, 0x0b) tells a real
+ * interrupt, whose bit is set, from a spurious one, whose is not. A
+ * spurious one is dropped: no EOI for the master's 7, an EOI to the
+ * master only for the slave's 15. Without this the driver on the
+ * line took the spurious interrupt for its own and finished the
+ * command in flight (seen as a crash in atapi_enqueue with the
+ * statistics clock running; under load spurious IRQ 15s outnumber
+ * real ones a hundredfold in QEMU).
+ * The check is the 8259A data sheet's; no donor of the period has it.
+ * spurintr[0] counts IRQ 7, spurintr[1] counts IRQ 15.
+ */
+#define INTR_SPUR1 \
+	pushl	%eax ; \
+	movb	$0x0b,%al ; \
+	outb	%al,$ IO_ICU1 ; \
+	inb	$ IO_ICU1,%al ; \
+	testb	$0x80,%al ; \
+	jnz	9f ; \
+	incl	_C_LABEL(spurintr) ; \
+	popl	%eax ; \
+	iret ; \
+9:	popl	%eax ;
+
+#define INTR_SPUR2 \
+	pushl	%eax ; \
+	movb	$0x0b,%al ; \
+	outb	%al,$ IO_ICU2 ; \
+	inb	$ IO_ICU2,%al ; \
+	testb	$0x80,%al ; \
+	jnz	9f ; \
+	incl	_C_LABEL(spurintr) + 4 ; \
+	movb	$0x20,%al ; \
+	outb	%al,$ IO_ICU1 ; \
+	popl	%eax ; \
+	iret ; \
+9:	popl	%eax ;
+
 #define INTR1(unit,mask,offst) \
 	INTR_HEAD(unit,mask,offst) \
 	INTR_TAIL(unit,mask,offst)

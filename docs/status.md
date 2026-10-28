@@ -685,6 +685,8 @@ deferred while the object was to reach a link. `pccons.c` asks for
 
 ## Smaller things deferred, with the note that records each
 
+- ~~Spurious IRQ 7 and 15 reached the drivers~~: dropped by the
+  in-service register check (patch 210; `isa/icu.h`, `usr.sbin/config/mkglue.c`).
 - ~~`CLKF_INTR` returns zero~~: it is the nesting count of FreeBSD
   2.0.5 (patch 209; `i386/include/cpu.h`, `isa/icu.s`).
 - ~~`stathz` stays zero~~: the statistics clock is the RTC's, on IRQ 8

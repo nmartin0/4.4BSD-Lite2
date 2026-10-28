@@ -392,6 +392,7 @@ out:
 			postsig(i);
 	}
 	if (p->p_stats->p_prof.pr_scale) {
+		extern int psratio;
 		u_quad_t ticks = p->p_sticks - sticks;
 
 		if (ticks) {
@@ -400,7 +401,14 @@ out:
 			addupc(frame.tf_eip, &p->p_stats->p_prof,
 			    ticks * profscale);
 #else
-			addupc(frame.tf_eip, &p->p_stats->p_prof, ticks);
+			/*
+			 * AI-ONLY NOTE: p_sticks advances once per psratio
+			 * profiling ticks, so the pc is owed that many, as
+			 * hp300/trap.c does. Before the statistics clock
+			 * psratio was one and this was the same.
+			 */
+			addupc(frame.tf_eip, &p->p_stats->p_prof,
+			    ticks * psratio);
 #endif
 		}
 	}
@@ -587,6 +595,7 @@ done:
 			postsig(i);
 	}
 	if (p->p_stats->p_prof.pr_scale) {
+		extern int psratio;
 		u_quad_t ticks = p->p_sticks - sticks;
 
 		if (ticks) {
@@ -595,7 +604,14 @@ done:
 			addupc(frame.tf_eip, &p->p_stats->p_prof,
 			    ticks * profscale);
 #else
-			addupc(frame.tf_eip, &p->p_stats->p_prof, ticks);
+			/*
+			 * AI-ONLY NOTE: p_sticks advances once per psratio
+			 * profiling ticks, so the pc is owed that many, as
+			 * hp300/trap.c does. Before the statistics clock
+			 * psratio was one and this was the same.
+			 */
+			addupc(frame.tf_eip, &p->p_stats->p_prof,
+			    ticks * psratio);
 #endif
 		}
 	}

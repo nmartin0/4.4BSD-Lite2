@@ -647,6 +647,26 @@ a disk read; iostat's interrupt column shows 27 to 49 per cent while
 the IDE disk is read by PIO (Evans measured 55 on a 486) and 0 when
 idle; a spinning process shows 91 per cent user.
 
+Patch 210 (decided 2026-10-28; kind A, mine) is three corrections found
+by testing 208 and 209. (1) Spurious interrupts on the last line of each
+8259A: INTR_SPUR1 and INTR_SPUR2 (icu.h) read the in-service register
+before the vector for IRQ 7 or 15 does anything, and drop an interrupt
+whose bit is clear; config (mkglue.c) emits them for the devices on
+those lines, and the stray vectors in icu.s have them. Found as a crash
+in atapi_enqueue, where an IRQ 15 delivered under splbio ran the
+completion of the command in flight between the tests of tail; the
+saved priority at the interrupt had IRQ 15's own bit set. 8 of 8 runs
+clean after, against about 40 per cent crashing before; spurious IRQ 15
+counts run from 4,000 to 1,900,000 against 741 real ones. No donor of
+the period has the check (FreeBSD 2.0.5 and 2.2.8, NetBSD 1.0 to 1.3
+log or ignore it); it is the 8259A data sheet's. (2) schedcpu divided
+p_cpticks by hz; statclock counts them at stathz, so ps showed 124 per
+cent for a spinning process and shows 99.3 now (NetBSD's and FreeBSD's
+is the same stathz-or-hz expression). (3) trap.c's addupc calls for
+system ticks gain the psratio hp300/trap.c has. Also corrected: the
+failure mechanism in clock.c's note and the cause of the vinvalbuf
+panic in deferred.md.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

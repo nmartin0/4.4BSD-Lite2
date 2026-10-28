@@ -341,17 +341,19 @@ clkintr(frame)
  * hardclock no longer calls statclock, which runs from here instead,
  * at 128 Hz and at 1024 Hz while a process is being profiled.
  *
- * What it is not is FreeBSD 2.0's text. The chip raises its line
- * again only after register C has been read, and 2.0's single read
- * loses the clock for good if a second period passes before the
- * first is acknowledged: the line stays high, the 8259 sees no new
- * edge, and statclock stops. FreeBSD 2.2.8's (and 3.0.0's) rtcintr
- * loops, `while (rtcin(RTC_INTR) & RTCIR_PERIOD) statclock(&frame);',
- * and is taken here; the 2.0 to 2.2.8 range holds the change, this
- * repository's FreeBSD history having only the tags 2.0, 2.0.5, 2.1.0
- * and 2.2.8 between them. OpenBSD found the same stall in February
- * 2001 (ho, "rtc stops if we miss interrupts. Inspired by code from
- * FreeBSD"; c76869a91b8) and fixed it with a drain at attach.
+ * What it is not is FreeBSD 2.0's text. The chip holds its line high
+ * until register C has been read, and the 8259 is edge triggered, so
+ * a period flag left set would mean no new edge and no more
+ * interrupts. 2.0 reads C once; FreeBSD 2.2.8's (and 3.0.0's)
+ * rtcintr loops, `while (rtcin(RTC_INTR) & RTCIR_PERIOD)
+ * statclock(&frame);', and is taken here; the 2.0 to 2.2.8 range
+ * holds the change, this repository's FreeBSD history having only
+ * the tags 2.0, 2.0.5, 2.1.0 and 2.2.8 between them. OpenBSD found
+ * a stall of the same kind in February 2001 (ho, "rtc stops if we
+ * miss interrupts. Inspired by code from FreeBSD"; c76869a91b8) and
+ * fixed it with a drain at attach. None of it has been seen to fail
+ * here in testing; what is missing is the same drain before the
+ * periodic interrupt is enabled (see docs/deferred.md).
  *
  * Checked 2026-10-28: NetBSD 1.0 through 1.5 have no statistics clock
  * on the i386, only an empty setstatclockrate; OpenBSD added one on

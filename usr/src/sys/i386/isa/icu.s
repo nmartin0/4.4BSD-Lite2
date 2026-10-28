@@ -52,6 +52,8 @@ _C_LABEL(biomask):	.long	0
 _C_LABEL(netmask):	.long	0
 	.globl	_C_LABEL(isa_intr)
 _C_LABEL(isa_intr):	.space	16*4
+	.globl	_C_LABEL(spurintr)
+_C_LABEL(spurintr):	.space	2*4	/* spurious IRQ 7, IRQ 15; see icu.h */
 /*
  * AI-ONLY NOTE: intr_nesting_level, which CLKF_INTR (machine/cpu.h)
  * reads. Bruce Evans's, for FreeBSD, 3 December 1994 (bde, "Keep
@@ -428,7 +430,7 @@ IDTVEC(intr6)
 	INTR1(6, _C_LABEL(highmask), 6) ; call	_C_LABEL(isa_strayintr) ; INTREXIT1
 
 IDTVEC(intr7)
-	INTR1(7, _C_LABEL(highmask), 7) ; call	_C_LABEL(isa_strayintr) ; INTREXIT1
+	INTR_SPUR1 INTR1(7, _C_LABEL(highmask), 7) ; call	_C_LABEL(isa_strayintr) ; INTREXIT1
 
 
 IDTVEC(intr8)
@@ -453,4 +455,4 @@ IDTVEC(intr14)
 	INTR2(14, _C_LABEL(highmask), 14) ; call	_C_LABEL(isa_strayintr) ; INTREXIT2
 
 IDTVEC(intr15)
-	INTR2(15, _C_LABEL(highmask), 15) ; call	_C_LABEL(isa_strayintr) ; INTREXIT2
+	INTR_SPUR2 INTR2(15, _C_LABEL(highmask), 15) ; call	_C_LABEL(isa_strayintr) ; INTREXIT2

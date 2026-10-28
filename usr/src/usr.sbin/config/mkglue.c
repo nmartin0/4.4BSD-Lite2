@@ -392,8 +392,10 @@ VEC(rtc)\n\
 				id->id, dp->d_name, dp->d_unit);
 			fprintf(fp,"_C_LABEL(%s%dmask):\t.long 0\n\t.text\n",
 				dp->d_name, dp->d_unit);
-			fprintf(fp,"VEC(%s%d)\n\tINTR%d(%d, ",
+			fprintf(fp,"VEC(%s%d)\n\t%sINTR%d(%d, ",
 				dp->d_name, dp->d_unit,
+				dp->d_irq == 7 ? "INTR_SPUR1\n\t" :
+				dp->d_irq == 15 ? "INTR_SPUR2\n\t" : "",
 				dp->d_irq / 8 + 1, dp->d_unit);
 					if(eq(dp->d_mask,"null"))
 		 				fprintf(fp,"_C_LABEL(%s%dmask), ",
