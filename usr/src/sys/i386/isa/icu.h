@@ -77,6 +77,7 @@ extern	unsigned short netmask; /* group of interrupts masked with splimp() */
 	movw	%ax, %ds ; \
 	movw	%ax,%es ; \
 	incl	_C_LABEL(cnt)+V_INTR ; \
+	incb	_C_LABEL(intr_nesting_level) ; \
 	incl	_C_LABEL(isa_intr) + offst * 4 ; \
 	movzwl	_C_LABEL(cpl),%eax ; \
 	pushl	%eax ; \

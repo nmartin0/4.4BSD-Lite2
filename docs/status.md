@@ -685,9 +685,8 @@ deferred while the object was to reach a link. `pccons.c` asks for
 
 ## Smaller things deferred, with the note that records each
 
-- `CLKF_INTR` returns zero: the i386 `clockframe` carries no flag
-  saying whether the clock interrupted at interrupt level
-  (`i386/include/cpu.h`).
+- ~~`CLKF_INTR` returns zero~~: it is the nesting count of FreeBSD
+  2.0.5 (patch 209; `i386/include/cpu.h`, `isa/icu.s`).
 - ~~`stathz` stays zero~~: the statistics clock is the RTC's, on IRQ 8
   (patch 208; `i386/isa/clock.c`, `rtcintr`).
 - `reset_cpu` is this port's name for what every other BSD calls

@@ -630,6 +630,23 @@ and 1024; a spinning process is charged user time; profil collects
 about 1024 ticks a second and the rate returns to 128 afterwards; the
 date keeps true over a ten-second sleep.
 
+Patch 209 is CLKF_INTR (decided 2026-10-26; kind D): Bruce Evans's
+count of nested interrupts, FreeBSD, 3 December 1994 (b39b673d3 in the
+FreeBSD history; release 2.0 has the zero, 2.0.5 and 2.2.8 the count).
+intr_nesting_level is a byte in icu.s, raised by every interrupt vector
+(icu.h) and by trap and syscall exits, lowered by doreti; cpu_switch
+keeps it in the pcb (pcb_inl replaces the unused pcb_iml, the offsets
+unchanged) and the idle loop sets it so that waiting counts as idle and
+looking for work as interrupt time. Not in FreeBSD: this doreti has one
+more exit than its, the one that re-enters trap() for an AST, and
+decrements before it. NetBSD 1.0 to 1.3 keep the zero, 1.5 tests a tag
+in the saved priority level; OpenBSD tested the code selector from
+1997-04-20 (fdd3d32dfca), which is the test the roadmap passed over.
+Tested under QEMU: the level reads 0 at rest after 150 forks, profil and
+a disk read; iostat's interrupt column shows 27 to 49 per cent while
+the IDE disk is read by PIO (Evans measured 55 on a 486) and 0 when
+idle; a spinning process shows 91 per cent user.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

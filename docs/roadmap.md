@@ -141,10 +141,10 @@ tests (below).
 
 **6. The kernel's loose ends of the period**, each in deferred.md or
 status.md: ~~a statistics clock~~ (FreeBSD's, on IRQ 8; decided
-2026-10-25, Wollman's of 1994; **done**, patch 208); `CLKF_INTR` (decided
-2026-10-26: Bruce Evans's FreeBSD count of nested interrupts, December
-1994, for OpenBSD's 1997 selector test, which miscounts after a switch
-from the AST path); the FPU registers for ptrace, once npx saves on
+2026-10-25, Wollman's of 1994; **done**, patch 208); ~~`CLKF_INTR`~~
+(decided 2026-10-26: Bruce Evans's FreeBSD count of nested interrupts,
+December 1994, for OpenBSD's 1997 selector test, which miscounts after
+a switch from the AST path; **done**, patch 209); the FPU registers for ptrace, once npx saves on
 demand; dial-out devices for the serial ports; vmstat's `??0` drive
 names; fd's debugging printf; the kernel linked without a linker
 script; the kernel's warnings, not yet audited. The `vinvalbuf`

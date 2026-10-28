@@ -197,7 +197,7 @@ ASSYM(FP_USESEMC, FP_USESEMC);
 ASSYM(PCB_SAVEEMC, offsetof(struct pcb, pcb_saveemc));
 ASSYM(PCB_CMAP2, offsetof(struct pcb, pcb_cmap2));
 ASSYM(PCB_SIGC, offsetof(struct pcb, pcb_sigc));
-ASSYM(PCB_IML, offsetof(struct pcb, pcb_iml));
+ASSYM(PCB_INL, offsetof(struct pcb, pcb_inl));
 ASSYM(PCB_ONFAULT, offsetof(struct pcb, pcb_onfault));
 
 ASSYM(B_READ, B_READ);

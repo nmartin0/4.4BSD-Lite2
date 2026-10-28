@@ -356,15 +356,18 @@ About thirty lines, adapted rather than copied. Four trees agree.
 An earlier draft scaled by `cpuspeed` as hp300 does; this port has no
 `cpuspeed`, only `isa/if_ec.c` declaring one nothing defines.
 
-### `CLKF_INTR` is hardcoded zero
+### `CLKF_INTR` was hardcoded zero -- done (patch 209)
 
 `64dc319e`, note in `i386/include/cpu.h`
 
 The i386 `clockframe` is the generic `intrframe` and carries no
-interrupt-level flag. pmax and news3400 also answer zero; **hp300
-wrote the real test against `PSL_M`, put it behind `#if 0`, and left
-the zero live with a note**; only luna68k and sparc answer it
-properly. Profiling cannot distinguish interrupt-level ticks.
+interrupt-level flag, so every kernel tick was charged to system or
+idle and the interrupt column never moved. It is now Bruce Evans's
+count of nested interrupts, `intr_nesting_level` (FreeBSD, 3 December
+1994): each interrupt vector adds one, each return through `doreti`
+takes one off, and `CLKF_INTR` is the level being two or more. One
+exit of this tree's `doreti` has no FreeBSD counterpart, the one that
+re-enters `trap()` for an AST, and takes its own decrement.
 
 ### No statistics clock -- done (patch 208)
 

@@ -69,7 +69,7 @@ struct pcb {
  * entered the kernel on, is gone with the second frame (2026-10-27);
  * FreeBSD's c8a13ecd0 removes it from this file too.
  */
-	short	pcb_iml;	/* interrupt mask level */
+	u_char	pcb_inl;	/* intr_nesting_level at context switch */
 	caddr_t	pcb_onfault;	/* copyin/out fault recovery */
 	long	pcb_sigc[8];	/* XXX signal code trampoline */
 	int	pcb_cmap2;	/* XXX temporary PTE - will prefault instead */

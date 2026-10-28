@@ -87,15 +87,26 @@ struct clockframe {
 #define	CLKF_PC(framep)		((framep)->cf_if.if_eip)
 /*
  * AI-ONLY NOTE: CLKF_INTR, which this file did not define while
- * kern/kern_clock.c calls it. Zero is what most of this tree
- * answers: pmax and news3400 define it as zero, and hp300 wrote the
- * real test against PSL_M, put it behind an #if 0, and left the zero
- * live with a note saying why. Only luna68k and sparc answer it
- * properly. The clockframe here is the generic intrframe and carries
- * no flag saying whether the clock interrupted at interrupt level,
- * so there is nothing to test yet.
+ * kern/kern_clock.c calls it, was the constant zero (2026-10-27 and
+ * before): the clockframe here is the generic intrframe and says
+ * nothing of whether the clock interrupted at interrupt level, so
+ * statclock charged all kernel time to system or idle and the CP_INTR
+ * counter, iostat's `in' and top's interrupt column never moved.
+ *
+ * It is now FreeBSD's, Bruce Evans, 3 December 1994 (b39b673d3 in the
+ * FreeBSD history; 2.0 has the zero, 2.0.5 and 2.2.8 this test): the
+ * clock's own interrupt makes the nesting level one, so the clock
+ * interrupted interrupt-level work, another handler or the exit
+ * through doreti, when it is two or more. See intr_nesting_level in
+ * isa/icu.s. NetBSD 1.0 to 1.3 keep the zero ("XXX should have an
+ * interrupt stack"); NetBSD 1.5 tests the saved priority level for a
+ * tag it adds. OpenBSD took NetBSD's zero in its import of October
+ * 1995 and, on 20 April 1997 (tholo, fdd3d32dfca), tested the
+ * frame's code selector instead, which needs a separate selector for
+ * interrupt handlers and miscounts a frame re-entered through the AST
+ * path; that is why the count was taken here and not the selector.
  */
-#define	CLKF_INTR(framep)	(0)	/* XXX */
+#define	CLKF_INTR(framep)	(intr_nesting_level >= 2)
 
 /*
  * AI-ONLY NOTE: no `#define resettodr()' here, where this file said
@@ -184,6 +195,7 @@ extern int	cpu_class;	/* CPUCLASS_386, _486 or _586 */
  * this port's now does. Nothing sets it, so it stays 0.
  */
 extern int	bootverbose;
+extern unsigned char	intr_nesting_level;	/* isa/icu.s; CLKF_INTR reads it */
 
 #endif /* !LOCORE */
 

@@ -1707,9 +1707,21 @@ sw0:	.asciz	"cpu_switch"
 	ALIGN32
 Idle:
 idle:
+	/*
+	 * AI-ONLY NOTE: the nesting level is one while this loop looks for
+	 * work, so a clock tick then is charged to interrupt time, and
+	 * zero only while it waits, so a tick then is charged to idle.
+	 * Leaving for sw1 leaves it one, until cpu_switch restores the
+	 * new process's own. FreeBSD 2.0.5's idle_loop (swtch.s) does the
+	 * same with interrupts off throughout; this loop turns them on in
+	 * spl0, so a tick can land between the two stores, and is charged
+	 * as the code at that moment says.
+	 */
+	movb	$1,_C_LABEL(intr_nesting_level)	# charge Intr if we leave
 	call	_C_LABEL(spl0)
 	cmpl	$0,_C_LABEL(whichqs)
 	jne	sw1
+	movb	$0,_C_LABEL(intr_nesting_level)	# charge Idle for the wait
 	hlt		# wait for interrupt
 	jmp	idle
 
@@ -1783,10 +1795,17 @@ ENTRY(cpu_switch)
 
 	movl	_C_LABEL(CMAP2),%eax		# save temporary map PTE
 	movl	%eax,PCB_CMAP2(%ecx)	# in our context
+	/*
+	 * AI-ONLY NOTE: the process's nesting level is kept in its pcb
+	 * (pcb_inl) across the switch, and the switch itself is charged
+	 * to interrupt time, not to system or idle: Evans's
+	 * b39b673d3, swtch.s. It replaces the pcb_iml store that stood
+	 * here, commented out, where it had been since 386BSD 0.1.
+	 */
+	movb	_C_LABEL(intr_nesting_level),%al
+	movb	%al,PCB_INL(%ecx)
+	movb	$1,_C_LABEL(intr_nesting_level)	# charge Intr, not Sys/Idle
 	movl	$0,_C_LABEL(curproc)		#  out of process
-
-	# movw	_cpl, %ax
-	# movw	%ax, PCB_IML(%ecx)	# save ipl
 
 	/* save is done, now choose a new process or idle */
 sw1:
@@ -1854,9 +1873,8 @@ swfnd:
 	movl	%ecx,_C_LABEL(curproc)		# into next process
 	movl	%edx,_C_LABEL(curpcb)
 
-	/* pushl	PCB_IML(%edx)
-	call	_C_LABEL(splx)
-	popl	%eax*/
+	movb	PCB_INL(%edx),%al		# its own nesting level
+	movb	%al,_C_LABEL(intr_nesting_level)
 
 	movl	%edx,%eax		# return (1);
 	ret
@@ -1892,8 +1910,6 @@ ENTRY(switch_to_inactive)
 	ALIGN32
 ENTRY(savectx)
 	movl	4(%esp), %ecx
-	movw	_C_LABEL(cpl), %ax
-	movw	%ax,  PCB_IML(%ecx)
 	movl	(%esp), %eax	
 	movl	%eax, PCB_EIP(%ecx)
 	movl	%ebx, PCB_EBX(%ecx)
@@ -2106,6 +2122,7 @@ IDTVEC(fpu)
 	pushl	$0		/* dummy unit to finish building intr frame */
 	incl	_C_LABEL(cnt)+V_TRAP
 	call	_C_LABEL(npxintr)
+	incb	_C_LABEL(intr_nesting_level)
 	jmp	doreti
 #else
 	pushl $0; TRAP(T_ARITHTRAP)
@@ -2162,6 +2179,7 @@ calltrap:
 	movl	$T_ASTFLT,4+4+32(%esp)	/* new trap type (err code not used) */
 	pushl	_C_LABEL(cpl)
 	pushl	$0			/* dummy unit */
+	incb	_C_LABEL(intr_nesting_level)
 	jmp	doreti
 
 #ifdef KGDB
@@ -2229,6 +2247,7 @@ IDTVEC(syscall)
 	movl	$T_ASTFLT,TF_TRAPNO(%esp)	/* new trap type (err code not used) */
 	pushl	_C_LABEL(cpl)
 	pushl	$0
+	movb	$1,_C_LABEL(intr_nesting_level)
 	jmp	doreti
 
 	ALIGN32

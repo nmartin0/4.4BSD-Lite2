@@ -52,6 +52,23 @@ _C_LABEL(biomask):	.long	0
 _C_LABEL(netmask):	.long	0
 	.globl	_C_LABEL(isa_intr)
 _C_LABEL(isa_intr):	.space	16*4
+/*
+ * AI-ONLY NOTE: intr_nesting_level, which CLKF_INTR (machine/cpu.h)
+ * reads. Bruce Evans's, for FreeBSD, 3 December 1994 (bde, "Keep
+ * track of interrupt nesting level", b39b673d3 in the FreeBSD
+ * history): zero in a process's own kernel work -- a syscall, a trap
+ * -- one inside an interrupt handler, two inside a handler that
+ * interrupted another. Every interrupt vector adds one (icu.h), every
+ * return through doreti takes one off. A syscall or trap is entered
+ * at zero and raised to one only for its way out through doreti, in
+ * case that exit runs softclock or a network handler. cpu_switch and
+ * the idle loop (locore.s) set it so that the work of switching
+ * counts as interrupt time and only the wait for work counts as idle.
+ * It is a byte, as there; the three spaces keep what follows aligned.
+ */
+	.globl	_C_LABEL(intr_nesting_level)
+_C_LABEL(intr_nesting_level):	.byte	0
+	.space	3
 
 	.text
 #include <net/netisr.h>
@@ -118,6 +135,14 @@ return_to_user_mode: /* entry point from trap and syscall return */
 	jz	just_return
 
 	/* we need to go back to trap */
+	/*
+	 * AI-ONLY NOTE: this exit does not iret, so the decrement at
+	 * just_return is not reached; trap() is run again from calltrap
+	 * at level zero, which calltrap raises again for its own way out.
+	 * FreeBSD 2.0.5's doreti has no such exit (its ASTs are handled
+	 * inside it), so there is no donor line here.
+	 */
+	decb	_C_LABEL(intr_nesting_level)
 	popl	%es
 	popl	%ds
 	popal
@@ -201,6 +226,7 @@ donet:
 	jmp	return_to_user_mode
 
 just_return:
+	decb	_C_LABEL(intr_nesting_level)
 	pop	%es
 	pop	%ds
 	popa
