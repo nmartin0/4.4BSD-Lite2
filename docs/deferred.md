@@ -366,14 +366,18 @@ wrote the real test against `PSL_M`, put it behind `#if 0`, and left
 the zero live with a note**; only luna68k and sparc answer it
 properly. Profiling cannot distinguish interrupt-level ticks.
 
-### No statistics clock
+### No statistics clock -- done (patch 208)
 
 `64dc319e`
 
-`stathz` stays zero, so `kern_clock.c` does the statistics from
-`hardclock`, and `setstatclockrate` is empty in consequence (as
-NetBSD 1.0's i386 one is). **FreeBSD 2.0.5 and OpenBSD 1996 both have
-a real statistics clock on IRQ 8** — "work this does not attempt".
+This once read: `stathz` stays zero, so `kern_clock.c` does the
+statistics from `hardclock`. It is now the RTC's periodic interrupt on
+IRQ 8, 128 Hz and 1024 Hz while profiling: Wollman's FreeBSD clock of
+1994, with the looping `rtcintr` of FreeBSD 2.2.8, which does not stall
+if a period is missed (OpenBSD fixed the same stall in 2001). NetBSD
+1.0 to 1.5 never had one on the i386. Its vector is hardcoded in
+`usr.sbin/config/mkglue.c` beside the clock's, as this tree wires
+interrupts at config time (below).
 
 ### Interrupts are wired in at build time
 

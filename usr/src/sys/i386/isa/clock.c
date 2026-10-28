@@ -254,9 +254,14 @@ resettodr()
  */
 #define V(s)	__CONCAT(V, s)
 extern V(clk)();
+extern V(rtc)();
 enablertclock() {
 	INTREN(IRQ0);
 	setidt(ICU_OFFSET+0, &V(clk), SDT_SYS386IGT, SEL_KPL);
+	INTREN(IRQ8);
+	setidt(ICU_OFFSET+8, &V(rtc), SDT_SYS386IGT, SEL_KPL);
+	outb(IO_RTC, RTC_STATUSB);
+	outb(IO_RTC+1, RTCSB_PINTR | RTCSB_24HR);
 	splnone();
 }
 
@@ -324,6 +329,49 @@ clkintr(frame)
 {
 
 	hardclock(&frame);
+}
+
+/*
+ * AI-ONLY NOTE: rtcintr, the statistics clock's interrupt, and the
+ * second half of this port's statistics clock. Wollman's, for
+ * FreeBSD in 1994: release/2.0's i386/isa/clock.c:238 is the
+ * function, and 2.0.5's and 2.1.0's are the same. The RTC's periodic
+ * interrupt, IRQ 8, is the second timer kern_clock.c asks for ("If
+ * no second timer exists, stathz will be zero"). With stathz set,
+ * hardclock no longer calls statclock, which runs from here instead,
+ * at 128 Hz and at 1024 Hz while a process is being profiled.
+ *
+ * What it is not is FreeBSD 2.0's text. The chip raises its line
+ * again only after register C has been read, and 2.0's single read
+ * loses the clock for good if a second period passes before the
+ * first is acknowledged: the line stays high, the 8259 sees no new
+ * edge, and statclock stops. FreeBSD 2.2.8's (and 3.0.0's) rtcintr
+ * loops, `while (rtcin(RTC_INTR) & RTCIR_PERIOD) statclock(&frame);',
+ * and is taken here; the 2.0 to 2.2.8 range holds the change, this
+ * repository's FreeBSD history having only the tags 2.0, 2.0.5, 2.1.0
+ * and 2.2.8 between them. OpenBSD found the same stall in February
+ * 2001 (ho, "rtc stops if we miss interrupts. Inspired by code from
+ * FreeBSD"; c76869a91b8) and fixed it with a drain at attach.
+ *
+ * Checked 2026-10-28: NetBSD 1.0 through 1.5 have no statistics clock
+ * on the i386, only an empty setstatclockrate; OpenBSD added one on
+ * 1996-09-09 (02193f0dc59, 1024/128 Hz from the RTC, through its own
+ * isa_intr_establish), so FreeBSD's is the only witness of the
+ * 1994-97 period, and OpenBSD's the second from September 1996.
+ *
+ * The frame is taken by value and handed on by address, as clkintr
+ * above does; the vector is config's (usr.sbin/config/mkglue.c,
+ * VEC(rtc)), at the same level as the vector for IRQ 0, so a
+ * statclock interrupt cannot interrupt the clock or the other way
+ * round, and splstatclock, which is splhigh here, blocks both.
+ */
+void
+rtcintr(frame)
+	struct clockframe frame;
+{
+
+	while (rtcin(RTC_INTR) & RTCIR_PERIOD)
+		statclock(&frame);
 }
 
 /*
@@ -475,21 +523,24 @@ delay(n)
  * -- which this tree has no equivalent of, its interrupts being
  * wired in by config. So none of their versions could be taken.
  *
- * stathz stays zero: there is no statistics clock on this port.
- * FreeBSD 2.0.5 and OpenBSD 1996 start a second clock on IRQ 8 for
- * one, which is work this does not attempt. kern_clock.c reads
- * stathz == 0 as meaning the hardclock does the statistics, which is
- * what happens here.
+ * stathz and profhz are the RTC's two rates, 128 and 1024 Hz, as
+ * FreeBSD 2.0's cpu_initclocks sets them (Wollman, 1994; decided
+ * 2026-10-25). The statistics clock this port once lacked is
+ * rtcintr above, on IRQ 8; enablertclock turns it on. The ratio
+ * profhz / stathz is 8, an integer, as kern_clock.c requires.
  *
- * setstatclockrate is therefore empty, as NetBSD 1.0's i386 one is.
- * hp300's switches between two reload values, having a second clock
- * to switch.
+ * setstatclockrate switches register A between the two rates, as
+ * FreeBSD 2.0's does and hp300's does between its two reload values;
+ * NetBSD 1.0's i386 one is empty, having no second clock.
  */
 void
 cpu_initclocks()
 {
 
 	tick = 1000000 / hz;
+	stathz = RTC_NOPROFRATE;
+	profhz = RTC_PROFRATE;
+	setstatclockrate(stathz);
 	enablertclock();
 }
 
@@ -497,6 +548,12 @@ void
 setstatclockrate(newhz)
 	int newhz;
 {
+
+	outb(IO_RTC, RTC_STATUSA);
+	if (newhz == RTC_PROFRATE)
+		outb(IO_RTC+1, RTCSA_DIVIDER | RTCSA_PROF);
+	else
+		outb(IO_RTC+1, RTCSA_DIVIDER | RTCSA_NOPROF);
 }
 
 

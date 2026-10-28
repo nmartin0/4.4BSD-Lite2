@@ -362,6 +362,21 @@ VEC(clk)\n\
 	call	_C_LABEL(clkintr) \n\
 	INTREXIT1\n\n\n");
 
+	/*
+	 * AI-ONLY NOTE: the statistics clock's vector, next to the
+	 * clock's own, which this file hardcodes the same way. IRQ 8
+	 * is the RTC's periodic interrupt (i386/isa/clock.c, rtcintr).
+	 * FreeBSD 2.0 wired it at run time with register_intr, which
+	 * this tree has no equivalent of; here it is a vector of
+	 * config's, at highmask as the clock's is.
+	 */
+	fprintf(fp,"\
+	.globl	_C_LABEL(rtcintr)\n\
+VEC(rtc)\n\
+	INTR2(8, _C_LABEL(highmask), 8)\n\
+	call	_C_LABEL(rtcintr) \n\
+	INTREXIT2\n\n\n");
+
 	count=0;
 	for (dp = dtab; dp != 0; dp = dp->d_next) {
 		mp = dp->d_conn;

@@ -614,6 +614,22 @@ gdb in /usr/bin and its page in cat1. Patch 206: `gdb -k` on the live kernel and
 saved core file works; boot() sets dumppcb before a dump, as FreeBSD 2.0 and
 2.0.5 do. Not working: floating-point registers (item 6).
 
+Patch 208 is the statistics clock (decided 2026-10-25; kind D): the
+RTC's periodic interrupt on IRQ 8, stathz 128 and profhz 1024, as
+FreeBSD 2.0's clock.c of 1994 (Wollman) has it, and rtc.h's divider,
+rate and status-B names with it. rtcintr is FreeBSD 2.2.8's, which
+loops on register C; 2.0, 2.0.5 and 2.1.0 read it once and stop for
+good if a period is missed, a stall OpenBSD fixed in February 2001
+after FreeBSD (c76869a91b8). Checked: NetBSD 1.0 to 1.5 have no
+statistics clock on the i386, only an empty setstatclockrate; OpenBSD's
+of 1996-09-09 (02193f0dc59) agrees with FreeBSD's on the rates. The
+vector is not registered at run time, as the three donors do, but is
+written beside the clock's in usr.sbin/config/mkglue.c, since this tree
+has no intr_establish. Tested under QEMU: kern.clockrate reports 128
+and 1024; a spinning process is charged user time; profil collects
+about 1024 ticks a second and the rate returns to 128 afterwards; the
+date keeps true over a ten-second sleep.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

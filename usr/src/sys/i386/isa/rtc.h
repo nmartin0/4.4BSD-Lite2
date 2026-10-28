@@ -52,8 +52,24 @@
 #define RTC_YEAR	0x09	/* month of year */
 #define RTC_STATUSA	0x0a	/* status register A */
 #define  RTCSA_TUP	 0x80	/* time update, don't look now */
+/*
+ * AI-ONLY NOTE: the divider, the periodic rates and status register
+ * B's bits, which the statistics clock (clock.c) programs. Names and
+ * values are FreeBSD 2.0's i386/isa/rtc.h (Wollman, 1994); the
+ * hardware is the MC146818's: the low four bits of register A pick
+ * 32768 >> (n-1) Hz.
+ */
+#define  RTCSA_DIVIDER   0x20   /* divider correct for 32768 Hz */
+#define  RTCSA_1024      0x06	/* default for profiling */
+#define  RTCSA_PROF      RTCSA_1024
+#define  RTC_PROFRATE    1024
+#define  RTCSA_128       0x09
+#define  RTCSA_NOPROF	 RTCSA_128
+#define  RTC_NOPROFRATE  128
 
 #define RTC_STATUSB	0x0b	/* status register B */
+#define	 RTCSB_24HR	 0x02	/* 0 = 12 hours, 1 = 24	hours */
+#define	 RTCSB_PINTR	 0x40	/* 1 = enable periodic clock interrupt */
 
 #define RTC_INTR	0x0c	/* status register C (R) interrupt source */
 #define  RTCIR_UPDATE	 0x10	/* update intr */
