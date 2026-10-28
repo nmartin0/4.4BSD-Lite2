@@ -690,20 +690,35 @@ it too. The direct outb(IO_RTC) pairs in clock.c need nothing: they run
 at splstatclock or before the periodic interrupt is enabled.
 
 Patch 213 (decided 2026-10-28; kind D) finishes the RTC's start and stop.
-enablertclock now sets the vector before IRQ 8 is unmasked (it was after,
-so a stale interrupt would have gone to the stray vector) and reads
-register C before it enables the periodic bit, OpenBSD's drain
-(c76869a91b8, 2001); FreeBSD 2.2.8 clears the bit at the start, which
+enablertclock now sets the vector before IRQ 8 is unmasked in imen (it
+was after; nothing reaches the chip until splnone(), so this is tidiness
+and not a window) and reads register C before it enables the periodic
+bit, OpenBSD's drain (c76869a91b8, 2001), which has not been seen to
+matter here; FreeBSD 2.2.8 clears the bit at the start, which
 startrtclock already did here, and loops in rtcintr, which patch 208
 took, but does not drain. disablertclock, new, writes register B without
 the bit and reads C, and boot() calls it after splhigh(): the chip's
-registers survive a warm reset, and the line stays up until C is read.
+registers survive a warm reset, so the periodic bit would otherwise be
+left on for whatever boots next.
 No donor of the period does that at shutdown; it is mine. Register B is
 still written as a constant (24 hour, BCD, no daylight saving), as
 startrtclock and FreeBSD 2.2.8 do, which is what bcd() in inittodr
 assumes. Tested under QEMU: profil ticks 271 of 296 expected with the
 statistics clock running as before; a kernel that calls disablertclock
 at root mount accrues no cpu time and no ticks afterwards.
+
+Patch 214 (decided 2026-10-28; kind D) closes the idle loop's lost wakeup.
+After spl0 the loop tested whichqs and then executed hlt with interrupts
+on in between, so an interrupt that made a process runnable in that gap
+returned to a hlt that waited for the next interrupt, up to a tick
+(10 ms), with the process on the run queue. The test is now made with
+cli and the sti stands directly before the hlt (the instruction after sti
+cannot be interrupted), the order of FreeBSD 2.0.5's idle_loop and
+2.2.8's; sw1 does its own cli. Not reproduced: QEMU's TCG takes
+interrupts only at translation block boundaries and the gap is a few
+instructions inside one. Checked by reading the disassembly and by the
+usual tests (boot, the disk stress, profiling, a sleep and wake loop).
+The comments of patch 213 are also corrected (see its entry).
 
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the

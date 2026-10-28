@@ -1728,12 +1728,23 @@ idle:
 	 * same with interrupts off throughout; this loop turns them on in
 	 * spl0, so a tick can land between the two stores, and is charged
 	 * as the code at that moment says.
+	 *
+	 * The test of whichqs and the hlt are made with interrupts off, and
+	 * the sti goes just before the hlt, whose one-instruction shadow
+	 * keeps the pair whole, as FreeBSD 2.0.5's idle_loop and 2.2.8's
+	 * do. With interrupts on between the test and the hlt, an interrupt
+	 * that made a process runnable there was answered and returned from
+	 * to a hlt that then waited for the next one, up to a tick later,
+	 * with the process on the run queue. sw1 begins with a cli of its
+	 * own, so leaving by jne with interrupts off changes nothing there.
 	 */
 	movb	$1,_C_LABEL(intr_nesting_level)	# charge Intr if we leave
 	call	_C_LABEL(spl0)
+	cli
 	cmpl	$0,_C_LABEL(whichqs)
 	jne	sw1
 	movb	$0,_C_LABEL(intr_nesting_level)	# charge Idle for the wait
+	sti
 	hlt		# wait for interrupt
 	jmp	idle
 
