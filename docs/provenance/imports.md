@@ -756,6 +756,15 @@ at the reload, so the clamp may never act there; that is not measured.
 Tested: 100k gettimeofday calls non-decreasing, settimeofday then
 reboot round-trips leap day, DST and year-end dates, disk stress clean.
 
+Patch 218 (decided 2026-10-29; kind B) makes date(1) set `tm_isdst` to -1
+before mktime(), as NetBSD 1.5 (2000) and OpenBSD 2.8 (November 2000) do.
+Donors checked, in order: FreeBSD 2.0.5, 2.2.8 and 4.0, NetBSD 1.0 to
+1.4, none of which have it; NetBSD 1.5 and OpenBSD do. Minix not needed.
+Without it a date in the other season than now came out an hour off
+(July from a winter clock: 13:00 for 12:00; December from a summer
+clock: 22:59:50 for 23:59:50). Tested in the guest with the patched
+date.c built there: 12:00 PDT, 23:59:50 PST and 12:00 PST as typed.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

@@ -158,6 +158,14 @@ setthetime(p)
 
 	lt = localtime(&tval);
 
+	/*
+	 * AI-ONLY NOTE: from NetBSD 1.5 and OpenBSD 2.8 (2000); FreeBSD
+	 * 2.0.5 and 4.0 and NetBSD 1.4 lack it. localtime() has filled in
+	 * the DST flag for now, and mktime() honours it, so a date in
+	 * the other season came out an hour off.
+	 */
+	lt->tm_isdst = -1;			/* correct for DST */
+
 	if (dot != NULL) {			/* .ss */
 		*dot++ = '\0';
 		if (strlen(dot) != 2)
