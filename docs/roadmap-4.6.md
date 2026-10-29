@@ -15,6 +15,11 @@ and the compiler-flag work. 4.5BSD is cut after a short floor of audit
 fixes rather than completed; where this file and design-4.6.md
 disagree, design-4.6.md is the later decision.**
 
+**Recorded 2026-10-29 as the plan for later: *The continuation roadmap*
+below -- each subsystem's backports in order, their plateaus, and the
+decisions still open -- drawn from `analysis-4.6-continuations.md` and
+`analysis-md-minimality.md`.**
+
 Nothing here is begun before 4.5BSD is released. What is recorded
 here was found while working on 4.5BSD and is kept so that it is not
 rediscovered. Items still to be placed are listed in roadmap.md, *To
@@ -386,6 +391,182 @@ under a spin lock, `ipl.s`, `ipl_funcs.c`) is the larger piece and
 touches every driver's interrupt path. NetBSD 1.3 to 1.5 and OpenBSD
 1997 to January 2002 have no APIC or MP file under `arch/i386`
 (checked 2026-10-28), so FreeBSD is the only donor in the window.
+
+## The continuation roadmap (recorded 2026-10-29)
+
+The maintainer's direction: 4.6BSD is 4.4BSD-Lite2 modernized by
+backporting the continuations of 4.4's own subsystems as the daughters
+carried them on -- additions and fixes to the 4.4 design, not
+redesigns -- searched in the order OpenBSD, NetBSD, FreeBSD, then MirOS
+BSD, then DragonFly BSD, then other permissive BSDs. The evidence is in
+`analysis-4.6-continuations.md` (each subsystem traced to its plateau,
+and how they fit), `analysis-md-minimality.md` (machine-dependent code
+per port) and `analysis-4.6-lineage.md` (the first pass, corrected by
+the second). This section is the plan drawn from them, for later. Where
+it and an older line above disagree, this section is the later.
+
+### Decisions still open
+
+1. **The VM.** (a) Lite2's Mach VM, continued to its plateau, with a
+   project-owned seam of about 30 names where the UVM-era machine layers
+   (amd64 and MP pmaps), pool(9), bus_dma and drivers meet it; or (b)
+   the Mach VM first, then UVM at the point OpenBSD switched (both
+   builds kept until the switch, as OpenBSD did 1999-12 to 2001-05).
+   FreeBSD's VM after 1995-07-13 is not a candidate. Nothing below that
+   touches the pmap, amd64, SMP or PAE starts before this is decided.
+2. **Four FreeBSD VM files with Net/2 versions** (`vm_page.c`,
+   `vm_pageout.c`, `vnode_pager.c`, i386 `pmap.c`, inherited through
+   FreeBSD 1.x): tainted under the 386BSD rule or not. Until ruled,
+   FreeBSD VM changes are taken only where they touch Lite-derived files.
+3. **x86:** OpenBSD's separate i386 and amd64 (one lineage; OpenBSD's own
+   ACPI) or NetBSD 2.0-4.0's shared `x86` (the only Torek-lineage
+   precedent; brings ACPICA and NetBSD's 2002 interrupt redesign, and a
+   process shim). `design-4.6.md` rule 5's "as NetBSD's `sys/arch/x86`
+   does" awaits this.
+4. **The ports:** whether every Lite2 port (hp300, i386, luna68k,
+   news3400, pmax, sparc, tahoe, vax) is kept up in source with each
+   machine-independent change, or only the ports that can be built and
+   boot-tested count as supported. tahoe has no daughter port at all.
+5. **The order among the first three donors**, recorded as the
+   maintainer wrote it: OpenBSD, NetBSD, FreeBSD.
+6. **MirOS BSD** could not be read from the workspace; a copy of its
+   `src` would let it be checked.
+7. **Corrections from the first pass awaiting a decision**
+   (`analysis-4.6-lineage.md` section 9): the network driver plateau
+   ends 2014-06, not 2015; FreeBSD 3.0's SMP withdrawn as the SMP donor;
+   POSIX.1-2024 itself requires a 64-bit `time_t` (Austin Group bug
+   1462), on the i386 too; the slice layer and FreeBSD 2.1.0's
+   `wd`/`atapi`/`wcd` leave with the driver Tier A.
+8. Older open questions (`design-4.6.md`): ddb or kgdb, Kerberos, the
+   licence for our own files, GCC or Clang.
+
+### The backports, by subsystem, in order
+
+Each item is the oldest donor that continues 4.4 for it. "Plateau" is
+the furthest that line may be followed.
+
+**Processes and threads** (plateau: OpenBSD 2017)
+
+1. The kernel stack off its fixed address at `USRSTACK`, as NetBSD 1.1
+   (1995); also gives ddb `trace/t`.
+2. OpenBSD rthreads, 2005-12-03: threads as processes sharing a
+   `vmspace`, `rfork(RFTHREAD)`, `thrsleep`.
+3. OpenBSD's increments: the `struct process` split (2007-2010),
+   `__thrsigdivert` (2009), the TCB syscalls and per-thread segment
+   registers (2011), futex (2017).
+
+**Time, signals, POSIX realtime** (plateau: NetBSD 4.0; FreeBSD 4.11 for
+AIO)
+
+1. `clock_gettime`, `nanosleep` (OpenBSD 1997), `CLOCK_MONOTONIC` (OpenBSD
+   2003), timecounters (OpenBSD 2004); `struct timespec`'s `ts_sec` to
+   `tv_sec`.
+2. `sigset_t` widened to 128 bits (NetBSD 1.4).
+3. `siginfo` (OpenBSD 1997); the queued `ksiginfo` and `sigtimedwait`
+   (NetBSD 2.0); `sigqueue` and `SIGRTMIN`-`SIGRTMAX` (NetBSD 6, a few
+   dozen lines, adapted to spl).
+4. POSIX timers (NetBSD 2.0: `splclock`, callouts, per-process
+   `p_timers`; Lite2's interval timers become slots 0-2); `SIGEV_THREAD`
+   in libc (FreeBSD 7's `librt` the only BSD precedent).
+5. `clock_nanosleep` (NetBSD 7 as reference; a few dozen lines over
+   `tsleep`); `pthread_condattr_setclock` (OpenBSD 2012).
+6. AIO: FreeBSD 3.0's `vfs_aio.c` (Dyson 1997, `splbio`, kernel
+   processes); `aio_fsync` after FreeBSD 7.
+7. Semaphores, barriers, spin locks, rwlocks: OpenBSD's userland (2011-12);
+   option values to 202405L.
+8. `pselect`/`ppoll` (OpenBSD 2013), `getentropy` (OpenBSD 2014), `waitid`
+   (OpenBSD 2022), `posix_spawn` (OpenBSD 2012). SysV message queues and
+   semaphores: OpenBSD's rewrites (2002, 2009); Boulet's 1993-94 code in
+   NetBSD and FreeBSD is checked against the 386BSD rule before any use.
+
+**Locking, SMP, scheduler** (plateau: OpenBSD 2014)
+
+1. OpenBSD's `timeout(9)` (2000), the level-based `cpl` (2001-12),
+   `splassert` (2002), rwlock (2003-11).
+2. SMP after decision 1: OpenBSD 2004-06 (i386 and amd64; one recursive
+   kernel lock, `simple_lock` left a no-op), `mtx` at IPL (2004-07),
+   `sched_lock` as a mutex (2005).
+3. The machine-independent `cpu_switchto` (2007), per-CPU run queues
+   (2009), lockmgr on rwlocks with its interface kept (2013).
+4. Not taken: witness, SMR, the MP network stack (other designs).
+
+**VM** (plateau: OpenBSD 2001-05, NetBSD 1.3, FreeBSD 1995-07-12)
+
+1. NetBSD 1.3's and OpenBSD's fixes to Lite2's VM; Cranor's `vm_physseg`
+   (1998); `vm_page_alloc_memory` for bus_dma (NetBSD 1.3).
+2. FreeBSD 2.0-2.1's changes on the Lite design (collapse fixes,
+   hold/busy, valid/dirty bits, `vm_page_alloc_contig`,
+   `pmap_growkernel`), subject to decision 2.
+3. A `paddr_t` split for PAE and amd64.
+4. Then decision 1.
+
+**Files** (plateau: OpenBSD 2014, selectively later)
+
+1. `O_NOFOLLOW` (OpenBSD 2000), dirhash (2003).
+2. FFS2 (OpenBSD 2004-2006) with 64-bit block numbers (`daddr64_t`
+   2006-10, `daddr_t` 2011-03, cleanup 2013-06).
+3. `st_atim` (2009-01); the name cache on red-black trees (2009).
+4. The `*at()` calls, `utimensat`/`futimens`, `O_CLOEXEC`, `O_DIRECTORY`
+   (OpenBSD 2011-07).
+5. `O_SEARCH`, `O_EXEC` (NetBSD or FreeBSD 8; not in OpenBSD); `O_CLOFORK`
+   (OpenBSD 2025, checked against POSIX's exec semantics; NetBSD trunk's
+   follows POSIX exactly).
+6. Vnode locks on rwlocks (OpenBSD 2016). The 2010 `struct vops` table is
+   a translation boundary to cross once.
+
+**Sockets, network, terminals** (plateau: OpenBSD 2014-06; tty 2026)
+
+1. `poll` (OpenBSD 1996), `socklen_t`, `sockaddr_storage` (1999), mbufs on
+   pool (2001; on the Mach VM, pool's page back end, about 40 lines),
+   `MSG_NOSIGNAL` (2011), `accept4`/`SOCK_CLOEXEC`/`pipe2`/`dup3`
+   (2014-08-31), `sockatmark` (NetBSD 2001).
+2. Removal of ISO, XNS and X.25 (OpenBSD 2004-06 precedent).
+3. KAME IPv6 (OpenBSD 1999-12), later and separately; `getaddrinfo` in
+   libc first.
+4. tty: keep Lite2's `tty.c` on FreeBSD 2.0's cblocks; take OpenBSD's
+   ptm (2004) and `posix_openpt` (2012) through a `firstc`/`clalloc`
+   shim; `tcgetwinsize` (NetBSD 2017).
+
+**exec and the ABI** (plateau: OpenBSD 2017)
+
+1. The exec framework (NetBSD 1.0-1.1; the encumbrance fix in progress).
+2. ELF with the auxiliary vector and `PT_INTERP` (NetBSD 1.1).
+3. OpenBSD's ld.so (2000); TLS (2011 registers and syscalls; 2016 ld.so).
+4. The 64-bit ABI in one flag day, OpenBSD's of 2013-08-13 (`time_t`,
+   `ino_t`, `getdents`, `st_atim`), before 4.6BSD binaries exist.
+
+**Machine layer, drivers, boot** (plateau: OpenBSD 2014; UEFI 2015)
+
+1. Torek autoconf with `cfattach` on the i386 (NetBSD 1.0-1.3 / OpenBSD
+   1997), `bus_space`/`bus_dma`, PCI; the driver interface at OpenBSD's
+   1996-2014 plateau.
+2. Storage: OpenBSD wdc/pciide (1999), the SCSI midlayer, AHCI (2006),
+   NVMe (2014), GPT (2014); the FreeBSD slice layer and `wd`/`atapi`/
+   `wcd` out. wscons; USB.
+3. After decisions 1 and 3: amd64 (OpenBSD 2004, NetBSD's code of 2003;
+   or NetBSD 2.0-4.0 with shared `x86`), APIC and MP, ACPI.
+4. Boot: OpenBSD's `bootarg` (1997) extending Lite2's arguments; efiboot
+   and the framebuffer console (2015).
+
+### Machine-dependent code: the measure for every port
+
+From `analysis-md-minimality.md`: for every Lite2 port the smallest
+machine-dependent core of any release is Lite2's own (i386 10,076 lines,
+1,704 of them assembly); for amd64 it is OpenBSD's 2004 port (28,741).
+The daughters grew mostly in C, not assembly, and sharing between ports
+did not by itself shrink them. So, for each port:
+
+- its core is measured against Lite2's figure, and each patch states
+  its growth (this tree's i386 core is 15,253 lines today);
+- only what touches the processor or its privileged state is
+  machine-dependent; drivers are in `sys/dev` behind `bus_space` and
+  `bus_dma`;
+- assembly only where C cannot do it (trap and interrupt entry, context
+  switch, the first instructions after boot, the syscall stub,
+  `setjmp`/`longjmp`); C17 `<stdatomic.h>` and compiler builtins
+  instead of per-port atomic and lock assembly; libc's string functions
+  in portable C unless a measurement shows a port needs assembly;
+- code is shared between ports only where it is truly common.
 
 ## Modern tools
 
