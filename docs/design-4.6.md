@@ -36,7 +36,13 @@ ordinary software.
    clear files of 386BSD 0.0/0.1, then the clear parts of the other
    BSDs, then Mach, then Minix, then our own writing; the clearance
    ledger; settlement-encumbered text never used, nor what the other
-   BSDs carried forward from it).
+   BSDs carried forward from it). **The other BSDs are searched in this
+   order, always (decided 2026-10-29): OpenBSD, NetBSD, FreeBSD; then
+   MirOS BSD; then DragonFly BSD; then any other permissive BSD.** What
+   is taken is a continuation of a 4.4BSD subsystem as a daughter
+   carried it on -- an addition or fix to the 4.4 design -- and not a
+   redesign; `analysis-4.6-continuations.md` traces each subsystem's
+   continuation to its plateau.
 2. **What gets in:**
    - what POSIX.1-2024, C17, the System V ABI or the errata require;
    - what makes the system faster, or able to run on current

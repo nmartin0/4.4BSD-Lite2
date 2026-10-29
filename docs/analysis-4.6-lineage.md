@@ -1,5 +1,13 @@
 # How far the 4.4BSD lineage reaches: a roadblock analysis for 4.6BSD
 
+**Superseded in part (2026-10-29): `analysis-4.6-continuations.md` is
+the second, deeper pass, and its section 9 lists nine corrections to
+this file -- above all on the POSIX realtime options (OpenBSD has parts
+of them, and their missing parts have spl-era donors in NetBSD 1.4-2.0
+and FreeBSD 3.0), on FreeBSD's VM (a continuation until 1995-07-13),
+and on what amd64, SMP and PAE need from the VM. This file is kept as it
+was written.**
+
 Written 2026-10-29 at the maintainer's request: look at the kernel as it
 stands and at every change 4.6BSD intends, and find where following the
 code lineages stops working -- above all, where two lineages cannot be
