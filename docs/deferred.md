@@ -803,15 +803,23 @@ Makefiles do not know.
   hp300's and pmax's frames; sparc's `files.sparc` names
   `sparc/sparc/sys_process.c`, which the Lite cut removed.
 - **The FPU registers are not given out.** `PT_GETFPREGS` and
-  /proc's fpregs answer `EOPNOTSUPP`. Lite2's `npx.c` does not save
-  the FPU at context switch -- `locore.s` calls an `npxsave` under an
-  option nothing defines, and there is no such function -- so a
-  stopped process's FPU state can still be in the chip. When `npx`
-  can save on demand (FreeBSD 2.0's `npx.c` has `npxsave`), the hooks
-  are FreeBSD 2.1.0's `procfs_read_fpregs` and `procfs_write_fpregs`,
-  with NetBSD 1.1's and OpenBSD's flush of a live FPU first -- done
-  with the save area's size, where theirs copies `sizeof` a pointer.
-  `struct fpreg` is already FreeBSD 2.1.0's.
+  /proc's fpregs answer `EOPNOTSUPP`. Patch 219 made `npx` save the
+  FPU at context switch (below), so a stopped process's state is now
+  always in its pcb; the hooks are FreeBSD 2.1.0's `procfs_read_fpregs`
+  and `procfs_write_fpregs`, with NetBSD 1.1's and OpenBSD's flush of a
+  live FPU first -- done with the save area's size, where theirs
+  copies `sizeof` a pointer. `struct fpreg` is already FreeBSD 2.1.0's.
+- ~~**Lite2's `npx.c` did not save the FPU at context switch**~~
+  **FIXED** (patch 219). `locore.s` called an `npxsave` under an
+  option nothing defined and there was no such function, and EM was
+  never set again after the first device-not-available fault, so two
+  processes using the FPU at once read and wrote each other's
+  registers: four children each adding 1.0 to a double all got wrong
+  sums. Now `npxsave`, `npxexit` and the `NNPX` guards are
+  FreeBSD 1.1.5.1's and NetBSD 1.0's. Not taken from them: their
+  probe, which looks for exception 16 and the IRQ13 wiring, and their
+  387 emulator. The exception-16 handler in `locore.s` keeps its
+  `#ifdef NPX` guard, since Lite2 never sets CR0_NE.
 - **Changes made for GCC 14 are kept** for the newer compilers to
   come, though GCC 2.95.3 does not need all of them. Each says so in
   its `AI-ONLY NOTE`; `grep -rl 'GCC 14' usr/src` lists the files. fpr's

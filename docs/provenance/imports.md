@@ -765,6 +765,28 @@ Without it a date in the other season than now came out an hour off
 clock: 22:59:50 for 23:59:50). Tested in the guest with the patched
 date.c built there: 12:00 PDT, 23:59:50 PST and 12:00 PST as typed.
 
+Patch 219 (decided 2026-10-29; kind A) saves the FPU's state at a context
+switch. Lite2's swtch and savectx call npxsave() under `#ifdef NPX`; the
+generated npx.h defines NNPX, so the blocks were never assembled, no
+npxsave existed, and EM was never set again after the first DNA fault.
+Donors checked, in order: FreeBSD 1.1.5.1, whose locore/swtch.s Lite2's
+blocks are, and 2.0.5, whose npx.c has npxsave and npxexit; NetBSD 1.0,
+whose npxsave, npxexit and npxdna these are. Their npxsave is taken
+whole, with its IRQ13 handler (locore.s npxsaveintr, built from their
+probeintr), except that it puts the interrupt flag back as it found it,
+because swtch calls it with interrupts off. Not taken: their probe
+(exception 16) and the 387 emulator. Two things are ours: savectx
+reloads the return address into %eax after the FPU block, which
+FreeBSD 1.1.5.1's block, the same text, did not (the child would
+return to bcopy's result whenever the parent owned the FPU; FreeBSD
+2.0 rewrote savectx); and npxdna saves a stray owner where theirs
+panics. Tested: four processes each adding to a double now get the
+right sums (all four wrong before); a control word set before fork
+reaches the child, and the child's change does not reach the parent
+(120 wrong before); exec resets it to 0x262; exits while owning the FPU
+and disk stress are clean. Not tested: a pending FP exception at a
+switch, and SIGFPE, which QEMU does not deliver here on either kernel.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

@@ -55,6 +55,7 @@
 #include "machine/trap.h"
 
 #include "machine/specialreg.h"
+#include "npx.h"			/* for NNPX */
 
 /*
  * AI-ONLY NOTE: machine/cpu.h, where this said machine/cputypes.h
@@ -1802,7 +1803,7 @@ ENTRY(cpu_switch)
 	movl	%esi, PCB_ESI(%ecx)
 	movl	%edi, PCB_EDI(%ecx)
 
-#ifdef NPX
+#if NNPX > 0
 	/* have we used fp, and need a save? */
 	mov	_C_LABEL(curproc),%eax
 	cmp	%eax,_C_LABEL(npxproc)
@@ -1941,7 +1942,7 @@ ENTRY(savectx)
 	movl	%esi, PCB_ESI(%ecx)
 	movl	%edi, PCB_EDI(%ecx)
 
-#ifdef NPX
+#if NNPX > 0
 	/*
 	 * If npxproc == NULL, then the npx h/w state is irrelevant and the
 	 * state had better already be in the pcb.  This is true for forks
@@ -1987,6 +1988,14 @@ ENTRY(savectx)
 	movl	%esp, %edx		# relocate current sp relative to pcb
 	subl	$_C_LABEL(kstack), %edx		#   (sp is relative to kstack):
 	addl	%edx, %ecx		#   pcb += sp - kstack;
+	/*
+	 * AI-ONLY NOTE: reloaded here. The NPX block above leaves a
+	 * pointer, then bcopy's result, in %eax, and FreeBSD 1.1.5.1's
+	 * savectx, which this block came from, wrote that as the
+	 * child's return address whenever the FPU was live. FreeBSD
+	 * rewrote savectx in 2.0 and does not have it.
+	 */
+	movl	(%esp), %eax
 	movl	%eax, (%ecx)		# write return pc at (relocated) sp@
 	# this mess deals with replicating register state gcc hides
 	movl	12(%esp),%eax
@@ -2000,6 +2009,29 @@ ENTRY(savectx)
 1:
 	xorl	%eax, %eax		# return 0
 	ret
+
+#if NNPX > 0
+/*
+ * npxsaveintr: the interrupt gate npxsave() puts on the coprocessor's
+ * vector while it saves the FPU's state, so that an IRQ13 raised by
+ * fnsave itself on a chip that does so is taken and dropped, and does
+ * not reach npxintr() with npxproc still set. It acknowledges both
+ * 8259As and clears the coprocessor's BUSY# latch, as FreeBSD 1.1.5.1's
+ * and NetBSD 1.0's probeintr() do, and touches no data, so that it
+ * cannot fault whatever the segment registers hold.
+ */
+	ALIGN32
+	.globl	_C_LABEL(npxsaveintr)
+_C_LABEL(npxsaveintr):
+	pushl	%eax
+	movb	$0x20,%al		# EOI
+	outb	%al,$0xa0		# IO_ICU2
+	outb	%al,$0x20		# IO_ICU1
+	movb	$0,%al
+	outb	%al,$0xf0		# clear BUSY# latch
+	popl	%eax
+	iret
+#endif
 
 /*
  * addupc(int pc, struct uprof *up, int ticks):

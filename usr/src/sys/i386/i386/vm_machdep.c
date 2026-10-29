@@ -147,6 +147,7 @@ cpu_fork(p1, p2)
 #include "npx.h"
 #if NNPX > 0
 extern struct proc *npxproc;
+extern void npxexit();
 #endif
 
 #ifdef notyet
@@ -172,7 +173,7 @@ cpu_exit(p)
 
 #if NNPX > 0
 	/* free cporcessor (if we have it) */
-	if( p == npxproc) npxproc =0;
+	npxexit(p);
 #endif
 
 	/* move to inactive space and stack, passing arg accross */
@@ -193,7 +194,7 @@ cpu_exit(p)
 	
 	/* free coprocessor (if we have it) */
 #if NNPX > 0
-	if( p == npxproc) npxproc =0;
+	npxexit(p);
 #endif
 
 	curproc = p;

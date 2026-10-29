@@ -47,8 +47,10 @@
 #include <machine/cpu.h>
 #include <machine/trap.h>
 #include <machine/specialreg.h>
+#include <machine/segments.h>
 #include <i386/isa/isa_device.h>
 #include <i386/isa/icu.h>
+#include <i386/isa/isa.h>
 /*
  * 387 and 287 Numeric Coprocessor Extension (NPX) Driver.
  */
@@ -62,6 +64,17 @@ struct proc *npxproc;	/* process who owns device, otherwise zero */
 struct pcb *npxpcb;	/* owners context structure */
 static npxexists;
 extern long npx0mask;
+
+/*
+ * AI-ONLY NOTE: for npxsave(), below, which Lite2's swtch and savectx
+ * call and its tree had not got (see npxsave). The gate is the one
+ * locore.s's npxsaveintr makes, built in npxattach.
+ */
+extern struct gate_descriptor idt[];
+extern void npxsaveintr();
+static struct gate_descriptor npx_idt_saveintr;
+static int npx_intrno;
+void npxsave();
 
 /*
  * Probe routine - look device, otherwise set emulator bit
@@ -112,6 +125,15 @@ npxattach(dvp)
 	/* check for ET bit to decide 387/287 */
 	npxexists++;
 	npx0mask = dvp->id_irq;
+	{
+		struct gate_descriptor save;
+
+		npx_intrno = ICU_OFFSET + ffs(dvp->id_irq) - 1;
+		save = idt[npx_intrno];
+		setidt(npx_intrno, npxsaveintr, SDT_SYS386IGT, SEL_KPL);
+		npx_idt_saveintr = idt[npx_intrno];
+		idt[npx_intrno] = save;
+	}
 }
 
 /*
@@ -120,6 +142,16 @@ npxattach(dvp)
 npxinit(control) {
 
 	if (npxexists == 0) return;
+
+	/*
+	 * AI-ONLY NOTE: the owner's live state is saved and the chip freed
+	 * first, as FreeBSD 1.1.5.1's and NetBSD 1.0's npxinit do (they
+	 * pass npxsave a scratch area). setregs calls this at exec: the
+	 * old image's registers go, and npxproc must not still name the
+	 * process, for npxdna would then not reload what is saved below.
+	 */
+	if (npxproc)
+		npxsave(&npxproc->p_addr->u_pcb.pcb_savefpu);
 
 	load_cr0(rcr0() & ~CR0_EM);	/* stop emulating */
 #ifdef INTEL_COMPAT
@@ -166,20 +198,102 @@ npxintr(frame)
 
 /*
  * Implement device not available (DNA) exception
+ *
+ * AI-ONLY NOTE: Lite2's npxdna saved the previous owner's state only
+ * here, on the first use of the coprocessor by another process, and
+ * never set EM again, so that after the first such fault nothing
+ * trapped any more, nothing was saved at a context switch, and every
+ * process that used the FPU saw its neighbours' registers. swtch and
+ * savectx now save the owner's state (npxsave) and set EM, as FreeBSD
+ * 1.1.5.1's and NetBSD 1.0's do, so the chip is normally free when a
+ * process faults here, and this has only to load that process's
+ * state. Where those panic on finding an owner, this saves it and
+ * goes on.
  */
 npxdna()
 {
 	if (npxexists == 0)
 		return(0);
 
+	if (npxproc)
+		npxsave(&npxproc->p_addr->u_pcb.pcb_savefpu);
 	load_cr0(rcr0() & ~CR0_EM);	/* stop emulating */
-	if (npxproc != curproc) {
-		if (npxproc)
-			asm(" fnsave %0 " : "=m"
-			    (npxproc->p_addr->u_pcb.pcb_savefpu));
-		asm("	frstor %0 " : : "m" (curpcb->pcb_savefpu));
-		npxproc = curproc;
-	}
+	/*
+	 * Record the owner before frstor, which may raise an IRQ13 when the
+	 * state it loads has an error pending (NetBSD 1.0's comment).
+	 */
+	npxproc = curproc;
+	asm("	frstor %0 " : : "m" (curpcb->pcb_savefpu));
 	return (1);
+}
+
+/*
+ * Free the coprocessor (if p has it) when p exits: set EM again, so
+ * that the next process's first FPU instruction traps and loads its
+ * own state. NetBSD 1.0's npxexit; FreeBSD 1.1.5.1's saves into the
+ * dying process's pcb, which nothing reads.
+ */
+void
+npxexit(p)
+	struct proc *p;
+{
+
+	if (p == npxproc) {
+		load_cr0(rcr0() | CR0_EM);
+		npxproc = NULL;
+	}
+}
+
+/*
+ * Wrapper for fnsave instruction to handle h/w bugs.  If there is an error
+ * pending, then fnsave generates a bogus IRQ13 on some systems.  Force
+ * any IRQ13 to be handled immediately, and then ignore it.  This routine is
+ * often called at splhigh so it must not use many system services.  In
+ * particular, it's much easier to install a special handler than to
+ * guarantee that it's safe to use npxintr() and its supporting code.
+ *
+ * AI-ONLY NOTE: FreeBSD 1.1.5.1's npxsave, which NetBSD 1.0's is, with
+ * three differences. The vector is npx_intrno, found in npxattach
+ * where theirs is found by their probe; the coprocessor's mask is
+ * npx0mask, as there; and the interrupt flag is put back as it was
+ * found where theirs is set, because swtch calls this with
+ * interrupts off. It saves the state, sets EM and leaves npxproc
+ * NULL: the chip is then free.
+ */
+void
+npxsave(addr)
+	struct save87 *addr;
+{
+	u_char	icu1_mask;
+	u_char	icu2_mask;
+	u_char	old_icu1_mask;
+	u_char	old_icu2_mask;
+	struct gate_descriptor	save_idt_npxintr;
+	u_long	eflags;
+
+	asm("pushfl; popl %0" : "=r" (eflags));
+	asm("cli");
+	old_icu1_mask = inb(IO_ICU1 + 1);
+	old_icu2_mask = inb(IO_ICU2 + 1);
+	save_idt_npxintr = idt[npx_intrno];
+	outb(IO_ICU1 + 1, old_icu1_mask & ~(IRQ_SLAVE | npx0mask));
+	outb(IO_ICU2 + 1, old_icu2_mask & ~(npx0mask >> 8));
+	idt[npx_intrno] = npx_idt_saveintr;
+	asm("sti");
+	load_cr0(rcr0() & ~CR0_EM);	/* stop emulating */
+	asm("fnsave %0" : "=m" (*addr));
+	asm("fwait");
+	load_cr0(rcr0() | CR0_EM);	/* start emulating */
+	npxproc = NULL;
+	asm("cli");
+	icu1_mask = inb(IO_ICU1 + 1);	/* masks may have changed */
+	icu2_mask = inb(IO_ICU2 + 1);
+	outb(IO_ICU1 + 1,
+	     (icu1_mask & ~npx0mask) | (old_icu1_mask & npx0mask));
+	outb(IO_ICU2 + 1,
+	     (icu2_mask & ~(npx0mask >> 8))
+	     | (old_icu2_mask & (npx0mask >> 8)));
+	idt[npx_intrno] = save_idt_npxintr;
+	asm("pushl %0; popfl" : : "r" (eflags));	/* back to how it was */
 }
 #endif
