@@ -34,40 +34,52 @@
  */
 
 #if !defined(hp300) && !defined(tahoe) && !defined(vax) && \
-	!defined(luna68k) && !defined(mips)
+	!defined(luna68k) && !defined(mips) && !defined(i386)
 char *defdrives[] = { 0 };
 #endif
 
 /*
- * AI-ONLY NOTE: this file has cases for hp300, tahoe, vax, luna68k,
- * mips and sun, and none for i386, so read_names is undefined and
- * usr.bin/vmstat, usr.bin/vmstat.sparc and usr.bin/systat do not link.
+ * AI-ONLY NOTE: this file had cases for hp300, tahoe, vax, luna68k,
+ * mips and sun, and none for i386, so read_names was undefined and
+ * usr.bin/vmstat, usr.bin/systat and usr.sbin/iostat did not link.
  * Berkeley left the i386 port short here, as it did in lib/libkvm.
- *
- * This is NetBSD 1.0's i386 case, the same stub they give pc532. It
- * returns success and fills nothing, and vmstat.c already has
- * Berkeley's own path for that: a drive whose name is still NULL is
- * labelled ??0, ??1 and so on, and the statistics are reported as
- * usual. defdrives above is already empty for this machine, which is
- * the other half of the same answer.
- *
- * FreeBSD 2.0.5 has a real implementation here instead, by Rodney W.
- * Grimes: it reads namelist[X_DK_NAMES] out of the kernel and gives
- * the drives their true names. It is not taken because it depends on
- * a kernel symbol this tree has not been shown to export, which
- * cannot be checked until a kernel built from this tree runs. If real
- * names are wanted later, that is where to look; the choice is
- * recorded in docs/provenance/missing.md.
+ * An earlier patch gave NetBSD 1.0's stub, which fills nothing and
+ * leaves every drive labelled ??0, ??1; this is FreeBSD 2.0.5's
+ * i386 case, by Rodney W. Grimes, which it replaced it with once the
+ * kernel exported what it reads: dk_names, the array of drive names
+ * that i386's disk drivers fill as they register (patch 221). Not
+ * FreeBSD's: its defdrives has no terminating 0 and lists sd0 and
+ * sd1, which this kernel has no driver for; and its loop is bounded
+ * by dk_ndrive and DK_NDRIVE, where theirs ends at an empty name and
+ * runs off the array when all eight are in use. It reports failures
+ * with fprintf, as the other cases here do, in place of warnx, which
+ * systat does not include.
  *
  * Neither lineage kept this file: NetBSD replaced it with dkstats.c
  * at 1.2 and FreeBSD dropped it by 3.0, and OpenBSD already had
- * dkstats.c in 1996. The stub is what fits this tree as it stands.
+ * dkstats.c in 1996.
  */
 #if defined(i386)
+#include <sys/dkstat.h>
+
+char *defdrives[] = { "wd0", "wd1", 0 };
+
 int
 read_names()
 {
-	return 1;
+	u_long dk_names;
+	static char thenames[DK_NDRIVE][DK_NAMELEN];
+	int i;
+
+	dk_names = namelist[X_DK_NAMES].n_value;
+	if (dk_names == 0) {
+		(void)fprintf(stderr, "disk name info not in namelist\n");
+		return (0);
+	}
+	(void)kvm_read(kd, dk_names, thenames, sizeof thenames);
+	for (i = 0; i < dk_ndrive && i < DK_NDRIVE && thenames[i][0]; i++)
+		dr_name[i] = thenames[i];
+	return (1);
 }
 #endif
 

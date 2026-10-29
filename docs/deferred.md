@@ -423,16 +423,13 @@ empty function and there is no `cpu_class`, `cputype` or
 three donors fill theirs from an `identifycpu()` that reads the
 processor. "An empty `hw.model` is better than an invented one."
 
-### `vmstat` shows `??0`, `??1` for drives
+### ~~`vmstat` shows `??0`, `??1` for drives~~ FIXED
 
-`6698fb08`, note in `usr.bin/vmstat/names.c`
-
-NetBSD 1.0's empty i386 stub was taken. **FreeBSD 2.0.5 has a real
-implementation by Rodney W. Grimes** reading
-`namelist[X_DK_NAMES]` from the kernel to give drives their true
-names. Declined only because the kernel symbol could not be verified
-without a running kernel — a condition that lifts the moment one
-boots.
+**Done** (patch 221): the kernel exports `dk_names`, `wd` fills it, and
+`names.c` is FreeBSD 2.0.5's real case. Along the way: `dk_ndrive`
+started at `DK_NDRIVE`, so `wd.c`'s `dk_ndrive < DK_NDRIVE` was never
+true and no IDE drive had statistics at all; iostat showed four
+all-zero `dk` columns. It now shows `wd0` and its transfers.
 
 ### ~~The kernel has no local disk~~ FIXED
 

@@ -387,7 +387,7 @@ are small, and every one says so in its own AI-ONLY NOTE.
 
 	lib/csu/*		619 lines	NetBSD 1.6 (see below)
 	lib/libkvm/kvm_i386.c	221 lines	NetBSD 1.0, adapted
-	vmstat/names.c i386 case  6 lines	NetBSD 1.0
+	vmstat/names.c i386 case 23 lines	FreeBSD 2.0.5 (patch 221)
 	lib/libl/Makefile	  4 lines	NetBSD 1.0
 	lib/libc/gen/nlist_elf32.c	NetBSD 1.3, adapted
 	usr.sbin/kvm_mkdb/nlist_elf32.c	NetBSD 1.3, adapted
@@ -807,6 +807,23 @@ rest given out as zero. Tested: a traced child's two FPU stack values
 read back through PT_GETFPREGS, a changed top register set with
 PT_SETFPREGS reaches the child when it continues.
 
+Patch 221 (decided 2026-10-29; kind A) gives the i386 disk drivers
+statistics and names. Lite2's kern_clock.c starts dk_ndrive at DK_NDRIVE
+(8) for ports that number their drives with autoconf.c's dkn; the wd
+driver here is FreeBSD's and counts in dk_ndrive, so its test
+`dk_ndrive < DK_NDRIVE` was never true, every IDE drive got dk_dkunit
+-1 and iostat showed four all-zero dk columns. Donors checked, in
+order: FreeBSD 2.0.5 (`int dk_ndrive = 0' and `dk_names[DK_NDRIVE]
+[DK_NAMELEN]' in kern_clock.c, the name written by each driver, X_DK_NAMES
+in vmstat, iostat and systat, and the i386 read_names in names.c);
+NetBSD 1.0 (kern_clock.c as Lite2's, no names; its names.c i386 case
+a stub); OpenBSD later has dkstats.c. FreeBSD's is taken, except that
+the dk_ndrive = 0 is for i386 only, so that the dkn ports are not
+changed, and in names.c: defdrives ends in 0 and lists wd0 and wd1,
+and the loop is bounded. Tested: iostat built in the guest names wd0
+and counts its transfers (it showed dk0 to dk3, all zero, before); the
+other two tools compile; disk stress is clean.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and
@@ -1178,8 +1195,8 @@ optional 32-bit VLB transfer path, whose insl and outsl this port's
 locore.s does not have -- cut rather than written, so the transfers
 are 16-bit, as they are by default in FreeBSD too. wddump declares
 Maxmem itself, which FreeBSD's <machine/md_var.h> declared, and calls
-no cncheckc, which Lite2's console lacks; wdattach fills no dk_names,
-which Lite2 lacks. Taken
+no cncheckc, which Lite2's console lacks; wdattach fills dk_names
+from patch 221, which Lite2 lacks. Taken
 alongside from the same release: GENERIC's controller and disk lines;
 files.i386's and conf/files' entries; the isa_device id_flags field
 and IO_WDCSIZE; <sys/conf.h>'s d_*_t types, <sys/systm.h>'s timeout_t,
@@ -1772,9 +1789,7 @@ These are refusals, not omissions. Each one gives up something.
 	makes this a change.
 
   vmstat's real disk names
-	FreeBSD 2.0.5 has an implementation reading the kernel's
-	namelist; NetBSD 1.0's stub is what was taken.
-	Cost: vmstat reports drives as ??0 rather than by name.
+	Now taken: FreeBSD 2.0.5's (patch 221).
 
 ## The one inversion, stated plainly
 

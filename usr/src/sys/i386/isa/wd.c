@@ -374,6 +374,7 @@ wdattach(struct isa_device *dvp)
 			wdtimeout(du);
 
 			if (dk_ndrive < DK_NDRIVE) {
+				sprintf(dk_names[dk_ndrive], "wd%d", lunit);
 				/*
 				 * XXX we don't know the transfer rate of the
 				 * drive.  Guess the maximum ISA rate of

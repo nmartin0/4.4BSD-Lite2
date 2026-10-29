@@ -399,7 +399,20 @@ stopprofclock(p)
 	}
 }
 
+/*
+ * AI-ONLY NOTE: i386's drivers count the drives they register in
+ * dk_ndrive, as FreeBSD 2.0.5's kern_clock.c (`int dk_ndrive = 0') has
+ * it, and give each a name in dk_names for vmstat and iostat. Berkeley's
+ * ports number their drives with autoconf.c's dkn and leave dk_ndrive
+ * at its size, so they keep that. With the old value wd.c's test
+ * `dk_ndrive < DK_NDRIVE' was never true and no IDE drive had
+ * statistics at all.
+ */
+#ifdef i386
+int	dk_ndrive = 0;
+#else
 int	dk_ndrive = DK_NDRIVE;
+#endif
 
 /*
  * Statistics clock.  Grab profile sample, and if divider reaches 0,

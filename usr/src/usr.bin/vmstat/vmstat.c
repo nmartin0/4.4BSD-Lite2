@@ -115,6 +115,10 @@ struct nlist namelist[] = {
 #define	X_HPDINIT	(X_END)
 	{ "_hp_dinit" },
 #endif
+#if defined(i386)
+#define X_DK_NAMES	(X_END)
+	{ "_dk_names" },
+#endif
 #ifdef mips
 #define	X_SCSI_DINIT	(X_END)
 	{ "_scsi_dinit" },

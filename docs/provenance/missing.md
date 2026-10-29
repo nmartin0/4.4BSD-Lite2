@@ -161,25 +161,14 @@ sendmail and uucp documents.
 			could not be redistributed.
   usr.bin/vmstat	names.c has cases for hp300, tahoe, vax, luna68k,
 			mips and sun, and none for i386, so read_names
-			was undefined and vmstat, vmstat.sparc and
-			systat did not link. NetBSD 1.0's i386 case is
-			now in the file: a stub returning success,
-			which leaves vmstat.c's own fallback to label
-			the drives ??0, ??1 and so on. It is the same
-			stub NetBSD gives pc532.
-
-			Deliberately not taken: FreeBSD 2.0.5's real
-			implementation by Rodney W. Grimes, which reads
-			namelist[X_DK_NAMES] from the kernel and gives
-			the drives their true names. It depends on a
-			kernel symbol this tree has not been shown to
-			export, which cannot be checked until a kernel
-			built from this tree runs. When one does, and
-			if true drive names are wanted, that is the
-			place to build this out faithfully. Neither
-			lineage kept the file: NetBSD replaced it with
-			dkstats.c at 1.2, FreeBSD dropped it by 3.0,
-			and OpenBSD already had dkstats.c in 1996.
+			was undefined and vmstat, systat and iostat did
+			not link. The i386 case is now FreeBSD 2.0.5's,
+			by Rodney W. Grimes (patch 221): it reads the
+			kernel's dk_names, which i386's wd driver fills,
+			and gives each drive its name. It had first been
+			NetBSD 1.0's stub, which fills nothing and left
+			the drives ??0, ??1, because the kernel symbol
+			could not then be shown to exist.
   sbin/savecore		zopen.c, which came from usr.bin/compress.
 			Imported from NetBSD 1.0, the only file taken
 			from another system so far. Since patch 189

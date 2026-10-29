@@ -46,6 +46,7 @@
 #define	CPUSTATES	5
 
 #define	DK_NDRIVE	8
+#define	DK_NAMELEN	8
 #ifdef KERNEL
 long cp_time[CPUSTATES];
 long dk_seek[DK_NDRIVE];
@@ -53,6 +54,7 @@ long dk_time[DK_NDRIVE];
 long dk_wds[DK_NDRIVE];
 long dk_wpms[DK_NDRIVE];
 long dk_xfer[DK_NDRIVE];
+char dk_names[DK_NDRIVE][DK_NAMELEN];	/* name of drive (i386) */
 
 int dk_busy;
 int dk_ndrive;
