@@ -895,3 +895,88 @@ research gives ideas to take into whichever is kept -- superpage
 reservations above all, and RadixVM's structure as the reference if the
 VM is ever made fine-grained for many processors -- each written in the
 kept VM's own form.
+
+## 16. 4.6BSD against "an early OpenBSD, brought forward"
+
+Added 2026-10-29, at the maintainer's question, strictly about kernel
+design: would taking an OpenBSD release from before every plateau and
+backporting the later continuations give much the same system as
+4.6BSD?
+
+**The release.** The first plateau is the VM (OpenBSD made UVM the i386
+default on 1999-12-01). So the base would be OpenBSD 2.6, released 1
+December 1999; measured here at `2e7b963cc85`, 1999-11-30, which still
+builds the Mach VM by default and UVM as an option.
+
+**What OpenBSD 2.6's kernel holds, against Lite2** (lines of `.c`, `.h`,
+`.s`):
+
+| | Lite2 | OpenBSD 2.6 |
+|---|---|---|
+| `kern` | 28,810 | 51,541 |
+| `vm` (+ `uvm`) | 13,765 | 17,735 (+ 23,218) |
+| `ufs` | 17,481 | 28,941 |
+| `miscfs` | 15,315 | 15,083 |
+| `nfs` | 17,956 | 19,847 |
+| `net` | 9,602 | 35,745 |
+| `netinet` | 13,388 | 41,343 |
+| `sys` | 12,490 | 21,663 |
+| **these eight** | **128,807** | **231,898** |
+| also | -- | `compat` 65,024 (nine emulations), `netinet6` 16,031 (KAME, just merged), `dev` 400,870 (machine-independent drivers), `scsi` 14,853, `xfs`, `adosfs`, `msdosfs`, `netatalk`, `netipx`, `netnatm` |
+
+About 80% of Lite2's lines in those eight directories survive in it
+(the roadmap's measurement of OpenBSD 1999-12), but it is 1.8 times
+Lite2's size.
+
+**Where the two would end up the same.** For most subsystems both paths
+take the same continuations after 1999, because those continuations are
+OpenBSD's: locking and SMP, threads, the scheduler, VFS and FFS2, the
+network stack and sockets, terminals, drivers and autoconfiguration,
+exec and the ABI, and the same realtime grafts from NetBSD 1.4-2.0 and
+FreeBSD 3.0 (OpenBSD never had them). The VM decision is the same
+decision on both paths: OpenBSD 2.6 is on the Mach VM too. The
+settlement files are the same family: OpenBSD 2.6 carries NetBSD's
+1994-96 rewrites (Demetriou, Solfrank, TooLs, de Raadt), which is where
+4.5BSD took its fixes from.
+
+**Where they would differ.**
+
+1. **What is carried.** OpenBSD 2.6 brings its own agenda of 1995-1999:
+   nine binary emulations, IPsec, IP Filter, swap encryption, the
+   `random` device and `arc4random`, loadable modules, soft updates,
+   KAME, AFS (xfs), AppleTalk, IPX, ATM, more file systems. Under
+   4.6BSD's rules nearly all of it stays out. Starting from OpenBSD,
+   the project would be **subtractive**, removing what is not wanted;
+   4.6BSD is **additive**, taking only what is needed. Done fully, the
+   subtraction would converge on much the same feature set.
+2. **Lite2's own text.** In the files both have, OpenBSD 2.6 has already
+   replaced about a fifth of Lite2's lines with NetBSD's and its own
+   fixes and restyling. Many of these 4.6BSD would take anyway (the
+   shrink-wrap set); the rest it would not.
+3. **The i386 machine layer: the largest difference, and a provenance
+   one.** OpenBSD 2.6's i386 is NetBSD's, which grew from 386BSD and
+   Net/2, not from Lite2's i386. Counting each file's Berkeley SCCS
+   version: of OpenBSD 2.6's i386 kernel files, 20 carry Net/2 versions
+   (7.x; `locore.s` "7.3 (Berkeley) 5/13/91") and 7 Lite versions (8.x);
+   Lite2's own i386 has 76 at 8.x and 2 at 7.x. 41 of OpenBSD 2.6's 139
+   i386 kernel files name Jolitz or 386BSD in their headers (as do 37 of
+   Lite2's 88; Berkeley's own port was Jolitz's). Under the rule against
+   what the daughters held derived from 386BSD's files, an OpenBSD base
+   would import that lineage wholesale, to be cleared file by file;
+   4.6BSD keeps Berkeley's 4.4 i386 and takes the newer machine code
+   piece by piece through the ledger.
+4. **The ports.** OpenBSD 2.6 has 21 architectures but not luna68k,
+   news3400 or tahoe; 4.6BSD starts from Lite2's eight and adds amd64.
+5. **The clists.** OpenBSD's are de Raadt's ring; 4.6BSD keeps the cblocks
+   that match Lite2's `tty.c` (section 6).
+
+**So.** In kernel *design*, the two would come out close: the same
+continuations, the same VM choice, the same grafts. 4.6BSD would be,
+roughly, "OpenBSD 2.6 without OpenBSD's own agenda, with Berkeley's
+i386 in place of the 386BSD-lineage one, and with more of Lite2's text
+kept". In *content* and *provenance* the difference is considerable: a
+kernel about half the size at the start, no inherited agenda to remove,
+and a machine layer of Berkeley's lineage rather than 386BSD's. The
+difference narrows as the later continuations are taken (they are
+OpenBSD's either way) and is largest in the i386 layer and in what is
+left out.
