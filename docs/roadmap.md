@@ -145,8 +145,8 @@ status.md: ~~a statistics clock~~ (FreeBSD's, on IRQ 8; decided
 (decided 2026-10-26: Bruce Evans's FreeBSD count of nested interrupts,
 December 1994, for OpenBSD's 1997 selector test, which miscounts after
 a switch from the AST path; **done**, patch 209); the FPU registers for ptrace (**done**, patches 219
-and 220); dial-out devices for the serial ports; vmstat's `??0` drive
-names; fd's debugging printf; the kernel linked without a linker
+and 220); dial-out devices for the serial ports; ~~vmstat's drive
+names and interrupt counters~~ (**done**, patches 221 and 222); fd's debugging printf; the kernel linked without a linker
 script; the kernel's warnings, not yet audited. The `vinvalbuf`
 panic is understood and left (Tier 1, item 4).
 

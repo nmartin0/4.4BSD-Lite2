@@ -21,7 +21,14 @@ committed. Facts, not legal advice.
 4. **Later BSDs in historical order**, stopping at the earliest release
    that has the thing.
 5. **XNU and Rhapsody: read-only.** See below.
-6. **Our own code, last**, and only where the four above have nothing.
+6. **Minix, for tooling only, after all of the above** (decided
+   2026-10-29): a permissively licensed Minix (3.1.0 for old code, or
+   the current tree) is acceptable precedent for a tool the BSDs'
+   searches have not supplied. It is the last donor searched, ahead
+   only of writing the thing ourselves; every record of a change
+   says which donors were checked, in order, and Minix comes last
+   in that list.
+7. **Our own code, last of all**, and only where the above have nothing.
 
 ## The VM system is Mach's, and that changes the order for it
 

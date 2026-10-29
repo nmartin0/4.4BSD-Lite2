@@ -337,6 +337,8 @@ vector() {
 	register FILE *fp, *gp;
 	register struct device *dp, *mp;
 	int count;
+	char names[512];	/* NUL-separated, in counter-slot order */
+	int namelen;
 
 	fp = fopen(path("vector.s"), "w");
 	if (fp == 0) {
@@ -373,11 +375,25 @@ VEC(clk)\n\
 	fprintf(fp,"\
 	.globl	_C_LABEL(rtcintr)\n\
 VEC(rtc)\n\
-	INTR2(8, _C_LABEL(highmask), 8)\n\
+	INTR2(8, _C_LABEL(highmask), 1)\n\
 	call	_C_LABEL(rtcintr) \n\
 	INTREXIT2\n\n\n");
 
-	count=0;
+	/*
+	 * AI-ONLY NOTE: counter slots. Each vector counts into its own
+	 * longword of isa_intr (icu.s) through the last argument of its
+	 * INTRn; slot 0 is the clock, slot 1 the statistics clock, the
+	 * devices follow from 2. The rtc used to be hardcoded as 8, the
+	 * same as the ninth device's. The names go out below as
+	 * intrnames, in the same order, for vmstat -i; the layout (a
+	 * table of names and a table of longs, each with a label past
+	 * its end) is the one vmstat has read since 4.3BSD, and NetBSD
+	 * 1.0's vector.s keeps the same four labels, as dummies.
+	 */
+	namelen = 0;
+	strcpy(names, "clk");	namelen += 4;
+	strcpy(names + namelen, "rtc");	namelen += 4;
+	count=1;
 	for (dp = dtab; dp != 0; dp = dp->d_next) {
 		mp = dp->d_conn;
 		if (mp != 0 && /* mp != (struct device *)-1 &&*/
@@ -405,6 +421,14 @@ VEC(rtc)\n\
 							dp->d_mask);
 		  	fprintf(fp,"%d)\n\tcall\t_C_LABEL(%s)\n\tINTREXIT%d\n\n\n",
 				++count, id->id, (dp->d_irq > 7)?2:1); 
+			if (count >= 16 ||
+			    namelen + strlen(dp->d_name) + 12 > sizeof names) {
+				fprintf(stderr,
+				    "config: too many interrupt vectors (16)\n");
+				exit(1);
+			}
+			namelen += sprintf(names + namelen, "%s%d",
+			    dp->d_name, dp->d_unit) + 1;
 						break;
 					}
 					if (!strcmp(id->id, id2->id))
@@ -412,6 +436,24 @@ VEC(rtc)\n\
 				}
 			}
 		}
+	}
+	/*
+	 * intrcnt is the front of isa_intr, as many longs as there are
+	 * names; vmstat finds the number of counters from the labels.
+	 */
+	{
+		char *cp;
+
+		fprintf(fp, "\t.globl _C_LABEL(intrnames), _C_LABEL(eintrnames)\n");
+		fprintf(fp, "\t.globl _C_LABEL(intrcnt), _C_LABEL(eintrcnt)\n");
+		fprintf(fp, "\t.data\n_C_LABEL(intrnames):\n");
+		for (cp = names; cp < names + namelen; cp += strlen(cp) + 1)
+			fprintf(fp, "\t.asciz\t\"%s\"\n", cp);
+		fprintf(fp, "_C_LABEL(eintrnames):\n");
+		fprintf(fp, "\t.set\t_C_LABEL(intrcnt), _C_LABEL(isa_intr)\n");
+		fprintf(fp, "\t.set\t_C_LABEL(eintrcnt), _C_LABEL(isa_intr) + %d\n",
+		    (count + 1) * 4);
+		fprintf(fp, "\t.text\n");
 	}
 	(void) fclose(fp);
 }

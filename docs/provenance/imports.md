@@ -824,6 +824,29 @@ and the loop is bounded. Tested: iostat built in the guest names wd0
 and counts its transfers (it showed dk0 to dk3, all zero, before); the
 other two tools compile; disk stress is clean.
 
+Patch 222 (decided 2026-10-29; kind A) gives the i386 kernel the
+interrupt counters vmstat -i reads (`intrnames`, `eintrnames`, `intrcnt`,
+`eintrcnt`). Without them plain `vmstat` died with "undefined symbols".
+Lite2's INTR macros already count each vector into a longword of
+`isa_intr` (icu.h) but nothing named them. Donors checked, in order:
+FreeBSD 2.0.5 (vector.s: intrcnt and intrnames tables, through
+register_intr and intr_countp, which this tree has not got); FreeBSD
+1.1.5.1 (vector.s: `_intrcnt`, `_intrnames`, one per device,
+hand-written); NetBSD 1.0 (vector.s: the four labels, one dummy word
+each "to keep vmstat happy, for now"); Minix not consulted, not
+tooling. None is portable here, so the counts and names come from the
+generator that already writes the vectors: config's mkglue.c emits
+`intrnames` (clk, rtc, then each device and unit, in slot order) and
+sets `intrcnt` and `eintrcnt` over the front of `isa_intr`, so that
+the table is as long as the names. AI-ONLY NOTE: the statistics clock's
+vector (patch 208) used slot 8, the same as the ninth device's; it now
+has slot 1 and the devices begin at 2; config stops if there are more
+than 16 vectors, the size of `isa_intr`. Tested in the guest: `vmstat
+-i` lists clk about 100 a second, rtc 128, wdc0, wdc1, com0 and pc0;
+plain `vmstat` runs with the `w0` column from patch 221; `-s` too.
+`-f` prints nothing because Berkeley's `doforkst` is under `#ifdef
+notdef` and Lite2's kernel has no `forkstat`; not changed.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and
