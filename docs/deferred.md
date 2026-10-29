@@ -429,7 +429,8 @@ processor. "An empty `hw.model` is better than an invented one."
 `names.c` is FreeBSD 2.0.5's real case. Along the way: `dk_ndrive`
 started at `DK_NDRIVE`, so `wd.c`'s `dk_ndrive < DK_NDRIVE` was never
 true and no IDE drive had statistics at all; iostat showed four
-all-zero `dk` columns. It now shows `wd0` and its transfers.
+all-zero `dk` columns. It now shows `wd0` and its transfers. Plain `vmstat` and `vmstat -i` also needed the kernel's
+interrupt counters (patch 222).
 
 ### ~~The kernel has no local disk~~ FIXED
 

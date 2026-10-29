@@ -828,8 +828,15 @@ Patch 222 (decided 2026-10-29; kind A) gives the i386 kernel the
 interrupt counters vmstat -i reads (`intrnames`, `eintrnames`, `intrcnt`,
 `eintrcnt`). Without them plain `vmstat` died with "undefined symbols".
 Lite2's INTR macros already count each vector into a longword of
-`isa_intr` (icu.h) but nothing named them. Donors checked, in order:
-FreeBSD 2.0.5 (vector.s: intrcnt and intrnames tables, through
+`isa_intr` (icu.h) but nothing named them. Checked first, in order:
+4.4BSD-Lite2 itself, where hp300 and luna68k define `_intrnames`,
+`_eintrnames`, `_intrcnt` and `_eintrcnt` in locore.s (names as
+`.asciz` in slot order, a table of longs after them, the counts
+taken from the labels), and where config's mkglue.c already holds the
+VAX and Tahoe form (`dump_std`, `dump_intname`, `dump_ctrs`: config
+writes the names with `.asciz`, a `.space` for the counters, the
+four labels); neither is wired for the i386, so the i386 generator
+writes the same shape. Then the donors, in order: FreeBSD 2.0.5 (vector.s: intrcnt and intrnames tables, through
 register_intr and intr_countp, which this tree has not got); FreeBSD
 1.1.5.1 (vector.s: `_intrcnt`, `_intrnames`, one per device,
 hand-written); NetBSD 1.0 (vector.s: the four labels, one dummy word
