@@ -20,6 +20,12 @@ The test for which release an item belongs to: does a capable 4.4BSD
 system of its own time need it, or does it modernize one? The first
 is 4.5BSD's; the second waits for 4.6BSD.
 
+**Decided 2026-10-29:** 4.5BSD is not completed as planned below.
+After a short floor of audit fixes (`docs/roadmap-audit.md`, A2-A4)
+and a record of where it was left, 4.6BSD is cut from it
+(`docs/design-4.6.md`). The items below that are still open move to
+4.6BSD, the tests and the ports tree among them.
+
 This file is 4.5BSD's: what is left; what is still to be settled
 between the two; what is noted for later; what is done, in the order
 it was done; and the two plans decided and not yet begun, the ports

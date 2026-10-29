@@ -8,6 +8,13 @@ system that is none of OpenBSD, NetBSD or FreeBSD, but a development
 continuation of 4.5BSD, loyal to its 4.4BSD-Lite2 heritage, minimal,
 and close to its roots.
 
+**Decided 2026-10-29: `docs/design-4.6.md` sets 4.6BSD's goal (POSIX.1-2024,
+C17, the System V ABI and their errata, tested with the maintainer's
+suite), its rules, the driver interface (OpenBSD's 1996-2014 plateau)
+and the compiler-flag work. 4.5BSD is cut after a short floor of audit
+fixes rather than completed; where this file and design-4.6.md
+disagree, design-4.6.md is the later decision.**
+
 Nothing here is begun before 4.5BSD is released. What is recorded
 here was found while working on 4.5BSD and is kept so that it is not
 rediscovered. Items still to be placed are listed in roadmap.md, *To
