@@ -361,7 +361,7 @@ microtime(tvp)
 	hi = inb(TIMER_CNTR0);
 	count = (hi << 8) | lo;
 	count = limit - count;			/* counts since the reload */
-	if (limit - count > limit / 100) {
+	if (limit - count > 12) {
 		outb(IO_ICU1, 0x0a);		/* OCW3: read the request register */
 		if (inb(IO_ICU1) & IRQ0)
 			count += limit;		/* a tick not yet counted */
@@ -375,16 +375,24 @@ microtime(tvp)
 	/*
 	 * AI-ONLY NOTE: not in any donor (NetBSD 1.0, FreeBSD 2.0.5/2.2.8
 	 * and OpenBSD i386 have no such check). Under QEMU's TCG the
-	 * counter can wrap before the PIC's request bit is raised, and
-	 * the result then steps back by a tick. Never return less than
-	 * the previous answer.
+	 * request bit for IRQ0 was measured to be raised tens of counts
+	 * after the counter reloads, so a call in between sees a
+	 * reloaded counter, no request and the old `time', and answers
+	 * about one tick early (24 steps back in 100k calls). The
+	 * donors' heuristics, which only decide when the request bit is
+	 * worth reading, cannot see that. So never answer less than the
+	 * previous answer, but only within one tick of it: a larger
+	 * step back is the clock being set and must show.
 	 */
-	if (tvp->tv_sec < lasttime.tv_sec ||
-	    (tvp->tv_sec == lasttime.tv_sec &&
-	    tvp->tv_usec < lasttime.tv_usec))
-		*tvp = lasttime;
-	else
-		lasttime = *tvp;
+	{
+		long ds = lasttime.tv_sec - tvp->tv_sec;
+		long back = ds * 1000000 + (lasttime.tv_usec - tvp->tv_usec);
+
+		if (ds >= 0 && ds <= 1 && back > 0 && back <= tick)
+			*tvp = lasttime;
+		else
+			lasttime = *tvp;
+	}
 	splx(s);
 }
 

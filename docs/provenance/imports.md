@@ -744,11 +744,16 @@ tick/reload (not 1000/1193), and the request register is selected with
 OCW3 0x0a before it is read. resettodr is the inverse of inittodr
 (NetBSD 1.0 clock.c; FreeBSD 2.0.5), halting the RTC while the
 registers are written. inittodr keeps its hard-coded DAYST/DAYEN, as in
-both donors. One addition is ours and in no donor: microtime clamps
-its answer to the previous one. Under QEMU TCG the counter can wrap
-before the PIC request bit is set, which stepped the clock back one
-tick (about 23 in 100k calls) before the clamp and 0 after. Tested:
-100k gettimeofday calls strictly non-decreasing, settimeofday then
+both donors. One addition is ours and in no donor: microtime will not answer
+less than its previous answer, within one tick (a bigger step back is
+the clock being set, and passes). Under QEMU TCG the IRQ0 request bit
+was measured to appear tens of counts after the counter reloads, so a
+call in that gap saw a reloaded counter, no request and the old
+`time', and answered a tick early (24 steps back in 100k calls; the
+donors' read-the-IRR heuristics, NetBSD's `> 12' and FreeBSD's
+overflow threshold, cannot see this). Real hardware raises the request
+at the reload, so the clamp may never act there; that is not measured.
+Tested: 100k gettimeofday calls non-decreasing, settimeofday then
 reboot round-trips leap day, DST and year-end dates, disk stress clean.
 
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
