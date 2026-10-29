@@ -4,7 +4,10 @@ Decided by the maintainer, 2026-10-29. This file records the goal and
 the design rules; `docs/roadmap-4.6.md` holds the measured work items,
 `docs/roadmap-audit.md` the audit that comes before the cut. Where this
 file and an older line of roadmap-4.6.md disagree, this file is the
-later decision.
+later decision. `docs/analysis-4.6-lineage.md` (2026-10-29) traces each
+layer's lineage to the goal and finds where lineages cannot be
+reconciled; its section 9 lists corrections to this file that await
+the maintainer's decision.
 
 ## 1. The goal
 
