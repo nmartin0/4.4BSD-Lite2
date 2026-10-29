@@ -733,6 +733,24 @@ field the same way. Also checked, no change: pcb_inl of a new process is
 its parent's at the parent's last switch, normally zero, and the child
 leaves the kernel through the syscall exit, which sets the level itself.
 
+Patch 216 (decided 2026-10-29; kind B) gives the i386 kernel a real
+microtime() and a real resettodr(). 4.4BSD-Lite2's i386 microtime
+returned the tick-granular `time`, and resettodr was an empty stub, so
+the RTC was never written back on settimeofday(). microtime is the
+8254 counter-latch algorithm (McCanne) as in NetBSD 1.0's i386
+microtime and FreeBSD 2.0.5's microtime.s, rewritten in C with three
+differences: the reload value comes from hz, counts scale by
+tick/reload (not 1000/1193), and the request register is selected with
+OCW3 0x0a before it is read. resettodr is the inverse of inittodr
+(NetBSD 1.0 clock.c; FreeBSD 2.0.5), halting the RTC while the
+registers are written. inittodr keeps its hard-coded DAYST/DAYEN, as in
+both donors. One addition is ours and in no donor: microtime clamps
+its answer to the previous one. Under QEMU TCG the counter can wrap
+before the PIC request bit is set, which stepped the clock back one
+tick (about 23 in 100k calls) before the clamp and 0 after. Tested:
+100k gettimeofday calls strictly non-decreasing, settimeofday then
+reboot round-trips leap day, DST and year-end dates, disk stress clean.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

@@ -740,20 +740,13 @@ dumpsys()
 	DELAY(1000);
 }
 
-void
-microtime(tvp)
-	register struct timeval *tvp;
-{
-	int s = splhigh();
-
-	*tvp = time;
-	tvp->tv_usec += tick;
-	while (tvp->tv_usec > 1000000) {
-		tvp->tv_sec++;
-		tvp->tv_usec -= 1000000;
-	}
-	splx(s);
-}
+/*
+ * AI-ONLY NOTE: microtime is in isa/clock.c, where it reads the
+ * 8254's counter as FreeBSD 2.0.5's and NetBSD 1.0's microtime.s do.
+ * What stood here returned the time plus a whole tick, so that
+ * gettimeofday never moved by less than 10 ms and was always a tick
+ * ahead.
+ */
 
 physstrat(bp, strat, prio)
 	struct buf *bp;

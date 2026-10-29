@@ -242,11 +242,150 @@ test_inittodr(base)
 }
 #endif
 
+/* convert a number from 0 to 99 to two BCD digits */
+dectobcd(i)
+int i;
+{
+	return ((i/10)*16 + (i%10));
+}
+
 /*
  * Restart the clock.
+ *
+ * AI-ONLY NOTE: resettodr, which was empty, so that setting the time
+ * (kern_time.c's settimeofday calls it) never reached the battery
+ * clock and the next boot started from the old one. NetBSD 1.0's
+ * (clock.c:428) and FreeBSD 2.0.5's both write the chip; the
+ * arithmetic is this file's inittodr turned round, so that what one
+ * reads the other puts back: the chip holds local time, inittodr adds
+ * tz_minuteswest and takes an hour off when the date falls between
+ * DAYST and DAYEN, and this subtracts the one and puts the other
+ * back, by the same test on the day of the year. The year rule is
+ * ytos's, every fourth year. The chip's updating is stopped by the
+ * SET bit while the seven registers are written, with the periodic
+ * bit kept as it was, and the whole is done at splhigh so that
+ * rtcintr cannot come between an index and its data. NetBSD's
+ * (which skips the write if the time was never set) is not needed
+ * here: only settimeofday calls this.
  */
 resettodr()
 {
+	unsigned long sec, days;
+	int s, year, mon, yd, hr, min, sc, b, i, dow;
+	static int mlen[12] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+
+	sec = time.tv_sec - tz.tz_minuteswest * 60;	/* chip time */
+	/* inittodr takes an hour off inside DAYST..DAYEN; put it back */
+	yd = ((sec + 60*60) / (24*60*60));
+	for (year = 1970; ; year++) {
+		i = (year % 4) ? 365 : 366;
+		if (yd < i)
+			break;
+		yd -= i;
+	}
+	if (yd >= DAYST && yd <= DAYEN)
+		sec += 60*60;
+
+	days = sec / (24*60*60);
+	sc = sec % (24*60*60);
+	hr = sc / 3600;
+	min = (sc % 3600) / 60;
+	sc = sc % 60;
+	dow = (days + 4) % 7 + 1;		/* 1/1/70 was a Thursday; Sunday is 1 */
+	for (year = 1970; ; year++) {
+		i = (year % 4) ? 365 : 366;
+		if (days < i)
+			break;
+		days -= i;
+	}
+	mlen[1] = (year % 4) ? 28 : 29;
+	for (mon = 0; days >= mlen[mon]; mon++)
+		days -= mlen[mon];
+
+	s = splhigh();
+	b = rtcin(RTC_STATUSB);
+	outb(IO_RTC, RTC_STATUSB);
+	outb(IO_RTC+1, b | RTCSB_HALT);
+	outb(IO_RTC, RTC_SEC);   outb(IO_RTC+1, dectobcd(sc));
+	outb(IO_RTC, RTC_MIN);   outb(IO_RTC+1, dectobcd(min));
+	outb(IO_RTC, RTC_HRS);   outb(IO_RTC+1, dectobcd(hr));
+	outb(IO_RTC, RTC_WDAY);  outb(IO_RTC+1, dow);
+	outb(IO_RTC, RTC_DAY);   outb(IO_RTC+1, dectobcd(days + 1));
+	outb(IO_RTC, RTC_MONTH); outb(IO_RTC+1, dectobcd(mon + 1));
+	outb(IO_RTC, RTC_YEAR);  outb(IO_RTC+1, dectobcd(year % 100));
+	outb(IO_RTC, RTC_STATUSB);
+	outb(IO_RTC+1, b & ~RTCSB_HALT);
+	splx(s);
+}
+
+/*
+ * AI-ONLY NOTE: microtime, which read the time and added a whole
+ * tick. This is Steve McCanne's, in the form of NetBSD 1.0's and
+ * FreeBSD 2.0.5's microtime.s (the same file, with FreeBSD's
+ * additions for the Pentium): the time of the last clock tick plus
+ * how far the 8254's counter has run down since it was reloaded.
+ *
+ * The counter is latched with interrupts off. A tick that came due
+ * between the last interrupt and the latch has not yet been added to
+ * `time', and the counter has wrapped; the 8259's request register
+ * shows it as IRQ 0 pending, and one tick is added. As in the
+ * donors that is not looked at if the counter is within twelve
+ * counts of the bottom: it may have wrapped between the latch and
+ * the read of the register, and the request would be taken for a
+ * tick that the counter has not yet counted. The donors' own
+ * comment gives the reasoning.
+ *
+ * Two differences, and no others. The reload value is worked out as
+ * startrtclock works it out and not written as 11932, so that it
+ * follows hz; and the counts are scaled to microseconds by
+ * tick / reload and not by 1000 / 1193. That was an approximation
+ * and gave 10001 for a whole tick, so that the next tick put the
+ * time back by a microsecond. The request register is selected with
+ * OCW3 each time, the in-service register being what icu.h's
+ * INTR_SPUR1 leaves selected.
+ */
+static struct timeval lasttime;
+
+void
+microtime(tvp)
+	register struct timeval *tvp;
+{
+	int s, count, limit;
+	unsigned char lo, hi;
+
+	limit = (XTALSPEED + hz/2) / hz;
+	s = splhigh();
+	*tvp = time;
+	outb(TIMER_MODE, TIMER_SEL0 | TIMER_LATCH);
+	lo = inb(TIMER_CNTR0);
+	hi = inb(TIMER_CNTR0);
+	count = (hi << 8) | lo;
+	count = limit - count;			/* counts since the reload */
+	if (limit - count > limit / 100) {
+		outb(IO_ICU1, 0x0a);		/* OCW3: read the request register */
+		if (inb(IO_ICU1) & IRQ0)
+			count += limit;		/* a tick not yet counted */
+	}
+
+	tvp->tv_usec += count * tick / limit;
+	if (tvp->tv_usec >= 1000000) {
+		tvp->tv_sec++;
+		tvp->tv_usec -= 1000000;
+	}
+	/*
+	 * AI-ONLY NOTE: not in any donor (NetBSD 1.0, FreeBSD 2.0.5/2.2.8
+	 * and OpenBSD i386 have no such check). Under QEMU's TCG the
+	 * counter can wrap before the PIC's request bit is raised, and
+	 * the result then steps back by a tick. Never return less than
+	 * the previous answer.
+	 */
+	if (tvp->tv_sec < lasttime.tv_sec ||
+	    (tvp->tv_sec == lasttime.tv_sec &&
+	    tvp->tv_usec < lasttime.tv_usec))
+		*tvp = lasttime;
+	else
+		lasttime = *tvp;
+	splx(s);
 }
 
 /*

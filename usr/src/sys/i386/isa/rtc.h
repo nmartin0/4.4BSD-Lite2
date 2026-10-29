@@ -68,6 +68,7 @@
 #define  RTC_NOPROFRATE  128
 
 #define RTC_STATUSB	0x0b	/* status register B */
+#define	 RTCSB_HALT	 0x80	/* 1 = stop updating the time, to set it */
 #define	 RTCSB_24HR	 0x02	/* 0 = 12 hours, 1 = 24	hours */
 #define	 RTCSB_PINTR	 0x40	/* 1 = enable periodic clock interrupt */
 
