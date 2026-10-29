@@ -210,16 +210,74 @@ tolerate it. Behaviour a flag only makes explicit is written in the
 code instead. Already known: the 101 kernel symbols defined in more
 than one object that `-fno-common` would reject (roadmap-4.6.md).
 
-## 8. Order of work
+## 8. From C89 to C17
+
+The kernel and the shipped system tools are to be C17, not C89 (decided
+2026-10-29). Third-party code in `contrib/` stays as it is.
+
+C89 code is mostly valid C17 already. C99 removed implicit `int` and
+calls to undeclared functions; old-style (K&R) function definitions
+are still legal in C17 but obsolescent, and C23 removes them. So the
+change is a few large mechanical passes and a smaller residue of real
+fixes. Measured 2026-10-29: the kernel alone has 4,360 uses of
+`__P(())` and 759 `.c` files with K&R definitions; userland is several
+times that.
+
+**The tools, all on the build host:**
+
+- **The compiler as the inspector:** `-std=c17 -pedantic-errors` with
+  the warnings for old-style definitions and missing prototypes; a
+  script turns its output into a tally by file and kind of error.
+- **`cproto`** converts K&R definitions to prototypes in place (GCC's
+  old `protoize` as a fallback).
+- **`sed`** removes `__P` (`__P((int, char *))` to `(int, char *)`);
+  `<sys/cdefs.h>` keeps the macro for code outside the tree.
+- **Coccinelle (`spatch`)** for changes that need the C to be
+  understood (`bcopy`/`bzero` to `memcpy`/`memset`, GNU extensions to
+  standard C).
+- **`unifdef`** removes the dead `#ifdef __STDC__` branches.
+
+**The safety check: compare the object code.** A purely syntactic pass
+must give byte-identical object files with the same compiler. The
+pass script compiles every file before and after and compares the
+machine code; identical files need no review. Those that differ are
+the ones to look at, usually a parameter declared `char`, `short` or
+`float` that K&R widened and a prototype does not.
+
+**The order:**
+
+1. The C17 compiler first: it is the target and the checker.
+2. The inventory: everything built with `-std=c17 -pedantic-errors`,
+   and the tally.
+3. The mechanical passes, each its own patch and each object-compared:
+   `__P` removal; K&R to prototypes; missing `#include`s and
+   declarations, as the compiler lists them.
+4. The residue by hand, grouped by kind: type punning, signed
+   overflow, GNU-only syntax (zero-length arrays, statement
+   expressions), inline-assembly syntax. This is the same work as
+   removing the crutch flags (section 7).
+5. After every pass, the boot test and the system building itself;
+   once the harness exists, the conformance suite.
+
+The heavy work runs in the shell, not in Claude's context: scripts,
+summaries, and the residue by hand. The K&R pass touches nearly every
+function, which widens the diff against Lite2; it is recorded as one
+reproducible sweep, with its script in the tree, so the result can be
+regenerated from Lite2. The other BSDs made the same sweep (each
+removed `__P`, by memory in the early 2000s; to be checked in their
+histories before it is cited).
+
+## 9. Order of work
 
 1. The 4.5BSD floor, the record of where 4.5BSD was left, the cut.
 2. A C17 compiler, first as a cross-compiler on the build host.
-3. `sh` passing the suite's trust checks.
-4. The conformance harness and the first baseline.
-5. The failures, grouped by cause, cheapest and widest first; threads
+3. The C17 sweep (section 8), the kernel first, then the system tools.
+4. `sh` passing the suite's trust checks.
+5. The conformance harness and the first baseline.
+6. The failures, grouped by cause, cheapest and widest first; threads
    and SMP decided together after a survey of the precedents back to
    the earliest.
-6. Alongside: the compiler-flag survey and its removals; Torek's
+7. Alongside: the compiler-flag survey and its removals; Torek's
    autoconf on the i386 and driver Tier A; then amd64, ACPI/APIC/SMP,
    UEFI and the framebuffer console, and Tier B drivers, each tested
    in QEMU `q35` with OVMF.
