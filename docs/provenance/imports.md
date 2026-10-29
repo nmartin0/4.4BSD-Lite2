@@ -720,6 +720,19 @@ instructions inside one. Checked by reading the disassembly and by the
 usual tests (boot, the disk stress, profiling, a sleep and wake loop).
 The comments of patch 213 are also corrected (see its entry).
 
+Patch 215 (decided 2026-10-28; kind D) clears the eproc in fill_eproc
+before filling it, as FreeBSD 2.2.8's does (kern_proc.c:405). For a
+zombie or a process still being created the function set four fields of
+e_vm and left the rest, and sysctl_doproc passes it a stack variable that
+it then copies out whole; a zombie read through sysctl(KERN_PROC_ALL)
+returned two nonzero words of vm_pmap, stack residue, before, and none
+after (the three addresses happened to be zero both times). NetBSD 1.3's
+fill_eproc has no clear. The other callers (kern_sig.c, sys_process.c)
+fill the u-area's copy, which goes into core files; they overwrite every
+field the same way. Also checked, no change: pcb_inl of a new process is
+its parent's at the parent's last switch, normally zero, and the child
+leaves the kernel through the syscall exit, which sets the level itself.
+
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and

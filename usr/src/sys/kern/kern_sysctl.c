@@ -653,6 +653,16 @@ fill_eproc(p, ep)
 {
 	register struct tty *tp;
 
+	/*
+	 * AI-ONLY NOTE: the structure is cleared first, as FreeBSD 2.2.8's
+	 * fill_eproc (kern_proc.c:405) does. The zombie and idle branch
+	 * below sets only four of e_vm's fields, and sysctl_doproc hands
+	 * its caller a stack variable, so the rest of e_vm (the three
+	 * addresses and the pmap) went to user space as whatever the
+	 * stack held. NetBSD 1.3's fill_eproc has no such clear.
+	 */
+	bzero((caddr_t)ep, sizeof(*ep));
+
 	ep->e_paddr = p;
 	ep->e_sess = p->p_pgrp->pg_session;
 	ep->e_pcred = *p->p_cred;
