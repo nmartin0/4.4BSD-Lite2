@@ -407,13 +407,19 @@ it and an older line above disagree, this section is the later.
 
 ### Decisions still open
 
-1. **The VM.** (a) Lite2's Mach VM, continued to its plateau, with a
-   project-owned seam of about 30 names where the UVM-era machine layers
-   (amd64 and MP pmaps), pool(9), bus_dma and drivers meet it; or (b)
-   the Mach VM first, then UVM at the point OpenBSD switched (both
-   builds kept until the switch, as OpenBSD did 1999-12 to 2001-05).
-   FreeBSD's VM after 1995-07-13 is not a candidate. Nothing below that
-   touches the pmap, amd64, SMP or PAE starts before this is decided.
+1. **The VM.** The maintainer wants no translation layer and as few
+   shims as possible (2026-10-29). So: (a) Lite2's Mach VM, continued to
+   its plateau (NetBSD 1.3, OpenBSD to 2001-05, FreeBSD 2.0-2.1, and
+   Mach 3.0's symmetric copy-on-write and collapse work), with the amd64
+   and MP pmaps and PAE written for Lite2's pmap interface by us, and
+   each later machine-dependent file's VM calls written in Lite2's form
+   as it is taken; or (b) the Mach VM first, then UVM at the point
+   OpenBSD switched (both builds kept until the switch, as OpenBSD did
+   1999-12 to 2001-05). FreeBSD's VM after 1995-07-13 is not a
+   candidate. The costs of (a) are in `analysis-4.6-continuations.md`
+   section 11. Nothing below that touches the pmap, amd64, SMP or PAE
+   starts before this is decided. OSF MK 7.3 (the maintainer's
+   repository) is still to be read for it.
 2. **Four FreeBSD VM files with Net/2 versions** (`vm_page.c`,
    `vm_pageout.c`, `vnode_pager.c`, i386 `pmap.c`, inherited through
    FreeBSD 1.x): tainted under the 386BSD rule or not. Until ruled,

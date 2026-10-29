@@ -483,3 +483,119 @@ and its absence from 2.2.8; FreeBSD commit `24a1cce34fc1`; the SCCS
 versions of FreeBSD 2.0's and 2.1's, NetBSD 1.3's and OpenBSD 2001's VM
 files. The rest is from the six surveys, with their **UNVERIFIED**
 marks kept above.
+
+## 11. Keeping the 4.4 Mach VM: its flaws, the Mach lines, portability
+
+Added 2026-10-29, at the maintainer's question: how bad would it be to
+keep Lite2's Mach VM and add improvements until the donors plateau?
+The maintainer does not want a translation layer, and wants as few
+shims as possible.
+
+**Where 4.4's VM came from, and its two later Mach lines.** 4.4BSD took
+Mach's VM of about 1990 (the Mach 2.5 generation; Lite2's files carry
+CMU's 1987-91 notices). Mach went on in two lines. CMU's: Mach 3.0
+(MK83, 1993; read here from `donors/mach3`), Utah's Mach 4 (1993-96),
+and xMach (about 2000, Mach 4 with the Lites server; read here from
+github.com/neozeed/xMach, whose VM is Mach 4's). OSF's: OSF MK through
+7.3 (MkLinux DR3, 1998). OSF MK 7.3 is in the maintainer's repository
+github.com/nmartin0/osfmk7.3, which this workspace cannot read until the
+maintainer's GitHub account is linked; nothing is said of it here.
+Apple's later descendant (XNU) is under the APSL and is not a donor.
+
+| | Lite2 | Mach 3.0 (CMU) | Mach 4 / xMach (Utah) |
+|---|---|---|---|
+| VM lines (`vm/`) | 13,765 | 20,800 | 18,113 |
+| copy strategies (symmetric copy-on-write) | none | yes (1992, rpd from dlb) | yes |
+| `vm_map_copy` (for IPC) | 13 uses | 332 | 256 |
+| external memory-object interface | none | 137 uses | 82 |
+| shadow-chain bypass in collapse | yes (3 uses) | yes, switchable (7) | yes (6) |
+| clustered paging | yes (swap pager, 41 uses) | 1 use | 1 use |
+
+So the Mach lines continued the same VM, but most of their growth is the
+microkernel's: memory objects reached by ports, and map copies for
+message passing. Those are of no use in a monolithic kernel, which is
+why 4.4 left them out. What carries over is small and real: Mach 3.0's
+symmetric copy-on-write (which avoids most copy objects) and its
+tunable collapse and object-cache limits. Each would be adapted to
+Lite2's pager interface: a continuation, with the adaptation recorded.
+4.4 also has things the Mach lines do not, such as clustered swap
+paging.
+
+**The flaws of 4.4's VM, as measured.** Chuck Cranor's UVM paper (USENIX
+1999) measured NetBSD 1.3's VM -- Lite2's with fixes -- against UVM on
+the i386:
+
+- page faults: `ls /` 59 against 33, `cc` of hello-world 1,086 against
+  590, `man csh` 114 against 64;
+- map, fault and unmap one page: private file read 48 against 22
+  microseconds, zero-fill 60 against 48;
+- map entries: multi-user boot 400 against 242 (fragmentation from
+  wiring; the kernel's map-entry pool is fixed, and running out panics);
+- under memory pressure BSD VM became unresponsive where UVM slowed (by
+  user report);
+- structural: shadow chains keep unreachable pages until swap fills
+  ("swap memory leaks"), and collapse can repair them only after the
+  fact; at most 100 unreferenced objects are cached, whatever memory is
+  free; mapping a file allocates an object, a pager and a vnode pager;
+  page-in is one page at a time.
+
+Which of these can be fixed inside 4.4's design, by continuations:
+
+- **Fault-ahead** (UVM maps four pages ahead and three behind on each
+  fault, which accounts for most of the fault counts above): an
+  algorithm in `vm_fault`, addable to Lite2's.
+- **Clustered page-in, the object cache limit, collapse and bypass,
+  map-entry fragmentation from wiring:** FreeBSD 2.0-2.1 (before the
+  1995-07-13 overhaul) and Mach 3.0 worked on each within the old
+  design.
+- **Copy objects:** Mach 3.0's symmetric copy-on-write removes most of
+  them.
+- **Not fixable without a redesign:** the shadow-chain model itself, and
+  so its swap leaks and its cost on deep fork chains. That model is what
+  UVM (amaps and anons) and FreeBSD's 1995 overhaul (typed objects, no
+  copy objects) each replaced.
+
+These are performance and robustness costs under heavy fork, mmap and
+paging loads. None of them affects what POSIX requires.
+
+**Is UVM more portable than the Mach VM?** No. Both put everything
+machine-dependent behind the pmap interface, which Mach's VM was
+designed around (Rashid and others, 1987). UVM kept that interface and
+reused the BSD and Mach pmaps unchanged, and Cranor credits that reuse
+for its easy porting to Alpha, i386, m68k, MIPS, SPARC and VAX. UVM's
+pmap interface adds a few calls (`pmap_kenter_pa`, `pmap_kremove`,
+`pmap_growkernel`, `pmap_update`), which help MP and performance, not
+portability. For Lite2's ports, Mach-VM pmaps exist in NetBSD 1.3 and
+OpenBSD 1996-2001 for hp300, sparc, vax and pmax; UVM pmaps exist for
+the same ports from NetBSD 1.4. tahoe has neither.
+
+**What keeping the Mach VM costs, with no translation layer.**
+
+1. The fixes above are taken as continuations (FreeBSD 2.0-2.1, NetBSD
+   1.3, OpenBSD to 2001-05, Mach 3.0): bounded work, no shim.
+2. **The amd64 pmap, the MP pmap (TLB shootdown) and PAE are written for
+   Lite2's pmap interface by us**, following OpenBSD's and NetBSD's as
+   the reference. No donor's can be taken as it is, and without a
+   translation layer each UVM call in them is rewritten to its Mach
+   form (page-table pages from a kernel object, wired `pmap_enter` for
+   `pmap_kenter_pa`, `vm_map_find` for `uvm_map`). That is own writing,
+   kind C, about the size of one pmap per architecture.
+3. The same holds for each later machine-dependent file or driver taken
+   from OpenBSD that calls the VM: its few VM calls are written in Lite2's
+   form as it is taken (`bus_dma`'s allocation, `pool`'s page back end,
+   ACPI's mappings).
+4. After 2001 no donor fixes this VM; the project maintains it alone.
+
+**How bad, then.** For POSIX conformance, the i386 and the Lite2 ports:
+not bad. Every piece has a donor, and the VM is the most 4.4 it can be.
+The costs are (a) the measured performance gap under load, partly closed
+by the in-design fixes and never wholly; and (b) one pmap per new
+architecture written by us, plus the VM calls of each later
+machine-dependent file adapted as it comes in, with no upstream after
+2001. The alternative remains UVM where OpenBSD took it, which removes
+(b) and most of (a) at the cost of a redesigned `vm/`.
+
+Sources: Cranor and Parulkar, "The UVM Virtual Memory System", USENIX
+1999 (usenix.org/legacy/event/usenix99/full_papers/cranor); Rashid et
+al., "Machine-Independent Virtual Memory Management for Paged
+Uniprocessor and Multiprocessor Architectures", 1987 (not re-read).
