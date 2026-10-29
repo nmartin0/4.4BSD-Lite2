@@ -654,3 +654,104 @@ changes in its Lite-derived files (`vm_fault.c`, `vm_object.c`,
 3.2), then Mach 3.0's pieces adapted to Lite2's pager interface. Each
 Mach piece is taken from a sibling line, not a descendant of Lite2, so
 each is recorded as an adaptation (kind B or D, as `imports.md` sets).
+
+## 13. OSF MK's VM, and the parts of UVM that fit a Mach VM
+
+Added 2026-10-29, at the maintainer's request: read OSF MK's VM as
+MkLinux carried it, and find how much of UVM could fill the holes left
+in section 12 without taking UVM's redesign.
+
+**OSF MK, read.** Source: github.com/slp/osfmk-mklinux, "OSF Mach and
+MkLinux conservation project" (Sergio Lopez), whose first commit
+(`0f6f7e6`, 2011-01-04) is the MkLinux DR3 distribution as issued; later
+commits there are his own and were not used. Its `vm/` is 32,379 lines.
+Every file carries OSF's permissive notice ("Copyright 1991-1998 by Open
+Software Foundation, Inc. Permission to use, copy, modify, and
+distribute this software..."), with CMU's. The maintainer's own
+`osfmk7.3` repository still cannot be read from here; whether DR3's
+kernel is exactly OSF MK 7.3 was not checked against it.
+
+Counted with the same patterns as section 12 (uses in `vm/`):
+
+| | Lite2 | NetBSD 1.3 | OpenBSD 2001 | FreeBSD 2.1 | Mach 3.0 | Mach 4 | OSF MK |
+|---|---|---|---|---|---|---|---|
+| fault clustering, read-ahead | 0 | 0 | 0 | 3 | 0 | 0 | **63** |
+| pageout clustering | 4 | 4 | 4 | 1 | 0 | 0 | **30** |
+| swap existence maps (`vm_external`) | 0 | 0 | 0 | 0 | 71 | 61 | 110 |
+| delayed and symmetric copy | 0 | 0 | 0 | 0 | 10 | 9 | **43** |
+| collapse and bypass | 16 | 29 | 31 | 16 | 31 | 25 | 42 |
+| contiguous physical allocator | 4 | 5 | 12 | 9 | 10 | 7 | **91** (`cpm_allocate`) |
+| zones (map entries from a zone) | 0 | 0 | 0 | 0 | 38 | 37 | 24 (`vm_map_entry_zone`, `vm_map_kentry_zone`) |
+| page-shortage throttling, free reserve | 0 | 2 | 2 | 19 | 14 | 14 | **49** |
+| lock operations | 94 | 113 | 107 | 99 | 196 | 196 | **321** |
+
+OSF MK is the furthest the Mach VM itself went before Apple's line. What
+it adds, beyond Mach 3.0:
+
+- **fault clustering**: page-in of a cluster of pages around a fault,
+  sized per object (`cluster_size`);
+- **clustered pageout**;
+- **delayed copy**: copy-on-write deferred further than Mach 3.0's
+  symmetric strategy;
+- **a contiguous physical-memory allocator** (`cpm_allocate`);
+- **map entries from zones**, which removes the fixed kernel map-entry
+  pool;
+- **throttling** under page shortage;
+- **the most thorough VM locking of any line**, built for multiprocessors.
+
+As with Mach 3.0, much of the remainder is the microkernel's (memory
+objects reached through ports, map copies for messages); the items above
+are what a monolithic kernel can use, each adapted to Lite2's pager
+interface.
+
+**UVM, file by file.** NetBSD 1.4's `uvm/` is 19,693 lines of C. Counting
+each file's uses of the anonymous-memory redesign (`amap`, `anon`):
+
+- **The redesign itself**: `uvm_amap.c` (1,073 lines, 328 uses),
+  `uvm_anon.c` (363, 79) and most of `uvm_fault.c` (1,776, 215). These
+  replace shadow chains and are not separable from them.
+- **Partly tied to it**: `uvm_loan.c` (751, 89), `uvm_pdaemon.c` (1,111,
+  53), `uvm_map.c` (2,956, 75), `uvm_page.c` (1,162, 18), `uvm_pager.c`
+  (761, 11).
+- **Nearly free of it** (four uses or fewer): `uvm_vnode.c` (2,077, 0),
+  `uvm_swap.c` (1,968, 4), `uvm_aobj.c` (1,112, 4), `uvm_km.c` (1,070, 3),
+  `uvm_device.c` (522, 3), `uvm_pglist.c` (292, 1), and the files that
+  are Lite2's own under new names (`uvm_glue.c`, `uvm_unix.c`,
+  `uvm_user.c`, `uvm_io.c`, `uvm_meter.c`, `uvm_init.c`, `uvm_mmap.c`).
+
+So a little under three-fifths of UVM by lines does not depend on amaps
+and anons. But much of that is Lite2's own code renamed, and NetBSD
+1.3's swap and contiguous-allocation code that is already on the Mach
+VM. What UVM adds, as pieces a Mach VM could take:
+
+| Hole (section 12) | UVM piece | How it fits a Mach VM |
+|---|---|---|
+| Double caching of objects and vnodes; per-file pager structures | `uvm_vnode.c`: the VM object embedded in the vnode, no separate pager or hash (no amap use; it keeps Berkeley's 1991-93 and Utah's 1990 notices, being Lite2's vnode pager reworked) | the largest gain; a rework of Lite2's `vnode_pager.c` and the vnode's VM hook, adapted from `uvm_object` to `vm_object`. FreeBSD's overhaul made the same move (`v_object`) |
+| Fixed kernel map-entry pool | `uvm_mapent_alloc`: kernel map entries allocated as needed | small; OSF MK's zones do the same, and come first in the Mach line |
+| Map-entry fragmentation from wiring | wiring kept out of map entries where it need not be there (Cranor: four of five cases) | a technique in `vm_map`/`vslock`, our own writing following it |
+| Too many faults | per-entry advice tables, `madvise`-driven read-ahead and read-behind (`nback`, `nforw`) | an algorithm; FreeBSD 2.1 and OSF MK have their own forms, which come first |
+| Page-out efficiency | `uvm_pager.c` clustering of dirty pages for put | adaptable (11 amap uses); OSF MK's clustered pageout comes first |
+| Zero-copy loanout | `uvm_loan.c`: loaning object pages to the kernel uses only a per-page loan count | **partly**: loans from objects to the kernel can be adapted; loans into anonymous memory need anons |
+| The pmap interface the machine layers call | `pmap_kenter_pa`, `pmap_kremove`, `pmap_growkernel`, `pmap_update` | pmap-level, not VM-level: OpenBSD's 1999 `vm/pmap.h` already offered them beside Lite2's under `PMAP_NEW`. Adding them to Lite2's pmap interface removes part of the adaptation of every later OpenBSD machine file; it is the newer pmap interface, not a translation layer |
+| The shadow-chain model | amaps and anons | **not separable**: taking them is taking UVM |
+
+**What remains, after the BSDs, the Mach lines and UVM's separable
+pieces.** Only two holes stay open:
+
+1. **the shadow-chain model**, with its swap leaks reduced by collapse,
+   bypass, delayed copy and existence maps, but not ended; and
+2. **loans into anonymous memory**, which need anons.
+
+Two things stay our own writing: the machine-dependent pmaps (amd64,
+the TLB shootdown, PAE); and the adaptation of each piece taken from a
+sibling line to Lite2's pager interface. The pmap work is smaller if the
+pmap interface gains UVM's four additions.
+
+**Order of taking**, by the donor rule and this project's preference for
+the nearest line: the BSDs' Mach-VM work first (section 12); then OSF MK
+and Mach 3.0 for what the BSDs lack (fault and pageout clustering,
+delayed copy, zones and map-entry allocation, contiguous allocation,
+throttling, locking); then UVM's separable pieces where the Mach lines
+have none (the vnode-embedded object, loans to the kernel, the wiring
+technique, the pmap additions). Each is recorded as an adaptation from a
+sibling line.

@@ -506,13 +506,22 @@ Mach 3.0's own; `analysis-4.6-continuations.md` section 12)
    clustered page-in, collapse and dead-object fixes, hold/busy,
    valid/dirty bits, `vm_page_alloc_contig`, `pmap_growkernel`, page
    aging), Lite-derived files first, the rest subject to decision 2.
-3. Mach 3.0's pieces, adapted to Lite2's pagers: symmetric copy-on-write,
-   protections in `vm_map_enter`, zones, real VM locks.
+3. Mach 3.0's and OSF MK's pieces (OSF MK as MkLinux DR3 carried it,
+   github.com/slp/osfmk-mklinux), adapted to Lite2's pagers: symmetric
+   and delayed copy-on-write, protections in `vm_map_enter`, fault and
+   pageout clustering, zones and map entries from zones, the contiguous
+   allocator, throttling, real VM locks.
+3a. UVM's pieces that do not depend on amaps and anons, where the Mach
+   lines have none: the VM object embedded in the vnode (ends double
+   caching and the per-file pager structures), loans of object pages to
+   the kernel, the wiring technique, and the pmap additions
+   (`pmap_kenter_pa`, `pmap_kremove`, `pmap_growkernel`,
+   `pmap_update`). Section 13.
 4. Then decision 1: the amd64 pmap, TLB shootdown and PAE in the pmap
    (our own, for the Mach VM), or UVM.
-5. Remaining by design if the Mach VM is kept: shadow chains, per-file
-   pager structures, double caching, wiring fragmentation, no page
-   loanout.
+5. Remaining by design if the Mach VM is kept, after 3 and 3a: the
+   shadow-chain model (its swap leaks reduced, not ended) and loans into
+   anonymous memory.
 
 **Files** (plateau: OpenBSD 2014, selectively later)
 
