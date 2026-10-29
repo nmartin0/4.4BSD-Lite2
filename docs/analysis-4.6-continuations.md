@@ -599,3 +599,58 @@ Sources: Cranor and Parulkar, "The UVM Virtual Memory System", USENIX
 1999 (usenix.org/legacy/event/usenix99/full_papers/cranor); Rashid et
 al., "Machine-Independent Virtual Memory Management for Paged
 Uniprocessor and Multiprocessor Architectures", 1987 (not re-read).
+
+## 12. How far the 4.4 VM can be upgraded canonically, and what remains
+
+Added 2026-10-29, at the maintainer's question: apply the fixes the BSDs
+made to the Mach VM, then fill what is left from the Mach kernels' own
+VM. How much of 4.4's VM is upgraded so, and what holes remain?
+
+Read for it: Lite2's `vm/` (13,765 lines), NetBSD 1.3's (16,772),
+OpenBSD's of 2001-05 (17,890, the last before UVM became compulsory),
+FreeBSD 2.1's (16,729, the branch before the 1995-07-13 overhaul), CMU
+Mach 3.0's (20,800) and Utah Mach 4's as xMach carries it (18,113).
+OSF MK 7.3 could not be read (section 11). "Found" means the code is
+there; how well it works was not tested.
+
+| Weakness or need | BSD continuation (first) | Mach (then) | Remains |
+|---|---|---|---|
+| Too many page faults (no fault-ahead) | FreeBSD 2.1 `vm_fault_additional_pages`, in its Lite-derived `vm_fault.c`, plus a `pmap_prefault` call | -- | the pmap half written for Lite2's pmap |
+| Page-in one page at a time | FreeBSD 2.1 getpages clustering (16 uses against Lite2's 12) | -- | -- |
+| Copy objects in copy-on-write | -- | Mach 3.0 symmetric copy-on-write (1992), also in Mach 4 | adapted from Mach's memory-object attributes to Lite2's pagers |
+| Shadow chains: collapse and bypass | NetBSD 1.3 and OpenBSD 2001 (bypass 9-11 uses against Lite2's 3); FreeBSD 2.1 dead-object handling | Mach 3.0's switchable collapse and bypass | **the shadow-chain model itself**: its swap leaks are reduced, not ended |
+| Object cache fixed at 100 | tunable in FreeBSD 2.1 | Mach 3.0 `vm_object_cached_max` | the double caching of vnodes and objects, and their recycling conflict |
+| Mapping with a protection is two steps (a race) | -- | Mach 3.0 `vm_map_enter` takes current and maximum protection and inheritance | -- |
+| Physical memory in several segments | OpenBSD 2001 `vm_physseg` (Cranor, 1998) | -- | -- |
+| Contiguous memory for `bus_dma` | NetBSD 1.3 `vm_page_alloc_memory` | -- | -- |
+| Physical-address type for PAE | OpenBSD 2001 `paddr_t` (25 uses in its Mach VM) | -- | PAE in the pmap, written by us |
+| Swap added and removed at run time | NetBSD 1.3 `vm_swap.c` and `swapctl` (Matthew Green, 1995-97) | -- | -- |
+| Pageout aging | FreeBSD 2.1 `act_count` (53 uses) | Mach 3.0 (22) | FreeBSD's pageout file carries a Net/2 version (section 3.2) |
+| Kernel memory zones | -- | Mach 3.0 `kern/zalloc.c` | the `pool(9)` interface OpenBSD's code calls |
+| Multiprocessor VM locking | Lite2's locks are there but empty without MP | Mach 3.0's VM locks are real and ran on multiprocessors (Sequent, iPSC) | the pmap's TLB shootdown, written by us |
+| 64-bit | NetBSD 1.1-1.3 ran the Mach VM on the Alpha | Mach 3.0 has an Alpha port | an amd64 pmap, written by us |
+| Page loanout and transfer (zero-copy I/O) | none | Mach 3.0's map-copy page lists, built for message passing | **a hole**: no canonical source for a monolithic kernel |
+| Pager structures per mapped file (object, pager, vnode pager, hash) | none before FreeBSD's overhaul | Mach's memory objects are heavier still | **structural; remains** |
+| Map-entry fragmentation from wiring; the fixed kernel map-entry pool | not found in any donor before UVM | not found | **remains**; a bounded fix would be our own |
+| Unified buffer and page cache | none before FreeBSD's VMIO and NetBSD's UBC | none | **remains**; POSIX does not need it (section 5) |
+
+**The answer.** Of the weaknesses measured or listed against 4.4's VM,
+about two-thirds have a canonical filler: the BSDs' Mach-VM work (NetBSD
+1.3, OpenBSD to 2001, FreeBSD 2.0-2.1) and, after it, Mach 3.0's own
+(symmetric copy-on-write, protections in `vm_map_enter`, zones, real
+MP locks). Everything the targets *need* from the VM has a source,
+except the machine-dependent parts that were never written for this VM:
+the amd64 pmap, the TLB shootdown and PAE in the pmap. What remains
+are the parts of the design itself: the shadow-chain model (its swap
+leaks reduced, not ended), the per-file pager structures, the double
+caching of objects and vnodes, map-entry fragmentation from wiring, and
+zero-copy page loanout. Those are the parts that UVM and FreeBSD's
+overhaul replaced, and keeping them is the cost of keeping 4.4's design.
+
+**Order, if the Mach VM is chosen:** NetBSD 1.3's and OpenBSD's fixes
+first (they apply to Lite2's files most directly), then FreeBSD 2.1's
+changes in its Lite-derived files (`vm_fault.c`, `vm_object.c`,
+`vm_map.c`; the Net/2-headed files only after the ruling of section
+3.2), then Mach 3.0's pieces adapted to Lite2's pager interface. Each
+Mach piece is taken from a sibling line, not a descendant of Lite2, so
+each is recorded as an adaptation (kind B or D, as `imports.md` sets).

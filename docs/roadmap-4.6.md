@@ -496,15 +496,23 @@ AIO)
    (2009), lockmgr on rwlocks with its interface kept (2013).
 4. Not taken: witness, SMR, the MP network stack (other designs).
 
-**VM** (plateau: OpenBSD 2001-05, NetBSD 1.3, FreeBSD 1995-07-12)
+**VM** (plateau: OpenBSD 2001-05, NetBSD 1.3, FreeBSD 1995-07-12; then
+Mach 3.0's own; `analysis-4.6-continuations.md` section 12)
 
-1. NetBSD 1.3's and OpenBSD's fixes to Lite2's VM; Cranor's `vm_physseg`
-   (1998); `vm_page_alloc_memory` for bus_dma (NetBSD 1.3).
-2. FreeBSD 2.0-2.1's changes on the Lite design (collapse fixes,
-   hold/busy, valid/dirty bits, `vm_page_alloc_contig`,
-   `pmap_growkernel`), subject to decision 2.
-3. A `paddr_t` split for PAE and amd64.
-4. Then decision 1.
+1. NetBSD 1.3's and OpenBSD's fixes to Lite2's VM: collapse and bypass,
+   Cranor's `vm_physseg` (1998), `vm_page_alloc_memory` for bus_dma,
+   `swapctl` (NetBSD 1.3), `paddr_t` (OpenBSD's Mach VM).
+2. FreeBSD 2.0-2.1's changes on the Lite design (fault-ahead and
+   clustered page-in, collapse and dead-object fixes, hold/busy,
+   valid/dirty bits, `vm_page_alloc_contig`, `pmap_growkernel`, page
+   aging), Lite-derived files first, the rest subject to decision 2.
+3. Mach 3.0's pieces, adapted to Lite2's pagers: symmetric copy-on-write,
+   protections in `vm_map_enter`, zones, real VM locks.
+4. Then decision 1: the amd64 pmap, TLB shootdown and PAE in the pmap
+   (our own, for the Mach VM), or UVM.
+5. Remaining by design if the Mach VM is kept: shadow chains, per-file
+   pager structures, double caching, wiring fragmentation, no page
+   loanout.
 
 **Files** (plateau: OpenBSD 2014, selectively later)
 
