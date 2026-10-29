@@ -816,3 +816,82 @@ each later piece written in its style. For the easiest model to *teach*,
 UVM. The maintainer's rules (Lite2 first, few shims) and readability
 point the same way, provided the Mach and UVM pieces taken are kept
 short and in Lite2's idiom.
+
+## 15. Is there a permissive VM better than UVM to drop in?
+
+Added 2026-10-29, at the maintainer's question: are there VM systems,
+research ones included, permissively licensed and in C, that improve on
+UVM and could replace the VM in 4.6BSD?
+
+**No complete drop-in exists.** Every VM is bound to its kernel's
+process model, file system and buffer cache, pmap and locking, so none
+lifts out whole. What the research after UVM produced falls into three
+kinds.
+
+**1. Improvements built inside the BSD VMs (permissive, C, but tied to
+their host):**
+
+- **Superpages by reservation** (Navarro, Iyer, Druschel and Cox, Rice
+  University, OSDI 2002): physical memory reserved in large aligned
+  blocks so that a mapping can be promoted to a large page. It is in
+  FreeBSD as `vm_reserv.c` ("Copyright (c) 2002-2006 Rice University",
+  two-clause BSD), from FreeBSD 7, and written to FreeBSD's VM. It is
+  the most important VM performance idea since UVM, and its idea, not
+  its code, could be taken into 4.6BSD's pmap and physical allocator.
+- **UBC** (Chuck Silvers, NetBSD, 2000): the unified buffer and page
+  cache, built on UVM; not needed for POSIX (section 5).
+- **DragonFly's 2019 VM rework** (Matthew Dillon, three-clause BSD):
+  shadow chains replaced by `vm_map_backing` records hung from map
+  entries (`9de48ead48`, 2019-05-10, "Replace backing_object with
+  backing_ba"). It is the newest attempt at the problem UVM's amaps
+  solved, on FreeBSD 4's VM, DragonFly's tokens and its LWKT; not
+  separable from them.
+
+**2. Scalable address spaces for many processors (research):**
+
+- **RadixVM** (Clements, Kaashoek and Zeldovich, MIT, EuroSys 2013):
+  page mappings in a radix tree with per-core reference counting
+  (Refcache), so that `mmap`, `munmap` and page faults on different
+  parts of one address space do not contend. Implemented in sv6, an
+  experimental kernel grown from xv6 (github.com/aclements/sv6, tag
+  `eurosys2013`), in C++: about 4,060 lines (`kernel/vm.cc` 657,
+  `kernel/hwvm.cc` 623, `include/radix_array.hh` 1,382, Refcache 933,
+  the headers). **It is explicitly permissive**: sv6's `LICENSE` is the
+  MIT licence (Copyright 2011-2013 Clements, Boyd-Wickizer, Zeldovich,
+  Kaashoek, MIT; xv6's 2006-2011 notice beside it); the files carry no
+  notice of their own. It is the only research VM found that is both
+  permissive and an improvement on UVM's design for many processors.
+  It is not a drop-in: it is C++ with heavy templates, written for
+  sv6's own kernel (no swap, no file-backed paging of the BSD kind,
+  sv6's RCU and per-core allocators), and 4.6BSD is C17. Its design --
+  a radix tree of per-page mapping metadata, Refcache's per-core
+  reference counts, TLB shootdown only to cores that touched the page
+  -- could be written in C for whichever VM 4.6BSD keeps, if the VM is
+  ever made fine-grained for many processors; that is own writing
+  following it, kind C.
+- **Bonsai** (the same group, ASPLOS 2012): RCU-balanced trees for the
+  address space; implemented in Linux, so under the GPL. Reference
+  only.
+
+**3. VMs of non-Unix research kernels:** Barrelfish (ETH Zurich, MIT
+licence, C; user-level paging over capabilities), seL4 (capabilities;
+the kernel enforces, user servers decide), the exokernel's library
+operating systems, Nemesis's self-paging. Each assumes a different
+kernel structure; none fits a Unix kernel.
+
+**Other permissive VMs that are not drop-ins either:** Minix 3's VM
+server (three-clause BSD, C, about 11,600 lines; clear region and
+memory-type design, but a user-space server of a microkernel, with no
+paging to disk); Plan 9's (MIT since 2021, C, simple segments, but no
+`mmap`); Sprite's (Berkeley, 1985-92; only 4 of its 20 VM files carry a
+permission grant, the core files read "All rights reserved", so its
+licence is not clear); NewOS's (MIT, C, the ancestor of Haiku's, which
+is now C++). Excluded by licence or language: illumos and Solaris (CDDL),
+Linux (GPL), XNU (APSL), Haiku and Zircon (C++).
+
+**So**, for 4.6BSD the choices remain the ones already recorded:
+Lite2's Mach VM with its continuations (sections 12-14), or UVM. The
+research gives ideas to take into whichever is kept -- superpage
+reservations above all, and RadixVM's structure as the reference if the
+VM is ever made fine-grained for many processors -- each written in the
+kept VM's own form.
