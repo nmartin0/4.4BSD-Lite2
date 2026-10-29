@@ -802,13 +802,9 @@ Makefiles do not know.
   checks no status bits; luna68k and news3400 have no hooks, and share
   hp300's and pmax's frames; sparc's `files.sparc` names
   `sparc/sparc/sys_process.c`, which the Lite cut removed.
-- **The FPU registers are not given out.** `PT_GETFPREGS` and
-  /proc's fpregs answer `EOPNOTSUPP`. Patch 219 made `npx` save the
-  FPU at context switch (below), so a stopped process's state is now
-  always in its pcb; the hooks are FreeBSD 2.1.0's `procfs_read_fpregs`
-  and `procfs_write_fpregs`, with NetBSD 1.1's and OpenBSD's flush of a
-  live FPU first -- done with the save area's size, where theirs
-  copies `sizeof` a pointer. `struct fpreg` is already FreeBSD 2.1.0's.
+- ~~**The FPU registers are not given out.**~~ **FIXED** (patch 220).
+  `PT_GETFPREGS`, `PT_SETFPREGS` and /proc's fpregs give out the save
+  area, FreeBSD 2.1.0's hooks with NetBSD 1.1's flush of a live FPU.
 - ~~**Lite2's `npx.c` did not save the FPU at context switch**~~
   **FIXED** (patch 219). `locore.s` called an `npxsave` under an
   option nothing defined and there was no such function, and EM was

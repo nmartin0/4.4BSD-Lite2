@@ -61,9 +61,10 @@
  *    a new %cs must be a user selector, as OpenBSD's check has it;
  *  - procfs_sstep takes Lite2's second argument, and clears the trace
  *    bit when asked to, as hp300's and pmax's are called to;
- *  - procfs_read_fpregs and procfs_write_fpregs answer EOPNOTSUPP, as
- *    hp300's and pmax's do, until the FPU's state can be saved on
- *    demand (docs/deferred.md).
+ *  - procfs_read_fpregs and procfs_write_fpregs are FreeBSD 2.1.0's
+ *    copy of the save area, with NetBSD 1.1's flush of a live FPU
+ *    first; they answer EOPNOTSUPP without an npx device, as hp300's
+ *    and pmax's do (patch 220; npx saves at a switch since 219).
  */
 
 /*
@@ -90,6 +91,7 @@
  *	Cleanup process state after executing a single-step instruction.
  */
 
+#include "npx.h"			/* for NNPX */
 #include <sys/param.h>
 #include <sys/systm.h>
 #include <sys/time.h>
@@ -178,16 +180,54 @@ procfs_read_fpregs(p, fpregs)
 	struct proc *p;
 	struct fpreg *fpregs;
 {
+#if NNPX > 0
+	extern struct proc *npxproc;
+	extern void npxsave();
 
+	if ((p->p_flag & P_INMEM) == 0)
+		return (EIO);
+	/*
+	 * AI-ONLY NOTE: FreeBSD 2.1.0's procfs_read_fpregs copies the
+	 * save area; NetBSD 1.1's process_read_fpregs first saves a live
+	 * FPU into it. npxsave leaves the chip free at every switch, so a
+	 * stopped process is never the owner; the test is for the process
+	 * that reads its own /proc/N/fpregs. FreeBSD copies sizeof *fpregs,
+	 * 176 bytes, of a save area that is 124 here: fnsave writes 108,
+	 * which are fpr_env and fpr_acc, so those are copied and the rest
+	 * given out as zero.
+	 */
+	if (p == npxproc)
+		npxsave(&p->p_addr->u_pcb.pcb_savefpu);
+	bzero((caddr_t)fpregs, sizeof *fpregs);
+	bcopy((caddr_t)&p->p_addr->u_pcb.pcb_savefpu, (caddr_t)fpregs, 108);
+	return (0);
+#else
 	return (EOPNOTSUPP);
+#endif
 }
 
 procfs_write_fpregs(p, fpregs)
 	struct proc *p;
 	struct fpreg *fpregs;
 {
+#if NNPX > 0
+	extern struct proc *npxproc;
+	extern void npxsave();
 
+	if ((p->p_flag & P_INMEM) == 0)
+		return (EIO);
+	/*
+	 * A live owner's registers are saved first and so discarded by what
+	 * follows; npxsave sets EM, and the next FPU instruction reloads
+	 * the new state through npxdna.
+	 */
+	if (p == npxproc)
+		npxsave(&p->p_addr->u_pcb.pcb_savefpu);
+	bcopy((caddr_t)fpregs, (caddr_t)&p->p_addr->u_pcb.pcb_savefpu, 108);
+	return (0);
+#else
 	return (EOPNOTSUPP);
+#endif
 }
 
 procfs_sstep(p, sstep)

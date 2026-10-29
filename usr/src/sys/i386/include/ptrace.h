@@ -43,8 +43,7 @@
  * numbers; these lines are FreeBSD 2.2's, whose kern/sys_process.c
  * handles them through procfs_doregs and procfs_dofpregs. Berkeley's
  * line here read `None for the i386 at this time.' The floating-point
- * pair answers EOPNOTSUPP until the FPU's state can be saved on demand
- * (docs/deferred.md).
+ * pair gives out the save area (patch 220).
  */
 #define PT_GETREGS      (PT_FIRSTMACH + 1)
 #define PT_SETREGS      (PT_FIRSTMACH + 2)

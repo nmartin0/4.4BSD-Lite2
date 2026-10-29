@@ -144,8 +144,8 @@ status.md: ~~a statistics clock~~ (FreeBSD's, on IRQ 8; decided
 2026-10-25, Wollman's of 1994; **done**, patch 208); ~~`CLKF_INTR`~~
 (decided 2026-10-26: Bruce Evans's FreeBSD count of nested interrupts,
 December 1994, for OpenBSD's 1997 selector test, which miscounts after
-a switch from the AST path; **done**, patch 209); the FPU registers for ptrace, once npx saves on
-demand; dial-out devices for the serial ports; vmstat's `??0` drive
+a switch from the AST path; **done**, patch 209); the FPU registers for ptrace (**done**, patches 219
+and 220); dial-out devices for the serial ports; vmstat's `??0` drive
 names; fd's debugging printf; the kernel linked without a linker
 script; the kernel's warnings, not yet audited. The `vinvalbuf`
 panic is understood and left (Tier 1, item 4).
@@ -378,7 +378,7 @@ on Lite2's procfs hooks, with its manual page (`a56c2f9b`).
    hooks are Pendry's own, for both of this port's frame kinds, and
    the register requests are the PT_GETREGS family all three
    descendants define (`a56c2f9b`); its manual page is FreeBSD 2.2's.
-   `GENERIC.i386` has `PROCFS` (`a1b09daf`). The FPU registers wait
+   `GENERIC.i386` has `PROCFS` (`a1b09daf`). The FPU registers came with patch 220
    (deferred.md). Found and closed with it: a process could raise its
    IOPL through sigreturn (`f19baeb2`) and use most I/O ports outright
    (`579fed2d`).

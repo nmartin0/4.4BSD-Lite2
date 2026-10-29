@@ -783,9 +783,29 @@ return to bcopy's result whenever the parent owned the FPU; FreeBSD
 panics. Tested: four processes each adding to a double now get the
 right sums (all four wrong before); a control word set before fork
 reaches the child, and the child's change does not reach the parent
-(120 wrong before); exec resets it to 0x262; exits while owning the FPU
-and disk stress are clean. Not tested: a pending FP exception at a
-switch, and SIGFPE, which QEMU does not deliver here on either kernel.
+(120 wrong before); a zero divide with the exception unmasked delivers
+SIGFPE to a forked child (20 of 20); exits while owning the FPU and
+disk stress are clean. Not tested: a pending FP exception at the
+instant of a switch. A process starts with the 8087's 0x37f, all
+exceptions masked, not 0x262: Lite2's npxinit ignores its argument
+unless INTEL_COMPAT is defined, and that is unchanged. (The first text
+of this paragraph said exec resets the word to 0x262 and that QEMU does
+not deliver SIGFPE; both came from a faulty test and are corrected by
+patch 220.)
+
+Patch 220 (decided 2026-10-29; kind A) gives the FPU registers to ptrace
+and /proc/N/fpregs. Donors checked, in order: FreeBSD 2.0.5, 2.1.0 and
+2.2.8 (all copy the save area); NetBSD 1.0 (none), 1.1 to 1.5
+(process_read_fpregs, which saves a live FPU first); OpenBSD, whose
+current tree has them but whose period versions were not dated.
+procfs_read_fpregs and procfs_write_fpregs are FreeBSD 2.1.0's, with
+NetBSD's flush of a live FPU (only the process reading its own /proc
+entry can be the owner now). One difference: FreeBSD copies
+sizeof *fpregs, 176 bytes, from a save area that is 124 here; fnsave
+writes 108, which are fpr_env and fpr_acc, so those are copied and the
+rest given out as zero. Tested: a traced child's two FPU stack values
+read back through PT_GETFPREGS, a changed top register set with
+PT_SETFPREGS reaches the child when it continues.
 
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
 2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
