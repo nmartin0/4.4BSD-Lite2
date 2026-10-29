@@ -755,3 +755,64 @@ throttling, locking); then UVM's separable pieces where the Mach lines
 have none (the vnode-embedded object, loans to the kernel, the wiring
 technique, the pmap additions). Each is recorded as an adaptation from a
 sibling line.
+
+## 14. Which permissive VM is the most readable
+
+Added 2026-10-29, at the maintainer's question: which of the permissive
+VM systems would give the most readable codebase, easiest to understand?
+
+Measured over each `vm/` or `uvm/` directory (`.c` and `.h`): lines;
+code lines; the share of lines that are comments; the number of
+functions; their mean and longest length; how many run past 150 lines;
+`#if` lines, `goto`s and lock calls per thousand code lines. Mach 3.0's
+comment share is inflated by its RCS history logs.
+
+| VM | lines | code | comments | functions | mean | longest | over 150 | `#if`/k | `goto`/k | locks/k |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Lite2 | 13,797 | 7,350 | 37% | 183 | 41 | 274 | 7 | 25.0 | 4.4 | 49 |
+| NetBSD 1.3 | 16,806 | 9,127 | 35% | 219 | 43 | 306 | 9 | 29.6 | 7.0 | 47 |
+| OpenBSD 2001 (Mach VM) | 17,924 | 9,770 | 35% | 221 | 45 | 306 | 11 | 34.6 | 6.0 | 44 |
+| FreeBSD 2.1 | 16,762 | 9,411 | 33% | 238 | 40 | 337 | 12 | 10.8 | 4.9 | 43 |
+| FreeBSD 4.0 | 19,459 | 10,720 | 33% | 250 | 45 | 686 | 17 | 12.9 | 4.2 | 17 |
+| Mach 3.0 | 20,821 | 9,082 | 44% | 182 | 66 | 885 | 22 | 10.5 | 7.2 | 72 |
+| Mach 4 | 18,134 | 9,119 | 35% | 181 | 67 | 896 | 22 | 11.4 | 7.1 | 72 |
+| OSF MK | 32,405 | 16,319 | 38% | 272 | 72 | 1,569 | 35 | 16.7 | 5.5 | 64 |
+| UVM, NetBSD 1.4 | 23,216 | 10,914 | 39% | 206 | 68 | 1,123 | 23 | 21.0 | 6.2 | 50 |
+| UVM, OpenBSD 2014 | 27,924 | 14,941 | 34% | 397 | 43 | 893 | 16 | 19.1 | 7.2 | 19 |
+
+**As code, Lite2's Mach VM is the most readable:** the smallest (7,350
+code lines), the shortest functions (mean 41, longest 274), the fewest
+`goto`s. With the BSDs' fixes (NetBSD 1.3, OpenBSD 2001) it grows by a
+quarter and stays the smallest of all. Its `#if` density is the highest
+(debugging and options), which the C17 sweep and option removal would
+lower. It has a textbook: chapter 5 of McKusick, Bostic, Karels and
+Quarterman, *The Design and Implementation of the 4.4BSD Operating
+System* (1996).
+
+**As concepts, it is the hardest.** Shadow chains, copy objects, the
+collapse and bypass rules, and the separate pager structures are what
+readers find difficult, and what Cranor called poorly documented in the
+code. That is the cost of keeping it, alongside section 11's.
+
+**UVM is the best documented and the clearest model**: anonymous memory
+in one layer (amaps and anons), backing objects in another, described
+at length in Cranor's dissertation (Washington University, 1998) and
+the USENIX paper. Its code is longer, and NetBSD 1.4's `uvm_fault` is a
+1,123-line function; OpenBSD's later UVM breaks much of it into shorter
+functions (397 functions, mean 43) but has grown to almost twice
+Lite2's code.
+
+**FreeBSD 2.1** is close to Lite2 in readability, and its `#if` density
+is the lowest; by 4.0 its longest function has doubled.
+
+**The Mach lines are the least readable** for a monolithic kernel: long
+functions (Mach 3.0's longest 885 lines; OSF MK's 1,569), the most lock
+calls, and microkernel concepts throughout. Each piece taken from them
+(section 13) should be shrink-wrapped to its Lite2 form and not taken
+in their style.
+
+So: for the most readable *code*, Lite2's Mach VM with the BSDs' fixes,
+each later piece written in its style. For the easiest model to *teach*,
+UVM. The maintainer's rules (Lite2 first, few shims) and readability
+point the same way, provided the Mach and UVM pieces taken are kept
+short and in Lite2's idiom.
