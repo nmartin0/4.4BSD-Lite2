@@ -733,6 +733,42 @@ Makefiles do not know.
 
 ## 5. Known defects carried knowingly
 
+### A bad address in a socket or pipe read does not return -- found 2026-10-30
+
+`soreceive` (kern/uipc_socket.c) consumes the mbuf that `uiomove`
+failed to copy, then goes back to `restart` and sleeps for more data
+because nothing was received. A `read` on a pipe or socket into any bad
+address -- unmapped, or a kernel address now that `copyout` refuses
+them -- sleeps until a signal arrives instead of returning EFAULT.
+Every other file type returns at once. Found by build/test/copyio.sh,
+which reads files for the refused copyouts for that reason. The fix is
+in soreceive's `restart` condition (an error should leave); the donors
+are to be measured when it is taken up. Lite2's own code, unchanged.
+
+### The user segment is longer than user space -- found 2026-10-30
+
+The user data segment (`ldt_segs[LUDATA_SEL]`, machdep.c:1102) is set
+up with `ssd_limit = btoc(UPT_MIN_ADDRESS)`, a limit counted in pages
+and inclusive: its last reachable byte is 0xEFC00FFF, one page above
+UPT_MIN_ADDRESS (0xEFC00000), not 0xEFBFFFFF. User space ends at
+USRSTACK, 0xEFBFE000. Between the two lie the two pages of `struct
+user` and kernel stack (USRSTACK to 0xEFC00000) and then the first
+page of the page-table window, `PTmap` (0xEFC00000 to 0xEFC00FFF), the
+process's own page-table entries. (Reviewer's reading of the code; the
+inclusive limit is derived from the descriptor encoding, not measured
+on a running kernel.)
+
+`fuword`, `suword`, `fubyte`, `subyte`, `fusword`, `susword` and so
+`copyinstr` and `copyoutstr` go through that segment, so they reach
+those pages, for the calling process only; `copyin` and `copyout`
+stop at USRSTACK (provenance/copyout.md). The stores are called with
+kernel-derived addresses, so the exposure is a read of the process's
+own stack-adjacent pages and page-table entries. NetBSD 1.0 ends the
+segment at VM_MAXUSER_ADDRESS. Shortening it here needs the signal
+trampoline and `ps_strings` checked first, since they live in the top
+page.
+
+
 - ~~**`make build` deletes three files the tree ships**~~ **FIXED**
   (patch 163): contrib/nvi.1.43/USD.doc/vi.ref's paper.ps and
   vi.ref.txt, Berkeley's, made from its sources and shipped made, and

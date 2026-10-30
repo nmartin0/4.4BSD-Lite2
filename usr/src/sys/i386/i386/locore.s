@@ -1088,8 +1088,9 @@ cpyflt:
  * enabled. This restores Berkeley's fix in the form its descendants
  * gave it.
  *
- * The form is NetBSD 1.0's locore.s and FreeBSD 2.0.5's support.s,
- * which agree: walk each page of the destination, and where the PTE
+ * The form of the walk is NetBSD 1.0's locore.s and FreeBSD 2.0.5's
+ * support.s, which agreed when patch 145 was made (FreeBSD's was not
+ * looked at again for patch 243): walk each page of the destination, and where the PTE
  * is not valid, user and writable, call trapwrite() to fault it in by
  * hand. Both reached it by finishing 386BSD 0.1's own version, which
  * sat disabled under `#ifdef notdef' in the block above this one and
@@ -1097,80 +1098,138 @@ cpyflt:
  * thing is gated twice over: #if I386_CPU compiles it out of a kernel
  * that does not want 386 support at all, and the cpu_class test skips
  * it at run time on anything newer, so a 486 pays one compare.
+ *
+ * What this routine did not do until 2026-10-30, and now does. It
+ * never checked that the destination was in user space, so a program
+ * could pass read() a kernel address and overwrite the kernel; copyin
+ * had the same gap for reading it. Both now refuse a range that wraps
+ * or ends above USRSTACK, as Berkeley's C copyout did (it tested
+ * USRSTACK) and NetBSD 1.0's assembly does (it tests the end of the
+ * range against VM_MAXUSER_ADDRESS, which on this port is a page
+ * below USRSTACK, where execve builds its arguments -- a first form
+ * that used it refused every exec). And the 386 path had three
+ * faults of its own: it continued the page walk from trapwrite's
+ * return value in %eax instead of the address, it jumped to the
+ * handler with two extra words on the stack, and it read the page
+ * table entry of a page whose page table did not exist yet, which
+ * faults and fails. Where each part comes from: the routine's
+ * structure is NetBSD 1.0's (prologue, bound, page count, walk,
+ * epilogues); the constant USRSTACK and the page-directory-first order
+ * are Berkeley's C copyout's; the bound in copyin, and the page
+ * directory test written in assembly, are new here. A zero length
+ * returns 0 at once (NetBSD's), where Berkeley's C copyout returned
+ * EFAULT for a kernel address.
+ * docs/provenance/copyout.md has the measurements; build/test/copyio.sh
+ * is the test.
  */
 	.globl	_C_LABEL(copyout)
 	ALIGN32
 _C_LABEL(copyout):
 	movl	_C_LABEL(curpcb),%eax
-	movl	$cpyflt,PCB_ONFAULT(%eax) # in case we page/protection violate
+	movl	$copyout_fault,PCB_ONFAULT(%eax) # in case we page/protection violate
 	pushl	%esi
 	pushl	%edi
-	movl	12(%esp),%esi
-	movl	16(%esp),%edi
-	movl	20(%esp),%ecx
+	pushl	%ebx
+	movl	16(%esp),%esi
+	movl	20(%esp),%edi
+	movl	24(%esp),%ebx
+	testl	%ebx,%ebx		# anything to do?
+	jz	done_copyout
+
+	/*
+	 * The end of the destination must not be past the end of user
+	 * space, and the sum must not wrap.  Within user space the 486
+	 * refuses a write to a read-only page by itself; the 386 does not.
+	 */
+	movl	%edi,%eax
+	addl	%ebx,%eax
+	jc	copyout_fault
+	cmpl	$USRSTACK,%eax
+	ja	copyout_fault
 
 #if defined(I386_CPU)
+	/*
+	 * AI-ONLY NOTE: FORCE_386_COPYOUT is a test knob, not an option of
+	 * the system.  With it defined the walk below runs on every CPU,
+	 * so build/test/copyio386.sh can exercise it on a CPU model that
+	 * has write protection.  No configuration sets it.
+	 */
+#ifndef FORCE_386_COPYOUT
 	cmpl	$CPUCLASS_386,_C_LABEL(cpu_class)
-	jne	2f
+	jne	3f
+#endif
 
 	/*
 	 * The 386 will not fault on a kernel write to a read-only user
 	 * page, so check each page of the destination by hand and fault
-	 * in any that is not already valid, user and writable.
+	 * in any that is not already valid, user and writable. A page
+	 * whose page table is not there yet is faulted in too, without
+	 * reading its PTE: that read would itself fault, and fail, since
+	 * the page-table window is not a user mapping. Berkeley's C
+	 * copyout tested the page directory entry first for the same
+	 * reason.
 	 */
+	movl	%edi,%ecx		# number of pages less one
+	andl	$PGOFSET,%ecx
+	addl	%ebx,%ecx
+	decl	%ecx
+	shrl	$PGSHIFT,%ecx
+
+	movl	%edi,%edx		# page number of the first
+	shrl	$PGSHIFT,%edx
+
+1:	movl	%edx,%eax
+	shrl	$10,%eax		# its slot in the page directory
+	testb	$1,_C_LABEL(PTD)(,%eax,4) # is its page table there?
+	jz	4f			# no: trapwrite makes it, and the page
+	movb	_C_LABEL(PTmap)(,%edx,4),%al
+	andb	$0x07,%al		# valid, user and writable?
+	cmpb	$0x07,%al
+	je	2f
+
+4:	pushl	%edx
 	pushl	%ecx
-	pushl	%edi
-	movl	%edi,%edx
-	addl	%ecx,%edx
-	decl	%edx
-	shrl	$IDXSHIFT,%edx
-	andb	$0xfc,%dl
-	movl	%edi,%eax
-	shrl	$IDXSHIFT,%eax
-	andb	$0xfc,%al
-	subl	%eax,%edx
-	shrl	$2,%edx
-	incl	%edx			# %edx = number of pages
-	movl	%edi,%eax
-
-1:	movl	%eax,%ecx
-	shrl	$IDXSHIFT,%ecx
-	andb	$0xfc,%cl
-	movl	_C_LABEL(PTmap)(%ecx),%ecx
-	andb	$0x07,%cl
-	cmpb	$0x07,%cl		# valid, user and writable?
-	je	3f
-
+	shll	$PGSHIFT,%edx
 	pushl	%edx
-	pushl	%eax
 	call	_C_LABEL(trapwrite)	# trapwrite(addr)
+	addl	$4,%esp
 	popl	%ecx
 	popl	%edx
-	testl	%eax,%eax
-	jnz	cpyflt
+	testl	%eax,%eax		# not ok: EFAULT
+	jnz	copyout_fault
 
-3:	addl	$NBPG,%eax
-	decl	%edx
-	jnz	1b
-
-	popl	%edi
-	popl	%ecx
-
-2:
+2:	incl	%edx
+	decl	%ecx
+	jns	1b			# the next page
 #endif /* I386_CPU */
+
+3:	cld
+	movl	%ebx,%ecx
 	shrl	$2,%ecx
-	cld
 	rep
 	movsl
-	movl	20(%esp),%ecx
-	andl	$3,%ecx
+	movb	%bl,%cl
+	andb	$3,%cl
 	rep
 	movsb
+
+done_copyout:
+	popl	%ebx
 	popl	%edi
 	popl	%esi
 	xorl	%eax,%eax
 	movl	_C_LABEL(curpcb),%edx
 	movl	%eax,PCB_ONFAULT(%edx)
+	ret
+
+	ALIGN32
+copyout_fault:
+	popl	%ebx
+	popl	%edi
+	popl	%esi
+	movl	_C_LABEL(curpcb),%edx
+	movl	$0,PCB_ONFAULT(%edx)
+	movl	$ EFAULT,%eax
 	ret
 
 	.globl	_C_LABEL(copyin)
@@ -1183,6 +1242,16 @@ _C_LABEL(copyin):
 	movl	12(%esp),%esi
 	movl	16(%esp),%edi
 	movl	20(%esp),%ecx
+	testl	%ecx,%ecx		# anything to do?
+	jz	done_copyin
+
+	/* the end of the source must not be past the end of user space */
+	movl	%esi,%eax
+	addl	%ecx,%eax
+	jc	cpyflt
+	cmpl	$USRSTACK,%eax
+	ja	cpyflt
+
 	shrl	$2,%ecx
 	cld
 	rep
@@ -1191,6 +1260,7 @@ _C_LABEL(copyin):
 	andl	$3,%ecx
 	rep
 	movsb
+done_copyin:
 	popl	%edi
 	popl	%esi
 	xorl	%eax,%eax

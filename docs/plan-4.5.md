@@ -92,9 +92,10 @@ Each defect is fixed by the first fit for its hole. The candidates are
 listed in the order they are measured. The sweep's numbers are patch
 numbers.
 
-1. **`copyout` has no user-address check, and the 386 path has two
-   bugs** (#126, #145). This comes first: a program can write kernel
-   memory through `read()`.
+1. **`copyout` has no user-address check, and its 386 path has faults**
+   (#126, #145): patch 243 (`provenance/copyout.md`; sealed only when
+   the commit says so). `copyin` too. This comes first: a program can
+   write kernel memory through `read()`.
    - The Lite2-first candidate is Lite2's own C `copyout` with its
      `USRSTACK` check and its 386 `user_write_fault`. Patch 126
      deleted it, and why is to be read in that commit.

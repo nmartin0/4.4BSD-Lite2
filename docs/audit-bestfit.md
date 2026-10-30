@@ -79,7 +79,7 @@ and 8 other.
 These are bugs in the current tree that a better or more complete fit
 would have avoided. In order of severity:
 
-1. **`copyout` does not check that its destination is in user space**
+1. **`copyout` does not check that its destination is in user space** (fixed, patch 243; `provenance/copyout.md`)
    (#126, #145; checked). Lite2's C `copyout` refused addresses at or
    above `USRSTACK`. Patch 126 deleted it in favour of the assembly one,
    which never had the check; `locore.s` has no `VM_MAXUSER_ADDRESS`

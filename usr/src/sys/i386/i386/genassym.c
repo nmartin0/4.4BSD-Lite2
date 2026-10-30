@@ -135,6 +135,19 @@ ASSYM(UPAGES, UPAGES);
 ASSYM(HIGHPAGES, HIGHPAGES);
 ASSYM(CLSIZE, CLSIZE);
 ASSYM(NBPG, NBPG);
+/*
+ * AI-ONLY NOTE: USRSTACK, PGSHIFT and PGOFSET, for the bound and the
+ * page arithmetic in locore.s's copyin and copyout. USRSTACK is the
+ * top of user space and not VM_MAXUSER_ADDRESS, which is a page
+ * lower: execve builds the arguments and ps_strings in that page,
+ * and a first form of the bound that used VM_MAXUSER_ADDRESS, as
+ * NetBSD 1.0's locore.s does, refused them -- `exec /sbin/init: error
+ * 13' for every program (QEMU, 2026-10-30). Berkeley's C copyout in
+ * trap.c, in Lite2, tests against USRSTACK.
+ */
+ASSYM(USRSTACK, USRSTACK);
+ASSYM(PGSHIFT, PGSHIFT);
+ASSYM(PGOFSET, PGOFSET);
 ASSYM(UPTDI, UPTDI);
 ASSYM(PTDPTDI, PTDPTDI);
 ASSYM(KPTDI_FIRST, KPTDI_FIRST);

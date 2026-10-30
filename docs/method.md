@@ -379,6 +379,45 @@ overflow concrete rather than theoretical.
 
 ---
 
+## Assurance: the rules of 2026-10-30
+
+Three hard rules from the maintainer, with the reasons they exist.
+
+**1. Double-check before reporting.** Before a result goes to the
+maintainer, the work is checked again: the diff re-read as the final
+tree has it, the tests re-run on that tree (not on an earlier build of
+it), the apply script run against a copy of the repository, and every
+number in the message traced to a command that was run. A comment
+changed after a test is a changed tree; it is tested again. The first
+form of the copyout fix passed its own tests and broke every exec; the
+second tests caught it, which is the reason for the rule.
+
+**2. New code is tested, then independently reviewed, then approved.**
+Every piece of code imported, adapted or written is tested to show
+that it keeps the behaviour it came to give (the original, or the
+intended one), and the test is shown able to fail: it is run on the
+code without the change, and on a deliberately broken variant when
+the change cannot be undone. A reviewer that has not seen the
+conclusions, given the diff and the test evidence, then reads it
+against these rules and the code. The commit message says what was
+tested, what the reviewer found and what it did about it. A seal of
+approval is given when the tests pass and the review has no open
+finding; what could not be tested (a CPU, a device) is named as not
+established, not passed over.
+
+**3. Prove it is the best choice and right, before handing it over.**
+Added by the maintainer on 2026-10-30, after the other two. What goes
+to the maintainer carries its proof: the alternatives that were
+measured or weighed and why the one taken beats them under the rule in
+force (4.5BSD: first canonical fit; 4.6BSD: best canonical fit), and
+the evidence that it is right (the commands and their output, the
+mutation runs, the reviewer's findings and what became of each). A
+choice with no alternative weighed is not yet proved. The first run of
+this rule found that a "forced 386" test kernel was identical to the
+normal one, because config drops a malformed option line without a
+word; the PASS it printed proved nothing, and the script now checks
+that the option reached the Makefile.
+
 ## 5. Delivery
 
 `AGENTS.md` has the procedure. Two things it does not warn about, both
