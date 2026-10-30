@@ -1244,6 +1244,11 @@ contribution), atapi.c and wcd.c carry Cronyx's permission notice,
 and the slice files are Bruce Evans's, with the Regents' on the parts
 taken from Berkeley's disk code.
 
+Lineage, measured 2026-10-30 (`provenance/disk-wd.md`): of the Net/2-era
+lines Berkeley changed before Lite2, none survives in these files but
+the copyright notices; 7% of wd.c is from 386BSD 0.1, about 80% is
+FreeBSD's own; atapi.c and wcd.c share nothing with 386BSD's wd.c.
+
 Not changed, and measured: with no drive present, wd.c's probe waits
 out a ten-second timeout -- once for each absent drive, and twice
 more in probing a channel whose master is ATAPI -- so under QEMU, with

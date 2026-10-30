@@ -196,8 +196,9 @@ Under that rule:
     (NetBSD 1.0's donor text before our own).
   - 1, `sh`'s `getpwd`, is measured first: NetBSD 1.1's form is
     earlier.
-  - 2, the disk driver and its slice layer, go with the provenance
-    work.
+  - 2, the disk driver and its slice layer, were measured the same
+    day (`provenance/disk-wd.md`): clear, with a 7% residue of 386BSD
+    0.1 named. They stay in 4.5BSD and 4.6BSD replaces them.
   - 6 are right for 4.5BSD as they are, and 4.6BSD judges them again:
     the ELF start-up files, `_C_LABEL`, `expr`, `<stdint.h>`,
     `ps_strings`, the boot blocks.

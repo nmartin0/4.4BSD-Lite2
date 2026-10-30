@@ -78,7 +78,13 @@ defects are fixed, the ledger is complete, `execve` is clean, the
 holders are named, and the conformance baseline is recorded.
 
 1. **The branch,** named by the maintainer.
-2. **Rule 1a takes over.** 4.5BSD's choices are judged again by best fit
+2. **Standing items carried over** (maintainer, 2026-10-30): ports,
+   Torek's autoconfiguration and X11R5 were left for later, in both
+   plans. They are standing items, taken up when the maintainer says;
+   the stages below that depend on them are marked. The IDE
+   driver of 4.5BSD (FreeBSD 2.1.0's, measured clear in
+   `provenance/disk-wd.md`) stays until stage 4 replaces it.
+3. **Rule 1a takes over.** 4.5BSD's choices are judged again by best fit
    when 4.6BSD touches their files, not all at once. The sweep's table
    (`provenance/bestfit-sweep.tsv`) lists the findings to start from.
    They are taken in the stage that touches each file:
@@ -87,7 +93,7 @@ holders are named, and the conformance baseline is recorded.
    - `expr` (stage 3, the utilities);
    - the disk driver (stage 4);
    - the boot blocks (stage 6).
-3. **A first fix taken by 4.5BSD for a hole stays** unless best fit finds
+4. **A first fix taken by 4.5BSD for a hole stays** unless best fit finds
    a more complete form of the same line.
 
 ## Stage 1: the compiler and C17
@@ -191,7 +197,9 @@ failures are understood and listed.
 Still independent of the VM decision, except where a driver allocates
 memory (written in Lite2's VM form).
 
-1. **Torek's autoconfiguration with `cfattach` on the i386,** and
+1. **Torek's autoconfiguration with `cfattach` on the i386** (a standing
+   item: taken up when the maintainer says; items 3 to 6 below that need it
+   wait for it), and
    run-time interrupt establishment in place of `config`'s generated
    `vector.s`.
 2. **Driver Tier A:** `bus_space`, `bus_dma`, PCI, the small library
@@ -262,7 +270,7 @@ suite; then real hardware.
    - the legacy disk tools;
    - the `inetd.conf` defaults.
 4. **Event notification (D6), tracing, the debugger (D9).**
-5. **The ports tree** (carried from 4.5BSD).
+5. **The ports tree** (a standing item, as above).
 6. **Installation:** the manual procedure in the tradition of "Installing
    and Operating 4.4BSD UNIX", with install media for BIOS and UEFI.
 

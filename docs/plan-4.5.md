@@ -72,14 +72,13 @@ The open work items in `roadmap.md` are divided as follows.
 | 5, the test framework | 4.5BSD (stage 5) |
 | 6, the kernel's loose ends | 4.5BSD (stage 6) |
 | 8, the release | 4.5BSD (stage 7) |
-| 4, ports | 4.6BSD, as decided 2026-10-29 |
-| 7, Torek's autoconfiguration and PCI | 4.6BSD, as decided 2026-10-29 |
-| 9, X11R5 | 4.6BSD, as decided 2026-10-29 |
+| 4, ports | standing item, for later (2026-10-30) |
+| 7, Torek's autoconfiguration and PCI | standing item, for later (2026-10-30) |
+| 9, X11R5 | standing item, for later (2026-10-30) |
 | shared libraries | 4.6BSD |
 
-Items 4, 7 and 9 stay in 4.6BSD because doing them in 4.5BSD by first
-fit would mean judging them again by best fit at the cut. The
-maintainer may move any of them back.
+The three standing items are not done in 4.5BSD, and are not tied to
+either release's schedule. The maintainer takes them up when ready.
 
 ## Stage 1: the rules, recorded
 
@@ -125,7 +124,7 @@ numbers.
      FreeBSD 2.1 if it is earlier than NetBSD 1.4);
    - `pstat` (NetBSD 1.3);
    - ddb's ELF checks (NetBSD rev 1.16);
-   - `wcd` (FreeBSD 2.1.7), unless stage 3 replaces the driver;
+   - `wcd` (FreeBSD 2.1.7);
    - the ELF address arithmetic (NetBSD 1.3);
    - `strtoimax`'s "0x";
    - `uucplock`'s `snprintf`;
@@ -149,19 +148,20 @@ numbers.
 3. **The other A2 files:** `kern_acct.c`, `subr_rmap.c`,
    `kern_physio.c`, `sys_process.c`. Each is measured, given a
    ledger row, and re-derived if it is not clear.
-4. **The IDE disk driver** (#318, #319). FreeBSD 2.1.0's `wd.c`
-   carries the Net/2 "7.2" version through 386BSD and FreeBSD 1.x. If
-   the ledger finds it is what the 386BSD rule forbids, it is replaced
-   from the first clear source:
-   - Lite2's own `i386/isa/wd.c` first;
-   - then what that lacks (the second channel, ATAPI) from the
-     earliest clear donor.
-
-   The ATAPI and `wcd` code and the slice layer get their own rows.
-   This is the largest 4.5BSD item, and it must not break the install.
+4. **The IDE disk driver** (#318, #319): **settled, 2026-10-30**
+   (`provenance/disk-wd.md`). FreeBSD 2.1.0's `wd.c`, `wdreg.h`, the ATAPI
+   and `wcd` files and the slice layer carry no Net/2-era text that
+   Berkeley changed before Lite2, except the copyright notices. 7% of
+   `wd.c` is from 386BSD 0.1 and the rest is FreeBSD's own. They stay.
+   Work left in 4.5BSD:
+   - the ledger row, naming the residue;
+   - `wcd`'s bounds checks (FreeBSD 2.1.7), the first fix of that hole;
+   - nothing else. The driver is not rewritten; 4.6BSD replaces it
+     (`plan-4.6.md`, stage 4), so work on it now would be done twice.
 5. **The floppy's DMA code** (#373). It is credited to a 1992 patchkit
-   contribution. Lite2's own `isa.c` DMA routines are the first
-   candidate; then the earliest clear donor.
+   contribution. Measured with `build/lineage.py` as `wd.c` was, with
+   Lite2's own `isa.c` DMA routines the first candidate; then the
+   earliest clear donor if the test finds a residue that matters.
 6. **Holders and licences (A3)** and **our own files' SPDX lines and
    `COPYRIGHT` (A4)**.
 
@@ -254,7 +254,41 @@ numbers.
 - **Stage 7 waits for everything.**
 - **Stages 5 and 6 can run alongside 2-4.**
 
-Two decisions remain the maintainer's:
+No decision is open. Ports, Torek's autoconfiguration and X11R5 are
+standing items for later (maintainer, 2026-10-30): not done in 4.5BSD
+and not scheduled in 4.6BSD either (`plan-4.6.md`, stage 0). The
+disk driver stays as it is.
 
-- whether items 4, 7 or 9 move back into 4.5BSD;
-- what 3.4's ledger row means if FreeBSD's `wd.c` is found not clear.
+## Work the two releases share
+
+The maintainer's rule (2026-10-30): do nothing twice. A job both
+releases need is done once, in 4.5BSD, and 4.6BSD inherits it. A job
+4.6BSD will redo is not done in 4.5BSD.
+
+**Done once in 4.5BSD, inherited:**
+
+- the defects of stage 2, which are fixed whatever the rule;
+- the clearance ledger, and `build/lineage.py` that fills it. 4.6BSD
+  adds rows;
+- the replacement of `execve`. It is chosen so that 4.6BSD can extend
+  it without redoing it: a line of NetBSD's exec framework, not a
+  one-off;
+- the test harness and the baseline (stage 5);
+- the measuring scripts for the sweep, moved from scratch into
+  `build/` with the maintainer's SPDX line, so that 4.6BSD's best-fit
+  worksheet uses the same tools;
+- holders, licences and SPDX lines (A3, A4);
+- the record of where 4.5BSD stopped.
+
+**Left to 4.6BSD, not done in 4.5BSD:**
+
+- the disk driver, ATAPI and the second channel;
+- anything that needs Torek's autoconfiguration;
+- ports, X11R5;
+- the C17 conversion, the compiler, POSIX.1-2024;
+- the six first-fit choices 4.6BSD will judge again (stage 4.3).
+
+**The rule that keeps them apart:** if a 4.5BSD fix for a hole is the
+same line best fit would pick, it stands. If best fit would pick a
+different line, 4.5BSD keeps its first fit and 4.6BSD replaces it when
+it touches the file; 4.5BSD does not guess ahead.
