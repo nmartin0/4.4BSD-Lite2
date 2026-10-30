@@ -1,0 +1,415 @@
+# patch	hash	type	verdict	chosen source	better or more complete candidate	reason
+1	64b39d64	docs-in-src	KEEP	own conversion of Lite2 PostScript docs to PDF	-	Binary PDFs beside Lite2's PostScript; no code, no donor question
+7	93777fa1	donor-fix	KEEP	NetBSD 1.0 share/mk/bsd.subdir.mk (set -e)	-	One token per loop; NetBSD 1.0 text verified identical; OpenBSD same; rewrites are larger
+9	2e19a013	donor-fix	KEEP	NetBSD 1.0 / OpenBSD 1996 include/Makefile copies target	-	Text taken is OpenBSD 1996's (find -follow); NetBSD 1.0 lacks -follow, so attribution should lead with OpenBSD; fit unchanged
+11	962b0279	build-glue	KEEP	NetBSD 1.3 lib/libc/sys/Makefile.inc ${DESTDIR} prefix	-	Verified NetBSD 1.3 lines; smallest change; others rebuilt the rules
+12	44781479	donor-fix	KEEP	OpenBSD 1996 lib/libc (file-scope __P decls)	-	Verified in OpenBSD late-1996 (not June 1996) getttyent/sleep/usleep/ns_ntoa; one-line moves
+13	bc09abe1	donor-fix	KEEP	OpenBSD 1996 lib/libc/arch/i386/gen/ldexp.c	-	Verified OpenBSD 1996 fscale asm; smallest correct form
+14	081a0e6c	donor-fix	BETTER-FIT	FreeBSD 2.0.5 include/stdio.h __const sys_nerr	NetBSD 1.0 lib/libc/gen/errlst.c (int sys_nerr), applied by #44	Already reversed in-tree by patch #44; header const broke 10 redeclaring files; no action needed
+15	1da1369b	build-glue	KEEP	NetBSD 1.0/1.1, FreeBSD 2.0.5, OpenBSD 1996 bsd.lib.mk (ar cq)	-	Same line in all contemporaries
+16	3edd3cdc	donor-fix	KEEP	OpenBSD usr.bin/lorder/lorder.sh	-	OpenBSD 1999 (687f1ee591b) form verified; one added line + NM override; smaller than NetBSD 1.6 sed approach
+17	ffb70e0d	adaptation	KEEP	NetBSD 1.5 <machine/asm.h> _C_LABEL; NetBSD 1.0/FreeBSD 2.0.5 for modf/bzero/vfork	-	Needed for ELF; donor macro text placed in DEFS.h/SYS.h; donor files not re-diffed (UNVERIFIED detail)
+18	fc4a51a0	donor-fix	KEEP	NetBSD 1.1 / OpenBSD 1996 lib/libc/Makefile tags line	-	Verified OpenBSD 1996 ${BINOWN}/${DESTDIR} line
+20	dac5a892	donor-import	NEEDS-MAINTAINER	NetBSD 1.6 (netbsd-1-6 fa27a766) lib/csu i386_elf + common_elf	NetBSD 2.0 lib/csu/common_elf crtbegin.c 1.24, crtend.c 1.10, i386_elf/dot_init.h 1.3, crti.c/crtn.c	NetBSD's own later correction replaces .init fall-through with MD_CALL_STATIC_FUNCTION (+crti/crtn); 1.6 is right for GCC 2.95.3 now in use, 2.0 is the robust form for newer GCC
+21	bbfefd8c	adaptation	KEEP	own (drop NetBSD sysident note from NetBSD 1.6 crtbegin.c)	-	Minimal removal of NetBSD-specific note
+22	c5fd6177	build-glue	KEEP	own Makefile in Lite2's lib/csu/i386 idiom	-	NetBSD Makefile needs foreign mk features; later patch 65721141 drops the GCC14-only flag
+23	641a79ec	build-glue	KEEP	NetBSD 1.6 lib/csu/Makefile exists() test	-	One .elif arm; Lite2 has no OBJECT_FMT
+25	ad7131e0	build-glue	KEEP	NetBSD 1.0 / OpenBSD 1996 bsd.prog.mk ${DESTDIR} library paths	-	One-word prefix per line, as donors
+27	1e3ffe96	own-fix	KEEP	own, following Lite2's own <sys/types.h> inclusion convention	-	Donor solutions (featuretest/_posix.h/_types.h, void * interface) are larger or change interfaces
+28	f6de38bb	build-glue	KEEP	NetBSD 1.0/1.1, OpenBSD 1996 lib/libutil/Makefile (no -I/sys)	-	Removal matches three donors
+30	9995dc2e	build-glue	KEEP	OpenBSD 1996 share/mk/sys.mk HOSTCC?= cc	-	Verified OpenBSD 1996-06 sys.mk line 27
+31	ecf7b9b3	build-glue	KEEP	OpenBSD bin/sh/Makefile HOSTCC	-	OpenBSD added HOSTCC to sh Makefile 1996-10-12 (58d5cc90b7b); June 1996 still used ${CC}; fit fine
+32	d28d2352	donor-fix	KEEP	NetBSD 1.6 bin/sh/mknodes.c (assign infp in main)	-	Smallest behaviour-preserving form; FreeBSD 13 larger (UNVERIFIED NetBSD 1.6 text)
+36	4fc8837e	build-glue	KEEP	NetBSD 1.0 lib/libl/Makefile	-	Verified NetBSD 1.0 file; LINKS dropped, .PATH to contrib/flex
+38	f2eb4e19	build-glue	KEEP	FreeBSD 2.0.5 / OpenBSD 1996 -I${.CURDIR}/../../sys	-	Verified OpenBSD 1996 mount_null CFLAGS
+39	1e98a429	build-glue	KEEP	FreeBSD 2.0.5 / OpenBSD 1996 .PATH ../../sys/ufs/lfs	-	Verified OpenBSD 1996 newlfs .PATH
+40	e7c4c061	donor-fix	KEEP	NetBSD 1.1 sbin/routed/trace.c iftraceinit decl	-	One line either way; FreeBSD/OpenBSD replaced routed
+42	3a30baa0	build-glue	KEEP	own trim, after NetBSD 1.0/OpenBSD 1996 libcompat SRCS practice	-	Names only present sources
+44	17271a25	donor-fix	KEEP	NetBSD 1.0 / OpenBSD (int sys_nerr in errlst.c)	-	Verified NetBSD 1.0 errlst.c/stdio.h; restores Lite2 header; supersedes #14
+45	cd2df4dd	donor-fix	KEEP	OpenBSD 1996 lib/libc/rpc/svc_udp.c	-	NetBSD 1.1/1.2 still block scope; NetBSD 1.3 identical prototyped lines
+46	c9bc53f4	build-glue	KEEP	own, after this tree's include/Makefile ${BINOWN}.${BINGRP}	-	Tree-internal consistency
+47	44eb87a9	build-glue	KEEP	own (LIBRPC -> librpc.a)	-	No donor kept LIBRPC
+48	c80d57ef	build-glue	DONOR-EXISTS	own (isofs added to LDIRS), citing OpenBSD's practice	FreeBSD 3.0 include/Makefile LNOHEADERDIRS isofs / LSUBDIRS isofs/cd9660	FreeBSD 3.0 installs isofs/cd9660 headers for the same mountd include; one-word LDIRS change remains the smaller fit, attribution only
+50	b52de00b	donor-import	KEEP	NetBSD 1.0 usr.bin/compress/zopen.c (Berkeley)	-	Lite zopen.c + -b fix; superseded by patch 189 (usr.bin/compress restored), copy removed
+51	6cf0849b	build-glue	KEEP	own (savecore .PATH)	-	Follows #50; later reverted with patch 189
+53	a59e0563	donor-fix	KEEP	NetBSD 1.6 adjacent string literals in ps/w	-	Keeps Berkeley's split; smaller than merging strings (UNVERIFIED NetBSD 1.6 text)
+54	d96ec787	donor-fix	BETTER-FIT	NetBSD 1.4 usr.bin/tip prototyped file-scope statics	OpenBSD 1997-04-02 (aa61d02e15b) usr.bin/tip, = NetBSD 1.3	Donor moved the same decls to file scope unprototyped, joined to Lite2's existing file-scope static lines: fewer lines, Lite2 style kept
+55	86455ce0	donor-fix	KEEP	NetBSD 1.4 usr.bin/fpr/fpr.c gettext decl	-	Same line already in NetBSD 1.3 (attribution only)
+56	e2598954	donor-fix	KEEP	NetBSD 10 usr.bin/netstat/unix.c ns_nfiles	-	Same rename already in NetBSD 4 (attribution only); others keep clash
+58	02feb631	build-glue	KEEP	own trim of SUBDIR lists	-	No donor list to copy
+60	b748de94	donor-import	KEEP	NetBSD 1.0 lib/libkvm/kvm_i386.c (1.3.2.1), adapted	-	Verified Regents/LBL notice, from kvm_hp300.c 8.1; only candidate with _kvm_uvatop; 8 adapted lines confirmed
+61	2e57a473	donor-fix	KEEP	OpenBSD 1996 / NetBSD 1.1 lib/libkvm/kvm.c	-	Verified OpenBSD 1996 line
+62	bb24d2e4	build-glue	KEEP	own (LIBTERM -> libtermcap.a)	-	Keeps Lite2 variable name; donors renamed it
+64	4efbc14d	build-glue	KEEP	FreeBSD 2.0.5 usr.bin/kdump/mkioctls $DESTDIR	-	Verified FreeBSD 2.1 mkioctls line; smaller than NetBSD/OpenBSD argument rewrite
+65	0380029e	donor-fix	KEEP	OpenBSD 1996 usr.bin/kdump/kdump.c ../../sys/kern/syscalls.c	-	Verified OpenBSD 1996 line 87
+66	b9a2b44f	own-fix	DONOR-EXISTS	own, copied from this tree's hp300/sparc types.h	NetBSD 1.1 sys/arch/i386/include/types.h; OpenBSD 1996 same	Identical line typedef int32_t register_t; in both donors; commit's "no donor" claim wrong; code needs no change
+67	36c29877	build-glue	KEEP	NetBSD 1.0 .if defined(KERBEROS) wrapping	-	Verified login/Makefile vs NetBSD 1.0; others not re-diffed
+68	b4b737d6	donor-fix	KEEP	NetBSD 1.6 usr.bin/ftp/ftp_var.h cmdtab decl	-	ftp verified; systat has no donor fix (FreeBSD 4/OpenBSD keep old order; NetBSD redesigned)
+69	6d2429a6	build-glue	KEEP	FreeBSD 2.0.5 / OpenBSD 1996 (drop -R)	-	Removes only the -R flag GCC lacks; mail line empty so goes, window keeps -DVMIN_BUG; minimal.
+71	97cf3278	own-fix	KEEP	NetBSD 1.4 usr.bin/window/wwgets.c	-	File-scope prototype is the smallest GCC14 fix; no older donor moved it.
+72	6698fb08	donor-fix	KEEP	NetBSD 1.0 vmstat/names.c i386 stub	-	Stub was the only fit while kernel lacked dk_names; superseded by patch 221 (6bf86813) taking FreeBSD 2.0.5 read_names once dk_names existed.
+73	0079efe9	own-fix	KEEP	NetBSD 1.0 form (backslash continuation)	-	One-character fix, wording kept as Lite2.
+74	3aca1616	build-glue	KEEP	own (-I${.CURDIR}, tree idiom)	-	No donor form applies under obj-dir builds.
+75	fd425062	donor-import	MORE-COMPLETE	NetBSD 1.0 lib/libcompat/4.3/regex.c (rev 1.4)	NetBSD 1.1 regex.c rev 1.5 (const char * args, = OpenBSD 1996) + NetBSD 1.4 rev 1.8 / FreeBSD 2.1 empty-string check	Ours takes char * while Lite2 unistd.h declares re_comp/re_exec(const char *); and re_comp("") recompiles instead of keeping the previous RE as Lite2 re_comp.3 specifies.
+76	79ebe5ea	build-glue	KEEP	own (LDIRS += miscfs)	-	One word in LDIRS; same pattern OpenBSD uses.
+77	2a10e1da	own-fix	KEEP	own (tree idiom: include dinode.h)	-	ufs_daddr_t is Lite2-only; no donor has the problem.
+78	06f688db	donor-fix	MORE-COMPLETE	NetBSD 1.4 usr.sbin/pstat/pstat.c	NetBSD 1.3/1.4 pstat.c mnt_flags table	Same donor also drops Lite2's duplicated {MNT_UPDATE}/{MNT_DELEXPORT} pair whose second entry has a NULL m_name (printf %s NULL if MNT_DELEXPORT set); ours still has it.
+79	74753c06	own-fix	KEEP	Lite2 usr.sbin/config precedent (-ll)	-	Lite2's own sibling links -ll; no donor fix exists.
+81	db4e2ae7	docs-in-src	KEEP	-	-	Notes only, no code change.
+82	028f4527	other	KEEP	NetBSD 1.5 asm.h form	-	Cosmetic trailing-space removal in our own lines.
+83	54236780	build-glue	KEEP	NetBSD 1.0 .if defined(KERBEROS)	-	Same shape as usr.bin; Kerberos reduction already recorded (#113).
+84	e6b0a6ad	build-glue	KEEP	FreeBSD 2.0.5 / OpenBSD 1996 in-tree path	-	Path change only.
+85	2b3cdde4	build-glue	KEEP	own (-I${.CURDIR})	-	No donor form; tree idiom.
+87	fbd2592b	own-fix	KEEP	NetBSD 1.6 ftpcmd.y	-	Two words of static removed; minimal.
+89	6ce0f8c1	build-glue	KEEP	NetBSD 1.0 .if defined(KERBEROS)	-	Same pattern as #83.
+91	6f0d9b44	docs-in-src	KEEP	-	-	Citation correction only.
+95	a05ade5b	donor-fix	KEEP	NetBSD 1.4 sys/sys/vnode.h	(citation) OpenBSD ~1998 sys/sys/vnode.h identical spelling	Adds void only; OpenBSD 1998 has the identical static __inline void form, so by tie-break the citation could name OpenBSD; code unchanged.
+96	6a81e5fe	donor-fix	KEEP	NetBSD 1.4/1.6 kern/vfs_subr.c #ifdef DIAGNOSTIC	(citation) OpenBSD ~1998 kern/vfs_subr.c same guards	Guards only, nothing moved; OpenBSD 1998 guards vref/vhold the same way (tie, citation only).
+97	adb8a806	build-glue	KEEP	own config LINK.i386	-	New config file, GENERIC untouched.
+98	4326a65b	docs-in-src	KEEP	-	-	Doc and comment correction.
+99	a6055c95	donor-fix	KEEP	NetBSD 1.0 / FreeBSD 2.0.5 / OpenBSD 1996 netinet/if_ether.c	-	Deletes the redundant extern; all donors agree.
+100	3ef48144	own-fix	KEEP	Lite2 hp300/luna68k pmap.c idiom (/* static */)	-	Lite2's own idiom wins under rule (Lite2 first).
+101	5428e935	donor-fix	KEEP	Lite2 sibling ports + NetBSD 1.0 / OpenBSD 1996 (vm/vm.h)	-	Minimal include change; sys/vm.h removal agreed by all.
+102	93fe6eec	own-fix	KEEP	FreeBSD 4.0 newvers.sh heredoc	-	Same four Lite2 lines kept verbatim; OpenBSD (~2001+) heredoc rewrites content, so FreeBSD form fits better.
+103	03528be6	donor-fix	KEEP	NetBSD 1.1 / OpenBSD 1996 machdep.c	-	u_long and deletion of stray extern; minimal.
+104	dcb04936	own-fix	KEEP	Lite2 locore.s own movw spelling / NetBSD 1.0	-	Byte-identical object; Lite2's own spelling.
+105	a50b8e5a	build-glue	KEEP	OpenBSD 1996 Makefile.i386 -Ttext	-	Minimal flag change.
+106	12a85ca2	adaptation	NEEDS-MAINTAINER	NetBSD 1.4 _C_LABEL convention	compiler flag -fleading-underscore for kernel+libkern (no donor)	~370 lines of Lite2 asm rewritten (with #107/#108) where a kernel-only build flag would leave locore.s, icu.s, icu.h and mkglue.c untouched; trade-off point 1 vs donor continuation/userland consistency.
+107	3201007b	adaptation	KEEP	own (mkglue.c through _C_LABEL)	-	Follows #106; no donor (all moved to static vector.s); stands or falls with #106.
+108	69e450bd	adaptation	KEEP	own (completion of #106)	-	Notation-only, proved byte-identical; tied to #106 ruling.
+109	983934d4	build-glue	KEEP	Berkeley ARGO/BLITZ config line via CSRG history; NetBSD 1.0 confirms	-	Line is Lite2 GENERIC.i386's own cn0 line with cn->pc (pcrint from Lite2 pccons.c); content clean, but cited from CSRG history: re-cite to Lite2 + NetBSD 1.0 GENERICAHA.
+110	7935854e	build-glue	KEEP	own (Makefile.sparc conditional shape)	-	Small conditional, tree idiom.
+113	46e0f065	docs-in-src	KEEP	-	-	Comment/doc revision only.
+115	291dffc7	docs-in-src	KEEP	-	-	Comment-only; facts from CSRG history (dates/messages, permitted).
+117	d6128f43	donor-fix	KEEP	NetBSD 1.0/1.1 pccons.c (no local ttrstrt)	-	One-line deletion; header declaration is Lite2's.
+119	57be4cda	own-fix	KEEP	Lite2 sibling ports (cpu_switch)	-	Rename to name MI kernel calls; NetBSD 1.0 same name.
+120	131c579b	build-glue	KEEP	Lite2 hp300 GENERIC options + ARGO/BLITZ (CSRG)	-	Options are Lite2's own option names; trivial.
+121	64dc319e	own-fix	DONOR-EXISTS	own (hp300 model) for cpu_initclocks/CLKF_INTR/DELAY	NetBSD 1.0 / FreeBSD 2.0.5 sys/.../isa/clock.c delay() via 8254 counter	DELAY written as delaycount*n/1000 in int overflows above ~7.9 ms; donors' counter-based delay() existed; already superseded by later patch (current clock.c delay()); rest KEEP.
+122	17ba4eec	own-fix	KEEP	own / NetBSD 1.0 splstatclock mapping	-	Label alias in existing routine; include+max per tree.
+123	c12b5995	donor-fix	KEEP	NetBSD 1.0/FreeBSD 2.0.5/OpenBSD 1996 machdep.c	-	One line all donors share.
+124	338c7c8c	own-fix	KEEP	Lite2 own reset_cpu	-	Calls Lite2 routine in same file.
+125	14aabc14	own-fix	KEEP	donors (no rawintr dispatch)	-	Deletion; no donor defines rawintr.
+126	d5be7adf	donor-fix	BETTER-FIT	NetBSD 1.0/1.1/FreeBSD 2.0.5 (asm copyout only)	NetBSD 1.0 sys/arch/i386/i386/locore.s ENTRY(copyout) (end-address check vs VM_MAXUSER_ADDRESS + 386 path)	Deleting Lite2's C copyout dropped its `to >= USRSTACK' user-address check and 386 write check; kept asm copies anywhere. fd263821 restored the 386 path, but HEAD copyout still has no bound check (kernel memory writable via copyout).
+127	a4a035ba	own-fix	KEEP	Lite2 hp300/luna68k/sparc ALTENTRY(blkclr)	-	Lite2's own idiom; byte-identical text.
+128	56ada15e	build-glue	KEEP	own (comment on OBJECT_FMT arm)	-	comment-only correction in Makefile.i386; no source choice
+135	76ed6f8d	donor-fix	KEEP	NetBSD 1.1 lib/libedit/makelist	-	2-line fix; NetBSD 1.1 and OpenBSD 1996-06 have identical line; FreeBSD never fixed; smallest fit
+136	afff94f3	donor-fix	KEEP	NetBSD 1.1 makelist (escaping corrected)	-	now byte-identical to NetBSD 1.1 sed line (verified)
+140	ba4603f5	build-glue	KEEP	own; agrees with OpenBSD 1996	-	drops dead -I; OpenBSD 1996 Makefiles do the same
+141	f04444d6	docs-in-src	KEEP	own (comments/docs)	-	no code change
+144	a64a1d48	donor-fix	KEEP	Lite2 cgd_notdef blocks + NetBSD 1.0 locore.s cpu detection; OpenBSD 1996 CR0_WP placement	-	enables Lite2's own disabled code first; detail of identifycpu table not diffed (UNVERIFIED)
+145	fd263821	donor-fix	BETTER-FIT	NetBSD 1.0 locore.s / FreeBSD 2.0.5 support.s form (own transcription) + trapwrite rename	Lite2 i386/i386/trap.c copyout+user_write_fault (Berkeley's own 386 fix), else NetBSD 1.0 sys/arch/i386/i386/locore.s ENTRY(copyout) verbatim	Lite2-first: Lite2 already has the C copyout; chosen asm is neither donor's text and has two bugs (eax clobbered by trapwrite return; jnz cpyflt with 2 extra words on stack) and lacks NetBSD's VM_MAXUSER_ADDRESS check
+146	d9467709	donor-fix	KEEP	Lite2 hp300/hp300/conf.c chrtoblk	-	Lite2 other port, unchanged; table derived from this port's switches
+147	fb8fc739	donor-fix	KEEP	FreeBSD 2.0.5 support.s fuswintr/suswintr return -1	-	smallest, no foreign deps; NetBSD 1.0 fusubail needs trap.c clause
+148	621604d8	donor-fix	BETTER-FIT	FreeBSD 2.0.5 swapgeneric.c (drop gc_driver)	Lite2 hp300/pmax/vax swapgeneric.c caddr_t gc_driver pattern	Lite2's own ports keep the field as caddr_t; already corrected by #174 abc004a4
+149	c0540c19	donor-fix	KEEP	FreeBSD 2.0.5 machdep.c placement of startrtclock	-	one call, Lite2 function; NetBSD 1.0 same division
+150	300439b8	donor-fix	KEEP	NetBSD 1.0 / FreeBSD 2.0.5 delay() non-asm path, gettick	-	NetBSD delay() unchanged 1.0-1.3 (verified); splhigh adaptation fits Lite2 idiom
+153	ef482d51	donor-fix	KEEP	FreeBSD 2.0.5 (dead calibration removed)	-	removes dead code only
+155	024fe20b	donor-fix	MORE-COMPLETE	FreeBSD 2.0.5 segments.h rd_base packed member; machdep lgdt(&r_gdt)	NetBSD 1.2 segments.h rev 1.22 whole-struct packed	later correction (pcc ignores member packed); already applied by e79bd2c6
+157	bd3f363b	donor-fix	MORE-COMPLETE	FreeBSD 2.0.5 segments.h sd_lobase packed member	NetBSD 1.2 segments.h rev 1.22 whole-struct packed	same; already applied by e79bd2c6
+158	0d3867f8	donor-fix	KEEP	NetBSD 1.0 / FreeBSD 2.0.5 locore.s PG_KW	-	same lines in both donors; minimal bit change
+159	e5624a47	build-glue	KEEP	Lite2 COMCONSOLE option	-	config line only
+165	c255a65b	donor-fix	KEEP	NetBSD 1.0 genassym.c/locore.s slot derivation	-	byte-identical kernel; uses existing assym mechanism
+166	1379b0c8	donor-fix	KEEP	NetBSD 1.0 usr.bin/mkdep/mkdep.sh:58	-	one-line SED; OpenBSD 1996 and FreeBSD keep the broken line (verified)
+168	dd1b2198	donor-fix	KEEP	OpenBSD 1996 / FreeBSD 2.0.5 KERNBASE 0xf0000000	-	OpenBSD reached 0xf0000000 on 1996-10-25 (a34dc64236c); later OpenBSD 0xe0000000/0xd0000000 is UVM-era
+170	7fc23cc1	donor-fix	KEEP	OpenBSD 1996 NKPDE	-	FreeBSD split needs pmap_growkernel (foreign dep)
+171	88958fd6	donor-fix	BETTER-FIT	NetBSD 1.0 trap.c (pcb from proc)	Lite2 hp300/hp300/trap.c:226,245	Lite2's own port already derives pcb from p; already re-attributed by #179/#180
+173	f74145d4	donor-fix	KEEP	FreeBSD 2.0.5 isa/clock.c clkintr (#if 0 arm); FreeBSD 2.0.5 segments.h guard	-	4-line wrapper vs importing NetBSD intrhand dispatch; matches FreeBSD r20 clock.c:121 (verified)
+174	abc004a4	own-fix	KEEP	Lite2 other ports' genericconf (caddr_t)	-	Lite2-first correction of #148
+175	ccd59593	own-fix	KEEP	Lite2 other ports' setconf shape over isa_devtab_bio	-	no donor fits better; NetBSD 1.0 same adaptation
+177	af060b84	own-fix	KEEP	Lite2 hp300 sd.c devqueue pattern	-	keeps two-level queue; NetBSD 1.0 rewrote driver, FreeBSD flattens
+178	974ae550	donor-fix	KEEP	FreeBSD 2.0.5 wd.c addr += DEV_BSIZE	-	one line
+179	b354ad0e	docs-in-src	KEEP	Lite2 hp300 trap.c (attribution)	-	comment only
+180	cb070270	own-fix	BETTER-FIT	Lite2 hp300 trap.c (removed proc0 guard)	NetBSD 1.0 sys/arch/i386/i386/trap.c:183 (if ((p = curproc) == 0) p = &proc0)	guard is needed (idle loop sets curproc 0); restored later by b62727ca
+183	9f11d273	docs-in-src	KEEP	own (attribution notes)	-	comments/docs only
+184	96baeffa	docs-in-src	KEEP	own (notes)	-	comments/docs only
+188	874b53b4	own-fix	KEEP	Lite2 hp300 sd.c SDF_ALIVE pattern	-	one flag; nothing imported
+190	67bb1bb4	own-fix	PROVENANCE-CONCERN	written with 4.4BSD encumbered read for shape	NetBSD 1.0 kern/vfs_bio.c	transcribed settlement bodies; removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+191	c069f156	own-fix	PROVENANCE-CONCERN	style revision of transcribed bodies	NetBSD 1.0 kern/vfs_bio.c	removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+192	64720cd1	own-fix	PROVENANCE-CONCERN	getnewbuf transcribed	NetBSD 1.0 kern/vfs_bio.c	removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+193	096bbc74	own-fix	PROVENANCE-CONCERN	style revision of transcribed bodies	NetBSD 1.0 kern/vfs_bio.c	removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+194	14e20a30	own-fix	PROVENANCE-CONCERN	biowait revision	NetBSD 1.0 kern/vfs_bio.c	removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+195	e48639b8	own-fix	PROVENANCE-CONCERN	states bodies are 4.4BSD's exact text	NetBSD 1.0 kern/vfs_bio.c	explicit transcription policy; removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+197	7e76896f	own-fix	PROVENANCE-CONCERN	allocbuf/geteblk transcribed	NetBSD 1.0 kern/vfs_bio.c	geteblk byte-identical to encumbered per 7fc01918; removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+198	5d40a6e8	own-fix	PROVENANCE-CONCERN	brelse/getblk/bread transcribed	NetBSD 1.0 kern/vfs_bio.c	bread byte-identical per 7fc01918; removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+199	f4585c9d	own-fix	KEEP	Lite2 other ports' #if GENERIC; NetBSD 1.0 autoconf.c	-	typo fix, Lite2-first
+200	9a863bda	own-fix	PROVENANCE-CONCERN	biodone transcribed	NetBSD 1.0 kern/vfs_bio.c	biodone byte-identical per 7fc01918; removed by 7fc01918 and file replaced by NetBSD 1.0 kern/vfs_bio.c (c02f7fce)
+203	03bbbabd	donor-fix	KEEP	FreeBSD 2.0.5 wd.c D_BADSECT guard	-	one condition; NetBSD 1.0/FreeBSD 2.0 both gate on D_BADSECT (verified)
+204	4efaa743	own-fix	KEEP	own (terminate dkbad)	-	needed by #203; refined by #205
+205	2f196a8f	own-fix	KEEP	Lite2 i386/stand/wd.c terminator	-	Lite2's own other copy of the driver
+206	535c81b0	donor-fix	KEEP	NetBSD 1.0 pmap.c:637 PG_KW	-	one-bit change, Lite2 locore precedent
+207	c797d7aa	donor-import	MORE-COMPLETE	NetBSD 1.1 sys/sys/exec_elf.h + exec_elf.c (elf_check_header, elf_read_from)	NetBSD 1.2 sys/kern/exec_elf.c rev 1.6.4.2 (also 1.3 exec_elf32.c)	1.1's elf_read_from returns 0 (success) on a short read (`if (resid != 0) return error;` with error==0), still so at HEAD; 1.2 returns ENOEXEC. Take that one line, not 1.2's IO_NODELOCKED->0 (NetBSD locking, not ours)
+208	c15e523d	adaptation	MORE-COMPLETE	NetBSD 1.1 elf_load_psection, vmcmds written out	NetBSD 1.3 sys/kern/exec_elf32.c load_psection	1.3 fixes the specified-address arithmetic (ELF_ALIGN(*addr+p_align) overshoots; becomes ELF_ROUND/ELF_TRUNC). Latent here: execve always passes ELF32_NO_ADDR. Low priority
+209	a3a93a6e	own-fix	PROVENANCE-CONCERN	own execve (shape read from encumbered 4.4 kern_exec.c); NetBSD 1.0 cpu_fork/init_main hunks; fdcloseexec as 386BSD 0.1/NetBSD 1.1	-	Commit says the body was written by reading the settlement-removed kern_exec.c; #252 itself measured 49% lines identical to 4.4 and flagged it for review, never done. Only donors (NetBSD 1.0 Demetriou/Solfrank, FreeBSD 2.0 imgact) are exec-framework redesigns. fdcloseexec = NetBSD 1.0 text exactly: fine
+211	d49a3740	own-fix	PROVENANCE-CONCERN	Berkeley's i386 getxfile stack arm (4.4BSD kern_exec.c)	-	Restores and quotes verbatim lines from encumbered 4.4 getxfile (`trunc_page(USRSTACK - size) - NBPG; /* XXX */`, the vm_map_protect) into code and comment; settlement text must not be used
+213	b2c3f0f9	own-fix	KEEP	NetBSD 1.0 locore.s:572 (re-cited to hp300 by #223)	-	Two instructions; in-tree hp300 precedent
+214	17f6bc6d	own-fix	KEEP	hp300 locore.s:1126/:1136	-	In-tree precedent; no donor shares this frame layout
+215	12f56e1b	own-fix	KEEP	own (genassym convention)	-	Tree idiom
+219	bd6678cf	own-fix	KEEP	own (in-tree trap.c astpending=0 precedent)	-	NetBSD/FreeBSD replaced aston with setsoftast; not a fit for Lite2's plain int
+221	066bc548	own-fix	KEEP	tahoe/include/pcb.h aston/astoff macro pair	-	In-tree precedent, smaller
+223	bc6d4e4c	docs-in-src	KEEP	comments only	-	No code change
+230	5cee1b7b	own-fix	KEEP	Mach 4 pmap (wrong lineage)	-	Reverted by #231; no net effect
+231	aec0a0bc	other	KEEP	revert to Lite2	-	Restores Lite2 text
+232	d35905d5	donor-fix	KEEP	FreeBSD 2.0.5 pmap_remove_entry `if (npv)`	-	All three donors have the guard; FreeBSD's loop is textually Lite2's, 3 lines
+251	3b761a25	donor-import	KEEP	FreeBSD 2.0 kern/tty_subr.c (Greenman)	-	Only candidate on Lite2's 3-field struct clist that keeps quote bits; FreeBSD 2.0.5/2.1 changes are the cblock-reservation redesign (needs c_cbcount/c_cbmax/c_cbreserved)
+252	7fc01918	donor-import	MORE-COMPLETE	NetBSD 1.0 kern/vfs_bio.c 1.31.2.1	NetBSD 1.1 sys/kern/vfs_bio.c 1.39	1.1 corrects the same functions: bwrite no longer touches bp (SET B_AGE) after async VOP_STRATEGY (race, still at HEAD); getblk checks busy before B_INVAL (NFS); getnewbuf always rehashes to invalhash. #254 records 1.1 builds and links here with 0 errors
+254	c02f7fce	adaptation	MORE-COMPLETE	NetBSD 1.0 vfs_bio.c shrink-wrapped	NetBSD 1.1 sys/kern/vfs_bio.c 1.39	Same finding as #252: choice of 1.0 over 1.1 made on size, not on the corrections 1.1 carries
+258	b27b80dd	donor-import	KEEP	NetBSD 1.0 kern/kern_physio.c	-	1.1's changes are minphys void signature (interface change) and a B_BUSY/spl reorder tied to its own flow; Lite2 signatures kept
+259	2a3443d3	donor-import	KEEP	FreeBSD 2.0 kern/kern_acct.c	-	Near-tie with NetBSD 1.0 1.32 (same Demetriou text; FreeBSD adds `int` and splits two assignments); later NetBSD moves to syscallargs, FreeBSD to sysctl/static: no corrections to take
+262	f82c575e	own-fix	KEEP	own stdarg over GCC builtins (as NetBSD/FreeBSD/OpenBSD)	-	Five lines; no other way to write them
+264	f3913feb	donor-fix	NEEDS-MAINTAINER	NetBSD cd.c find_curdir getcwd loop, shrink-wrapped	OpenBSD 1997 (and NetBSD 1.1/1.2) bin/sh/cd.c getpwd	OpenBSD's form adds 4 lines (getcwd into buf[MAXPWD], savestr) and leaves Lite2's fork path intact under #else; ours deletes ~30 Lite2 lines for the later stalloc/ERANGE loop. Smallest change vs completeness
+266	64c37d63	donor-fix	KEEP	in-tree hp300 trap.c __syscall/sy_argsize; cerror %edx	-	Lite2 sibling port is the closest fit; NetBSD 1.0 i386 still copies sy_narg words
+267	9f1ad6be	donor-fix	KEEP	NetBSD 1.0 i386 trap.c #if 0 of PGEX_P test	-	Minimal; FreeBSD agrees
+268	4590374a	own-fix	KEEP	own, modelled on FreeBSD 2.0 wd.c DKFL_BSDLABEL	-	One goto; Jolitz driver kept
+271	24077228	build-glue	KEEP	own Makefile dependency	-	-
+272	82232044	build-glue	KEEP	NetBSD 1.0 bin/csh/Makefile	-	-
+273	04dd246e	donor-import	NEEDS-MAINTAINER	NetBSD 1.0 bin/expr expr.y + expr.1	OpenBSD bin/expr/expr.c (Conklin, from NetBSD 1.1), or FreeBSD expr.y line	NetBSD 1.0's expr.y is a dead end in its own line; OpenBSD (first in order) carries the 1.1 expr.c forward with fixes, FreeBSD the expr.y. Lite2 has no expr, so the tie-break decides. expr.1 has a 4-clause advertising licence (Winning Strategies)
+274	c14f0b12	donor-fix	KEEP	in-tree sparc boot() / NetBSD 1.0	-	-
+275	04a15f06	donor-fix	KEEP	NetBSD 1.0 isa intr.c stray logging	-	-
+278	f393a673	donor-fix	KEEP	NetBSD 1.0 XXX_mmap	-	OpenBSD 1996 has the same name
+279	d2af90b4	donor-import	KEEP	NetBSD 1.3 nlist_elf32.c (libc, kvm_mkdb), exec_elf.h 1.11 additions	-	34-line change to Lite2 nlist.c against OpenBSD's 346; NetBSD 1.4 changes are cosmetic (memcmp, casts, mmap flags)
+280	6f80a6f1	donor-fix	KEEP	NetBSD 1.0 termcap.c	-	-
+284	c1d387ab	donor-import	KEEP	NetBSD 1.2 subr_rmap.c 1.11	-	1.3/1.4 only re-indent and ovbcopy->memmove; Lite2 has ovbcopy
+285	a5577497	build-glue	KEEP	NetBSD 1.0/FreeBSD 2.0 MAKEDEV majors; LINK.i386 pty	-	-
+286	c2909a86	donor-fix	KEEP	FreeBSD 2.0.5 ctype.h declarations	-	Same rune header as Lite2
+287	880dfdd8	third-party	KEEP	onetrueawk 20121220	-	User's choice; oldest Kernighan-published version is reasonable
+288	0b855067	build-glue	KEEP	in-tree etc.hp300/MAKEDEV PATH	-	-
+291	c846fe22	own-fix	KEEP	own, fields as FreeBSD 2.0 exec_copyout_strings	-	Inside the own execve; inherits #209's concern
+292	47814e72	own-fix	KEEP	own libkvm bound	-	Keeps Lite2's vmparam.h; donors moved USRSTACK instead
+295	a9f222a0	donor-fix	KEEP	OpenBSD 1996 -Ttext F0100000; NetBSD 1.0 locore.s:546; FreeBSD 2.0 avail_start	-	-
+296	3d74f2c4	donor-import	NEEDS-MAINTAINER	FreeBSD 4.1 boot1/boot2/BTX/btxld	NetBSD 1.5 sys/arch/i386/stand/biosboot on sys/lib/libsa (loadfile.c ELF)	Lite2 already has sys/stand libsa and i386/stand; NetBSD/OpenBSD i386 boot carries 4.4's libsa forward, where BTX is FreeBSD's own design. Size and adaptation cost not measured (UNVERIFIED)
+297	58db6f9b	adaptation	KEEP	FreeBSD 4.1 boot2 shrink-wrapped	-	Depends on #296
+300	3ee625d6	donor-import	KEEP	FreeBSD 2.0.5 write_mfs_in_kernel.c	-	Unchanged through 3.0; 4.0 adds only -f and a usage fix
+301	f5f3cb14	donor-fix	KEEP	FreeBSD 2.0.5 MFS_ROOT + Lite2 mfs_initminiroot	-	Uses Lite2's own pmax mechanism
+302	911f7a65	own-fix	KEEP	own	-	-
+303	96165319	adaptation	KEEP	own host build fixes	-	FreeBSD 4.0's usage fix is a getopt rewrite; ours is one argument
+307	50f82b56	donor-import	KEEP	FreeBSD 3.0 crunchgen/crunchide	-	NetBSD 1.3 (earlier in order) was considered and rejected on measurement (its crunchide refuses current ld -r output; commit 25727705)
+308	88b510ac	adaptation	KEEP	FreeBSD 3.0 crunch (earlier import); MAKEOBJDIRPREFIX as FreeBSD 4.3, ${LD} as NetBSD 1.4	-	Two-line build adaptations plus host elf glue; crunchgen changes match later FreeBSD/NetBSD
+311	43cc1c1d	donor-import	KEEP	NetBSD 1.1 distrib/i386/floppies, as shipped	-	netbsd-1-2 differs only in RCS IDs/VERSION (install.sh, list2sh.awk, runlist.sh, dot.*): no later corrections
+312	a634308a	adaptation	KEEP	NetBSD 1.1 lists, built with makefs on host	-	Installer build adapted to this tree; no donor builds a Lite2 install root
+314	39ef64d7	build-glue	KEEP	hp300/pmax GENERIC line; NetBSD 1.1 i386 GENERIC	-	One config option, Lite2's own wording
+315	1728ff65	adaptation	KEEP	NetBSD 1.1 installer adapted	-	Small marked changes for Lite2 netstart, pax, ufs
+317	b1f1d4c3	adaptation	KEEP	own (installer order fix)	-	Ordering fix in adapted installer script
+318	546a29a7	donor-import	NEEDS-MAINTAINER	FreeBSD 2.1.0 wd.c/atapi/wcd + slice layer	FreeBSD release/2.1.7 sys/i386/isa/wcd.c (CDIOREADTOCENTRYS validation, WCD_LASTPLUS1)	Replaces Lite2 wd.c wholesale and drags in slice layer + wider minor(); wd.c is Net/2 7.2/386BSD-patchkit lineage with no ledger row; 2.1.7 has wcd.c corrections not taken
+319	fdf7e8d2	adaptation	NEEDS-MAINTAINER	FreeBSD 2.1.0 headers/config adapted	-	Follows #318: minor() widened to signed 32-bit, b_iodone_chain, d_*_t, isa_biotab are foreign deps that change dev_t semantics; stands or falls with #318
+320	f5a7c883	adaptation	KEEP	NetBSD 1.4 bootfloppy-big recipe	-	Build recipe plus small installer edits; no code donor needed
+326	cab208c2	donor-fix	KEEP	NetBSD 1.2 setmode; NetBSD 1.1 ping include; FreeBSD 3.0 pr_addr	-	NetBSD 1.1-1.2 ping still u_long pr_addr; NetBSD 1.3 uses pointer form (larger); chosen form minimal
+327	7210e7c8	donor-import	KEEP	FreeBSD 5.0 genassym.sh, assym.h	-	genassym.sh identical through FreeBSD 7.0; keeps genassym.c as C (NetBSD's needs .cf rewrite); ASSYM_BIAS omission argued
+328	289719dc	adaptation	KEEP	FreeBSD 5.0 ASSYM form	-	One-for-one conversion of Lite2 genassym.c
+329	73f7ed90	donor-fix	KEEP	FreeBSD 2.0/NetBSD 1.1/FreeBSD 2.2.8 as named	-	Declaration/return/asm-constraint fixes matching donors
+330	e79bd2c6	donor-fix	KEEP	NetBSD segments.h 1.22 (1.2)	-	Packed on struct, minimal
+336	eb44f4ed	donor-fix	KEEP	NetBSD	-	Type fixes, one-liners
+342	cc8d388b	donor-import	MORE-COMPLETE	NetBSD 1.6 stdint/int_*.h	NetBSD netbsd-2 sys/arch/i386/include/int_types.h, int_mwgwtypes.h, int_limits.h	Later NetBSD makes i386 __intptr_t int (was long) and int_fast16_t int, matching GCC/i386 ABI; ABI choice, confirm
+343	1cf02f80	donor-import	MORE-COMPLETE	NetBSD 1.6 inttypes/int_fmtio; FreeBSD 5.0 strtoimax/strtoumax; FreeBSD 3.0 vfscanf QUAD	NetBSD netbsd-2 i386 int_fmtio.h (PRI*PTR without l); FreeBSD 7.0 lib/libc/stdlib/strtoimax.c,strtoumax.c ("0x" with no hex digit)	vfscanf choice is the smallest (42 lines vs 99-153 for NetBSD 1.2-1.4/FreeBSD 2.2.8); PRI*PTR must follow #342; strto*max lack the later 0x fix
+353	a5ba9f8f	donor-fix	KEEP	NetBSD 1.6 i386 stdarg/ansi	-	Matches the compiler NetBSD 1.6 shipped with
+354	72f3e1c4	donor-fix	KEEP	NetBSD 1.4 aculib	-	Handler argument, as donor
+355	65721141	third-party	KEEP	GCC 2.95.3 + binutils 2.11.2 as NetBSD 1.6	-	Version choice is consistent with NetBSD 1.6 csu/headers already taken
+359	fbabe020	build-glue	KEEP	FreeBSD 2.0 / NetBSD 1.1 lists	-	Man list edits
+366	866553b5	build-glue	KEEP	NetBSD 1.6 HOST_LINK	-	HOSTCC for generators
+367	4ff08987	donor-import	KEEP	NetBSD 1.0 libcompat/4.1 gtty, stty, ftime	-	NetBSD 1.1-4 changes are only licence/RCSID/_DIAGASSERT/casts; no functional correction
+368	f0e2d7bf	donor-fix	KEEP	NetBSD 1.4 fpr	-	void definition
+369	018c7f0a	build-glue	KEEP	NetBSD 1.1 Makefile	-	Drop DPADD line
+370	fd21cdab	docs-in-src	MORE-COMPLETE	NetBSD 1.0 m4.1	NetBSD netbsd-1-2 usr.bin/m4/m4.1 (rev 1.4)	1.2's only change is a typo fix, loosing->losing (trivial)
+371	90dd34da	build-glue	KEEP	own	-	SUBDIR conditionals
+372	bf353894	own-fix	KEEP	own	-	FreeBSD 2.0 wt.c is a different driver (Vakulenko); no donor fix for this delay()
+373	d72ca64a	donor-fix	PROVENANCE-CONCERN	FreeBSD 2.0 isa.c isa_dmastart/isa_dmadone/isa_dmarangecheck; FreeBSD 2.0 fd.c fd_sensei	-	FreeBSD 2.0 isa.c (rev 1.35) DMA code is credited to Frank MacLachlan 92/08/18 (386BSD 0.1 patchkit era); "line for line" in NetBSD 1.0 and OpenBSD: carried forward from 386BSD lineage, no ledger row
+374	b6c1ef49	own-fix	KEEP	Berkeley configs, FreeBSD 2.0.5 GENERIC wt line	-	Config corrections in Lite2's own file
+375	8258bbdd	donor-fix	KEEP	FreeBSD 2.0 sysctl.h, vfs_syscalls.c	-	Two #if changes
+376	d4d6f97a	build-glue	KEEP	tree's own yacc/flex	-	Uses Lite2's tools; reverts earlier hack
+377	b4426cd0	donor-fix	KEEP	NetBSD 1.3 fsinfo.h	-	Drop conflicting decl
+378	067bb103	build-glue	KEEP	NetBSD 1.1/1.6 Makefile practice	-	Host-built generators
+379	92e955ad	donor-fix	KEEP	NetBSD 1.0/FreeBSD 2.0 values; OpenBSD PSL_USERSTATIC	-	OpenBSD's PSL_USERSTATIC is NetBSD 1.1's (psl.h); ours adds PSL_NT. Tie goes to OpenBSD by donor order. Origin note only
+380	a4221012	donor-import	NEEDS-MAINTAINER	FreeBSD 2.2 sys_process.c (Fagan); Pendry procfs_i386; FreeBSD ptrace_write_u	NetBSD netbsd-1-0 sys/kern/sys_process.c (Demetriou 1994, on Lite procfs)	Commit says FreeBSD 2.2 alone keeps PT_READ_U/PT_WRITE_U, but NetBSD 1.0's Lite-based rewrite keeps both (its PT_WRITE_U unchecked; 1.1 drops it); also signature taken "as CSRG 8.6 declares it", CSRG reference to clear
+381	c8da0347	donor-fix	KEEP	NetBSD 1.0 / FreeBSD 2.0 init386 line	-	Same single line in both
+382	7d8391f0	build-glue	KEEP	hp300 GENERIC line	-	Config option
+383	6bfd5485	donor-fix	KEEP	NetBSD 1.0 MAKEDEV all/tty entry	-	Same form in NetBSD 1.0, FreeBSD 2.0, OpenBSD
+384	e2b1d380	donor-fix	KEEP	FreeBSD 2.2/3.0 vnode_if.src	-	NetBSD 1.3 (post-Lite2) uses the same dir-first order; equal fit
+387	e90a47d7	donor-fix	KEEP	NetBSD 1.3 / OpenBSD err	-	Same name in OpenBSD, which is first in donor order
+388	c9f6194d	build-glue	KEEP	FreeBSD 2.2/4.0 build-tools	-	Host tools; Lite2 PORT kit
+389	63856ef2	donor-fix	KEEP	OpenBSD 1995 boggle; NetBSD 1.6; FreeBSD 2.0 phantasia	-	phantasia setup.c matches FreeBSD 2.0 (_SPATH_*)
+390	ef3f528b	donor-fix	KEEP	NetBSD 1994 / OpenBSD bsd.prog.mk	-	Drop chown on link
+391	c5c0a775	build-glue	KEEP	FreeBSD 2.0/NetBSD 1.0/OpenBSD lists; OpenBSD mtree	-	List edits
+392	78fa1d20	build-glue	KEEP	FreeBSD 2.0/NetBSD 1.0/OpenBSD	-	${.CURDIR} and DESTDIR
+393	7f4eb03a	build-glue	KEEP	own (chflags guarded by DESTDIR; installer sets it; NetBSD-style termcap.db in set)	-	Donors (OpenBSD/NetBSD) simply dropped Lite2's chflags; guarding it keeps Lite2's protection with a 2-line change
+395	d0531eea	build-glue	KEEP	own (SUBDIR entries for dirs the Lite cut removed dropped)	-	Makefile list pruning; no donor text applies
+396	cc47baff	build-glue	KEEP	binutils 2.11.2 build makefile, NetBSD 1.4/1.6 precedent	-	Third-party toolchain wrapper in Lite2's gcc/gdb style; version already the tree's toolchain
+397	71b66f94	build-glue	KEEP	FreeBSD 2.0 top Makefile ${.CURDIR}/${MAKE} form; NetBSD 1.0 KERBEROS guard	-	Minimal edits to Lite2's build target for objdir builds
+406	a6b0447c	donor-import	PROVENANCE-CONCERN	OpenBSD 2003 diff/diff3prog (Caldera licence) + Berkeley diff3.sh/Makefiles from CSRG history	- (reverted by #412)	diff3.sh was %sccs.include.proprietary.sh% taken from CSRG history and relicensed; moot now, removed by #412
+407	8e8da373	adaptation	PROVENANCE-CONCERN	build glue for #406; Caldera licence put on Berkeley's proprietary diff3.sh	- (reverted by #412)	Relabels a proprietary-marked Berkeley file under Caldera's licence; moot, removed by #412
+412	aea17e9d	third-party	KEEP	GNU diff 2.6 with NetBSD 1.0 Makefiles	-	Same version NetBSD 1.0/FreeBSD 2.0 shipped; replaces the Caldera-licensed import per maintainer decision
+420	ef76dc62	donor-fix	KEEP	FreeBSD 2.0 i386 major 22 for fdopen; hp300 cdev_fd_init	-	NetBSD 1.0 i386 conf.c also uses 22 with the same cdev_fd_init; table fix in place
+421	c949e5f2	build-glue	KEEP	Lite2 contrib/sort (McIlroy) built	-	Lite2's own code; no change better
+423	e78a5348	donor-fix	KEEP	OpenBSD bsd.subdir.mk Makefile.bsd-wrapper (Dec 1995)	-	Small additive hook, text as OpenBSD's
+428	11c73191	third-party	KEEP	GNU grep 2.0 as NetBSD 1.1	-	Reasonable version (NetBSD/FreeBSD 2.0 era) given Lite2's egrep depends on removed AT&T greps
+433	e352180f	build-glue	KEEP	OpenBSD 1996-06-29 tar->pax link	-	One LINKS line
+442	68e5c681	donor-fix	NEEDS-MAINTAINER	FreeBSD 2.0 DFLDSIZ 64MB / MAXDSIZ 128MB	FreeBSD 2.0 vmparam.h also pins MAXSSIZ 64MB	Lite2's MAXSSIZ is defined as MAXDSIZ, so the patch silently raises max stack 32->128MB; FreeBSD 2.0 sets MAXSSIZ separately (64MB), NetBSD 1.0 8MB
+443	c4da0fac	donor-import	MORE-COMPLETE	FreeBSD 2.1.0 if_ed.c 1.73.4.2, if_edreg.h	FreeBSD release/2.1.7 sys/i386/isa/if_ed.c 1.73.4.5 (same RELENG_2_1_0 branch)	2.1.7 fixes `if (sc->type = ED_TYPE_SMC8216C)` assignment bug (2x), SIOCSIFFLAGS up/down logic, no cluster for small frames, 3c503 IRQ msg; 2-clause licence; if_edreg.h identical
+444	a172bb57	adaptation	KEEP	own adaptation of FreeBSD if_ed to Lite2 i386	-	Needed cuts; redo on top of 2.1.7 if #443 is refreshed
+445	bafbf699	adaptation	KEEP	own (ether_type to host order for Lite2 ether_input)	-	One-line fit to Lite2's ether_input interface
+446	d52dafef	donor-fix	KEEP	MCLBYTES 2048 as Lite2 hp300/sparc and all descendants' i386	-	Two-line change matching Lite2's other ports
+449	41a0d84b	donor-fix	KEEP	NetBSD xinstall.c 1.9 (NetBSD 1.2) reopen after strip	-	Smallest fix, OpenBSD carried the same
+450	cec43fb4	build-glue	KEEP	own build fixes for self-hosted make build	-	Makefile glue
+452	e1b92ec5	donor-fix	MORE-COMPLETE	FreeBSD 2.2.5 mkdir.c 1.5.8.1 build()	FreeBSD 4.0 (r400) bin/mkdir/mkdir.c build(): `if (!last) *p = '/';`	2.2.5's loop writes '/' over the path's terminating NUL after the last component; the later line in the same build() fixes it (ours still has unconditional `*p = '/';`)
+453	126b080f	build-glue	KEEP	FreeBSD 2.0 include/Makefile symlink lines	-	Two-line change to Lite2's symlinks target
+454	1cb26760	other	KEEP	FreeBSD 2.2 dot.profile TERM=${TERM:-...}	-	One line, pc3 from Lite2's termcap
+457	41ec2a42	build-glue	KEEP	own gcc-2.95.3 install layout as Lite2's gcc-2.3.3	-	Third-party build wrapper
+458	e088b2d0	build-glue	KEEP	NetBSD 1.0 ZIC/STRFILE vars, FreeBSD 2.2 CAESAR	-	Variables with Lite2's defaults
+460	357a8d7b	build-glue	KEEP	sys/compile/.keep_me as FreeBSD 2.0/NetBSD/OpenBSD	-	Trivial
+461	8af6f1c7	build-glue	KEEP	Lite2 hp300 Makefile.hp300 SYSTEM_LD form (= NetBSD 1.0 i386)	-	Lite2's own form; note `-@` ignores link failure as hp300 does
+463	60c28888	donor-fix	KEEP	FreeBSD eval.c 1.6 / NetBSD 1.31	- (superseded by #477)	Lines later removed by #477; history only
+464	e3dfca1b	donor-fix	KEEP	NetBSD parser.c 1.30 / FreeBSD 1995 TAND/TOR cases	-	Two case labels
+465	f246b55c	build-glue	KEEP	NetBSD posix_only (1993), OpenBSD, FreeBSD 2.0	-	One word
+474	a2d34641	donor-fix	NEEDS-MAINTAINER	NetBSD 1.1 ps_strings char** + kvm_argv (Hannum 1995)	own minimal kvm_argv narg==0 guard keeping Lite2's struct ps_strings	Changes Lite2's ps_strings interface (FreeBSD 2.1 still Lite2 form); donors all converged on it, but the bug is fixable without the ABI change
+477	c4e674a8	donor-fix	KEEP	FreeBSD eval.c 1.44 (7.0) / NetBSD 4.0 do_etest	-	Small, both lineages today; UNVERIFIED for later fixes after FreeBSD 7
+479	7cc71bdf	donor-fix	KEEP	FreeBSD eval.c 1.45/1.46 (7.0) and 1.14 (3.0)	-	Small flag passing; UNVERIFIED for later fixes
+481	73041db6	third-party	KEEP	NetBSD 1.0 Vixie cron 3.0	-	With #485/#489 the tree matches NetBSD 1.2.1's cron; NetBSD 1.3 env.c is a parse rewrite
+482	0c8f27b0	build-glue	KEEP	NetBSD 1.0 Makefiles and dirs	-	Glue
+483	42e0417c	third-party	MORE-COMPLETE	NetBSD 1.0 at/atrun (Koenig)	OpenBSD at: parsetime.c 1.8 (1999-03-21, PR 778) and 1.9 (2000-01-05), at.c (2000-04-23 millert); NetBSD parsetime.c 1.8/1.9 (2000-01-06) and at.c 1.14 (2000-04-23)	Ours still treats 2-digit years as 19xx (Y2K) and tests `ap == NULL` for `eqp` in the environment loop (env entry without '=')
+484	c1269f85	build-glue	KEEP	NetBSD 1.0 layout	-	Glue
+485	dc636a83	third-party	KEEP	NetBSD 1.1 cron fixes	-	Cherry-pick from the same line
+486	24fd13ea	third-party	KEEP	NetBSD 1.1 atq/atrm uid	-	Same line
+487	799bea06	third-party	KEEP	NetBSD 1.3 at -f as user	-	Same line
+488	48a7ae86	third-party	KEEP	NetBSD 1.1 atrun initgroups	-	Same line
+489	baa68da6	third-party	KEEP	NetBSD 1.2.1 cron bounded copies	-	Same line; tree now ~= NetBSD netbsd-1-2 cron
+490	883cde7e	third-party	KEEP	OpenBSD Jan 1996 parsetime 12am/12pm	-	Fine; Y2K fixes from the same OpenBSD file not taken (see #483)
+492	d55620ec	own-fix	KEEP	NetBSD 1.1 / FreeBSD 2.0 saved-id lines in execve	-	Two lines in this tree's own execve
+495	73b0c155	third-party	KEEP	sendmail 8.8.8 as FreeBSD 2.2.8	-	Last Regents-licensed release, shipped by all three BSDs; UNVERIFIED: later CVEs (2002-1337, 2003-0161) affect 8.8.x
+496	1168a4bb	adaptation	KEEP	FreeBSD 2.2.8 build adapted to Lite2 make	-	Glue, marked
+497	ecc25c31	third-party	KEEP	FreeBSD 2.2 freebsd.mc `-o` sendmail.cw; NetBSD 1.2 rc full path	-	One-line each
+498	402a1a60	own-fix	KEEP	FreeBSD 2.2 sysinstall (newaliases idea), NetBSD 1.1 installer	-	installer runs newaliases in chroot after pwd_mkdb; no donor install script of this (NetBSD 1.1) line has it; minimal
+500	9a8a7ad3	build-glue	KEEP	Lite2 other ports' lines; NetBSD 1.0/FreeBSD 2.0/OpenBSD	-	adds timed to i386 SUBDIR line, Lite2 timed builds unchanged
+501	e3f65448	own-fix	KEEP	NetBSD 1.0 netstart (timed_flags=)	-	one-value change; empty flags restore intended 4.4 behaviour
+503	a0b7f241	donor-fix	KEEP	Lite2 contrib/nvi.1.43 install/recover.script (word for word)	-	Lite2's own script; identical to NetBSD 1.5 recover.script and NetBSD 4 virecover (same text, only SENDMAIL path)
+504	b2c765c1	donor-fix	MORE-COMPLETE	FreeBSD 2.0 bin/test (Rehmet 1994)	FreeBSD 2.2 (r220/r228) bin/test/test.c 1.13: case 3 `else if (lookup_op(argv[2], andor_op) < 0)`	FreeBSD 2.0 fixed only the 4-arg case; 3-arg `test "" -o ""` / `test foo -a ""` still go through posix_binary_op and return true (pointer copied as num); the TEST.csh cases this patch adds fail without FreeBSD's later 3-arg fix
+505	f8c8d583	donor-fix	KEEP	FreeBSD 2.0 bin/test/test.c	-	get_int empty-string-is-0, unchanged through FreeBSD 2.2.8
+506	4ab215bf	donor-fix	KEEP	FreeBSD 2.0 test.c 1.5-1.9 (Chernov/Evans)	-	same code unchanged through FreeBSD 2.2.8; NetBSD/OpenBSD replaced test (redesign)
+508	b0a960a8	donor-fix	KEEP	Lite2 hp300 GENERIC (FIFO, NFS lines)	-	Lite2's own lines; NFS needs FIFO in this tree
+511	504c6b1b	build-glue	KEEP	NetBSD 1.3 / OpenBSD 1997 etc/Makefile	-	creates wtmp/secure/ftp.log in Lite2's install idiom
+512	de539906	donor-import	MORE-COMPLETE	NetBSD 1.0 usr.sbin/sa, usr.sbin/ac as released	NetBSD 1.3 usr.sbin/sa/main.c: warn("couldn't truncate %s", *argv) and warn("close %s", *argv)	our main.c:256,283 still pass char **argv to %s (wrong output/UB on sa -s error); fixed by NetBSD 1.3, not in FreeBSD 2.2.8/3.0; other later fixes ported in #514-#522
+513	e1d5c0b6	build-glue	KEEP	Lite2 usr.sbin/Makefile	-	names ac, sa again
+514	3945a30b	donor-fix	KEEP	FreeBSD 2.0 ac.c (Chernov 1994)	-	UT_NAMESIZE bound; earliest and same as OpenBSD/NetBSD 1997
+515	9285e3b3	donor-fix	KEEP	FreeBSD sa 1996 (Pritchard)	-	-t *ignore* and format fixes; NetBSD 1.5 equivalent
+516	1b58ec56	donor-fix	KEEP	NetBSD 1.2 sa main.c	-	getopt int
+517	5bfe7306	donor-fix	KEEP	NetBSD 1.3 sa usrdb.c	-	u_quad_t cast
+518	3ad239db	docs-in-src	KEEP	FreeBSD 1996 sa.8	-	path correction
+519	1254301b	donor-fix	KEEP	OpenBSD 1997 ac.c	-	-w last-record time
+520	51c91420	docs-in-src	KEEP	NetBSD 1.3 ac.8 (merge Lite2 manpage)	-	keeps Berkeley text; NetBSD 1.4/1.5 changes minor (UNVERIFIED in detail)
+521	5022c412	donor-fix	KEEP	NetBSD 1.0 rc/daily	-	Lite2 lines kept inside test
+522	af54b506	donor-fix	KEEP	OpenBSD 1999 sa main.c	-	exit status init
+524	252ac19a	donor-fix	KEEP	NetBSD 1.0/FreeBSD 2.0 rc, netstart	-	name_server switch, Lite2 YES/NO idiom
+526	35680c73	donor-import	MORE-COMPLETE	4.4BSD-Lite usr.bin/compress (via FreeBSD 2.0 import)	FreeBSD r9.0.0 usr.bin/compress/zopen.c (SA-11:04, CVE-2011-2895); same in NetBSD netbsd-8 usr.bin/compress/zopen.c	zread lacks bad-stream checks (code > free_ent || oldcode == -1 -> EINVAL; maxbits < 12 rejected; clear resets oldcode); crafted .Z overruns de_stack; same Lite code line, small diff (~15 lines)
+527	557218e3	donor-fix	KEEP	CSRG zopen.c 8.2 (as committed); re-credited to NetBSD 1.0 by #563	-	lines verified identical to NetBSD netbsd-1-0 zopen.c 258/262/711; CSRG sourcing corrected in #563
+528	0b7d5c4f	build-glue	KEEP	Lite2 usr.bin/Makefile	-	names compress
+529	202f04cb	build-glue	KEEP	Lite2 savecore Makefile	-	restores Lite2's .PATH byte for byte; removes copy
+531	cf82f37b	donor-import	KEEP	NetBSD 1.0 usr.bin/units as released	-	Mariano's units; later fixes ported in #533-#538; OpenBSD 2001 differs only by strlcpy/style (strlcpy not in Lite2)
+532	be512331	build-glue	KEEP	NetBSD 1.0 units Makefile	-	names units
+533	e6385724	docs-in-src	KEEP	NetBSD July 1994 units.1	-	manpage fix
+534	97dac532	donor-fix	KEEP	NetBSD 1.1 units.lib	-	definition fixes
+535	99a3c2eb	donor-fix	KEEP	NetBSD 1.2 units.c	-	main returns int
+536	bb4e78eb	donor-fix	KEEP	FreeBSD 1996 units.c	-	exit status and -q
+537	a7eeb1f9	donor-fix	KEEP	NetBSD 1.2 units.c	-	getopt int
+538	89a4a8e4	donor-fix	KEEP	OpenBSD July 1997 units.c	-	bounded copies with Lite2-available strncpy/snprintf (OpenBSD 2001 strlcpy is a foreign dep)
+540	5f7295f8	third-party	KEEP	Lite2 contrib/file-3.12	-	Lite2's own file version built in place; reasonable
+548	a5955240	donor-import	KEEP	NetBSD 1.0 usr.sbin/quot as released	-	later fixes ported in #551-#553; NetBSD 1.1 change was only MOUNT_FFS name (handled in #549)
+549	59b12a37	adaptation	KEEP	own, for Lite2 headers	-	"ufs" fstype name and dinode.h include
+550	e45241e8	docs-in-src	KEEP	NetBSD 1.0 quot.8	-	page matches program
+551	f3e26f6b	docs-in-src	KEEP	FreeBSD 1996 / OpenBSD 1995,1999 quot.8	-	three slips
+552	ea35f95b	donor-fix	KEEP	NetBSD 1.2 quot.c (Solfrank 1.9 pullup)	-	off_t cast and superblock check
+553	1978dad5	donor-fix	KEEP	FreeBSD 1998 quot.c (Dillon)	-	quad_t arithmetic
+555	cb3f3bfd	donor-import	KEEP	NetBSD 1.1 sbin/fsdb as released	-	NetBSD 1.2-1.3 changes mainly licence/style/prototypes; functional fixes ported in #557/#558
+556	36b45935	build-glue	KEEP	NetBSD 1.1 fsdb Makefile	-	MAN8 for Lite2 bsd.man.mk
+557	a1f8c9f5	donor-fix	KEEP	NetBSD 1997 fsdb.c (Mewburn)	-	el_parse with argc 0
+558	c1d8bce6	donor-fix	KEEP	OpenBSD 1998 fsdb.c	-	atime/mtime fields
+561	3a994800	third-party	KEEP	Lite2 contrib/bc-1.03; NetBSD 1.1 Makefiles	-	Lite2's own GNU bc; one proto.h getopt fix as GNU bc 1.04
+563	6e23174e	other	KEEP	NetBSD 1.0 zopen.c (credit correction)	-	removes CSRG attribution and 8.2 sccsid; code unchanged, verified equal to NetBSD 1.0
+564	2bf5cd72	donor-import	MORE-COMPLETE	OpenBSD usr.bin/deroff as first committed 2002-02-28 (millert)	OpenBSD deroff.c 1e6d196437f (2014-12-03 .PS overflow), 7c6b5cdc9fb (2026-04-01 chars[256]), 08e9b19a4d0 (2023-09-27 dynamic line buffer); deroff.1 rev 1.6 77791293787 (2005-07-05)	Import is the 2002 snapshot; OpenBSD's later fixes to the same code (inpic() overflow, chars[128] indexed by any byte 0-255, -m m/s documented as me(7)) are missing; no redesign in between
+565	6d9866e9	build-glue	KEEP	Lite2 usr.bin/Makefile list, OpenBSD Makefile	-	Adds deroff back to SUBDIR where Berkeley had it
+566	31e1c3c6	donor-fix	KEEP	OpenBSD deroff.c 8a704ca5b7f+f09d3110ecc (2002-02-28)	-	Exact OpenBSD memmove fix with its off-by-one correction
+567	fd55361f	donor-fix	MORE-COMPLETE	OpenBSD deroff.1 5b7f8f79bda+ee66d922a57 (2002-02-28)	OpenBSD deroff.1 77791293787/4f98218d784 (jmc 2005-07-05)	Our page still says -m m and -m s recognise me(7); OpenBSD 2005 corrects them to mm(7) and ms(7)
+569	22e4d524	donor-import	KEEP	NetBSD netbsd-4 games/ching/ching (2005)	-	ching.sh, hexagrams and macros match through netbsd-8 and trunk; trunk's ching.6 (2022) changes only .nf/.Pp layout
+570	70692e94	adaptation	KEEP	NetBSD ching.sh, adapted to Lite2 helper names	-	Two-word path change so ching.sh calls Lite2's ching.cno/ching.phx; SUBDIR re-added
+571	94483870	donor-fix	KEEP	NetBSD castching.c (netbsd-4)	-	exit(0) plus <stdlib.h>, as NetBSD
+580	3bca8d5a	build-glue	KEEP	NetBSD 1.1 4.4BSD.dist	-	mtree entry for /usr/libexec/uucp
+581	fa079860	build-glue	KEEP	NetBSD 1.0 usr.bin/tip/Makefile	-	Verified: NetBSD 1.0 comments out LINKS/MLINKS exactly so
+583	6822c480	other	KEEP	NetBSD 1.0 master.passwd	-	uucp shell path; same in all three BSDs
+584	828b9d23	donor-fix	KEEP	NetBSD 1.0 uucpd/pathnames.h	-	One-line path change, shared by all donors
+585	4652a5c6	donor-fix	KEEP	NetBSD 1.0 uucpd.c and Makefile (-DBSDINETD)	-	Verified: NetBSD 1.0 Makefile has CFLAGS+= -DBSDINETD; smallest working change
+586	167ca209	donor-fix	MORE-COMPLETE	OpenBSD uucpd.c a1998c9de72 (1996-08-27)	OpenBSD uucpd.c d336ec13856 (1996-07-22 chdir after setuid), 9ff5160c91a (1996-09-02 setlogin; also NetBSD 1.3)	Nearby OpenBSD 1996 fixes to the same doit() code: chdir to pw_dir still runs as root, and the login name is never set (getlogin gives inetd's)
+587	bef7d383	donor-fix	MORE-COMPLETE	NetBSD 1.0 tip pathnames.h + uucplock.c	NetBSD 1.3 uucplock.c 1.7/1.8 (1997) = OpenBSD bc4b3bff0fc (1997-08-24) snprintf	Same line; later sprintf->snprintf of tbuf/text_pid not taken (minor). Origin of ASCII-pid code before NetBSD 1.0 rev 1.3 is UNVERIFIED (not a settlement file either way)
+588	1561635f	build-glue	KEEP	NetBSD 1.0 4.4BSD.dist	-	mtree layout for Taylor UUCP
+589	f80c79dd	other	KEEP	NetBSD 1.0 etc/rc	-	One path changed
+590	eeb69e26	other	KEEP	NetBSD 1.0 etc/daily	-	uusnap -> uustat -a
+591	232e3067	other	KEEP	NetBSD 1.3 syslog.conf	-	Line commented out
+593	727c8d05	donor-fix	KEEP	NetBSD uucplock.c 1.6 (jtc 1995-09-26)	-	off_t lseek fix; together with 587 the file matches NetBSD 1.1 rev 1.6 except <string.h>
+595	3438faab	donor-import	KEEP	Lite2 lib/libc/string/strncmp.c into libkern; NetBSD 1.2 libkern.h prototypes	-	Verified byte-identical to Lite2's libc file; Lite2 comes first
+596	8a232552	donor-import	KEEP	NetBSD 1.0 sys/ddb	-	Measured: our ddb is closest to NetBSD 1.0 (FreeBSD 2.0/2.1 is 3-10x further); 1.0 to 1.1 is mostly prototype reshaping; K&R matches Lite2. Later fixes taken one per commit
+597	b6549683	donor-import	KEEP	NetBSD 1.0 arch/i386 db_*.c, db_machdep.h	-	Same reasoning as 596; FreeBSD db_disasm.c is about 1100 lines from ours, NetBSD 1.0 about 300
+598	245b6687	adaptation	KEEP	FreeBSD 2.0 db_machdep.h/frame.h guard	-	Two includes and an include guard
+599	f97a166a	adaptation	KEEP	NetBSD 1.2 ddb label_t setjmp	-	Fits Lite2's own locore setjmp(label_t*)
+600	5769eced	adaptation	KEEP	FreeBSD 2.0 ddb calls	-	Verified: Lite2 vm has vm_map_print(map,full)/vm_object_print(object,full)
+601	6d361fd3	adaptation	KEEP	own (DB_NO_AOUT stub)	-	Temporary stub, replaced in patch 201 by NetBSD 1.3 db_elf.c
+602	299a7456	adaptation	KEEP	FreeBSD 2.0 db_interface.c	-	Verified: Lite2 has no trap_type[]
+603	49ee432c	donor-fix	KEEP	FreeBSD db_output.c (bde 1994-10-30)	-	Earliest and smallest fix
+604	811ea2de	donor-import	KEEP	NetBSD 1.1 db_show_all_procs, NetBSD 1.0 db_show_callout	-	Uses Lite's allproc/zombproc and calltodo
+605	759658db	build-glue	KEEP	NetBSD 1.0 conf/files	-	-
+606	95a285cc	donor-fix	KEEP	NetBSD 1.0 trap.c hooks	-	-
+607	5987e3f9	donor-fix	KEEP	NetBSD 1.0 init386	-	-
+608	a061611b	donor-fix	KEEP	NetBSD 1.0 panic()	-	-
+609	4e75c3c1	donor-fix	KEEP	NetBSD 1.0 pccons.c	-	-
+610	0dc3cbf1	donor-fix	KEEP	NetBSD 1.1 com.c	-	-
+611	b62727ca	donor-fix	KEEP	NetBSD 1.0 trap.c curproc==0 -> proc0	-	Also in OpenBSD 1996
+612	4d9c385b	build-glue	KEEP	NetBSD 1.1 GENERIC	-	-
+613	89295b2e	docs-in-src	KEEP	NetBSD 1.0 ddb.4	-	Verified: NetBSD 1.1 and 1.2 differ only in RCS id lines; 1.3 is an mdoc rewrite
+615	b95c3102	donor-fix	KEEP	NetBSD db_trap.c 1.8 (gwr 1994-12-02)	-	-
+616	cede3ef2	donor-fix	KEEP	NetBSD db_disasm.c 1.9 (mycroft 1995-02-05)	-	Code correct. Message slip: NetBSD 1.0 had cmpxchg in db_inst_0fdx (0f d0/d1, rows mislabelled c0/c1), not at 0f c0/c1
+617	4381ced8	donor-fix	KEEP	FreeBSD db_disasm.c (bde 1996-06-08)	-	-
+618	4b12803a	donor-fix	KEEP	FreeBSD db_disasm.c (bde 1996-07-12)	-	-
+619	42a4c31a	donor-fix	KEEP	FreeBSD db_disasm.c (bde 1997-01-04)	-	Corrections taken, additions (cpuid etc.) left out
+620	019b3493	donor-fix	KEEP	FreeBSD db_disasm.c (bde 1997-01-04)	-	-
+621	843514f9	donor-fix	KEEP	NetBSD db_sym.c 1.9 (gwr 1995-05-24)	-	-
+622	4268b022	donor-fix	KEEP	FreeBSD db_trace.c (bde 1996-03-27), adapted	-	Fitted to NetBSD's loop
+623	8d664fbf	donor-fix	KEEP	FreeBSD db_interface.c (bde, 1997-03-28) global jmpbuf	-	db_recover already covers non-BPT traps in the command loop; FreeBSD's adds the breakpoint-in-`call' case; NetBSD/OpenBSD to current have nothing; same text through FreeBSD 4.0
+624	a3d8b81a	donor-fix	KEEP	NetBSD db_examine.c (gwr, 1994-11-17)	-	NetBSD 1.1 text, unchanged in OpenBSD/NetBSD after
+626	425a9969	donor-fix	KEEP	NetBSD db_examine.c (gwr, 1994-11-14)	-	NetBSD 1.1 width 12 and db_disasm FALSE; nearest snapshot 21 lines are comments
+627	93f56b0b	donor-fix	KEEP	FreeBSD db_interface.c (bde, 1995-01-14) rss into u_short	-	NetBSD 1.1-trunk `movw %ss,%w0' into an int still leaves the upper half undefined; OpenBSD later masks &0xffff (similar size); FreeBSD's is correct and small
+628	da676997	donor-fix	KEEP	Mach 3.0 kdb_trap order; NetBSD 1.0 pc532	-	NetBSD to trunk and OpenBSD master still splx before copy-back; FreeBSD no spl; reorder only
+629	c2907245	donor-fix	DONOR-EXISTS	Mach 3.0 db_input.c	OpenBSD b2471a9d0d1 (1996-03-11) sys/ddb/db_input.c	identical line `lstart + lsize - 1' in OpenBSD since 1996 and still in master; commit says OpenBSD kept old value; BSD donor precedes Mach in source order
+630	65172f27	donor-fix	DONOR-EXISTS	Mach 3.0 db_run.c	OpenBSD 1ac7f822d3e (2024-11-05) sys/ddb/db_run.c	OpenBSD fixed the same counted-breakpoint bug with `else return 0' in the count branch (2 lines); commit says OpenBSD lacks it; BSD donor precedes Mach; placement differs slightly (OpenBSD returns before the step-mode tests)
+631	0d9ff28e	donor-fix	KEEP	Mach 3.0 db_break.c	-	no BSD (OpenBSD master, NetBSD trunk) numbers breakpoints; Mach is next source
+632	c1a7748c	donor-fix	KEEP	Mach 3.0 db_examine.c	-	no xf/xb in OpenBSD master or NetBSD trunk
+633	091122f3	donor-fix	KEEP	Mach 3.0 i386 db_disasm.c	-	OpenBSD master, NetBSD trunk, FreeBSD 9.0 all still op1(SI)
+634	3009100c	own-fix	KEEP	own (assembler order)	-	all donors to current still op2(E,R)
+635	63c3fbad	own-fix	KEEP	own (Mach log entry shape)	-	FreeBSD 3.x-4.0 db_printsym DB_SMALL_VALUE_MIN/MAX (+ i386 db_machdep.h) prints small negatives signed, but needs %+ in db_printf and changes all symbol printing; local fix fits better; commit's claim that FreeBSD prints them unsigned is wrong for 4.0
+636	e80ba585	donor-fix	KEEP	FreeBSD 2.1.0 ddb/db_ps.c columns	-	cosmetic layout from FreeBSD 2.1
+637	141b160b	own-fix	KEEP	own (return after message)	-	1-line guard; donors either have the bug or redesign (per-process stacks)
+640	b0ae9e22	donor-fix	KEEP	NetBSD 1.3 exec_elf.h, elf_machdep.h, param.h	-	headers db_elf.c 1.2 needs; minimal
+641	0be95f6d	adaptation	KEEP	NetBSD 1.3 alpha loadfile.c elf_exec into FreeBSD boot2	-	esym convention matches NetBSD/OpenBSD/Mach; FreeBSD bootinfo would need kernel-side foreign interface
+642	63f1fca5	donor-fix	KEEP	NetBSD 1.0 locore.s esym + OpenBSD 2003 load/bss clear	-	NetBSD-era DDB additions (not 386BSD text) in a 386BSD-lineage file; project already treats NetBSD 1.0 locore as admissible (UNVERIFIED against 386BSD 0.1)
+643	40c9ef4b	donor-import	KEEP	NetBSD 1.3 db_elf.c 1.2 + db_aout/db_sym 1997 hooks	-	1.4 rewrote to db_symformat interface (larger); 1.2 plus later fixes is smallest
+645	d55e6dcb	donor-fix	KEEP	NetBSD db_elf.c 1.8 (eeh #if 0)	-	exact NetBSD 1.4 text
+646	015d117e	donor-fix	MORE-COMPLETE	NetBSD db_elf.c 1.15 (bjh21 af2da9ab87) + jhawk 1.12	NetBSD db_elf.c 1.16 (bjh21 1d16f72d97, 2001-07-31)	same author same day adds sanity checks to this exact loop: e_shoff==0 -> badheader, skip symtab/strtab with sh_offset==0 (6 lines)
+647	7ff05b19	donor-fix	KEEP	NetBSD db_trace.c 1.25 (thorpej 8f31d96853)	-	taken as is; FreeBSD 3.x ELF trace uses different entry names
+648	7d3a9c71	build-glue	KEEP	FreeBSD 2.0 Makefile.i386 -X	-	one flag
+650	b4c5e165	own-fix	KEEP	own (name vmunix)	-	naming only
+653	8b8d49c7	donor-fix	KEEP	FreeBSD c8a13ecd0 (1994-01-03) as in FreeBSD 2.0-2.1.0	-	NetBSD 1.0/OpenBSD need INTRENTRY; FreeBSD's is smaller against Lite2 locore; source commit is FreeBSD 1.x but text held to 2.1.0 (i386 trap/locore not on settlement lists, UNVERIFIED)
+656	ba7cc190	build-glue	KEEP	FreeBSD 4.0 bsd.kern.mk	-	one flag
+659	cae68916	donor-fix	KEEP	NetBSD 1.3 exec_elf32.c MACHDEP_ID_CASES	-	uses #640 header; small cleanup
+664	1ea05066	build-glue	KEEP	FreeBSD 2.2.8 gnu/Makefile, gnu/usr.bin/Makefile	-	cut to gdb
+665	e6f1a32e	adaptation	KEEP	FreeBSD 2.x/NetBSD 1.6 bound, as USRSTACK	-	donors' VM_MAXUSER_ADDRESS==USRSTACK; here they differ, so USRSTACK is the faithful form
+669	cbb13f20	donor-fix	KEEP	FreeBSD 2.2.8 fill_eproc	-	3 lines
+670	16c1a7f2	own-fix	KEEP	own after FreeBSD 2.x/NetBSD 1.6	-	donors set vm_ssize via structures Lite2 lacks (SGROWSIZ constant / exec pack); 1 line
+675	8baea01f	donor-fix	KEEP	FreeBSD 2.0/2.0.5 boot() dumppcb	-	2 lines + decl
+678	6c8ffc10	donor-import	KEEP	FreeBSD 2.0 clock.c/rtc.h (Wollman) + FreeBSD 2.2.8 looping rtcintr	-	OpenBSD 1996 needs isa_intr_establish; FreeBSD 2.2.8 loop is the later correction
+679	20349875	donor-fix	KEEP	FreeBSD b39b673d3 (bde, 1994-12-03) intr_nesting_level	-	NetBSD 1.5 IPL_TAGINTR needs a tag bit in cpl, which is 16 bits here and full; OpenBSD selector test miscounts
+680	4aa9d2b1	own-fix	KEEP	own (8259 ISR check); NetBSD/FreeBSD stathz expr; hp300 psratio	-	ISR check only in FreeBSD 5+ atpic.c (post-redesign); not in OpenBSD/NetBSD/DragonFly i386 legacy PIC code
+681	f65bfdce	docs-in-src	KEEP	comment/provenance correction	-	no code change
+682	6b120484	donor-fix	KEEP	FreeBSD 4.0 rtcin atomic (splhigh) as pushfl/cli in locore rtcin	-	Lite2's rtcin is asm; cli/popfl is the asm form of the same guard
+683	d06ce5f6	own-fix	DONOR-EXISTS	OpenBSD c76869a91b8 drain + own disablertclock	OpenBSD 3191b86a3db (2010-08-11) sys/arch/i386/isa/clock.c rtcstop()	OpenBSD's rtcstop writes REGB 24HR to stop the periodic interrupt (called at ACPI sleep); same body as disablertclock less the C read; commit says no donor does this (true only for 1994-97 donors)
+684	7a7f3cfa	donor-fix	KEEP	FreeBSD 2.0.5/2.2.8 idle_loop cli/sti order	-	2 instructions
+685	5b0e7fe6	donor-fix	KEEP	FreeBSD 2.2.8 fill_eproc bzero	-	1 line
+686	6410b563	own-fix	NEEDS-MAINTAINER	NetBSD 1.0/FreeBSD 2.0.5 microtime.s algorithm rewritten in C; resettodr own inverse of inittodr	NetBSD 1.0 sys/arch/i386/i386/microtime.s (McCanne/LBL; also OpenBSD to ~2008)	microtime donor text exists and was not taken (rewritten in C with own scaling/reload/clamp); C in clock.c is arguably the smaller change to Lite2's C microtime; resettodr: NetBSD 1.0 (rtcget/rtcput/yeartoday) and FreeBSD 2.0.5 (writertc, adjkerntz) need foreign helpers, own inverse fits Lite2 inittodr
+687	e47271cc	adaptation	KEEP	NetBSD `> 12' IRR threshold; own bounded clamp	-	moves #686 toward donor text
+688	7e9ea06d	donor-fix	KEEP	NetBSD 1.5 / OpenBSD 2.8 date.c	-	1 line
+689	22ba93f8	donor-fix	KEEP	NetBSD 1.0 npxsave/npxexit/npxdna (Evans's FreeBSD code)	-	NetBSD 1.1+ redesigned (lazy npxsave1); 1.0 form fits Lite2's swtch blocks
+690	09505899	donor-fix	KEEP	FreeBSD 2.1.0 procfs fpregs + NetBSD 1.1 live-FPU flush	-	fits the 108-byte save area
+691	6bf86813	donor-fix	KEEP	FreeBSD 2.0.5 dk_names/read_names	-	NetBSD 1.0 had none; OpenBSD dkstats is a redesign
+692	22eb3b4d	own-fix	KEEP	own (config mkglue intrnames)	-	no donor fits this config-wired vector scheme; Lite2's own VAX dump_std/dump_ctrs in the same file is the in-tree idiom and was not cited
