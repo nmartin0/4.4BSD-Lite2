@@ -15,6 +15,13 @@ and the compiler-flag work. 4.5BSD is cut after a short floor of audit
 fixes rather than completed; where this file and design-4.6.md
 disagree, design-4.6.md is the later decision.**
 
+**Recorded 2026-10-30: `guide-4.6.md` is the design guide that goes with
+this roadmap -- the base (4.4BSD-Lite2, not a daughter), the decisions,
+the sources by system, the route to each feature modern systems share,
+the research, and what of 4.4BSD's tradition stays. Its section 8
+gathers the open decisions, including those added since the list
+below.**
+
 **Recorded 2026-10-29 as the plan for later: *The continuation roadmap*
 below -- each subsystem's backports in order, their plateaus, and the
 decisions still open -- drawn from `analysis-4.6-continuations.md` and
@@ -424,11 +431,9 @@ it and an older line above disagree, this section is the later.
    `vm_pageout.c`, `vnode_pager.c`, i386 `pmap.c`, inherited through
    FreeBSD 1.x): tainted under the 386BSD rule or not. Until ruled,
    FreeBSD VM changes are taken only where they touch Lite-derived files.
-3. **x86:** OpenBSD's separate i386 and amd64 (one lineage; OpenBSD's own
-   ACPI) or NetBSD 2.0-4.0's shared `x86` (the only Torek-lineage
-   precedent; brings ACPICA and NetBSD's 2002 interrupt redesign, and a
-   process shim). `design-4.6.md` rule 5's "as NetBSD's `sys/arch/x86`
-   does" awaits this.
+3. ~~**x86**~~ **Decided 2026-10-30: i386 and amd64 are separate ports,**
+   as in OpenBSD (one lineage; OpenBSD's own ACPI), not NetBSD 2.0-4.0's
+   shared `x86`. `guide-4.6.md` section 2; `design-4.6.md` rule 5.
 4. **The ports:** whether every Lite2 port (hp300, i386, luna68k,
    news3400, pmax, sparc, tahoe, vax) is kept up in source with each
    machine-independent change, or only the ports that can be built and

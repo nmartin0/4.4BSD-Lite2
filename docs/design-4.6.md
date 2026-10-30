@@ -4,7 +4,10 @@ Decided by the maintainer, 2026-10-29. This file records the goal and
 the design rules; `docs/roadmap-4.6.md` holds the measured work items,
 `docs/roadmap-audit.md` the audit that comes before the cut. Where this
 file and an older line of roadmap-4.6.md disagree, this file is the
-later decision. `docs/analysis-4.6-lineage.md` (2026-10-29) traces each
+later decision. `docs/guide-4.6.md` (2026-10-30) is the design guide:
+the base, the decisions, where each piece comes from, the route to each
+feature modern systems share, the research worth using, and what of
+4.4BSD's traditional way stays. `docs/analysis-4.6-lineage.md` (2026-10-29) traces each
 layer's lineage to the goal and finds where lineages cannot be
 reconciled; its section 9 lists corrections to this file that await
 the maintainer's decision.
@@ -66,8 +69,10 @@ ordinary software.
    the hardware forces it. Drivers are machine-independent and reach
    hardware through `bus_space`/`bus_dma`; libc prefers portable C to
    per-port assembly; the compiler's own facilities (C17 atomics and
-   the like) are used rather than per-port code; i386 and amd64 share
-   their common x86 code, as NetBSD's `sys/arch/x86` does.
+   the like) are used rather than per-port code. i386 and amd64 are
+   separate ports, as in OpenBSD (decided 2026-10-30, `guide-4.6.md`
+   section 2); this replaces "share their common x86 code, as NetBSD's
+   `sys/arch/x86` does".
 6. **Generic C, with as few compiler flags as possible** (section 7).
 
 ## 3. Before the cut: the 4.5BSD floor
