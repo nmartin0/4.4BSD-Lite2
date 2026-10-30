@@ -4,7 +4,9 @@ Decided by the maintainer, 2026-10-29. This file records the goal and
 the design rules; `docs/roadmap-4.6.md` holds the measured work items,
 `docs/roadmap-audit.md` the audit that comes before the cut. Where this
 file and an older line of roadmap-4.6.md disagree, this file is the
-later decision. `docs/guide-4.6.md` (2026-10-30) is the design guide:
+later decision. `docs/plan-4.6.md` (2026-10-30) is the plan of work from
+here, in stages, with the decisions each stage waits on.
+`docs/guide-4.6.md` (2026-10-30) is the design guide:
 the base, the decisions, where each piece comes from, the route to each
 feature modern systems share, the research worth using, and what of
 4.4BSD's traditional way stays. `docs/analysis-4.6-lineage.md` (2026-10-29) traces each

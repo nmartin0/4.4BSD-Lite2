@@ -15,6 +15,10 @@ and the compiler-flag work. 4.5BSD is cut after a short floor of audit
 fixes rather than completed; where this file and design-4.6.md
 disagree, design-4.6.md is the later decision.**
 
+**Recorded 2026-10-30: `plan-4.6.md` is the plan of work from here --
+stage 0 (the 4.5BSD floor and the sweep's defects) to stage 8 (Lite2's
+other ports) -- and the decisions each stage waits on.**
+
 **Recorded 2026-10-30: `guide-4.6.md` is the design guide that goes with
 this roadmap -- the base (4.4BSD-Lite2, not a daughter), the decisions,
 the sources by system, the route to each feature modern systems share,
