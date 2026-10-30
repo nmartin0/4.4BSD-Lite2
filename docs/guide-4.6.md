@@ -19,8 +19,7 @@ knowledge of the systems is marked **(not re-checked)**.
 
 **Note on the sources named here.** They were chosen by the method in
 use until 2026-10-30, the oldest donor that continues 4.4. That
-method is replaced by the best-fit rule (recorded next, as
-`design-4.6.md` rule 1a):
+method is replaced by the best-fit rule (`design-4.6.md` rule 1a):
 each source named below is a starting point for the search, to be
 confirmed or replaced by fit when its work is taken up.
 
@@ -90,8 +89,9 @@ what is needed, not all of it.
   The VM may still allocate its own map entries from Mach-style zones
   inside itself, as OSF MK does.
 - **4.4BSD-Lite2 is the base** (section 1).
-- **The best-fit rule** replaces the earliest-donor method (recorded next,
-  as `design-4.6.md` rule 1a).
+- **The best-fit rule** replaces the earliest-donor method (`design-4.6.md`
+  rule 1a), with its tie-breaker: closest to modern before the plateau,
+  then donor order.
 
 ## 3. Where each piece comes from, by system
 

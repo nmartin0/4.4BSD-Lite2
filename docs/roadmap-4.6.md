@@ -453,8 +453,12 @@ it and an older line above disagree, this section is the later.
 
 ### The backports, by subsystem, in order
 
-Each item is the oldest donor that continues 4.4 for it. "Plateau" is
-the furthest that line may be followed.
+Each item is the oldest donor that continues 4.4 for it -- chosen by the
+method in use until 2026-10-30. Under the best-fit rule
+(`design-4.6.md` rule 1a) each is now where the search starts: when the
+item is taken up, the same code is followed forward through every donor
+to its plateau and the best fit chosen. "Plateau" is the furthest that
+line may be followed.
 
 **Processes and threads** (plateau: OpenBSD 2017)
 

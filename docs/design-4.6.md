@@ -46,6 +46,55 @@ ordinary software.
    carried it on -- an addition or fix to the 4.4 design -- and not a
    redesign; `analysis-4.6-continuations.md` traces each subsystem's
    continuation to its plateau.
+1a. **The most canonical fit is the best fit, not the earliest
+   precedent** (decided by the maintainer, 2026-10-30). Until then
+   donors were chosen by which BSD first fixed a thing, on the
+   assumption that the first fix would change 4.4BSD-Lite2's code least;
+   that was a proxy. What is chosen is what preserves Lite2's code best.
+
+   **What best fit means.** For any candidate, from any donor at any
+   date:
+
+   - **Smallest change to Lite2's code:** fewest lines touched, most of
+     Lite2's text and structure left intact.
+   - **Same semantics as 4.4:** fits how 4.4 already does things (its
+     idioms, its interfaces, its locking model) rather than just
+     compiling against it. A small diff that quietly changes behaviour
+     is a worse fit than a slightly larger one that doesn't.
+   - **Complete:** includes the donor's later corrections to the same
+     code.
+   - **Fewest foreign dependencies:** counted as interfaces it needs
+     that Lite2 and our chosen pieces don't have.
+   - **Clean provenance:** passes the clearance ledger and the 386BSD
+     rule.
+   - **Still a continuation, not a redesign:** that test stays exactly as
+     it is.
+
+   **How this changes the method.** The old rule becomes a search order,
+   not a selection rule:
+
+   - Start looking at the oldest continuation, since that's where good
+     fits usually are.
+   - Then check the same code forward through every donor, up to its
+     plateau.
+   - Pick by fit.
+   - Donor order (OpenBSD, NetBSD, FreeBSD, MirOS, DragonFly, others)
+     only breaks ties.
+
+   **Breaking a tie.** Totally equivalent candidates are unlikely; when
+   two or more fit about equally, the tie goes first to **the candidate
+   whose maintained code is closest to modern before reaching its
+   lineage's redesign plateau** -- the one whose line was carried
+   furthest forward, with the most later corrections, while still a
+   continuation of 4.4. Only if that too is equal does donor order
+   decide.
+
+   Lite2 itself still comes first in every search, and the source order
+   above (Lite2, the clear 386BSD files, the clear parts of the other
+   BSDs, Mach, Minix, our own writing) and the clearance rules are
+   unchanged: the best-fit rule chooses among the candidates they
+   admit. Every commit states the candidates measured, how each scored
+   against the six points, and why the chosen one won.
 2. **What gets in:**
    - what POSIX.1-2024, C17, the System V ABI or the errata require;
    - what makes the system faster, or able to run on current

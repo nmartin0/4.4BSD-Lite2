@@ -69,8 +69,15 @@ station A is to build it for the files already in the tree.
 2. What Lite2 offers: same file, directory, other ports, i386 code, libs.
 3. The 386BSD files, with their clearance.
 4. The donors that remain, with their clearance.
-5. The smallest change that closes the gap, and what it would take from
-   each source.
+5. The best fit that closes the gap (`design-4.6.md` rule 1a): every
+   candidate from the oldest continuation forward through each donor to
+   its plateau, scored on the six points (smallest change to Lite2's
+   code, same semantics as 4.4, complete, fewest foreign dependencies,
+   clean provenance, still a continuation); a tie goes to the candidate
+   whose maintained code is closest to modern before its redesign
+   plateau, then to donor order. (Until 2026-10-30 this step read "the
+   smallest change that closes the gap"; the earliest precedent was in
+   practice taken as the smallest.)
 6. Licence, holders and dates the result must carry.
 7. Verdict: KEEP / SPLICE (smaller) / REPLACE (other source) / DROP.
 8. If not KEEP: the new patch, tested, and the record it corrects.
