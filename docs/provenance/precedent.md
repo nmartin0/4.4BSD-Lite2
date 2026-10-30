@@ -6,6 +6,11 @@ committed. Facts, not legal advice.
 
 ## Where to look, in order
 
+This order, stopping at the earliest release that has the thing, is
+4.5BSD's rule, the first canonical fit (decided 2026-10-30,
+`docs/plan-4.5.md`). 4.6BSD searches in the same order but chooses by
+best fit (`docs/design-4.6.md` rule 1a).
+
 1. **4.4BSD-Lite2 itself**, including its other ports: a spelling this
    tree already uses beats one borrowed from elsewhere.
 2. **4.4BSD-Lite**, the settlement baseline. Its kernel differs from

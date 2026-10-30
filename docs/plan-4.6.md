@@ -1,10 +1,17 @@
-# The plan of work: from here to 4.6BSD
+# The plan of work: from 4.5BSD to 4.6BSD
 
 Written 2026-10-30 at the maintainer's request, after the best-fit
-sweep: one ordered plan from the tree as it stands (patch 239) to a
-usable 4.6BSD. It draws together what the other documents decided and
-found, and points to them for detail:
+sweep: one ordered plan from the 4.5BSD release to a usable 4.6BSD.
+Revised the same day, when the maintainer split the work in two:
+4.5BSD is finished to a stable release by the first canonical fit
+(`plan-4.5.md`), and 4.6BSD is cut from that release and continued by
+the best canonical fit. What this file once held as its stage 0, the
+4.5BSD floor, is now `plan-4.5.md`.
 
+It draws together what the other documents decided and found, and
+points to them for detail:
+
+- `plan-4.5.md`: 4.5BSD's plan, and the two rules side by side;
 - `design-4.6.md`: the goal and the rules, including rule 1a, the best-fit rule;
 - `guide-4.6.md`: the design guide (the base, the decisions, the sources
   by system, the route to each shared feature, the tradition kept);
@@ -19,7 +26,7 @@ later decision. Nothing here overrides a rule.
 
 ## How every patch is made
 
-Unchanged from 4.5BSD, with the best-fit rule added:
+As in 4.5BSD, but choosing by best fit, not first fit:
 
 1. **The worksheet** (`roadmap-audit.md`, steps 1-8). Lite2 first. Then
    every candidate from the oldest continuation forward through each
@@ -27,7 +34,7 @@ Unchanged from 4.5BSD, with the best-fit rule added:
    first to the maintained code closest to modern before its plateau,
    then to donor order (OpenBSD, NetBSD, FreeBSD, MirOS, DragonFly,
    others). Own writing last.
-2. **Clearance** before taking anything: the ledger row (stage 0.2), the
+2. **Clearance** before taking anything: the ledger row (built in 4.5BSD), the
    386BSD rule, the encumbered text never used.
 3. **The commit states** the candidates measured, how each scored, why
    the chosen one won, its kind (A-G, `provenance/imports.md`), and the
@@ -55,8 +62,8 @@ Unchanged from 4.5BSD, with the best-fit rule added:
 | **D6** kqueue | 7.5, and the ports tree |
 | **D7** exploit mitigations (W^X, ASLR) | 5.2, 7.5 |
 | **D8** mail transport, NTP client, SSH in `contrib/` | 7.2 |
-| **D9** ddb or kgdb; Kerberos; the licence of our own files | 0.5 (licence), 7.5 |
-| **D10** the sweep's twelve (`audit-bestfit.md`): `sh` getpwd; `expr`; the boot blocks; the FreeBSD disk driver and slice layer; `ptrace`; the stack limit; `ps_strings`; `microtime`; `_C_LABEL`; the ELF start-up files; `<stdint.h>` types | 0.4, and the stage that touches each file |
+| **D9** ddb or kgdb; Kerberos; the licence of our own files | 7.5 (the licence is 4.5BSD's, stage 3) |
+| **D10** the sweep's choices that are right for 4.5BSD and judged again here (`plan-4.5.md` 4.3): the ELF start-up files; `_C_LABEL`; `expr`; `<stdint.h>` types; `ps_strings`; the boot blocks. And whatever 4.5BSD's first-fit corrections settle that best fit would settle otherwise (`ptrace`, `microtime`, `sh` getpwd, the disk driver) | stage 0, and the stage that touches each file |
 | **D11** MirOS BSD's source, if it can be supplied | nothing; it widens the search |
 
 Decided already: 4.4BSD-Lite2 is the base; i386 and amd64 are separate
@@ -64,81 +71,24 @@ ports; FreeBSD's boot blocks stay until UEFI, then OpenBSD's loaders
 and `bootarg`; `pool(9)`; the best-fit rule; the driver interface at
 OpenBSD's 1996-2014 plateau; big-lock SMP first.
 
-## Stage 0: the 4.5BSD floor, then the cut
+## Stage 0: from the 4.5BSD release
 
-The defects and the legal exposure first. Nothing in stage 1 begins
-until 0.1-0.3 are done.
+4.6BSD begins at the 4.5BSD tag (`plan-4.5.md`, stage 7). By then the
+defects are fixed, the ledger is complete, `execve` is clean, the
+holders are named, and the conformance baseline is recorded.
 
-**0.1 The sweep's defects** (`audit-bestfit.md`), each by best fit, in
-this order:
-
-1. `copyout` with no user-address check, and the 386 path's two bugs.
-   The fit to measure first is NetBSD 1.0's `copyout`; Lite2's own C
-   `copyout` is the Lite2-first candidate for the 386. `copyin` is
-   checked at the same time.
-2. The ELF loader's short read (NetBSD 1.2's one line).
-3. `bwrite`'s race, with NetBSD 1.1's corrections to `getblk` and
-   `getnewbuf`.
-4. `compress`'s decode overrun (CVE-2011-2895).
-5. The rest, in order:
-   - `deroff`; `if_ed` (FreeBSD 2.1.7); `uucpd`; `at`; `test`;
-     `mkdir -p`; `sa`;
-   - `re_comp`; `pstat`; ddb's ELF checks; `wcd`; the ELF address
-     arithmetic; `strtoimax`; `uucplock`;
-   - the two man pages.
-6. My own two known bugs from 4.5BSD: the stray-interrupt counter of
-   patch 222 and the `%ss:` overrides for `INTR_SPUR`.
-
-**0.2 The clearance ledger (A1).** `provenance/clearance.md`, one row per
-donor file in use: origin, lineage, version stamps, licence, holders,
-verdict. It answers the sweep's open provenance questions: the floppy
-DMA code (#373), FreeBSD 2.1.0's `wd.c` (#318), and decision D2's
-FreeBSD VM files. `precedent.md` is brought to the donor order and the
-best-fit rule.
-
-**0.3 The encumbrance (A2).**
-
-- **`execve`:** replaced by NetBSD's exec framework. The candidate is
-  chosen by fit: NetBSD 1.0, 1.1, 1.2 and later, and OpenBSD's copies,
-  each measured against Lite2's `kern_exec.c` stub and this tree.
-  - It takes out the `getxfile` lines quoted from 4.4 (#211).
-  - It brings the auxiliary vector with it.
-  - Tested: init, ELF static binaries, `#!` scripts, set-user-ID,
-    argument limits, `ps` strings, saved IDs.
-- **Ledger rows** for `kern_acct.c`, `subr_rmap.c`, `kern_physio.c`,
-  `sys_process.c` and `vfs_bio.c`, recording whether each donor is
-  clear.
-
-**0.4 The sweep's decisions (D10) that touch the floor:**
-
-- the stack limit (`MAXSSIZ`);
-- `ps_strings`;
-- `ptrace`;
-- `sh`'s `getpwd`;
-- `expr`.
-
-The others wait for the stage that touches their files.
-
-**0.5 Holders, licences and our own files (A3, A4).**
-
-- The missing donor notices (Hannum, the NetBSD Foundation, Nordier,
-  Demetriou, the Regents/USL lines).
-- The SPDX line on every file of ours.
-- `COPYRIGHT` listing every holder.
-- The six attribution corrections from the sweep, recorded in
-  `imports.md`.
-
-**0.6 The record of where 4.5BSD was left**:
-
-- what is done, what is known to be incomplete;
-- the audit findings not acted on;
-- the 4.5BSD roadmap items carried into 4.6BSD.
-
-**0.7 The cut.** A tag for 4.5BSD's last state, and 4.6BSD begins from
-it (the branch name the maintainer's to choose).
-
-Exit: no known defect from the sweep open, the ledger complete for
-every donor file, `execve` clean, the boot test passing.
+1. **The branch,** named by the maintainer.
+2. **Rule 1a takes over.** 4.5BSD's choices are judged again by best fit
+   when 4.6BSD touches their files, not all at once. The sweep's table
+   (`provenance/bestfit-sweep.tsv`) lists the findings to start from.
+   They are taken in the stage that touches each file:
+   - the ELF start-up files and `_C_LABEL` (stage 1);
+   - `<stdint.h>`, `<inttypes.h>` and `ps_strings` (stage 3, the ABI);
+   - `expr` (stage 3, the utilities);
+   - the disk driver (stage 4);
+   - the boot blocks (stage 6).
+3. **A first fix taken by 4.5BSD for a hole stays** unless best fit finds
+   a more complete form of the same line.
 
 ## Stage 1: the compiler and C17
 
@@ -172,8 +122,8 @@ essential flags; the boot test and the system building itself pass.
 2. **The harness:** one command builds the system, puts the suite on the
    guest's disk image, boots QEMU, runs it, brings `run.log` back, and
    diffs it with the last run. The suite is never committed.
-3. **The first baseline,** and a `known/` list of its failures as the
-   backlog.
+3. **The baseline** recorded at the 4.5BSD release, run again on the
+   harness, and a `known/` list of its failures as the backlog.
 4. **The stability tests carried from 4.5BSD:**
    - the boot test, multi-user;
    - the system building itself;

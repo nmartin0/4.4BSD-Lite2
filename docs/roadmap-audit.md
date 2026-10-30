@@ -69,15 +69,25 @@ station A is to build it for the files already in the tree.
 2. What Lite2 offers: same file, directory, other ports, i386 code, libs.
 3. The 386BSD files, with their clearance.
 4. The donors that remain, with their clearance.
-5. The best fit that closes the gap (`design-4.6.md` rule 1a): every
-   candidate from the oldest continuation forward through each donor to
-   its plateau, scored on the six points (smallest change to Lite2's
-   code, same semantics as 4.4, complete, fewest foreign dependencies,
-   clean provenance, still a continuation); a tie goes to the candidate
-   whose maintained code is closest to modern before its redesign
-   plateau, then to donor order. (Until 2026-10-30 this step read "the
-   smallest change that closes the gap"; the earliest precedent was in
-   practice taken as the smallest.)
+5. The fit that closes the gap, by the rule of the release the patch
+   belongs to (decided 2026-10-30, `plan-4.5.md`):
+   - **for 4.5BSD, the first canonical fit:** the earliest candidate in
+     the source order that closes the gap with 4.4's semantics, as a
+     continuation, with clean provenance; then that line's first fix
+     for each hole it is shown to have; ties to the smallest change,
+     then donor order. The Part B replay uses this.
+   - **for 4.6BSD, the best fit** (`design-4.6.md` rule 1a): every
+     candidate from the oldest continuation forward through each donor
+     to its plateau, scored on the six points (smallest change to
+     Lite2's code, same semantics as 4.4, complete, fewest foreign
+     dependencies, clean provenance, still a continuation); a tie goes
+     to the candidate whose maintained code is closest to modern before
+     its redesign plateau, then to donor order.
+
+   (Until 2026-10-30 this step read "the smallest change that closes the
+   gap", and the earliest precedent was in practice taken as the
+   smallest. Patch 238 made it best fit for both releases; patch 241
+   split it.)
 6. Licence, holders and dates the result must carry.
 7. Verdict: KEEP / SPLICE (smaller) / REPLACE (other source) / DROP.
 8. If not KEEP: the new patch, tested, and the record it corrects.

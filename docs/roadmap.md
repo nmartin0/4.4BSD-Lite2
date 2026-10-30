@@ -26,6 +26,13 @@ and a record of where it was left, 4.6BSD is cut from it
 (`docs/design-4.6.md`). The items below that are still open move to
 4.6BSD, the tests and the ports tree among them.
 
+**Revised 2026-10-30:** 4.5BSD is finished to a stable release first,
+choosing by the first canonical fit, and 4.6BSD is cut from that
+release and chooses by the best fit. The plan is `docs/plan-4.5.md`.
+The test framework (item 5), the kernel's loose ends (item 6) and the
+release (item 8) are 4.5BSD's again. Ports (4), Torek's
+autoconfiguration (7) and X11R5 (9) stay with 4.6BSD.
+
 This file is 4.5BSD's: what is left; what is still to be settled
 between the two; what is noted for later; what is done, in the order
 it was done; and the two plans decided and not yet begun, the ports

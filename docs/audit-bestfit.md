@@ -180,6 +180,33 @@ would have avoided. In order of severity:
 - **#342 `<stdint.h>`:** NetBSD 2's i386 types (`intptr_t` as `int`,
   `int_fast16_t` as `int`), an ABI choice.
 
+## Read again under 4.5BSD's rule (2026-10-30)
+
+The sweep judged by best fit, 4.6BSD's rule. The maintainer then
+decided that 4.5BSD keeps the first canonical fit (`plan-4.5.md`).
+Under that rule:
+
+- **The 21 defects stay defects.** Each is fixed in 4.5BSD by the
+  first fix of its hole. For `copyout`, Lite2's own C `copyout` is
+  measured first.
+- **The 3 provenance problems are 4.5BSD's,** with the ledger.
+- **Of the 12 decisions:**
+  - 3 become 4.5BSD corrections: `ptrace` (NetBSD 1.0 is earlier),
+    the stack limit (FreeBSD 2.0's own `MAXSSIZ`), and `microtime`
+    (NetBSD 1.0's donor text before our own).
+  - 1, `sh`'s `getpwd`, is measured first: NetBSD 1.1's form is
+    earlier.
+  - 2, the disk driver and its slice layer, go with the provenance
+    work.
+  - 6 are right for 4.5BSD as they are, and 4.6BSD judges them again:
+    the ELF start-up files, `_C_LABEL`, `expr`, `<stdint.h>`,
+    `ps_strings`, the boot blocks.
+- **The attribution corrections stand.** #54 (`tip`) also moves to the
+  earlier OpenBSD 1997 form.
+
+These readings come from the sweep's table, not from a second check
+against source; each is checked when its patch is made.
+
 ## Attribution only (the code stays)
 
 - #66 `register_t`: NetBSD 1.1 and OpenBSD 1996 have it (checked).

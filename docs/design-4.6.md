@@ -54,6 +54,13 @@ ordinary software.
    assumption that the first fix would change 4.4BSD-Lite2's code least;
    that was a proxy. What is chosen is what preserves Lite2's code best.
 
+   **This is 4.6BSD's rule** (decided by the maintainer, later on
+   2026-10-30). 4.5BSD, a restoration, keeps the first canonical fit:
+   the earliest continuation that closes the gap, in the source order,
+   with its own line's later fixes for its holes (`plan-4.5.md`, *The
+   two rules*). 4.6BSD judges 4.5BSD's choices again by this rule when
+   it touches their files.
+
    **What best fit means.** For any candidate, from any donor at any
    date:
 
