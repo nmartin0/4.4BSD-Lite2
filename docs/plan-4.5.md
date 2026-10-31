@@ -149,6 +149,16 @@ numbers.
    in the one patch.
 7. **My own two from 4.5BSD:** the stray-interrupt counter of patch
    222, and the `%ss:` overrides for `INTR_SPUR`.
+   **Done, patch 258** (`provenance/intr-slots.md`): the counter-slot
+   fix is confirmed against three live collisions in `GENERIC.i386`
+   (`pc0`, `com0`, `wt0`), corroborated (not sourced) by FreeBSD 2.0's
+   static `vector.s`. Independent review re-derived the collisions
+   and the fix's logic from scratch and found no errors. The `%ss:`
+   override was drafted, built, and confirmed by `objdump` to reach
+   the compiled kernel, but dropped at the maintainer's direction
+   (2026-10-31): it fixes nothing this tree's current flat segment
+   layout can actually reach, and the real fit for this item is the
+   counter-slot fix alone. `icu.h` is unchanged by this patch.
 
 ## Stage 3: provenance
 

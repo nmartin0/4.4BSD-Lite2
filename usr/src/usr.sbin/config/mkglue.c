@@ -336,9 +336,6 @@ dump_ctrs(fp)
 vector() {
 	register FILE *fp, *gp;
 	register struct device *dp, *mp;
-	int count;
-	char names[512];	/* NUL-separated, in counter-slot order */
-	int namelen;
 
 	fp = fopen(path("vector.s"), "w");
 	if (fp == 0) {
@@ -375,84 +372,132 @@ VEC(clk)\n\
 	fprintf(fp,"\
 	.globl	_C_LABEL(rtcintr)\n\
 VEC(rtc)\n\
-	INTR2(8, _C_LABEL(highmask), 1)\n\
+	INTR2(8, _C_LABEL(highmask), 8)\n\
 	call	_C_LABEL(rtcintr) \n\
 	INTREXIT2\n\n\n");
 
 	/*
-	 * AI-ONLY NOTE: counter slots. Each vector counts into its own
-	 * longword of isa_intr (icu.s) through the last argument of its
-	 * INTRn; slot 0 is the clock, slot 1 the statistics clock, the
-	 * devices follow from 2. The rtc used to be hardcoded as 8, the
-	 * same as the ninth device's. The names go out below as
-	 * intrnames, in the same order, for vmstat -i; the layout (a
-	 * table of names and a table of longs, each with a label past
-	 * its end) is the one vmstat has read since 4.3BSD, and NetBSD
-	 * 1.0's vector.s keeps the same four labels, as dummies.
+	 * AI-ONLY NOTE: changed (2026-10-31; docs/provenance/intr-slots.md).
+	 * Counter slots are now the hardware IRQ number itself (0-15),
+	 * not a count incremented in dtab's order. The previous "slot 0
+	 * is the clock, slot 1 the statistics clock, the devices follow
+	 * from 2" scheme (this comment, before this change) collided
+	 * with icu.s's own stray-interrupt vectors, which have always
+	 * counted into isa_intr[irq] by the raw IRQ number -- unchanged
+	 * since before this file's generator existed, and correct on
+	 * their own, since they are the default for whichever IRQ line
+	 * ends up with no probed device (isa_defaultirq, i386/isa/isa.c).
+	 * A device given the sequential slot N shared that slot with
+	 * whatever unconfigured IRQ also happened to equal N, and every
+	 * stray interrupt on that unrelated line counted as if it were
+	 * the device's own. Checked against GENERIC.i386's own config:
+	 * pc0 (irq 1) was given slot 2, which is also unconfigured IRQ
+	 * 2's own raw slot; com0 (irq 4) was given slot 7, which is IRQ
+	 * 7's -- the line INTR_SPUR1 exists specifically because it is
+	 * frequently spurious; wt0 (irq 5) was given slot 10, which is
+	 * unconfigured IRQ 10's. All three are live collisions in the
+	 * kernel this tree already ships, not a hypothetical. Indexing
+	 * by IRQ instead makes every slot's owner the one hardware line
+	 * that can ever write to it, which is what icu.s assumed all
+	 * along. isa_intr is declared `.space 16*4' (icu.s) either way,
+	 * so this does not grow it; it only stops using fewer than 16 of
+	 * the 16 slots it already reserved. clk (irq 0) and rtc (irq 8)
+	 * are reserved the same way they always were, just at their own
+	 * true IRQ numbers now rather than slots 0/1; no device's own
+	 * irq can be 0 or 8 (checked below), since clock.c's setidt for
+	 * both is unconditional and would never let a device's vector
+	 * run there regardless of what this file emitted.
+	 *
+	 * The names go out below as intrnames, in the same order, for
+	 * vmstat -i; the layout (a table of names and a table of longs,
+	 * each with a label past its end) is the one vmstat has read
+	 * since 4.3BSD, and NetBSD 1.0's vector.s keeps the same four
+	 * labels, as dummies. Every one of the 16 slots gets a name now,
+	 * not just the configured ones: an unconfigured line still gets
+	 * real, if rare, stray interrupts (the 8259A's own spurious-IRQ
+	 * behaviour on 7 and 15 is not the only source), and vmstat -i
+	 * already skips any entry whose count is zero, so a placeholder
+	 * name for a quiet line costs nothing and a busy one is no
+	 * longer silently folded into some unrelated device's count.
 	 */
-	namelen = 0;
-	strcpy(names, "clk");	namelen += 4;
-	strcpy(names + namelen, "rtc");	namelen += 4;
-	count=1;
-	for (dp = dtab; dp != 0; dp = dp->d_next) {
-		mp = dp->d_conn;
-		if (mp != 0 && /* mp != (struct device *)-1 &&*/
-		    eq(mp->d_name, "isa")) {
-			struct idlst *id, *id2;
+	{
+		int irq;
+		char namebuf[16][32];
+		char claimed[16];
 
-			for (id = dp->d_vec; id; id = id->id_next) {
-				for (id2 = dp->d_vec; id2; id2 = id2->id_next) {
-					if (id2 == id) {
-						if(dp->d_irq == -1) continue;
-			fprintf(fp,"\t.globl _C_LABEL(%s), _C_LABEL(%s%dmask)\n\t.data\n",
-				id->id, dp->d_name, dp->d_unit);
-			fprintf(fp,"_C_LABEL(%s%dmask):\t.long 0\n\t.text\n",
-				dp->d_name, dp->d_unit);
-			fprintf(fp,"VEC(%s%d)\n\t%sINTR%d(%d, ",
-				dp->d_name, dp->d_unit,
-				dp->d_irq == 7 ? "INTR_SPUR1\n\t" :
-				dp->d_irq == 15 ? "INTR_SPUR2\n\t" : "",
-				dp->d_irq / 8 + 1, dp->d_unit);
-					if(eq(dp->d_mask,"null"))
-		 				fprintf(fp,"_C_LABEL(%s%dmask), ",
-							dp->d_name, dp->d_unit);
-					else
-		  				fprintf(fp,"_C_LABEL(%smask), ",
-							dp->d_mask);
-		  	fprintf(fp,"%d)\n\tcall\t_C_LABEL(%s)\n\tINTREXIT%d\n\n\n",
-				++count, id->id, (dp->d_irq > 7)?2:1); 
-			if (count >= 16 ||
-			    namelen + strlen(dp->d_name) + 12 > sizeof names) {
-				fprintf(stderr,
-				    "config: too many interrupt vectors (16)\n");
-				exit(1);
-			}
-			namelen += sprintf(names + namelen, "%s%d",
-			    dp->d_name, dp->d_unit) + 1;
-						break;
+		for (irq = 0; irq < 16; irq++) {
+			sprintf(namebuf[irq], "irq%d", irq);
+			claimed[irq] = 0;
+		}
+		strcpy(namebuf[0], "clk");	claimed[0] = 1;
+		strcpy(namebuf[8], "rtc0");	claimed[8] = 1;
+
+		for (dp = dtab; dp != 0; dp = dp->d_next) {
+			mp = dp->d_conn;
+			if (mp != 0 && /* mp != (struct device *)-1 &&*/
+			    eq(mp->d_name, "isa")) {
+				struct idlst *id, *id2;
+
+				for (id = dp->d_vec; id; id = id->id_next) {
+					for (id2 = dp->d_vec; id2; id2 = id2->id_next) {
+						if (id2 == id) {
+							if(dp->d_irq == -1) continue;
+							if (dp->d_irq < 0 || dp->d_irq > 15) {
+								fprintf(stderr,
+								    "config: %s%d: irq %d is out of range\n",
+								    dp->d_name, dp->d_unit, dp->d_irq);
+								exit(1);
+							}
+							if (claimed[dp->d_irq]) {
+								fprintf(stderr,
+								    "config: %s%d: irq %d is already %s\n",
+								    dp->d_name, dp->d_unit,
+								    dp->d_irq, namebuf[dp->d_irq]);
+								exit(1);
+							}
+							claimed[dp->d_irq] = 1;
+							sprintf(namebuf[dp->d_irq], "%s%d",
+							    dp->d_name, dp->d_unit);
+				fprintf(fp,"\t.globl _C_LABEL(%s), _C_LABEL(%s%dmask)\n\t.data\n",
+					id->id, dp->d_name, dp->d_unit);
+				fprintf(fp,"_C_LABEL(%s%dmask):\t.long 0\n\t.text\n",
+					dp->d_name, dp->d_unit);
+				fprintf(fp,"VEC(%s%d)\n\t%sINTR%d(%d, ",
+					dp->d_name, dp->d_unit,
+					dp->d_irq == 7 ? "INTR_SPUR1\n\t" :
+					dp->d_irq == 15 ? "INTR_SPUR2\n\t" : "",
+					dp->d_irq / 8 + 1, dp->d_unit);
+						if(eq(dp->d_mask,"null"))
+			 				fprintf(fp,"_C_LABEL(%s%dmask), ",
+								dp->d_name, dp->d_unit);
+						else
+			  				fprintf(fp,"_C_LABEL(%smask), ",
+								dp->d_mask);
+			  	fprintf(fp,"%d)\n\tcall\t_C_LABEL(%s)\n\tINTREXIT%d\n\n\n",
+					dp->d_irq, id->id, (dp->d_irq > 7)?2:1);
+							break;
+						}
+						if (!strcmp(id->id, id2->id))
+							break;
 					}
-					if (!strcmp(id->id, id2->id))
-						break;
 				}
 			}
 		}
-	}
-	/*
-	 * intrcnt is the front of isa_intr, as many longs as there are
-	 * names; vmstat finds the number of counters from the labels.
-	 */
-	{
-		char *cp;
 
+		/*
+		 * intrcnt is the front of isa_intr, always the full 16
+		 * longs icu.s reserves for it; intrnames has one name per
+		 * slot, in the same irq order (0 to 15), so vmstat -i pairs
+		 * them up correctly whether or not every slot is claimed.
+		 */
 		fprintf(fp, "\t.globl _C_LABEL(intrnames), _C_LABEL(eintrnames)\n");
 		fprintf(fp, "\t.globl _C_LABEL(intrcnt), _C_LABEL(eintrcnt)\n");
 		fprintf(fp, "\t.data\n_C_LABEL(intrnames):\n");
-		for (cp = names; cp < names + namelen; cp += strlen(cp) + 1)
-			fprintf(fp, "\t.asciz\t\"%s\"\n", cp);
+		for (irq = 0; irq < 16; irq++)
+			fprintf(fp, "\t.asciz\t\"%s\"\n", namebuf[irq]);
 		fprintf(fp, "_C_LABEL(eintrnames):\n");
 		fprintf(fp, "\t.set\t_C_LABEL(intrcnt), _C_LABEL(isa_intr)\n");
-		fprintf(fp, "\t.set\t_C_LABEL(eintrcnt), _C_LABEL(isa_intr) + %d\n",
-		    (count + 1) * 4);
+		fprintf(fp, "\t.set\t_C_LABEL(eintrcnt), _C_LABEL(isa_intr) + 64\n");
 		fprintf(fp, "\t.text\n");
 	}
 	(void) fclose(fp);

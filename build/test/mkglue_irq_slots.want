@@ -1,0 +1,16 @@
+dev     irq  old-slot  new-slot
+pc0       1         2         1
+npx0     13         3        13
+wdc0     14         4        14
+wdc1     15         5        15
+fd0       6         6         6
+com0      4         7         4
+ed0       9         8         9
+ed1       3         9         3
+wt0       5        10         5
+OLD COLLISION: pc0's slot 2 == unconfigured stray irq2
+OLD COLLISION: com0's slot 7 == unconfigured stray irq7
+OLD COLLISION: wt0's slot 10 == unconfigured stray irq10
+old scheme: 3 collision(s)
+new scheme: 0 collision(s)
+all checks passed
