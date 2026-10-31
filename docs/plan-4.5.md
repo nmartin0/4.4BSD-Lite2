@@ -124,7 +124,8 @@ numbers.
    - `at` (NetBSD 1.3's 1998 Y2K fix to `parsetime.c` -- earlier than
      OpenBSD's 1999 one -- then OpenBSD's 2000 `eqp` fix). **Done,
      patch 254** (`provenance/at-fixes.md`).
-   - `uucpd` (OpenBSD 1996);
+   - `uucpd` (OpenBSD 1996). **Done, patch 255**
+     (`provenance/uucpd-doit.md`).
    - `deroff` (OpenBSD's own later fixes, each the first for its
      hole).
 6. **The smaller ones:**

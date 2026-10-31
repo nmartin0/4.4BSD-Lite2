@@ -116,6 +116,7 @@ would have avoided. In order of severity:
    **Done, patch 250** (`provenance/if_ed-assign.md`).
 7. **`uucpd` changes directory as root and never sets the login name**
    (#586; checked). OpenBSD's 1996 fixes to the same `doit()`.
+   **Done, patch 255** (`provenance/uucpd-doit.md`).
 8. **`at` treats two-digit years as 19xx and tests the wrong pointer**
    (#483; checked). OpenBSD's and NetBSD's 1999-2000 fixes.
    **Done, patch 254** (`provenance/at-fixes.md`; the Y2K half is

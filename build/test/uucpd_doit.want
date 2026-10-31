@@ -1,0 +1,5 @@
+T begin
+T bug order   (chdir, then setuid)       -> ok
+T fixed order (setuid, then chdir)       -> Permission denied
+T all checks passed
+T end

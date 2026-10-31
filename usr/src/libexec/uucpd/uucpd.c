@@ -197,6 +197,16 @@ struct sockaddr_in *sinp;
 	alarm(0);
 	sprintf(Username, "USER=%s", user);
 	dologin(pw, sinp);
+	/*
+	 * AI-ONLY NOTE (2026-10-31): added -- OpenBSD's fix (deraadt,
+	 * "setlogin", 1996-09-02). Nothing here ever recorded the
+	 * caller as logged in via setlogin(2); the session's login name
+	 * (as read by getlogin(2), used by programs like who(1) and
+	 * w(1) to attribute the session) stayed whatever uucpd's own
+	 * parent process happened to have, not the uucp user who just
+	 * authenticated. See docs/provenance/uucpd-doit.md.
+	 */
+	setlogin(user);
 	setgid(pw->pw_gid);
 	/*
 	 * AI-ONLY NOTE: changed (2026-10-25) -- as NetBSD 1.0's uucpd.c:
@@ -209,8 +219,19 @@ struct sockaddr_in *sinp;
 	 * not BSD4_2.
 	 */
 	initgroups(pw->pw_name, pw->pw_gid);
-	chdir(pw->pw_dir);
+	/*
+	 * AI-ONLY NOTE (2026-10-31): changed -- OpenBSD's fix (deraadt,
+	 * "do not chdir as root", 1996-07-22): chdir() ran before
+	 * setuid(), so it ran as root, and so it always succeeded even
+	 * into a pw_dir the uucp user has no permission to enter at
+	 * all -- the directory-permission check that chdir() is
+	 * supposed to make was being bypassed by root's own privilege.
+	 * setuid() now runs first, so chdir() runs as the uucp user and
+	 * is subject to the same access check as any other process's.
+	 * See docs/provenance/uucpd-doit.md.
+	 */
 	setuid(pw->pw_uid);
+	chdir(pw->pw_dir);
 	execl(_PATH_UUCICO, "uucico", (char *)0);
 	perror("uucico server: execl");
 }
