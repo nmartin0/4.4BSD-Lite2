@@ -127,7 +127,7 @@ numbers.
    - `uucpd` (OpenBSD 1996). **Done, patch 255**
      (`provenance/uucpd-doit.md`).
    - `deroff` (OpenBSD's own later fixes, each the first for its
-     hole).
+     hole). **Done, patch 256** (`provenance/deroff-overflows.md`).
 6. **The smaller ones:**
    - `re_comp` (`const` from NetBSD 1.1; the empty-string fix from
      FreeBSD 2.1 if it is earlier than NetBSD 1.4);

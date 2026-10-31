@@ -1,0 +1,11 @@
+T begin
+T built with AddressSanitizer
+T long_line: exit 0
+T long_line: output matches input
+T ps_long: exit 1
+T ps_long: reported the length error
+T ps_short: exit 0
+T high_byte: exit 0
+T high_byte: output as expected
+T all checks passed
+T end

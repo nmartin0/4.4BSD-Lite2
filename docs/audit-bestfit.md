@@ -108,7 +108,8 @@ would have avoided. In order of severity:
    Lite code.
 5. **`deroff` indexes `chars[128]` with any byte** (#564; checked), and
    lacks OpenBSD's 2014 `.PS` overflow fix and its 2023 long-line fix.
-   All are later fixes on the same 2002 code.
+   All are later fixes on the same 2002 code. **Done, patch 256**
+   (`provenance/deroff-overflows.md`).
 6. **`if_ed` assigns where it compares** (#443; checked). `if (sc->type =
    ED_TYPE_SMC8216C)` twice. Credited to FreeBSD, no later than
    1996-03-31; the earlier "2.1.7" attribution here could not be

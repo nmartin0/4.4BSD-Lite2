@@ -151,9 +151,42 @@ int	inmacro;
 int	intable;
 int	keepblock;	/* keep blocks of text; normally false when msflag */
 
-char chars[128];  /* SPECIAL, PUNCT, APOS, DIGIT, or LETTER */
+/*
+ * AI-ONLY NOTE (2026-10-31): changed -- OpenBSD's fix (deraadt, from
+ * Renaud Allard, "chars[] array needs to be sized 256 because it is
+ * indexed at many places by (unsigned char) from input data",
+ * 2026-04-01). Several call sites below cast an input byte to
+ * `(unsigned char)' before indexing `chars[]' (0-255), which this
+ * array was never big enough for; a byte with its high bit set
+ * (0x80-0xFF) read past the end of a 128-byte array. See
+ * docs/provenance/deroff-overflows.md. A few other call sites index
+ * `chars[]' with a plain `char'/`int' that can go negative for a
+ * high-bit byte instead -- a related but distinct problem this
+ * donor fix does not address either (the array is still indexed
+ * with a negative value there, out of bounds however big it is);
+ * see that doc's "what is not established" section.
+ */
+char chars[256];  /* SPECIAL, PUNCT, APOS, DIGIT, or LETTER */
 
-char line[LINE_MAX];
+/*
+ * AI-ONLY NOTE (2026-10-31): changed -- OpenBSD's fix (millert, "Use
+ * a dynamically-allocated line buffer and resize as needed. Fixes a
+ * buffer overflow for lines over 2048 bytes.", 2023-09-27).
+ * regline()'s own loop below let `lp' reach exactly `line + LINE_MAX'
+ * before stopping, and then wrote there anyway (both the loop's own
+ * last character and the terminating NUL after it) -- one more
+ * reading a single input line LINE_MAX (2048) bytes or longer with
+ * no embedded newline overflowed this array by at least a byte. The
+ * donor's fix makes the buffer grow instead of having a fixed limit
+ * to overflow. This tree doesn't carry OpenBSD's `reallocarray()'
+ * (added there after this commit); `realloc()' is used instead, the
+ * same size-doubling policy without that function's extra
+ * multiply-overflow guard, which does not matter in practice for a
+ * buffer that starts at 2048 bytes and only ever doubles. See
+ * docs/provenance/deroff-overflows.md.
+ */
+size_t linesz;
+char *line;
 char *lp;
 
 int c;
@@ -357,6 +390,10 @@ main(int ac, char **av)
 	files[0] = infile;
 	filesp = &files[0];
 
+	linesz = LINE_MAX;
+	if ((line = malloc(linesz)) == NULL)
+		err(1, NULL);
+
 	for (i = 'a'; i <= 'z' ; ++i)
 		chars[i] = LETTER;
 	for (i = 'A'; i <= 'Z'; ++i)
@@ -493,7 +530,15 @@ regline(void (*pfunc)(char *, int), int constant)
 
 	line[0] = c;
 	lp = line;
-	while (lp - line < sizeof(line)) {
+	for (;;) {
+		if (lp - line == linesz - 1) {
+			char *newline = realloc(line, linesz * 2);
+			if (newline == NULL)
+				err(1, NULL);
+			lp = newline + (lp - line);
+			line = newline;
+			linesz *= 2;
+		}
 		if (c == '\\') {
 			*lp = ' ';
 			backsl();
@@ -763,10 +808,31 @@ void
 inpic(void)
 {
 	int c1;
-	char *p1;
+	char *p1, *ep;
 
 	SKIP;
 	p1 = line;
+	/*
+	 * AI-ONLY NOTE (2026-10-31): changed -- OpenBSD's fix (millert,
+	 * "Fix buffer overflow in .PS parsing. Found by afl and based
+	 * on a diff from jsg@.", 2014-12-03). Below, a `.PS'/`.PE'
+	 * block's quoted strings were copied into `line' one byte at a
+	 * time with no bound at all, so a block with enough quoted text
+	 * overflowed it. this tree's `line' is the dynamically-grown
+	 * buffer from the 2023 fix just above (docs/provenance/
+	 * deroff-overflows.md), not a fixed array, so `ep' is computed
+	 * from `linesz' (the buffer's current real size) -- OpenBSD's
+	 * own later tree (as of the donor commit cited in that same
+	 * note, 2026-04-01, the latest available here) still computes
+	 * this as `line + sizeof(line) - 1', which was correct only
+	 * while `line' was still a fixed array; now that `line' is a
+	 * pointer there, `sizeof(line)' is the pointer's own size (8 on
+	 * a 64-bit host), not the buffer's, so that tree's own `.PS'
+	 * handling is left far more restrictive than intended. Using
+	 * `linesz' here avoids carrying that same mistake into this
+	 * tree.
+	 */
+	ep = line + linesz - 1;
 	c = '\n';
 	for (;;) {
 		c1 = c;
@@ -799,8 +865,11 @@ inpic(void)
 						continue;
 					ungetc(c, infile);
 					backsl();
-				} else
+				} else if (p1 + 1 >= ep) {
+					errx(1, ".PS length exceeds limit");
+				} else {
 					*p1++ = c;
+				}
 			}
 			*p1++ = ' ';
 		}
