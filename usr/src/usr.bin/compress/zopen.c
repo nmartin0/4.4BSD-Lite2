@@ -541,6 +541,22 @@ zread(cookie, rbp, num)
 
 		/* Generate output characters in reverse order. */
 		while (code >= 256) {
+			/*
+			 * AI-ONLY NOTE (2026-10-31): added -- OpenBSD's 2005
+			 * fix (first canonical fit; FreeBSD's and NetBSD's
+			 * root-cause rewrites are later). A corrupted or
+			 * hand-crafted stream can give a chain through
+			 * tab_prefixof() longer than de_stack has room for;
+			 * without this check, the loop writes stackp past
+			 * the end of htab. Checked against OpenBSD's source;
+			 * not verified against a NetBSD release that may
+			 * carry the same fix earlier -- see
+			 * docs/provenance/compress-stack.md.
+			 */
+			if (stackp >= (char_type *)&htab[HSIZE]) {
+				errno = EINVAL;
+				return (-1);
+			}
 			*stackp++ = tab_suffixof(code);
 			code = tab_prefixof(code);
 		}

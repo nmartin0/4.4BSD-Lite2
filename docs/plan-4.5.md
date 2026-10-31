@@ -112,6 +112,7 @@ numbers.
    **Done, patch 248** (`provenance/bufcache.md`).
 4. **`compress` overruns its decode stack** (#526): the first fix of
    CVE-2011-2895 among the three BSDs.
+   **Done, patch 249** (`provenance/compress-stack.md`).
 5. **The utilities**, each with the first fix of its hole:
    - `if_ed` (FreeBSD 2.1.7);
    - `test` with three arguments (FreeBSD 2.2);
