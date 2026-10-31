@@ -155,7 +155,24 @@ main(argc, argv)
 			ret_val = posix_unary_op(&argv[1]);
 			if (ret_val >= 0)
 				return (!ret_val);
-		} else {
+		/*
+		 * AI-ONLY NOTE: added -- FreeBSD's fix (Tom Rush, by way
+		 * of Steve Price, 1996-12-25). posix_binary_op() looks
+		 * "-a"/"-o" up in binary_op and treats them as an
+		 * ordinary two-operand comparison: op_argflag is 0 for
+		 * them, so it takes neither the OP_INT nor the OP_STRING
+		 * path and instead stores the raw, unevaluated argv
+		 * pointers into the union test.c uses for both strings
+		 * and numbers; expr_operator()'s OR1/AND1 case then
+		 * copies the second one over the first and the result is
+		 * read back as a number, so the three-argument form of
+		 * `test arg1 -a arg2' (and `-o') compared a leftover
+		 * pointer value to zero instead of evaluating either
+		 * argument, and returned true for any such expression
+		 * whose second argument was a real pointer -- which is
+		 * to say, always. See docs/provenance/test-3arg.md.
+		 */
+		} else if (lookup_op(argv[2], andor_op) < 0) {
 			ret_val = posix_binary_op(&argv[1]);
 			if (ret_val >= 0)
 				return (ret_val);

@@ -117,7 +117,8 @@ numbers.
    - `if_ed`. **Done, patch 250** (`provenance/if_ed-assign.md`; the
      "FreeBSD 2.1.7" attribution below could not be confirmed and is
      corrected there).
-   - `test` with three arguments (FreeBSD 2.2);
+   - `test` with three arguments. **Done, patch 251**
+     (`provenance/test-3arg.md`).
    - `mkdir -p` (the first FreeBSD release with `if (!last)`);
    - `sa` (NetBSD 1.3);
    - `at` (OpenBSD's 1999 Y2K fix to `parsetime.c`, then the 2000

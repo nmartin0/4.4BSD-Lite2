@@ -1,0 +1,13 @@
+T begin
+T ""      -a ""     : exit=1
+T ""      -a "x"    : exit=1
+T "x"     -a ""     : exit=1
+T "x"     -a "y"    : exit=0
+T ""      -o ""     : exit=1
+T ""      -o "x"    : exit=0
+T "x"     -o ""     : exit=0
+T "x"     -o "y"    : exit=0
+T abc = abc (unaffected): exit=0
+T abc = xyz (unaffected): exit=1
+T 1 -eq 1 (unaffected): exit=0
+T end

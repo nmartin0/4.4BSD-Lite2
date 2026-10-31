@@ -119,7 +119,8 @@ would have avoided. In order of severity:
 8. **`at` treats two-digit years as 19xx and tests the wrong pointer**
    (#483; checked). OpenBSD's and NetBSD's 1999-2000 fixes.
 9. **`test` gets three-argument `-a`/`-o` wrong** (#504; checked).
-   FreeBSD 2.2's one-line fix, which patch 504's own tests exercise.
+   FreeBSD's one-line fix (Steve Price/Tom Rush, 1996-12-25).
+   **Done, patch 251** (`provenance/test-3arg.md`).
 10. **`mkdir -p` writes '/' over the path's terminating NUL** (#452;
     checked). FreeBSD's later line in the same `build()`.
 11. **`sa` passes `char **` to `%s`** (#512; checked). NetBSD 1.3.
