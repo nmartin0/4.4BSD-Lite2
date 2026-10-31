@@ -745,6 +745,18 @@ which reads files for the refused copyouts for that reason. The fix is
 in soreceive's `restart` condition (an error should leave); the donors
 are to be measured when it is taken up. Lite2's own code, unchanged.
 
+### `reassignbuf` runs unprotected in `bwrite` -- found 2026-10-31
+
+In `bwrite`'s asynchronous delayed-write branch `reassignbuf(bp,
+bp->b_vp)` runs at spl0, and `reassignbuf` (vfs_subr.c) has no spl of its
+own. A `biodone` at interrupt level that releases an invalid or empty
+buffer on the same vnode calls `brelvp`, which edits the same vnode
+buffer lists. NetBSD 1.2 wraps the call in `splbio` (in `bwrite` and
+`bdwrite`). This is a reading of the code, not shown to happen; not
+taken with patch 248, which is NetBSD 1.1's. Take 1.2's hunk when a
+test can show it.
+
+
 ### A root remount with no device leaves the kernel hung under write load -- found 2026-10-31
 
 `mount("ufs", "/", MNT_UPDATE, &args)` with `args.fspec` 0 turns a

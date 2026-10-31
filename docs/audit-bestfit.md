@@ -99,7 +99,7 @@ would have avoided. In order of severity:
    `elf_read_from` returns success when `resid != 0`. NetBSD 1.2 returns
    `ENOEXEC`. One line.
 3. **`bwrite` touches the buffer after an asynchronous write** (#252,
-   #254; checked). `SET(bp->b_flags, B_AGE)` after `VOP_STRATEGY` on a
+   #254; fixed, patch 248). `SET(bp->b_flags, B_AGE)` after `VOP_STRATEGY` on a
    buffer `biodone` may already have released. NetBSD 1.1 removed it,
    and corrected `getblk` and `getnewbuf` in the same functions.
 4. **`compress` overruns its decode stack on a crafted file** (#526;

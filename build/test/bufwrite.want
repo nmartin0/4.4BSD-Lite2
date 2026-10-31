@@ -1,0 +1,7 @@
+T begin
+T made 40
+T made 80
+T made 120
+T read back after sync: 0 bad of 120
+T survivors after unlinking half: 0 bad of 60
+T end

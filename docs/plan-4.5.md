@@ -109,6 +109,7 @@ numbers.
    **Done, patch 246** (`provenance/elf-short-read.md`).
 3. **`bwrite` touches the buffer after an asynchronous write** (#252):
    NetBSD 1.1's corrections to `bwrite`, `getblk` and `getnewbuf`.
+   **Done, patch 248** (`provenance/bufcache.md`).
 4. **`compress` overruns its decode stack** (#526): the first fix of
    CVE-2011-2895 among the three BSDs.
 5. **The utilities**, each with the first fix of its hole:

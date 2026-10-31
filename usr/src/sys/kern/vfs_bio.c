@@ -32,6 +32,18 @@
  * The Regents notice below is Lite's own header, which this file
  * already carried, under the same terms.
  *
+ * AI-ONLY NOTE (patch 248): bwrite, getblk, getnewbuf, allocbuf and
+ * geteblk are NetBSD 1.1's (vfs_bio.c 1.39), not 1.0's. bwrite no
+ * longer touches the buffer after starting an asynchronous write,
+ * which biodone may already have released; getblk looks for a busy
+ * buffer before an invalid one, because NFS sets B_INVAL on data it is
+ * still writing; getnewbuf takes the buffer off its old hash chain,
+ * allocbuf puts a buffer it has stripped on the invalid chain, and
+ * geteblk no longer removes it a second time. Left out of 1.1:
+ * bwrite's MNT_ASYNC conversion to a delayed write, bio_doread, and
+ * bdwrite's tape test; they are features, not the fix.
+ * docs/provenance/bufcache.md.
+ *
  * Shrink-wrapped: breada, NetBSD's one addition, is cut. Nothing in
  * this tree calls it and <sys/buf.h> does not declare it -- Lite2
  * declares breadn, the n-block form, which is kept. Everything else
@@ -318,58 +330,54 @@ breadn(vp, blkno, size, rablks, rasizes, nrablks, cred, bpp)
 bwrite(bp)
 	struct buf *bp;
 {
-	int rv, s, sync, wasdelayed;
-
-	rv = 0;
+	int rv, sync, wasdelayed;
 
 	/* Remember buffer type, to switch on it later. */
 	sync = !ISSET(bp->b_flags, B_ASYNC);
 	wasdelayed = ISSET(bp->b_flags, B_DELWRI);
 	CLR(bp->b_flags, (B_READ | B_DONE | B_ERROR | B_DELWRI));
 
-	/*
-	 * If not synchronous, pay for the I/O operation and make
-	 * sure the buf is on the correct vnode queue.  We have
-	 * to do this now, because if we don't, the vnode may not
-	 * be properly notified that it's i/o has completed.
-	 */
-	if (!sync)
+	if (!sync) {
+		/*
+		 * If not synchronous, pay for the I/O operation and make
+		 * sure the buf is on the correct vnode queue.  We have
+		 * to do this now, because if we don't, the vnode may not
+		 * be properly notified that its I/O has completed.
+		 */
 		if (wasdelayed)
 			reassignbuf(bp, bp->b_vp);
 		else
 			curproc->p_stats->p_ru.ru_oublock++;
+	}
 
 	/* Initiate disk write.  Make sure the appropriate party is charged. */
 	SET(bp->b_flags, B_WRITEINPROG);
 	bp->b_vp->v_numoutput++;
 	VOP_STRATEGY(bp);
 
-	/*
-	 * If I/O was synchronous, wait for it to complete.
-	 */
-	if (sync)
+	if (sync) {
+		/*
+		 * If I/O was synchronous, wait for it to complete.
+		 */
 		rv = biowait(bp);
 
-	/*
-	 * Pay for the I/O operation, if it's not been paid for, and
-	 * make sure it's on the correct vnode queue. (async operatings
-	 * were payed for above.)
-	 */
-	if (sync)
+		/*
+		 * Pay for the I/O operation, if it's not been paid for, and
+		 * make sure it's on the correct vnode queue. (async operatings
+		 * were payed for above.)
+		 */
 		if (wasdelayed)
 			reassignbuf(bp, bp->b_vp);
 		else
 			curproc->p_stats->p_ru.ru_oublock++;
 
-	/* Release the buffer, or, if async, make sure it gets reused ASAP. */
-	if (sync)
+		/* Release the buffer. */
 		brelse(bp);
-	else if (wasdelayed) {
-		s = splbio();
-		SET(bp->b_flags, B_AGE);
-		splx(s);
+
+		return (rv);
+	} else {
+		return (0);
 	}
-	return (rv);
 }
 
 int
@@ -549,12 +557,28 @@ getblk(vp, blkno, size, slpflag, slptimeo)
 	daddr_t blkno;
 	int size, slpflag, slptimeo;
 {
+	struct bufhashhdr *bh;
 	struct buf *bp;
 	int s, err;
 
+	/*
+	 * XXX
+	 * The following is an inlined version of 'incore()', but with
+	 * the 'invalid' test moved to after the 'busy' test.  It's
+	 * necessary because there are some cases in which the NFS
+	 * code sets B_INVAL prior to writing data to the server, but 
+	 * in which the buffers actually contain valid data.  In this
+	 * case, we can't allow the system to allocate a new buffer for
+	 * the block until the write is finished.
+	 */
+	bh = BUFHASH(vp, blkno);
 start:
-	s = splbio();
-	if (bp = incore(vp, blkno)) {	/* XXX NFS VOP_BWRITE foolishness */
+        bp = bh->lh_first;
+        for (; bp != NULL; bp = bp->b_hash.le_next) {
+                if (bp->b_lblkno != blkno || bp->b_vp != vp)
+			continue;
+
+		s = splbio();
 		if (ISSET(bp->b_flags, B_BUSY)) {
 			SET(bp->b_flags, B_WANTED);
 			err = tsleep(bp, slpflag | (PRIBIO + 1), "getblk",
@@ -564,22 +588,26 @@ start:
 				return (NULL);
 			goto start;
 		}
-		SET(bp->b_flags, (B_BUSY | B_CACHE));
-		bremfree(bp);
+
+		if (!ISSET(bp->b_flags, B_INVAL)) {
+			SET(bp->b_flags, (B_BUSY | B_CACHE));
+			bremfree(bp);
+			splx(s);
+			break;
+		}
 		splx(s);
-		allocbuf(bp, size);
-	} else {
-		splx(s);
+        }
+
+	if (bp == NULL) {
 		if ((bp = getnewbuf(slpflag, slptimeo)) == NULL)
 			goto start;
-		allocbuf(bp, size);
+		binshash(bp, bh);
 		bp->b_blkno = bp->b_lblkno = blkno;
 		s = splbio();
 		bgetvp(vp, bp);
 		splx(s);
-		bremhash(bp);
-		binshash(bp, BUFHASH(vp, blkno));
 	}
+	allocbuf(bp, size);
 	return (bp);
 }
 
@@ -595,12 +623,8 @@ geteblk(size)
 	while ((bp = getnewbuf(0, 0)) == 0)
 		;
 	SET(bp->b_flags, B_INVAL);
-	bremhash(bp);
 	binshash(bp, &invalhash);
 	allocbuf(bp, size);
-	bp->b_bcount = 0;
-	bp->b_error = 0;
-	bp->b_resid = 0;
 
 	return (bp);
 }
@@ -639,6 +663,8 @@ allocbuf(bp, size)
 		/* find a buffer */
 		while ((nbp = getnewbuf(0, 0)) == NULL)
 			;
+		SET(nbp->b_flags, B_INVAL);
+		binshash(nbp, &invalhash);
 
 		/* and steal its pages, up to the amount we need */
 		amt = min(nbp->b_bufsize, (desired_size - bp->b_bufsize));
@@ -655,13 +681,7 @@ allocbuf(bp, size)
 		if (nbp->b_bufsize < 0)
 			panic("allocbuf: negative bufsize");
 #endif
-		if (nbp->b_bufsize == 0) {
-			bremhash(nbp);
-			binshash(nbp, &invalhash);
-			SET(nbp->b_flags, B_INVAL);
-			nbp->b_error = 0;
-			nbp->b_dev = NODEV;
-		}
+
 		brelse(nbp);
 	}
 
@@ -725,16 +745,15 @@ start:
 
 	/* Buffer is no longer on free lists. */
 	SET(bp->b_flags, B_BUSY);
-	splx(s);
 
 	/* If buffer was a delayed write, start it, and go back to the top. */
 	if (ISSET(bp->b_flags, B_DELWRI)) {
+		splx(s);
 		bawrite (bp);
 		goto start;
 	}
 
 	/* disassociate us from our vnode, if we had one... */
-	s = splbio();
 	if (bp->b_vp)
 		brelvp(bp);
 	splx(s);
@@ -760,6 +779,7 @@ start:
 		bp->b_wcred = NOCRED;
 	}
 	
+	bremhash(bp);
 	return (bp); 
 }
 
