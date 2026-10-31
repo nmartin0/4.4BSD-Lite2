@@ -106,6 +106,7 @@ numbers.
    - Tested with a program that passes a kernel address to `read()`,
      on the 486 path and with the 386 path forced.
 2. **The ELF loader accepts a short read** (#207): NetBSD 1.2's line.
+   **Done, patch 246** (`provenance/elf-short-read.md`).
 3. **`bwrite` touches the buffer after an asynchronous write** (#252):
    NetBSD 1.1's corrections to `bwrite`, `getblk` and `getnewbuf`.
 4. **`compress` overruns its decode stack** (#526): the first fix of

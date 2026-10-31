@@ -1,0 +1,22 @@
+T begin
+T A copyout->kernel: ret=-1 errno=14
+T B copyin<-kernel: ret=-1 errno=14
+T C pipe copy: ret=5 errno=0
+T C: data ok
+T C2 file copy: ret=4 errno=0
+T C2: data ok
+T E copyout wrap: ret=-1 errno=14
+T F copyin wrap: ret=-1 errno=14
+T G copyin straddle: ret=-1 errno=14
+T J zero-length: ret=0 errno=0
+T I copyout across 2 fresh pages: ret=8 errno=0
+T I: data ok
+T H copyout->ro page: ret=-1 errno=14
+T H: page unchanged
+T K pipe copyout ending at USRSTACK: ret=8 errno=0
+T M copyin ending at USRSTACK: ret=8 errno=0
+T N copyin 1 byte past USRSTACK: ret=-1 errno=14
+T D copyout 1 byte past USRSTACK: ret=-1 errno=14
+T child: argc=3 argv1=first argv2=second-argument env0=ENVTEST=yes
+T L child exit status: ret=0 errno=0
+T end

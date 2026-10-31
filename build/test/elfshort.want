@@ -1,0 +1,6 @@
+T begin
+T child ran
+T good copy: exec errno=0
+T headers past the end: exec errno=8
+T headers cut by the end: exec errno=8
+T end

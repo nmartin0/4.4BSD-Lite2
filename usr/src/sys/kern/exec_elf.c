@@ -54,6 +54,9 @@
  * above the machine switch or the indentation of elf_read_from's
  * second comment, which is NetBSD's.
  *
+ * AI-ONLY NOTE: elf_read_from has since changed in one line (patch 246,
+ * a short read returns ENOEXEC; docs/provenance/elf-short-read.md).
+ *
  * Three-clause BSD, Christos Zoulas 1994. No Regents notice, so
  * nothing here is Berkeley's, and docs/provenance/imports.md records
  * it as a transplant.
@@ -116,10 +119,14 @@ elf_read_from(p, vp, off, buf, size)
 			     &resid, p)) != 0)
 		return error;
 	/*
-         * See if we got all of it
+         * See if we got all of it.  AI-ONLY NOTE: this returned `error',
+         * which is 0 here, so a short read -- program headers past the
+         * end of the file -- counted as success and the headers were
+         * whatever the buffer held.  NetBSD 1.2 returns ENOEXEC (patch
+         * 246; provenance/elf-short-read.md).
          */
 	if (resid != 0)
-		return error;
+		return ENOEXEC;
 	return 0;
 }
 

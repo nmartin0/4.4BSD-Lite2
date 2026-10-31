@@ -95,7 +95,7 @@ would have avoided. In order of severity:
      386.
    - `copyin` has no bound check either; NetBSD 1.0 relies on the
      user segment.
-2. **ELF loader accepts a short read** (#207; checked). NetBSD 1.1's
+2. **ELF loader accepts a short read** (#207; fixed, patch 246). NetBSD 1.1's
    `elf_read_from` returns success when `resid != 0`. NetBSD 1.2 returns
    `ENOEXEC`. One line.
 3. **`bwrite` touches the buffer after an asynchronous write** (#252,
