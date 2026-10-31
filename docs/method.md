@@ -420,6 +420,20 @@ that the option reached the Makefile.
 
 ## 5. Delivery
 
+**Bundles (maintainer, 2026-10-30).** The maintainer is not always at
+a machine that can apply patches, and may apply many at once later.
+Patches are therefore sent as a *pending bundle*: `build/pending-bundle.sh
+BASE OUT.bundle` writes one commit holding every unapplied patch as a
+numbered file with a MANIFEST (checksum, tree before, tree after), and
+`build/apply-pending.sh BUNDLE` applies those not yet in dev3, in
+order, checking each tree, then pushes. The bundle is cumulative: each
+one carries every patch since the last the maintainer confirmed, so a
+missed bundle costs nothing and an old one is harmless (applied patches
+are skipped). The apply script is still pasted in full in the reply,
+and tested on a scratch clone at each possible starting point. The
+numbered `.patch` files remain what `git am` takes; the older text of
+this section on counting commits applies to them.
+
 `AGENTS.md` has the procedure. Two things it does not warn about, both
 of which bit repeatedly:
 
