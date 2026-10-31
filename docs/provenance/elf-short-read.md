@@ -66,3 +66,18 @@ which execs a few hundred programs; no panic.
 - Whether OpenBSD's first import (1995-10-18) had the bug: not diffed.
 - The second read in the loader, `vmcmd_map_readvn`, passes `IO_UNIT` and
   no `resid`, so a short read is already an error there; not tested.
+
+## Correction to the test (patch 247)
+
+The first form of `elfshort.c` made the root file system writable with a
+remount that named no device (`fspec` 0). That worked for the few writes
+the test makes, but a later test (`bufwrite.c`) showed that the state it
+leaves hangs the kernel under any real write load: the guest sat idle
+with a process asleep on a buffer nobody would release. The reviewer had
+asked whether the trick was sound; it was not. Both tests now remount
+through a block device node, `/d/wd0a`, which `ktest.sh` puts on the
+disk (a second directory because `addfile-host` makes a new directory
+entry for each pair it is given). `elfshort` was re-run on that: the
+patch-243 kernel fails on the same two lines as before, the fixed kernel
+passes. The hang itself, on a half-remounted root, is not investigated
+(`deferred.md`).

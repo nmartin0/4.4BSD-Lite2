@@ -745,6 +745,20 @@ which reads files for the refused copyouts for that reason. The fix is
 in soreceive's `restart` condition (an error should leave); the donors
 are to be measured when it is taken up. Lite2's own code, unchanged.
 
+### A root remount with no device leaves the kernel hung under write load -- found 2026-10-31
+
+`mount("ufs", "/", MNT_UPDATE, &args)` with `args.fspec` 0 turns a
+read-only root into a read-write one (the update runs before the
+export-only return in `ffs_mount`), but afterwards the first burst of
+file creation and `sync()` leaves a process asleep in `getblk` on a
+buffer that is BUSY, not on the disk's queue, with the drive idle:
+nothing will release it. Seen on the patch-243 kernel and on the kernel
+with NetBSD 1.1's buffer-cache functions, so it is not the buffer cache
+patch. With a device named (`mount -u /dev/wd0a /`, as `rc` does) the
+same workload runs clean. Not diagnosed; `ffs_mount`'s update branch
+is the place to look. The tests use the device form (`ktest.sh`).
+
+
 ### The user segment is longer than user space -- found 2026-10-30
 
 The user data segment (`ldt_segs[LUDATA_SEL]`, machdep.c:1102) is set

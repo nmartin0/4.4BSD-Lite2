@@ -80,11 +80,15 @@ int main(int argc, char **argv)
 	if (argc > 1) { say("T child ran\n"); _exit(0); }
 	say("T begin\n");
 	{	/* the root file system is mounted read-only: make it writable */
-		/* only fspec matters (0: no new device); the kernel copies
-		 * in sizeof(struct ufs_args), possibly more than this */
+		/* the kernel copies in sizeof(struct ufs_args), possibly more
+		 * than this; /d/wd0a is the root device (ktest.sh makes it).
+		 * A remount with no device (fspec 0) also makes the root
+		 * writable but leaves it in a state that hangs under any
+		 * real write load (found with bufwrite.c). */
 		struct { char *fspec; char rest[64]; } a;
 		char b[80];
 		memset(&a, 0, sizeof a);
+		a.fspec = "/d/wd0a";
 		if (mount("ufs", "/", MNT_UPDATE, &a) < 0) {
 			sprintf(b, "T remount: errno=%d\n", errno);
 			say(b);
