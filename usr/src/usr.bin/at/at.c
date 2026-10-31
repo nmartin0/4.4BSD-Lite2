@@ -308,7 +308,18 @@ writefile(runtimer, queue)
 		char *eqp;
 
 		eqp = strchr(*atenv, '=');
-		if (ap == NULL)
+		/*
+		 * AI-ONLY NOTE (2026-10-31): changed -- OpenBSD's fix
+		 * (millert, "Fix thinko, check eqp for NULL, not ap",
+		 * 2000-04-23; reported by ath@algonet.se). `ap' here is
+		 * leftover from the unrelated filename-building loop
+		 * above, which leaves it pointing at that string's own
+		 * terminating NUL -- never NULL -- so this check never
+		 * fired; `strchr' just above is what can actually return
+		 * NULL, for an environment string with no '='. See
+		 * docs/provenance/at-fixes.md.
+		 */
+		if (eqp == NULL)
 			eqp = *atenv;
 		else {
 			int i;

@@ -118,6 +118,9 @@ would have avoided. In order of severity:
    (#586; checked). OpenBSD's 1996 fixes to the same `doit()`.
 8. **`at` treats two-digit years as 19xx and tests the wrong pointer**
    (#483; checked). OpenBSD's and NetBSD's 1999-2000 fixes.
+   **Done, patch 254** (`provenance/at-fixes.md`; the Y2K half is
+   NetBSD 1.3's, 1998-10-24, earlier than the "1999" credited here --
+   corrected there).
 9. **`test` gets three-argument `-a`/`-o` wrong** (#504; checked).
    FreeBSD's one-line fix (Steve Price/Tom Rush, 1996-12-25).
    **Done, patch 251** (`provenance/test-3arg.md`).

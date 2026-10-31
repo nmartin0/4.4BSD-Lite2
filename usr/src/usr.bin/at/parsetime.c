@@ -404,6 +404,23 @@ assign_date(tm, mday, mon, year)
 	    panic("garbled time");
     }
 
+    /*
+     * AI-ONLY NOTE (2026-10-31): added -- NetBSD's fix (present by
+     * NetBSD 1.3; NetBSD 1.2 has the bug). A plain two-digit year
+     * (0-99) falls through the block just above unchanged and is
+     * assigned straight into `tm_year' below, which is itself a
+     * year-since-1900 count -- so "00", meant as 2000, became 1900,
+     * and every other 20th-century-looking two-digit year the same
+     * way. The donor's fix treats a two-digit year below 69 as 21st
+     * century (69 is the Unix-epoch pivot, 1969/2000); this tree
+     * doesn't carry NetBSD's TM_YEAR_BASE macro, so the fix is kept
+     * as a plain `+= 100', matching Lite2's own hardcoded-1900
+     * style rather than porting that macro in. See
+     * docs/provenance/at-fixes.md.
+     */
+    if (year >= 0 && year < 69)
+	year += 100;
+
     if (year < 0 &&
 	(tm->tm_mon > mon ||(tm->tm_mon == mon && tm->tm_mday > mday)))
 	year = tm->tm_year + 1;

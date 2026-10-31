@@ -121,8 +121,9 @@ numbers.
      (`provenance/test-3arg.md`).
    - `mkdir -p`. **Done, patch 252** (`provenance/mkdir-nul.md`).
    - `sa` (NetBSD 1.3). **Done, patch 253** (`provenance/sa-argv.md`).
-   - `at` (OpenBSD's 1999 Y2K fix to `parsetime.c`, then the 2000
-     `eqp` fix);
+   - `at` (NetBSD 1.3's 1998 Y2K fix to `parsetime.c` -- earlier than
+     OpenBSD's 1999 one -- then OpenBSD's 2000 `eqp` fix). **Done,
+     patch 254** (`provenance/at-fixes.md`).
    - `uucpd` (OpenBSD 1996);
    - `deroff` (OpenBSD's own later fixes, each the first for its
      hole).

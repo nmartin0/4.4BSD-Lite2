@@ -1,0 +1,16 @@
+T begin
+T year 00 (two-digit)          -> 2000
+T year 25 (two-digit)          -> 2025
+T year 68 (two-digit)          -> 2068
+T year 69 (two-digit)          -> 1969
+T year 99 (two-digit)          -> 1999
+T year 2026 (four-digit)       -> 2026
+T year 1999 (four-digit)       -> 1999
+T year 1950 (four-digit, pre-1969) -> 2050
+T year 1968 (four-digit, pre-1969) -> 2068
+T year -1 (none given)         -> 2026
+T year 1899 (pre-1900)         -> panic (garbled time)
+T bug check  (ap == NULL)      -> no
+T fixed check(eqp == NULL)     -> yes
+T all checks passed
+T end
