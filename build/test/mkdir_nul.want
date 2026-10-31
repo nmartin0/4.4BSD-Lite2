@@ -1,0 +1,6 @@
+T begin
+T build("a/b/c"): returned 0, sentinel intact, length 32 (wanted 32)
+T build("x/y"): returned 0, sentinel intact, length 30 (wanted 30)
+T build("p/q/"): returned 0, sentinel intact, length 30 (wanted 30)
+T all checks passed
+T end

@@ -122,7 +122,8 @@ would have avoided. In order of severity:
    FreeBSD's one-line fix (Steve Price/Tom Rush, 1996-12-25).
    **Done, patch 251** (`provenance/test-3arg.md`).
 10. **`mkdir -p` writes '/' over the path's terminating NUL** (#452;
-    checked). FreeBSD's later line in the same `build()`.
+    checked). FreeBSD's later line in the same `build()` (Mike Smith,
+    1998-10-22). **Done, patch 252** (`provenance/mkdir-nul.md`).
 11. **`sa` passes `char **` to `%s`** (#512; checked). NetBSD 1.3.
 12. Smaller ones:
     - `re_comp("")` recompiles, and `re_comp` takes `char *` against

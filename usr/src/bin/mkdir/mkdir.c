@@ -182,7 +182,19 @@ build(path, omode)
 			retval = 1;
 			break;
 		}
-		*p = '/';
+		/*
+		 * AI-ONLY NOTE (2026-10-31): added -- FreeBSD's fix (Mike
+		 * Smith, 1998-10-22). `p' pointed either at a '/' turned
+		 * into a NUL to isolate this component, or, on the last
+		 * component with no trailing slash, straight at the
+		 * path's own terminating NUL -- `last' is set either way,
+		 * but only the first case should be restored to '/'. Not
+		 * guarding this wrote '/' over that terminator, leaving
+		 * the caller's argv string unterminated. See
+		 * docs/provenance/mkdir-nul.md.
+		 */
+		if (!last)
+			*p = '/';
 	}
 	if (!first && !last)
 		(void)umask(oumask);
