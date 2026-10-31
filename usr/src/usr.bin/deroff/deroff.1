@@ -122,23 +122,36 @@ recognize
 .Xr man 7
 macros.
 .It e
-recognize 
+recognize
 .Xr me 7
 macros.
+.\" AI-ONLY NOTE: changed (2026-10-31) -- the -m m and -m s entries
+.\" below said "recognize me(7) macros" for both, and -m l said
+.\" "recognize mm(7) macros and delete mm(7) lists"; OpenBSD jmc,
+.\" deroff.1 rev 1.6, $OpenBSD: deroff.1,v 1.6 2005/07/05 15:02:20 jmc
+.\" Exp $ ("sort description of -m / correct typos in -m description
+.\" / formatting improvements", from wiz@netbsd) corrects -m m to
+.\" mm(7) and -m s to ms(7) -- m and s had each named the wrong macro
+.\" package, me(7), rather than their own. Only that correction is
+.\" taken here, not that commit's unrelated reordering and .Dq/.Po
+.\" formatting rewrite of the whole page (docs/provenance/smaller-fixes.md).
 .It m
-recognize 
-.Xr me 7
+recognize
+.Xr mm 7
 macros.
 .It s
-recognize 
-.Xr me 7
+recognize
+.Xr ms 7
 macros.
+.\" AI-ONLY NOTE: changed (2026-10-31) -- OpenBSD jmc, deroff.1 rev
+.\" 1.7, $OpenBSD: deroff.1,v 1.7 2005/07/05 15:40:04 jmc Exp $
+.\" ("little bit better description of -ml; agreed w/ wiz@netbsd"),
+.\" replaces -m l's own wording (which, pre-fix, wrongly claimed it
+.\" recognizes mm(7) macros and deletes mm(7) lists -- -m l's actual
+.\" effect, per deroff.c's mkey table, is independent of -m m and
+.\" just suppresses list constructs on its own).
 .It l
-recognize 
-.Xr mm 7
-macros and delete
-.Xr mm 7
-lists.
+remove list constructs.
 .El
 .It Fl p
 Preserve paragraph macros.

@@ -1,0 +1,5 @@
+T normal TOC, full request proceeds: got 1, want 1 -- ok
+T normal TOC len is in range: got 1, want 1 -- ok
+T corrupted ending_track is rejected: got 0, want 0 -- ok
+T corrupted ending_track + small data_len: NOT caught by this check (documented gap): got 1, want 1 -- ok
+T all checks passed

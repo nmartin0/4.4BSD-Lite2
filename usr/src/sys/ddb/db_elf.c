@@ -149,15 +149,44 @@ X_db_sym_init(symtab, esymtab, name)
 	 * Find the first (and, we hope, only) SHT_SYMTAB section in
 	 * the file, and the SHT_STRTAB section that goes with it.
 	 */
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-31) -- the three checks below
+	 * (e_shoff == 0, and each sh_offset == 0 before trusting it), as
+	 * NetBSD's own same-day follow-up to the change just above
+	 * (bjh21, 1d16f72d976293a3bbc0ac7027c6e7d54f604895, "Extra sanity
+	 * checking on ELF headers: Make sure the bootloader actually
+	 * loaded (or claims to have loaded) everything we need.",
+	 * 2001-07-31, revision 1.16 -- found via the sweep's own
+	 * bestfit-sweep.tsv #646, since this commit isn't reachable from
+	 * the netbsd-1-* release branches checked for the rest of this
+	 * tree's NetBSD provenance; it lives in the full NetBSD CVS
+	 * mirror history instead). A boot loader that didn't actually
+	 * load the symbol table (or its string table) can still leave
+	 * `e_shoff' zero, or a section's own `sh_offset' zero, rather
+	 * than omitting the section entirely -- the loop below, without
+	 * these checks, would still compute `symtab_start'/`strtab_start'
+	 * from that zero offset (as `symtab + 0', not NULL), pointing
+	 * them at the Elf header itself rather than catching the missing
+	 * data, and the alignment/sanity checks just below this loop
+	 * would not reliably catch it either (an Elf_Ehdr's own address
+	 * can easily satisfy `ALIGNED_POINTER'). See
+	 * docs/provenance/smaller-fixes.md.
+	 */
+	if (elf->e_shoff == 0)
+		goto badheader;
 	shp = (Elf_Shdr *)(symtab + elf->e_shoff);
 	for (i = 0; i < elf->e_shnum; i++) {
 		if (shp[i].sh_type == Elf_sht_symtab) {
+			if (shp[i].sh_offset == 0)
+				continue;
 			/* Got the symbol table. */
 			symtab_start = (Elf_Sym *)(symtab + shp[i].sh_offset);
 			symtab_end = (Elf_Sym *)(symtab + shp[i].sh_offset +
 			    shp[i].sh_size);
 			/* Find the string table to go with it. */
 			j = shp[i].sh_link;
+			if (shp[j].sh_offset == 0)
+				continue;
 			strtab_start = (char *)(symtab + shp[j].sh_offset);
 			strtab_end = (char *)(symtab + shp[j].sh_offset +
 			    shp[j].sh_size);

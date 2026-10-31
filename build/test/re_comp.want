@@ -1,0 +1,13 @@
+T first re_comp succeeds: got 1, want 1 -- ok
+T matches foo123: got 1, want 1 -- ok
+T rejects bar: got 0, want 0 -- ok
+T re_comp("") returns: (null)
+T re_comp("") itself reports no error: got 1, want 1 -- ok
+T still rejects bar after re_comp(""): got 0, want 0 -- ok
+T still matches foo123 after re_comp(""): got 1, want 1 -- ok
+T re_comp(NULL) also reports no error: got 1, want 1 -- ok
+T still rejects bar after re_comp(NULL): got 0, want 0 -- ok
+T re_comp of a real new pattern succeeds: got 1, want 1 -- ok
+T now matches bar: got 1, want 1 -- ok
+T now rejects foo123: got 0, want 0 -- ok
+T all checks passed

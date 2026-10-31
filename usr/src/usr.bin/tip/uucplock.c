@@ -67,7 +67,24 @@ uu_lock(ttyname)
 	char text_pid[81];
 	int len;
 
-	(void)sprintf(tbuf, _PATH_LOCKDIRNAME, ttyname);
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-31) -- sprintf into snprintf,
+	 * OpenBSD deraadt, commit bc4b3bff0fca454be16f4ea92d04680f66fcba50
+	 * ("avoid oflow", 1997-08-24, carried into NetBSD's own uucplock.c
+	 * rev 1.7/1.8 the same year; docs/provenance/smaller-fixes.md).
+	 * tbuf is sized sizeof(_PATH_LOCKDIRNAME) + MAXNAMLEN, which is
+	 * only enough room if ttyname is no longer than MAXNAMLEN bytes;
+	 * uu_lock takes ttyname as a plain char * with no length check of
+	 * its own, so a caller that ever passes a longer name overflows
+	 * tbuf with the unbounded sprintf. This tree's only caller
+	 * (hunt.c's hunt(), which passes the basename of a device path
+	 * under _PATH_DEV) is short in practice, so the overflow is
+	 * not reachable today -- fixed anyway, since
+	 * uu_lock/uu_unlock are general-purpose library-style routines,
+	 * not just tip's private helpers, and latent-but-wrong code is
+	 * still wrong code.
+	 */
+	(void)snprintf(tbuf, sizeof(tbuf), _PATH_LOCKDIRNAME, ttyname);
 	fd = open(tbuf, O_RDWR|O_CREAT|O_EXCL, 0660);
 	if (fd < 0) {
 		/*
@@ -133,6 +150,7 @@ uu_unlock(ttyname)
 {
 	char tbuf[sizeof(_PATH_LOCKDIRNAME) + MAXNAMLEN];
 
-	(void)sprintf(tbuf, _PATH_LOCKDIRNAME, ttyname);
+	/* AI-ONLY NOTE: same fix as uu_lock's, above. */
+	(void)snprintf(tbuf, sizeof(tbuf), _PATH_LOCKDIRNAME, ttyname);
 	return(unlink(tbuf));
 }

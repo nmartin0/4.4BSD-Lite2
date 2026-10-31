@@ -52,7 +52,13 @@ Undefine the symbol
 .Sh SYNTAX
 .Nm m4
 provides the following built-in macros.  They may be
-redefined, loosing their original meaning.
+redefined, losing their original meaning.
+.\" AI-ONLY NOTE: changed (2026-10-31) -- loosing -> losing, NetBSD
+.\" jtc, m4.1 rev 1.4, $Id: m4.1,v 1.4 1995/10/19 07:52:46 jtc Exp $
+.\" (docs/provenance/smaller-fixes.md). A plain spelling fix, not a
+.\" documented behavior change: "loosing" (releasing, setting free)
+.\" was never the intended word for a macro that keeps working but no
+.\" longer means what it used to.
 Return values are NULL unless otherwise stated.
 .Bl -tag -width changequotexxx
 .It changecom

@@ -711,6 +711,39 @@ int wcdioctl (dev_t dev, int cmd, caddr_t addr, int flags, struct proc *p)
 			len = te->data_len;
 		if (len <= 0)
 			return (EINVAL);
+		/*
+		 * AI-ONLY NOTE: added (2026-10-31) -- as FreeBSD's wcd.c
+		 * (Andrey Chernov, e407db3cbc080bdbd6c540a4af3d2d201ddc02f5,
+		 * "READTOCENTRYS: protect against stack overflow when
+		 * incorrect data stored in CD's TOC", 1996-01-30). `len' is
+		 * computed above from `toc->hdr.ending_track', which
+		 * wcd_read_toc() (below) reads directly from the drive and
+		 * never clamps to MAXTRK -- only a separate local `ntracks'
+		 * is clamped, to size the actual TOC read, while
+		 * `t->toc.hdr.ending_track' itself keeps whatever raw value
+		 * the drive reported (0-255, a u_char). `te->starting_track'
+		 * is checked against this same unclamped `ending_track'
+		 * just above, so a drive reporting more tracks than
+		 * `toc->tab[MAXTRK+1]' actually holds can make `len' exceed
+		 * the array's real size, which this check catches for the
+		 * `copyout' below's byte count.
+		 *
+		 * This does NOT close the same hole for either the MSF
+		 * conversion loop just below (its `e' pointer is computed
+		 * fresh from the same unclamped `toc->hdr.ending_track', not
+		 * from this now-bounded `len') or `copyout''s own source
+		 * offset (`te->starting_track' can itself be as large as
+		 * the unclamped `ending_track' allows, per the check above
+		 * this function already had) -- confirmed directly: even
+		 * FreeBSD's own later tree still computes its equivalent of
+		 * `e' the same unclamped way after this exact commit. This
+		 * is the literal donor fix, ported as it stands; the root
+		 * cause (wcd_read_toc() never clamping `t->toc.hdr.
+		 * ending_track' itself to MAXTRK) is left open, same as in
+		 * every donor checked. See docs/provenance/smaller-fixes.md.
+		 */
+		if (len > sizeof(toc->tab))
+			return (EINVAL);
 
 		/* Convert to MSF format, if needed. */
 		if (te->address_format == CD_MSF_FORMAT) {

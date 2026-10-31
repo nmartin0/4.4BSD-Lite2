@@ -71,7 +71,44 @@
 
 #include <vm/vm.h>
 
-#define ELF_ALIGN(a, b) ((a) & ~((b) - 1))
+/*
+ * AI-ONLY NOTE: changed (2026-10-31) -- split into ELF_ROUND and
+ * ELF_TRUNC, as NetBSD's own sys/kern/exec_elf32.c, its own
+ * elf_load_psection ($NetBSD: exec_elf32.c,v 1.18 1996/10/11 19:44:02
+ * cgd Exp $, "replace ELF_ALIGN with ELF_TRUNC ... and ELF_ROUND
+ * ... This fixes a bug found by Robert Baron ... where
+ * elf_load_psection, if given a properly aligned address at which to
+ * load the section, would ... actually load it at the next highest
+ * alignment boundary" -- exactly this bug); NetBSD 1.1's own
+ * exec_elf.c, $NetBSD: exec_elf.c,v 1.3 1995/09/16 00:28:08 thorpej
+ * Exp $, still has the single ELF_ALIGN this tree's own
+ * elf_load_psection was itself adapted from -- see
+ * docs/provenance/smaller-fixes.md. (An earlier citation of this
+ * note, rev 1.26.8.1/mycroft 1998-05-05, was a real but much later
+ * pullup of the same fix, not the fix's origin; corrected after
+ * independent review to rev 1.18, the first NetBSD revision to
+ * carry it, found in /home/claude/donors/nb12h.)
+ * The one `ELF_ALIGN' below always truncated down to the alignment
+ * boundary; elf_load_psection() used it below both where that's
+ * right (truncating `ph->p_vaddr' down to find the segment's own
+ * aligned base) and where it's wrong (rounding `*addr', a
+ * caller-specified load address, UP to the next boundary) --
+ * `ELF_ALIGN(*addr + ph->p_align, ph->p_align)' adds a full
+ * `p_align' and then truncates, which always lands one full
+ * alignment unit past `*addr' even when `*addr' was already
+ * aligned, rather than leaving an aligned address unchanged.
+ * `ELF_ROUND' (round up, leaving an aligned value as-is) replaces
+ * ELF_ALIGN only at the two sites that want rounding up; ELF_TRUNC
+ * (identical to the old ELF_ALIGN) replaces it at the one that wants
+ * truncating down. This path is presently unreachable in this tree:
+ * kern_exec.c's only caller always passes `addr = ELF32_NO_ADDR',
+ * so the `*addr != ELF32_NO_ADDR' branch below, where the bug
+ * lives, never runs -- fixed anyway, since latent-but-wrong code is
+ * still wrong code, and no donor fix was skipped over for being
+ * latent.
+ */
+#define ELF_ROUND(a, b)		(((a) + (b) - 1) & ~((b) - 1))
+#define ELF_TRUNC(a, b)		((a) & ~((b) - 1))
 
 int
 elf_check_header(eh, type)
@@ -179,15 +216,15 @@ elf_load_psection(p, vp, ph, addr, size, prot)
 	 */
 	if (*addr != ELF32_NO_ADDR) {
 		if (ph->p_align > 1) {
-			*addr = ELF_ALIGN(*addr + ph->p_align, ph->p_align);
-			uaddr = ELF_ALIGN(ph->p_vaddr, ph->p_align);
+			*addr = ELF_ROUND(*addr, ph->p_align);
+			uaddr = ELF_TRUNC(ph->p_vaddr, ph->p_align);
 		} else
 			uaddr = ph->p_vaddr;
 		diff = ph->p_vaddr - uaddr;
 	} else {
 		*addr = uaddr = ph->p_vaddr;
 		if (ph->p_align > 1)
-			*addr = ELF_ALIGN(uaddr, ph->p_align);
+			*addr = ELF_TRUNC(uaddr, ph->p_align);
 		diff = uaddr - *addr;
 	}
 

@@ -165,8 +165,32 @@ struct {
 	{ MNT_QUOTA, "quota" },
 	{ MNT_ROOTFS, "rootfs" },
 	{ MNT_UPDATE, "update" },
-	{ MNT_DELEXPORT },
-	{ MNT_UPDATE, "update" },
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-31) -- the line that was here,
+	 * `{ MNT_DELEXPORT },', is a botched duplicate of MNT_UPDATE's
+	 * own entry just above: a struct initializer giving only
+	 * m_flag, leaving m_name a null pointer (C zero-initializes an
+	 * omitted trailing member), immediately followed by a second,
+	 * correct `{ MNT_UPDATE, "update" },' and then the real
+	 * `{ MNT_DELEXPORT, "delexport" },' pair below. The loop that
+	 * walks this table (around line 599) stops at the first entry
+	 * whose m_flag is 0 ("" in the original 4.3BSD table this one
+	 * replaced), not at a null m_name, so a mounted filesystem with
+	 * MNT_DELEXPORT set would print this entry's NUL name (a
+	 * strlen() on a null pointer, undefined behaviour) before ever
+	 * reaching the correct, named entry just below it -- and
+	 * MNT_UPDATE would be checked and printed twice in a row for a
+	 * filesystem that has it set. NetBSD 1.3's own equivalent table
+	 * (mrg, $NetBSD: pstat.c,v 1.33 1997/10/17 06:34:22 mrg Exp $,
+	 * "merge lite-2" -- the commit that first gives this table its
+	 * present, table-driven form) has neither: one MNT_UPDATE entry,
+	 * one MNT_DELEXPORT entry, both named. Removing the stray line
+	 * and its duplicate leaves exactly that. (An earlier citation of
+	 * this note, rev 1.38/drochner, was wrong -- that revision only
+	 * touches nfs_print()'s vattr handling, nowhere near this table;
+	 * corrected after independent review, see
+	 * docs/provenance/smaller-fixes.md.)
+	 */
 	{ MNT_DELEXPORT, "delexport" },
 	{ MNT_RELOAD, "reload" },
 	{ MNT_FORCE, "force" },

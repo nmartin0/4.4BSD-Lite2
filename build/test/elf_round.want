@@ -1,0 +1,11 @@
+T ELF_TRUNC(0x1000, 0x1000) unchanged: got 4096, want 4096 -- ok
+T ELF_TRUNC(0x1001, 0x1000) truncates: got 4096, want 4096 -- ok
+T ELF_TRUNC(0x1fff, 0x1000) truncates: got 4096, want 4096 -- ok
+T ELF_TRUNC(0, 0x1000) stays 0: got 0, want 0 -- ok
+T ELF_ROUND(0x1000, 0x1000) unchanged (the actual bug): got 4096, want 4096 -- ok
+T ELF_ROUND(0x1001, 0x1000) rounds up: got 8192, want 8192 -- ok
+T ELF_ROUND(0x1fff, 0x1000) rounds up: got 8192, want 8192 -- ok
+T ELF_ROUND(0, 0x1000) stays 0: got 0, want 0 -- ok
+T old ELF_ALIGN(a+b,b) overshoots an aligned a: got 8192, want 8192 -- ok
+T ELF_ROUND gives the address actually wanted: got 4096, want 4096 -- ok
+T all checks passed

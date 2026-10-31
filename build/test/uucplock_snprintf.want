@@ -1,0 +1,5 @@
+T sprintf short name: canary_intact=1
+T snprintf short name: canary_intact=1
+T sprintf long name (overflow): canary_intact=0
+T snprintf long name (truncates safely): canary_intact=1
+T all checks passed

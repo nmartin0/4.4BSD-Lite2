@@ -144,6 +144,7 @@ would have avoided. In order of severity:
     - `strtoimax`'s "0x" handling (#343).
     - `tip`'s `uucplock` `snprintf` (#587).
     - Two man-page corrections (#370, #567).
+    **Done, patch 257** (`provenance/smaller-fixes.md`).
 
 ## Open: provenance
 

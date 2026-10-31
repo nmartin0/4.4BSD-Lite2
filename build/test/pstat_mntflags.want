@@ -1,0 +1,3 @@
+T re-broken copy: found an entry with no name:
+  	{ MNT_DELEXPORT },
+T real pstat.c: no unnamed entry, no duplicate flag

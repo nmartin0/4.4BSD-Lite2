@@ -73,8 +73,33 @@ strtoimax(const char * __restrict nptr, char ** __restrict endptr, int base)
 		if (c == '+')
 			c = *s++;
 	}
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-31) -- also require a real hex
+	 * digit right after "0x"/"0X" before committing to base 16, as
+	 * FreeBSD's strtoimax.c does by its 5.5.0 release (not yet at
+	 * 5.3.0; the exact commit and date aren't recoverable -- this
+	 * file's own `$FreeBSD$' keyword is never expanded in any donor
+	 * mirror checked, and git log/blame on this path are the same
+	 * kind of synthesized-commit mirror-graph corruption documented
+	 * elsewhere in this tree's provenance docs; see
+	 * docs/provenance/smaller-fixes.md). Without this check, input
+	 * like "0xg" (base 0) consumed "0x" unconditionally, then broke
+	 * out of the digit loop on 'g' with nothing accumulated: `any'
+	 * stayed 0, so the function reported EINVAL and set `*endptr'
+	 * back to `nptr' -- a total parse failure, discarding the
+	 * perfectly valid leading "0". The fix the digit loop would
+	 * actually reach without the "0x" branch firing: base becomes 8
+	 * (octal, since `c' is still '0'), "0" is accepted as a valid
+	 * one-digit octal number, and `*endptr' ends up pointing at the
+	 * 'x' -- which is what every other call in this family (and
+	 * other C libraries' strtol-family functions) does for a
+	 * same-shaped non-hex "0x..." input.
+	 */
 	if ((base == 0 || base == 16) &&
-	    c == '0' && (*s == 'x' || *s == 'X')) {
+	    c == '0' && (*s == 'x' || *s == 'X') &&
+	    ((s[1] >= '0' && s[1] <= '9') ||
+	    (s[1] >= 'A' && s[1] <= 'F') ||
+	    (s[1] >= 'a' && s[1] <= 'f'))) {
 		c = s[1];
 		s += 2;
 		base = 16;

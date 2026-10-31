@@ -1,0 +1,7 @@
+T normal table found: got 1, want 1 -- ok
+T normal table symtab offset: got 4096, want 4096 -- ok
+T normal table strtab offset: got 4160, want 4160 -- ok
+T e_shoff == 0 is rejected: got 0, want 0 -- ok
+T symtab sh_offset == 0 is rejected: got 0, want 0 -- ok
+T strtab sh_offset == 0 is rejected: got 0, want 0 -- ok
+T all checks passed

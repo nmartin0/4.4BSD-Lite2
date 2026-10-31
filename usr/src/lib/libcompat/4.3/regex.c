@@ -58,9 +58,28 @@ static char *re_errstr;
 
 char *
 re_comp(s)
-	char *s;
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-31) -- const, as NetBSD's
+	 * regex.c (jtc, $Id: regex.c,v 1.5 1995/06/05 19:42:25 pk Exp $
+	 * carries the change; the embedded Id's own committer is pk, the
+	 * date 1995-06-05 -- see docs/provenance/smaller-fixes.md). This
+	 * tree's own usr/src/include/unistd.h already prototypes
+	 * `char *re_comp __P((const char *));', which this definition's
+	 * plain `char *s' never matched.
+	 */
+	const char *s;
 {
-	if (s == NULL)
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-31) -- also check for an empty
+	 * string, as NetBSD's regex.c, $NetBSD: regex.c,v 1.6 1996/03/21
+	 * 03:11:13 jtc Exp $ (see docs/provenance/smaller-fixes.md).
+	 * re_comp("") recompiled an empty pattern instead of leaving the
+	 * last compiled expression alone, contrary to this file's own
+	 * manual page (re_comp.3): "If re_comp is passed 0 or a null
+	 * string, it returns without changing the currently compiled
+	 * regular expression."
+	 */
+	if (s == NULL || *s == '\0')
 		return (NULL);
 	if (re_regexp)
 		free(re_regexp);
@@ -73,7 +92,12 @@ re_comp(s)
 
 int
 re_exec(s)
-	char *s;
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-31) -- const, same fit as
+	 * re_comp()'s above; this tree's own unistd.h already prototypes
+	 * `int re_exec __P((const char *));'.
+	 */
+	const char *s;
 {
 	int rc;
 

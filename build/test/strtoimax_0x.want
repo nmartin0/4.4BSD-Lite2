@@ -1,0 +1,10 @@
+T imax "0xg" base 0: val=0 errno=0 consumed=1
+T umax "0xg" base 0: val=0 errno=0 consumed=1
+T imax "0xg" base 16: val=0 errno=0 consumed=1
+T imax "0x1A" base 0: val=26 errno=0 consumed=4
+T umax "0xFF" base 0: val=255 errno=0 consumed=4
+T imax "0x" alone, base 0: val=0 errno=0 consumed=1
+T imax "017" base 0 (octal): val=15 errno=0 consumed=3
+T imax "17" base 0 (decimal): val=17 errno=0 consumed=2
+T imax "0x2Fxyz" base 0: val=47 errno=0 consumed=4
+T all checks passed

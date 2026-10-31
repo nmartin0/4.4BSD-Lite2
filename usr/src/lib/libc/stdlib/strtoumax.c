@@ -71,8 +71,17 @@ strtoumax(const char * __restrict nptr, char ** __restrict endptr, int base)
 		if (c == '+')
 			c = *s++;
 	}
+	/*
+	 * AI-ONLY NOTE: changed (2026-10-31) -- same fix as strtoimax.c's
+	 * (docs/provenance/smaller-fixes.md): require a real hex digit
+	 * right after "0x"/"0X" before committing to base 16, as
+	 * FreeBSD's strtoumax.c does by its own 5.5.0 release.
+	 */
 	if ((base == 0 || base == 16) &&
-	    c == '0' && (*s == 'x' || *s == 'X')) {
+	    c == '0' && (*s == 'x' || *s == 'X') &&
+	    ((s[1] >= '0' && s[1] <= '9') ||
+	    (s[1] >= 'A' && s[1] <= 'F') ||
+	    (s[1] >= 'a' && s[1] <= 'f'))) {
 		c = s[1];
 		s += 2;
 		base = 16;

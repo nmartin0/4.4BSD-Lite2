@@ -138,6 +138,15 @@ numbers.
    - `strtoimax`'s "0x";
    - `uucplock`'s `snprintf`;
    - the `m4` and `deroff` man pages.
+   **Done, patch 257** (`provenance/smaller-fixes.md`): `re_comp`'s
+   `const` fix was NetBSD 1.1 (pk, rev 1.5) as predicted, but the
+   empty-string fix was NetBSD 1.2 (jtc, rev 1.6), not FreeBSD --
+   NetBSD is earlier here and donor order prefers it regardless.
+   `wcd`'s fit was FreeBSD, ache, 1996-01-30, and is itself incomplete
+   (see that section's "what this fix does NOT close"). `strtoimax`'s
+   fit is FreeBSD with the exact commit unrecoverable (bisected to
+   between release/5.3.0 and release/5.5.0). All eight sub-items are
+   in the one patch.
 7. **My own two from 4.5BSD:** the stray-interrupt counter of patch
    222, and the `%ss:` overrides for `INTR_SPUR`.
 
