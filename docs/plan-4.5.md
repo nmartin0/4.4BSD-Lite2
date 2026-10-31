@@ -223,6 +223,20 @@ numbers.
 3. **The conformance suite, run once at the release** as a measurement.
    The baseline is recorded for 4.6BSD's first score. Nothing is
    changed in 4.5BSD to raise it.
+4. **One entry point and two tiers** (maintainer, 2026-10-30: the tests
+   are built here, once, for both releases). A single command runs
+   them on a given kernel or release and prints PASS or FAIL. The
+   quick tier runs on every patch (the per-defect tests, boot,
+   multi-user); the full tier runs per milestone (the CD install, the
+   system building itself, the network services, the suite). Results
+   are stored in a form that can be diffed against the baseline.
+5. **Every defect fixed in stage 2 keeps a test that fails without
+   the fix,** as `build/test/copyio.sh` does (patch 243). Tests are our
+   own writing, in the tree. The suite stays outside it; the harness
+   only needs to know where to find it and how to run it.
+6. **The baseline is behaviour, not correctness.** It says what 4.5BSD
+   does, known failures recorded as known, so that 4.6BSD has to show
+   that nothing got worse; the suite says what is wrong.
 
 ## Stage 6: the kernel's loose ends (item 6)
 
@@ -253,7 +267,8 @@ numbers.
 - **Stage 4 waits for stage 3** wherever they touch the same file
   (`sys_process.c`).
 - **Stage 7 waits for everything.**
-- **Stages 5 and 6 can run alongside 2-4.**
+- **Stages 5 and 6 can run alongside 2-4,** but stage 5 is complete
+  before the tag: 4.6BSD's first stage needs its baseline.
 
 No decision is open. Ports, Torek's autoconfiguration and X11R5 are
 standing items for later (maintainer, 2026-10-30): not done in 4.5BSD

@@ -98,6 +98,8 @@ holders are named, and the conformance baseline is recorded.
 
 ## Stage 1: the compiler and C17
 
+Starts only when stage 2's baseline and harness are in place.
+
 1. **D3**, then a C17 cross-compiler on the build host, beside GCC
    2.95.3 until the switch.
 2. **The flag survey:** Lite2's and the three donors' kernel and userland
@@ -120,7 +122,13 @@ holders are named, and the conformance baseline is recorded.
 Exit: the kernel and the system tools build as C17 with only the
 essential flags; the boot test and the system building itself pass.
 
-## Stage 2: the tests that keep it stable
+## Stage 2: the tests that keep it stable (done first, before stage 1)
+
+Decided 2026-10-30: a new compiler changes every binary at once, so
+the baseline and the harness exist before it is introduced. The work
+below is mostly 4.5BSD's (`plan-4.5.md` stage 5) and is inherited, not
+repeated; what is left for this stage is the `sh` fixes, the suite
+harness if 4.5BSD has not built it, and the `build/` scripts.
 
 1. **`sh` passes the suite's 17 trust checks.** Each fix is by best
    fit: FreeBSD's and NetBSD's `sh` lines (the 4.5BSD notes in
