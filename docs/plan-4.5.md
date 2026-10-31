@@ -164,19 +164,23 @@ numbers.
 
 1. **The clearance ledger** (`provenance/clearance.md`, A1): one row
    per donor file in use, and the 386BSD rule applied to each.
-   **Built, patch 259.** ~40 current donor files (kinds D/E/F), each
-   with what this tree's own records say about clearance. Only nine
-   have an actual stated lineage finding (the `wd.c` family, `ddb`,
-   `bc`/`dc`, `uucp`, `compress`, `deroff`, `ching`, `sendmail`,
-   `subr_rmap.c`); the rest are marked "not yet checked" rather than
-   given a verdict they haven't earned -- that backlog is A1's real
-   remaining work, now visible instead of implicit. Building it also
-   found eight patches `imports.md` mislabeled kind D (small fixes
-   inside Lite2's own files, not file transplants) and one direct
-   self-contradiction (patch 213); corrected in `imports.md` to kind
-   B/C, per the standing rule that the tree's own records get fixed
-   when wrong. `sys_process.c`, `procfs_machdep.c` and `subr_rmap.c`
-   carry a HOLD pending A2's own measurement.
+   **Built, patch 259.** 54 current donor files (40 kind D, 10 kind
+   E, 4 kind F). Counted by hand: 22 have an actual stated clearance
+   finding (the `wd.c` family and slice layer, `kvm_i386.c`, `ddb`,
+   `bc`/`dc`, `uucp`, and kind E's and F's near-uniform "clear"
+   verdicts); 3 are split between GNU's own clean release text and a
+   donor's unmeasured changes to it (`gdb-4.16`, `gcc-2.95.3`,
+   `binutils-2.11.2`); 3 are HOLD pending A2 (`sys_process.c`,
+   `procfs_machdep.c`, `subr_rmap.c`); the remaining 26 are "not yet
+   checked" -- that backlog is A1's real remaining work, now visible
+   instead of implicit. (This entry originally said "nine" and
+   miscounted a HOLD row as settled; independent review caught both
+   in `clearance.md` itself, and this entry is corrected to match,
+   2026-10-31.) Building it also found eight patches `imports.md`
+   mislabeled kind D (small fixes inside Lite2's own files, not file
+   transplants) and one direct self-contradiction (patch 213);
+   corrected in `imports.md` to kind B/C, per the standing rule that
+   the tree's own records get fixed when wrong.
 2. **`execve`** (A2; #209, #211). The `getxfile` lines quoted from 4.4
    come out. Candidates in source order:
    - 386BSD 0.1's own `execve`, if the ledger finds it clear and it
