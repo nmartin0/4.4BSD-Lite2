@@ -181,7 +181,7 @@ numbers.
    transplants) and one direct self-contradiction (patch 213);
    corrected in `imports.md` to kind B/C, per the standing rule that
    the tree's own records get fixed when wrong.
-2. **`execve`** (A2; #209, #211). The `getxfile` lines quoted from 4.4
+2. **`execve`** (A2; #204, #206). The `getxfile` lines quoted from 4.4
    come out. Candidates in source order:
    - 386BSD 0.1's own `execve`, if the ledger finds it clear and it
      closes the gap with the ELF loader this tree uses;
@@ -190,6 +190,22 @@ numbers.
 
    Tested: init, ELF static binaries, `#!` scripts, set-user-ID,
    argument limits, `ps` strings, saved IDs.
+   **Partly done, patch 261** (`provenance/exec-stack.md`): the
+   quoted fragment is out, replaced with the same reasoning in this
+   tree's own words, with a regression test. Measured 386BSD 0.1's
+   own `execve` (`/home/claude/386bsd`, tag `r01`): clear (Jolitz/
+   TeleMuse's own licence, an independent, deliberately simplified
+   design, not carried forward unchanged by any later BSD), but
+   `a.out`-only -- no ELF, no `#!`, no `ps_strings` -- so it does not
+   close this tree's gap. Per this item's own source order, the fit
+   moves to NetBSD's exec framework: `origin/netbsd-1-0` for the
+   generic driver/vmcmd-list/format-table shape, `origin/netbsd-1-1`
+   for `exec_elf.c`. **Not yet done:** the actual rewrite of
+   `kern_exec.c` to that shape -- a boot-critical change (every
+   process start, including `init`'s own first exec, goes through
+   it) too large to land in the same patch as the measurement. Until
+   it lands, A2's 53% line-match finding is not resolved, only the
+   one literal quotation inside it.
 3. **The other A2 files:** `kern_acct.c`, `subr_rmap.c`,
    `kern_physio.c`, `sys_process.c`. Each is measured, given a
    ledger row, and re-derived if it is not clear.

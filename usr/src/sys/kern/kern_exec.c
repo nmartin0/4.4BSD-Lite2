@@ -358,31 +358,28 @@ again:
 	entry = eh.e_entry;
 
 	/*
-	 * The stack, as 4.4BSD's getxfile allocates it.
+	 * AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md): the
+	 * `- NBPG' is load-bearing, not slack, and the reasoning is
+	 * restated here in this tree's own words rather than by quoting
+	 * the encumbered 4.4BSD getxfile() this was originally checked
+	 * against (that quotation has been removed; see exec-stack.md
+	 * for why it should never have been here). On this i386 port
+	 * USRSTACK is 0xEFBFE000, but
+	 * VM_MAXUSER_ADDRESS -- where the vmspace's map actually ends -- is
+	 * 0xEFBFD000, one page lower, because the page directory's own
+	 * window sits just below USRSTACK on this port. A stack region
+	 * computed to run up to USRSTACK therefore reaches one page past
+	 * the map's own end, and vm_allocate refuses it outright. An
+	 * earlier version of this body omitted the `- NBPG' and every exec
+	 * failed here: all four of init's PT_LOAD segments mapped, then the
+	 * stack allocation failed, and exec_abort killed the process with
+	 * SIGABRT -- the `init died (signal 6, exit 0)' this kernel was
+	 * printing before this was understood.
 	 *
-	 * AI-ONLY NOTE: the `- NBPG' is Berkeley's and is not slack.
-	 * His getxfile has
-	 *
-	 *	size = round_page(MAXSSIZ);
-	 *	#ifdef	i386
-	 *	addr = trunc_page(USRSTACK - size) - NBPG;	/ * XXX * /
-	 *	#else
-	 *	addr = trunc_page(USRSTACK - size);
-	 *	#endif
-	 *
-	 * because on this port USRSTACK is 0xEFBFE000 and
-	 * VM_MAXUSER_ADDRESS, which is where the vmspace's map ends, is
-	 * 0xEFBFD000 -- one page lower. A region running up to USRSTACK
-	 * ends one page past the map and vm_allocate refuses it. An
-	 * earlier version of this body dropped the i386 arm, and every
-	 * exec failed there: all four of init's PT_LOAD segments
-	 * mapped, then the stack allocation failed, and exec_abort
-	 * killed the process with SIGABRT -- which is the `init died
-	 * (signal 6, exit 0)' this kernel was printing.
-	 *
-	 * The vm_map_protect below is his too. Everything above the
-	 * current stack limit is VM_PROT_NONE, so the stack grows by
-	 * faulting into it rather than being wired at MAXSSIZ.
+	 * The vm_map_protect below has the same purpose Berkeley's did:
+	 * everything above the current stack limit is left VM_PROT_NONE,
+	 * so the stack grows by faulting into it rather than being wired
+	 * at MAXSSIZ from the start.
 	 */
 	size = round_page(MAXSSIZ);
 	addr = (u_long)trunc_page(USRSTACK - size) - NBPG;
