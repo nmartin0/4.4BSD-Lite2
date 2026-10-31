@@ -562,7 +562,9 @@ linked -x, -X and -X with -g. The trace through a syscall frame
 misdecoded until syscall() took a trapframe (patch 202, below).
 
 Patch 202 converts i386 syscall() to a struct trapframe (decided
-2026-10-27; kind D). FreeBSD's c8a13ecd0 (David Greenman, 3 January
+2026-10-27; kind B, corrected 2026-10-31 from a mislabeled kind D --
+locore.s is Lite2's own file, not a donor file, and FreeBSD's commit is
+the line followed, not a transplant). FreeBSD's c8a13ecd0 (David Greenman, 3 January
 1994, "Convert syscall to trapframe. Based on work done by John
 Brezak.") is the model. Lite2, like 386BSD, had two register frames: a
 trap built a struct trapframe, and a system call, entering by the
@@ -614,7 +616,9 @@ gdb in /usr/bin and its page in cat1. Patch 206: `gdb -k` on the live kernel and
 saved core file works; boot() sets dumppcb before a dump, as FreeBSD 2.0 and
 2.0.5 do. Not working: floating-point registers (item 6).
 
-Patch 208 is the statistics clock (decided 2026-10-25; kind D): the
+Patch 208 is the statistics clock (decided 2026-10-25; kind B,
+corrected 2026-10-31 from a mislabeled kind D -- clock.c is Lite2's
+own file, not a donor file): the
 RTC's periodic interrupt on IRQ 8, stathz 128 and profhz 1024, as
 FreeBSD 2.0's clock.c of 1994 (Wollman) has it, and rtc.h's divider,
 rate and status-B names with it. rtcintr is FreeBSD 2.2.8's, which
@@ -630,7 +634,9 @@ and 1024; a spinning process is charged user time; profil collects
 about 1024 ticks a second and the rate returns to 128 afterwards; the
 date keeps true over a ten-second sleep.
 
-Patch 209 is CLKF_INTR (decided 2026-10-26; kind D): Bruce Evans's
+Patch 209 is CLKF_INTR (decided 2026-10-26; kind B, corrected
+2026-10-31 from a mislabeled kind D -- icu.s/icu.h/locore.s are
+Lite2's own files, not donor files): Bruce Evans's
 count of nested interrupts, FreeBSD, 3 December 1994 (b39b673d3 in the
 FreeBSD history; release 2.0 has the zero, 2.0.5 and 2.2.8 the count).
 intr_nesting_level is a byte in icu.s, raised by every interrupt vector
@@ -674,7 +680,8 @@ in GENERIC is on IRQ 7). Also corrected: the
 failure mechanism in clock.c's note and the cause of the vinvalbuf
 panic in deferred.md.
 
-Patch 212 (decided 2026-10-28; kind D, a later donor's) makes rtcin() in
+Patch 212 (decided 2026-10-28; kind B, corrected 2026-10-31 from
+a mislabeled kind D -- locore.s is Lite2's own file) makes rtcin() in
 locore.s atomic: pushfl, cli, the index write and the data read, popfl.
 rtcintr reads register C through the same routine, so an interrupt
 between the two instructions of a process-level read (inittodr's, at
@@ -689,7 +696,9 @@ flags are saved rather than assumed because the interrupt handler calls
 it too. The direct outb(IO_RTC) pairs in clock.c need nothing: they run
 at splstatclock or before the periodic interrupt is enabled.
 
-Patch 213 (decided 2026-10-28; kind D) finishes the RTC's start and stop.
+Patch 213 (decided 2026-10-28; kind B/C, corrected 2026-10-31 from
+a mislabeled kind D -- clock.c is Lite2's own file, and the entry
+itself says so for part of the change) finishes the RTC's start and stop.
 enablertclock now sets the vector before IRQ 8 is unmasked in imen (it
 was after; nothing reaches the chip until splnone(), so this is tidiness
 and not a window) and reads register C before it enables the periodic
@@ -707,7 +716,8 @@ assumes. Tested under QEMU: profil ticks 271 of 296 expected with the
 statistics clock running as before; a kernel that calls disablertclock
 at root mount accrues no cpu time and no ticks afterwards.
 
-Patch 214 (decided 2026-10-28; kind D) closes the idle loop's lost wakeup.
+Patch 214 (decided 2026-10-28; kind B, corrected 2026-10-31 from
+a mislabeled kind D -- locore.s is Lite2's own file) closes the idle loop's lost wakeup.
 After spl0 the loop tested whichqs and then executed hlt with interrupts
 on in between, so an interrupt that made a process runnable in that gap
 returned to a hlt that waited for the next interrupt, up to a tick
@@ -720,7 +730,8 @@ instructions inside one. Checked by reading the disassembly and by the
 usual tests (boot, the disk stress, profiling, a sleep and wake loop).
 The comments of patch 213 are also corrected (see its entry).
 
-Patch 215 (decided 2026-10-28; kind D) clears the eproc in fill_eproc
+Patch 215 (decided 2026-10-28; kind B, corrected 2026-10-31 from
+a mislabeled kind D -- kern_proc.c is this tree's own file) clears the eproc in fill_eproc
 before filling it, as FreeBSD 2.2.8's does (kern_proc.c:405). For a
 zombie or a process still being created the function set four fields of
 e_vm and left the rest, and sysctl_doproc passes it a stack variable that
@@ -855,7 +866,9 @@ plain `vmstat` runs with the `w0` column from patch 221; `-s` too.
 notdef` and Lite2's kernel has no `forkstat`; not changed.
 
 Patch 203 compiles the i386 kernel -mpreferred-stack-boundary=2 (decided
-2026-10-27; kind D), as FreeBSD 4.0's share/mk/bsd.kern.mk does for the
+2026-10-27; kind B, corrected 2026-10-31 from a mislabeled kind D --
+a compile flag in Lite2's own Makefile is not a file transplant), as
+FreeBSD 4.0's share/mk/bsd.kern.mk does for the
 i386 (its comment: GCC 2.95 otherwise aligns the stack to 16 bytes and
 wastes about 12 bytes of it per call). GCC 2.95's i386 default is 16
 bytes (i386.c:394). With it, a call with no arguments is no longer

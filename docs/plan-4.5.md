@@ -164,6 +164,19 @@ numbers.
 
 1. **The clearance ledger** (`provenance/clearance.md`, A1): one row
    per donor file in use, and the 386BSD rule applied to each.
+   **Built, patch 259.** ~40 current donor files (kinds D/E/F), each
+   with what this tree's own records say about clearance. Only nine
+   have an actual stated lineage finding (the `wd.c` family, `ddb`,
+   `bc`/`dc`, `uucp`, `compress`, `deroff`, `ching`, `sendmail`,
+   `subr_rmap.c`); the rest are marked "not yet checked" rather than
+   given a verdict they haven't earned -- that backlog is A1's real
+   remaining work, now visible instead of implicit. Building it also
+   found eight patches `imports.md` mislabeled kind D (small fixes
+   inside Lite2's own files, not file transplants) and one direct
+   self-contradiction (patch 213); corrected in `imports.md` to kind
+   B/C, per the standing rule that the tree's own records get fixed
+   when wrong. `sys_process.c`, `procfs_machdep.c` and `subr_rmap.c`
+   carry a HOLD pending A2's own measurement.
 2. **`execve`** (A2; #209, #211). The `getxfile` lines quoted from 4.4
    come out. Candidates in source order:
    - 386BSD 0.1's own `execve`, if the ledger finds it clear and it
