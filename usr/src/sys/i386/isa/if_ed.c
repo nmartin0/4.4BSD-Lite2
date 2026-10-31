@@ -365,7 +365,16 @@ ed_probe_WD80x3(isa_dev)
 		break;
 	case ED_TYPE_SMC8216C: /* 8216 has 16K shared mem -- 8416 has 8K */
 	case ED_TYPE_SMC8216T:
-		if (sc->type = ED_TYPE_SMC8216C) {
+		/*
+		 * AI-ONLY NOTE (2026-10-31): changed -- FreeBSD's fix
+		 * (`==' in place of `='). Both cases fall into this one
+		 * `case', so without the comparison every card of either
+		 * type is both misreported as the C variant and, because
+		 * `=' also writes sc->type, silently turned into one: an
+		 * SMC8216T board had its own type field overwritten with
+		 * ED_TYPE_SMC8216C. See docs/provenance/if_ed-assign.md.
+		 */
+		if (sc->type == ED_TYPE_SMC8216C) {
 			sc->type_str = "SMC8216/SMC8216C";
 		} else {
 			sc->type_str = "SMC8216T";
@@ -385,7 +394,7 @@ ed_probe_WD80x3(isa_dev)
 			break;
 		case ED_WD790_RAR_SZ8:
 			/* 8216 has 16K shared mem -- 8416 has 8K */
-			if (sc->type = ED_TYPE_SMC8216C) {
+			if (sc->type == ED_TYPE_SMC8216C) {
 				sc->type_str = "SMC8416C/SMC8416BT";
 			} else {
 				sc->type_str = "SMC8416T";

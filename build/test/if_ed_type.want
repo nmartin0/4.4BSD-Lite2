@@ -1,0 +1,11 @@
+T begin
+T pre-fix, SMC8216T board (type=0x2a): type_str="SMC8216/SMC8216C" type_out=0x2b
+T pre-fix, SMC8216C board (type=0x2b): type_str="SMC8216/SMC8216C" type_out=0x2b
+T fixed,   SMC8216T board (type=0x2a): type_str="SMC8216T" type_out=0x2a
+T fixed,   SMC8216C board (type=0x2b): type_str="SMC8216/SMC8216C" type_out=0x2b
+T pre-fix, SMC8416T board (type=0x2a): type_str="SMC8416C/SMC8416BT" type_out=0x2b
+T pre-fix, SMC8416C board (type=0x2b): type_str="SMC8416C/SMC8416BT" type_out=0x2b
+T fixed,   SMC8416T board (type=0x2a): type_str="SMC8416T" type_out=0x2a
+T fixed,   SMC8416C board (type=0x2b): type_str="SMC8416C/SMC8416BT" type_out=0x2b
+T all checks passed
+T end
