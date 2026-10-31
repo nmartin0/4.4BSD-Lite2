@@ -253,7 +253,17 @@ main(argc, argv)
 			 * but we want every accounting record intact.
 			 */
 			if (ftruncate(fd, 0) == -1) {
-				warn("couldn't truncate %s", argv);
+				/*
+				 * AI-ONLY NOTE (2026-10-31): changed --
+				 * NetBSD's fix (present by NetBSD 1.3;
+				 * NetBSD 1.2 has the bug). `argv' here is
+				 * `char **', the current position in
+				 * main's own argv as the loop advances it;
+				 * %s was printing that pointer's value, not
+				 * the file name it points to. See
+				 * docs/provenance/sa-argv.md.
+				 */
+				warn("couldn't truncate %s", *argv);
 				error = 1;
 			}
 
@@ -280,7 +290,7 @@ main(argc, argv)
 		 * close the opened accounting file
 		 */
 		if (close(fd) == -1) {
-			warn("close %s", argv);
+			warn("close %s", *argv);	/* see the note above */
 			error = 1;
 		}
 	}

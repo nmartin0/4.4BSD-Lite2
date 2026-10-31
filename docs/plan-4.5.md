@@ -120,7 +120,7 @@ numbers.
    - `test` with three arguments. **Done, patch 251**
      (`provenance/test-3arg.md`).
    - `mkdir -p`. **Done, patch 252** (`provenance/mkdir-nul.md`).
-   - `sa` (NetBSD 1.3);
+   - `sa` (NetBSD 1.3). **Done, patch 253** (`provenance/sa-argv.md`).
    - `at` (OpenBSD's 1999 Y2K fix to `parsetime.c`, then the 2000
      `eqp` fix);
    - `uucpd` (OpenBSD 1996);

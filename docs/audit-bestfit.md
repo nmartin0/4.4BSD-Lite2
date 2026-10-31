@@ -125,6 +125,7 @@ would have avoided. In order of severity:
     checked). FreeBSD's later line in the same `build()` (Mike Smith,
     1998-10-22). **Done, patch 252** (`provenance/mkdir-nul.md`).
 11. **`sa` passes `char **` to `%s`** (#512; checked). NetBSD 1.3.
+    **Done, patch 253** (`provenance/sa-argv.md`).
 12. Smaller ones:
     - `re_comp("")` recompiles, and `re_comp` takes `char *` against
       Lite2's own prototype (#75). NetBSD 1.1 and 1.4.

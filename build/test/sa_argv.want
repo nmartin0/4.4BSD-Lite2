@@ -1,0 +1,4 @@
+T begin
+T bug form   (argv)  stderr shows the path: no
+T fixed form (*argv) stderr shows the path: yes
+T end
