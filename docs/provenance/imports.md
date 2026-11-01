@@ -339,6 +339,11 @@ copied, and the commit names it with its release.
     contents, are each named; links, broken links and -L; file leaves
     a file's ctime as it was; and man file and man 5 magic show
     Darwin's pages with their NAME.
+  kern_ktrace.c: ktrace(2) unlocks the trace file's vnode as `curp',
+    not Lite2's `p', unset at that point, which made the first
+    ktrace on any kernel with options KTRACE panic in lockmgr; OpenBSD
+    rev 1.8 (Sapuntzakis, November 1997), the line FreeBSD's Lite2
+    merge also has (Dyson, February 1997) -- patch 264
 
 ## C -- our judgement, no donor line
 

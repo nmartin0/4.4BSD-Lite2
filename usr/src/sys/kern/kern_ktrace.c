@@ -261,7 +261,21 @@ ktrace(curp, uap, retval)
 			return (error);
 		}
 		vp = nd.ni_vp;
-		VOP_UNLOCK(vp, 0, p);
+		/*
+		 * AI-ONLY NOTE (2026-11-01; docs/provenance/exec-stack.md,
+		 * *Asked next*): Lite2 passed `p' here, which is not set until
+		 * the loops below, so lockmgr saw a garbage process as the
+		 * unlocker and panicked ("not exclusive lock holder") on
+		 * the first ktrace(2) of any kernel built with KTRACE --
+		 * this tree's, measured, with or without patch 262. `curp',
+		 * the process that opened and locked the vnode, is
+		 * OpenBSD's fix (kern_ktrace.c rev 1.8, Constantine
+		 * Sapuntzakis, 14 November 1997, "Fixed up a VOP_UNLOCK
+		 * call so that it uses the correction proc *"); FreeBSD's
+		 * Lite2 merge has the same line (John Dyson, 10 February
+		 * 1997). Neither tree ever had Lite2's `p' here.
+		 */
+		VOP_UNLOCK(vp, 0, curp);
 		if (vp->v_type != VREG) {
 			(void) vn_close(vp, FREAD|FWRITE, curp->p_ucred, curp);
 			curp->p_traceflag &= ~KTRFAC_ACTIVE;

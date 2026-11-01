@@ -314,7 +314,9 @@ share 2 lines between them, both generic.
   EACCES (kern_prot.c), as POSIX has it; the old body never set the
   flag, so the call succeeded. This tree's sh and csh ignore the error.
 - With KTRACE (not in GENERIC), a set-id exec turns off a trace that
-  root did not set.
+  root did not set. The old body kept it, so an ordinary user could
+  trace a set-user-ID-root program through to its exit, its output
+  included (measured: *Asked next*, below).
 - The loader refuses more, and differently. Refused with ENOEXEC: a
   PT_INTERP segment (no dynamic linker here); more than one text or
   data segment; a PT_LOAD whose protection is neither r-x nor rw-/rwx;
@@ -511,6 +513,86 @@ lists itself as `ps -axo pid`, most likely ps splitting its own `-o`
 argument in place (neither program was read to confirm it); and a child of the shell caught between fork and exec shows as
 `(sh)`, which is a race, and changes run to run.
 
+## Asked next: ktrace, nosuid and noexec, and a release (2026-11-01)
+
+The maintainer asked for the three things the first round left
+untested. All were done on 1 November, each on this patch's kernel and
+the one before it unless said.
+
+**A full release.** `build/release.sh`, from clean, as root: exit 0,
+the CD image made (`i386-cd.iso`, 408 MB). Its base set has gdb (the
+27 October one did not), this patch's `sys/exec_script.h` in
+`/usr/include`, and a vmstat that names the `exec` malloc type; its
+`/vmunix` is this patch's GENERIC, rebuilt by the release from the
+same sources (build #221; the tests above ran on #220). The log has 15
+`Error code 1 (ignored)` lines, all contrib/mh's and each ignored by
+mh's own makefile: three in its build (`mv` of libmh.a, sendmts.a and
+libzot.a, which it has not made), and twelve in its install -- six
+`/usr/sbin/chown`, which the host has not, and six `chmod u-s` on the
+files those chowns would have made. Not exec's; recorded, not changed.
+That base set, made into a disk as *The commands, on a running
+system* describes, ran the same 43 steps on this kernel: every one
+gave the answer the earlier run gave, but for times, counts, PIDs, and
+which side of the fork-and-exec race ps caught.
+
+**ktrace and kdump.** GENERIC with `options KTRACE` added, for each
+kernel. The first `ktrace` on either panicked: `lockmgr: pid
+-272638050, not exclusive lock holder 7 unlocking`, from `ktrace` ->
+`ufs_unlock` (ddb's trace, read against the kernel's symbol table;
+reproduced on each kernel, single-user, with one `ktrace`).
+Lite2's ktrace(2) unlocks the trace file as `p`, which it has not set
+yet; OpenBSD's rev 1.8 (November 1997) and FreeBSD's Lite2 merge
+(February 1997) unlock it as `curp`. (Neither tree had Lite2's bug:
+FreeBSD went from `VOP_UNLOCK(vp)` straight to `curp`, and OpenBSD's
+`p` was `curproc` until that revision.) That one line is taken (patch
+264, `kern/kern_ktrace.c`'s note; `imports.md`, kind B) -- in this
+tree, and in the scratch copy of the old one so the two kernels could
+be compared -- and with it ktrace works on both. Then, as root unless
+said:
+
+- `ktrace -f` on `echo`: the execve call, its NAMI and its return,
+  then echo's own calls and its write; `kdump` with `-t n` (the one
+  NAMI), `-t c`, `-d -n` (arguments in decimal), `-R` and `-T` (time
+  stamps) and `-m 8`; `ktrace -a` appends a second run's records;
+  `ktrace -t i` records only the write. The same on both kernels.
+- `ktrace -i` on `sh -c "/bin/echo a; /bin/echo b"` follows the shell
+  into both children and their execs (three NAMIs as ktrace's execvp
+  searches the path for sh, one for each echo; records from three processes, the
+  shell and its two children); without `-i`, only the shell's. The
+  same on both.
+- `ktrace -p` on a running `sleep` with `-t s` records the SIGTERM
+  that kills it; `ktrace -c -p` stops a trace (no records); `ktrace -d
+  -g` and `ktrace -C` run without complaint (their exit status was not
+  captured). The same on both.
+- **A set-user-ID-root program, traced by an ordinary user** (uid 3,
+  through a small scratch helper that sets the IDs and execs ktrace):
+  on this kernel the trace ends at the exec -- three records, the last
+  the program's NAMI -- and the program runs set-ID (euid 0). On the
+  old kernel the trace went on through the set-ID image: 384 lines,
+  the program's output among them. This is the change *Behaviour that
+  changes* lists, and the old behaviour let an unprivileged user watch
+  a privileged program.
+- The same program under a trace root set goes on being traced, on
+  both (KTRFAC_ROOT); an ordinary user tracing an ordinary program is
+  traced to the end, on both.
+
+**nosuid and noexec.** A second disk (wd1, 16,128 sectors, labelled by
+`build/mklabel`, made with `makefs`) holding a copy of echo, of id
+set-user-ID to bin, of id set-group-ID to operator, of id
+set-user-ID-root, and a `#!/bin/sh` script; on the root, a script
+whose interpreter is `/mnt/echo`. Identical on both kernels, and as
+mount(8) documents:
+
+- Mounted plainly: everything runs; the set-ID copies run set-ID
+  (euid 3, egid 5, and euid 0 for uid 3); both scripts run.
+- `-o nosuid`: everything runs, none set-ID (uid 3 stays uid 3).
+- `-o noexec`: echo, the script and the set-ID copy are refused
+  (`permission denied`), and so is the script on the root whose
+  interpreter is on /mnt; `sh /mnt/s.sh` still runs it, as reading
+  is not exec.
+- `mount -u -o nosuid,noexec` then refuses echo; `mount -u -o
+  exec,suid` brings back both.
+
 ## What was not established
 
 - **A traced process may exec a program it cannot read** (see
@@ -523,19 +605,16 @@ argument in place (neither program was read to confirm it); and a child of the s
   from the encumbered file. Whether 4.5BSD should refuse it is the
   maintainer's call; doing so would be a correction with no donor line
   behind it.
-- **MNT_NOSUID and MNT_NOEXEC are not tested**: they need a second
-  mounted file system the test's bare disk does not have.
+- **MNT_NOSUID and MNT_NOEXEC** are not in `execve.c`, which runs on a
+  bare disk with one file system; they were tested by hand on a
+  running system with a second disk (*Asked next*, above).
 - **Demand paging is not done.** Segments are read in, as NetBSD 1.1's
   loader and this tree's old body both did; NetBSD's later loaders map
   aligned segments from the file. A performance question, left to 4.6BSD.
 - **`vmstat -m`** names malloc types from `INITKMEMNAMES` compiled into
-  vmstat; the vmstat in the last built root predates M_EXEC and shows
-  type 63 unnamed until it is rebuilt (the multi-user run used one
-  rebuilt against this tree's headers).
-- **The last release build predates gdb and this patch.** Its base set
-  (27 October) has no gdb and the old vmstat; the multi-user run added
-  both from this tree. A full `build/release.sh` was not run for this
-  patch.
+  vmstat, so a vmstat built before M_EXEC shows type 63 unnamed; the
+  release built on 1 November has one that names it (*Asked next*,
+  above).
 - **The encumbered 4.4BSD `kern_exec.c` was not compared** against the
   new files, because it is never read. The measurements are against
   what may lawfully be read: Lite2's stub and 386BSD 0.0 and 0.1.
