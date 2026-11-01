@@ -14,6 +14,10 @@
 #
 #   sh build/pending-bundle.sh BASE OUT.bundle
 #
+# OUT may be relative: it is made absolute before the script changes
+# directory (patch 263; it was written into the temporary directory and
+# deleted with it, while the script still said it had written it).
+#
 # BASE is the last commit the maintainer is known to have applied; every
 # commit from BASE (exclusive) to HEAD becomes one patch file. The bundle
 # holds a single branch, `patches`, with no history of the tree in it: one
@@ -24,10 +28,14 @@
 #     N file sha256 tree-before tree-after
 # apply-pending.sh (same directory) applies, in order, those not applied
 # yet (found by "(patch N)" in dev3's log), checking the trees.
-# It is cumulative: send the bundle from the oldest unapplied patch.
+# It is cumulative: send the bundle from the oldest unapplied patch --
+# from patch 263, from dev3 as GitHub has it, with apply-pending.sh
+# sent beside it and run by absolute path, since a dev3 older than
+# patch 245 has no copy of the script.
 set -e
 base=$1 out=$2
 [ -n "$base" ] && [ -n "$out" ] || { echo "usage: sh build/pending-bundle.sh BASE OUT.bundle" >&2; exit 1; }
+case $out in /*) ;; *) out=$(pwd)/$out;; esac
 w=$(mktemp -d); trap 'rm -rf "$w"' EXIT
 mkdir $w/p; : > $w/p/MANIFEST
 for c in $(git rev-list --reverse $base..HEAD); do
