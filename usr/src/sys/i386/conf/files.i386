@@ -12,6 +12,7 @@ i386/i386/kgdb_stub.c	optional kgdb
 i386/i386/kgdb_glue.c	optional kgdb
 i386/i386/in_cksum.c	optional inet
 i386/i386/machdep.c		standard config-dependent
+i386/i386/microtime.s	standard
 i386/i386/mem.c		standard
 i386/i386/pmap.c	standard
 i386/i386/procfs_machdep.c	standard

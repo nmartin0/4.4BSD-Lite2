@@ -1,0 +1,6 @@
+T begin
+T the clock never went backwards: yes
+T tv_usec always under a million: yes
+T crossed 100 or more ticks: yes
+T over 100 distinct values in one tick: yes
+T end

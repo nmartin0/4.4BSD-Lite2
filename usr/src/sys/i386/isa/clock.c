@@ -51,29 +51,7 @@
 #include <i386/isa/icu.h>
 #include <i386/isa/isa.h>
 #include <i386/isa/rtc.h>
-
-/* these should go elsewere (timerreg.h) but to avoid admin overhead... */
-/*
- * Macros for specifying values to be written into a mode register.
- */
-#define TIMER_CNTR0     (IO_TIMER1 + 0) /* timer 0 counter port */
-#define TIMER_CNTR1     (IO_TIMER1 + 1) /* timer 1 counter port */
-#define TIMER_CNTR2     (IO_TIMER1 + 2) /* timer 2 counter port */
-#define TIMER_MODE      (IO_TIMER1 + 3) /* timer mode port */
-#define         TIMER_SEL0      0x00    /* select counter 0 */
-#define         TIMER_SEL1      0x40    /* select counter 1 */
-#define         TIMER_SEL2      0x80    /* select counter 2 */
-#define         TIMER_INTTC     0x00    /* mode 0, intr on terminal cnt */
-#define         TIMER_ONESHOT   0x02    /* mode 1, one shot */
-#define         TIMER_RATEGEN   0x04    /* mode 2, rate generator */
-#define         TIMER_SQWAVE    0x06    /* mode 3, square wave */
-#define         TIMER_SWSTROBE  0x08    /* mode 4, s/w triggered strobe */
-#define         TIMER_HWSTROBE  0x0a    /* mode 5, h/w triggered strobe */
-#define         TIMER_LATCH     0x00    /* latch counter for reading */
-#define         TIMER_LSB       0x10    /* r/w counter LSB */
-#define         TIMER_MSB       0x20    /* r/w counter MSB */
-#define         TIMER_16BIT     0x30    /* r/w counter 16 bits, LSB first */
-#define         TIMER_BCD       0x01    /* count in BCD */
+#include <i386/isa/timerreg.h>	/* was written out here */
 
 #define DAYST 119
 #define DAYEN 303
@@ -319,80 +297,45 @@ resettodr()
 }
 
 /*
- * AI-ONLY NOTE: microtime, which read the time and added a whole
- * tick. This is Steve McCanne's, in the form of NetBSD 1.0's and
- * FreeBSD 2.0.5's microtime.s (the same file, with FreeBSD's
- * additions for the Pentium): the time of the last clock tick plus
- * how far the 8254's counter has run down since it was reloaded.
+ * AI-ONLY NOTE: the 8254 is read by NetBSD 1.0's microtime.s
+ * (i386/microtime.s), whose entry is renamed microtime_8254 and which
+ * is otherwise as docs/provenance/microtime.md lists. What stood here
+ * was a C microtime written for this tree after that file and
+ * FreeBSD 2.0.5's; under the source order (docs/plan-4.5.md stage 4)
+ * the donor's text comes first, and it is the donor's now.
  *
- * The counter is latched with interrupts off. A tick that came due
- * between the last interrupt and the latch has not yet been added to
- * `time', and the counter has wrapped; the 8259's request register
- * shows it as IRQ 0 pending, and one tick is added. As in the
- * donors that is not looked at if the counter is within twelve
- * counts of the bottom: it may have wrapped between the latch and
- * the read of the register, and the request would be taken for a
- * tick that the counter has not yet counted. The donors' own
- * comment gives the reasoning.
- *
- * Two differences, and no others. The reload value is worked out as
- * startrtclock works it out and not written as 11932, so that it
- * follows hz; and the counts are scaled to microseconds by
- * tick / reload and not by 1000 / 1193. That was an approximation
- * and gave 10001 for a whole tick, so that the next tick put the
- * time back by a microsecond. The request register is selected with
- * OCW3 each time, the in-service register being what icu.h's
- * INTR_SPUR1 leaves selected.
+ * What is left is the check below, which is not any donor's and is
+ * this tree's own (patch 217), moved from the C microtime unchanged
+ * in its logic. NetBSD 1.0, FreeBSD 2.0.5/2.2.8 and OpenBSD i386
+ * have no such check. Under QEMU's TCG the request bit for IRQ0 was
+ * measured to be raised tens of counts after the counter reloads, so
+ * a call in between sees a reloaded counter, no request and the old
+ * `time', and answers about one tick early. The donor's heuristics,
+ * which only decide when the request bit is worth reading, cannot
+ * see that: build/test/microtime.c measured the donor alone at 122
+ * steps back, the worst a whole tick, in 859,751 calls. So never
+ * answer less than the previous answer, but only within one tick of
+ * it: a larger step back is the clock being set and must show.
  */
+extern void microtime_8254 __P((struct timeval *));
 static struct timeval lasttime;
 
 void
 microtime(tvp)
 	register struct timeval *tvp;
 {
-	int s, count, limit;
-	unsigned char lo, hi;
+	int s;
+	long ds, back;
 
-	limit = (XTALSPEED + hz/2) / hz;
 	s = splhigh();
-	*tvp = time;
-	outb(TIMER_MODE, TIMER_SEL0 | TIMER_LATCH);
-	lo = inb(TIMER_CNTR0);
-	hi = inb(TIMER_CNTR0);
-	count = (hi << 8) | lo;
-	count = limit - count;			/* counts since the reload */
-	if (limit - count > 12) {
-		outb(IO_ICU1, 0x0a);		/* OCW3: read the request register */
-		if (inb(IO_ICU1) & IRQ0)
-			count += limit;		/* a tick not yet counted */
-	}
+	microtime_8254(tvp);
+	ds = lasttime.tv_sec - tvp->tv_sec;
+	back = ds * 1000000 + (lasttime.tv_usec - tvp->tv_usec);
 
-	tvp->tv_usec += count * tick / limit;
-	if (tvp->tv_usec >= 1000000) {
-		tvp->tv_sec++;
-		tvp->tv_usec -= 1000000;
-	}
-	/*
-	 * AI-ONLY NOTE: not in any donor (NetBSD 1.0, FreeBSD 2.0.5/2.2.8
-	 * and OpenBSD i386 have no such check). Under QEMU's TCG the
-	 * request bit for IRQ0 was measured to be raised tens of counts
-	 * after the counter reloads, so a call in between sees a
-	 * reloaded counter, no request and the old `time', and answers
-	 * about one tick early (24 steps back in 100k calls). The
-	 * donors' heuristics, which only decide when the request bit is
-	 * worth reading, cannot see that. So never answer less than the
-	 * previous answer, but only within one tick of it: a larger
-	 * step back is the clock being set and must show.
-	 */
-	{
-		long ds = lasttime.tv_sec - tvp->tv_sec;
-		long back = ds * 1000000 + (lasttime.tv_usec - tvp->tv_usec);
-
-		if (ds >= 0 && ds <= 1 && back > 0 && back <= tick)
-			*tvp = lasttime;
-		else
-			lasttime = *tvp;
-	}
+	if (ds >= 0 && ds <= 1 && back > 0 && back <= tick)
+		*tvp = lasttime;
+	else
+		lasttime = *tvp;
 	splx(s);
 }
 
