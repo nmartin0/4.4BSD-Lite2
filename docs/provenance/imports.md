@@ -1353,6 +1353,13 @@ gives them.
 	lib/libcompat/4.3/regex.c   93 lines	NetBSD 1.0
 	bin/expr			679 lines	NetBSD 1.0, unmodified
 	sys/kern/subr_rmap.c		NetBSD 1.2, a note added
+	sys/kern/kern_acct.c		FreeBSD 2.0, two lines adapted
+	sys/kern/kern_physio.c		NetBSD 1.0, three mechanisms adapted
+	sys/kern/vfs_bio.c		NetBSD 1.0, 1.1's corrections (patch
+					248); eighteen comment lines
+					reworded (patch 265)
+	sys/kern/tty_subr.c		FreeBSD 2.0 (Greenman), ndqb
+					stubbed
 	sys/kern/kern_exec.c, exec_subr.c,	NetBSD 1.0 and 1.1, shrink-wrapped
 	  exec_conf.c, exec_script.c	(patch 262)
 	usr.bin/awk			Kernighan, 20121220, unmodified

@@ -170,9 +170,10 @@ numbers.
    `bc`/`dc`, `uucp`, and kind E's and F's near-uniform "clear"
    verdicts); 3 are split between GNU's own clean release text and a
    donor's unmeasured changes to it (`gdb-4.16`, `gcc-2.95.3`,
-   `binutils-2.11.2`); 3 are HOLD pending A2 (`sys_process.c`,
-   `procfs_machdep.c`, `subr_rmap.c`); the remaining 26 are "not yet
-   checked" -- that backlog is A1's real remaining work, now visible
+   `binutils-2.11.2`); 3 were HOLD pending A2 (`sys_process.c`,
+   `procfs_machdep.c`, `subr_rmap.c`; resolved in patch 265, item 3.3
+   below); the remaining 26 were "not yet
+   checked" (27 of 60 rows now) -- that backlog is A1's real remaining work, now visible
    instead of implicit. (This entry originally said "nine" and
    miscounted a HOLD row as settled; independent review caught both
    in `clearance.md` itself, and this entry is corrected to match,
@@ -229,6 +230,16 @@ numbers.
 3. **The other A2 files:** `kern_acct.c`, `subr_rmap.c`,
    `kern_physio.c`, `sys_process.c`. Each is measured, given a
    ledger row, and re-derived if it is not clear.
+   **Done, 2026-11-01 (patch 265)**, `provenance/a2-files.md`. All
+   measured, plus `procfs_machdep.c` and `vfs_bio.c`. Only `vfs_bio.c`
+   needed an edit: 18 comment lines that matched 386BSD 0.0 word for
+   word, reworded; the object file is byte-identical. The ledger had no
+   rows for `kern_acct.c`, `kern_physio.c`, `vfs_bio.c` or `tty_subr.c`;
+   they have them now (60 rows, no HOLD). Left open: `kern_acct.c` and
+   `subr_rmap.c` have no readable Net/2 body to compare, so they rest on
+   authorship; `tty_subr.c` is unmeasured and its "interim" note is
+   stale; the 17 interface lines in `vfs_bio.c`; the first-fit replay of
+   `sys_process.c` to NetBSD 1.0 (stage 4, #380).
 4. **The IDE disk driver** (#318, #319): **settled, 2026-10-30**
    (`provenance/disk-wd.md`). FreeBSD 2.1.0's `wd.c`, `wdreg.h`, the ATAPI
    and `wcd` files and the slice layer carry no Net/2-era text that

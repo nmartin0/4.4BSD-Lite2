@@ -388,15 +388,11 @@ vn_bwrite(ap)
 }
 
 /*
- * Delayed write.
- *
- * The buffer is marked dirty, but is not queued for I/O.
- * This routine should be used when the buffer is expected
- * to be modified again soon, typically a small write that
- * partially fills a buffer.
- *
- * NB: magnetic tapes cannot be delayed; they must be
- * written in the order that the writes are requested.
+ * Delayed write: mark the buffer dirty and release it without
+ * starting any I/O, for a buffer that will probably be written to
+ * again soon -- usually a small write that fills part of a block.
+ * A tape cannot take this: its writes have to reach it in the order
+ * they were made, so they are never delayed.
  *
  * Described in Leffler, et al. (pp. 208-213).
  */
@@ -533,7 +529,7 @@ incore(vp, blkno)
 
 	bp = BUFHASH(vp, blkno)->lh_first;
 
-	/* Search hash chain */
+	/* walk the chain this block hashes to */
 	for (; bp != NULL; bp = bp->b_hash.le_next) {
 		if (bp->b_lblkno == blkno && bp->b_vp == vp &&
 		    !ISSET(bp->b_flags, B_INVAL))
@@ -544,12 +540,10 @@ incore(vp, blkno)
 }
 
 /*
- * Get a block of requested size that is associated with
- * a given vnode and block offset. If it is found in the
- * block cache, mark it as having been found, make it busy
- * and return it. Otherwise, return an empty block of the
- * correct size. It is up to the caller to insure that the
- * cached blocks be of the correct size.
+ * Return the buffer for a vnode's block, busy. A buffer already in
+ * the cache is marked as found; if there is none, an empty buffer of
+ * the size asked for comes back instead. The caller must make sure
+ * that cached buffers are the size it expects.
  */
 struct buf *
 getblk(vp, blkno, size, slpflag, slptimeo)
@@ -612,7 +606,7 @@ start:
 }
 
 /*
- * Get an empty, disassociated buffer of given size.
+ * Return a buffer of the size asked for that belongs to no vnode.
  */
 struct buf *
 geteblk(size)
@@ -719,9 +713,8 @@ out:
 }
 
 /*
- * Find a buffer which is available for use.
- * Select something from a free list.
- * Preference is to AGE list, then LRU list.    
+ * Take a buffer off a free list for reuse: the AGE list first, then
+ * the LRU list.
  */
 struct buf *
 getnewbuf(slpflag, slptimeo)
@@ -736,7 +729,7 @@ start:
 	    (bp = bufqueues[BQ_LRU].tqh_first) != NULL) {
 		bremfree(bp);
 	} else {
-		/* wait for a free buffer of any kind */
+		/* none free: sleep until a buffer is released */
 		needbuffer = 1;
 		tsleep(&needbuffer, slpflag|(PRIBIO+1), "getnewbuf", slptimeo);
 		splx(s);
