@@ -10,7 +10,7 @@
  * consent decree. docs/provenance/precedent.md has the rule; this
  * project does not write bodies, it imports and cuts them down.
  *
- * Donor: NetBSD 1.0, Christopher G. Demetriou, 1994, three-clause
+ * Donor: NetBSD 1.0, Christopher G. Demetriou, 1994, under the Regents' four-clause
  * BSD. Its physio takes this tree's own six parameters in this tree's
  * own order --
  *

@@ -7,7 +7,7 @@
  * project does not write bodies; docs/provenance/precedent.md has the
  * rule.
  *
- * Donor: FreeBSD 2.0, Christopher G. Demetriou, 1994, three-clause
+ * Donor: FreeBSD 2.0, Christopher G. Demetriou, 1994, under the Regents' four-clause
  * BSD -- the same author as this tree's kern_physio.c and vfs_bio.c,
  * who filled these holes for NetBSD and whose work FreeBSD took. His
  * function set is this tree's two plus encode_comp_t and acctwatch,

@@ -235,7 +235,7 @@ numbers.
    needed an edit: 18 comment lines that matched 386BSD 0.0 word for
    word, reworded; the object file is byte-identical. The ledger had no
    rows for `kern_acct.c`, `kern_physio.c`, `vfs_bio.c` or `tty_subr.c`;
-   they have them now (60 rows, no HOLD). Left open: `kern_acct.c` and
+   they have them now (61 rows after 267, no HOLD). Left open: `kern_acct.c` and
    `subr_rmap.c` have no readable Net/2 body to compare, so they rest on
    authorship; `tty_subr.c` is unmeasured and its "interim" note is
    stale; the 17 interface lines in `vfs_bio.c`; the first-fit replay of
@@ -254,8 +254,17 @@ numbers.
    contribution. Measured with `build/lineage.py` as `wd.c` was, with
    Lite2's own `isa.c` DMA routines the first candidate; then the
    earliest clear donor if the test finds a residue that matters.
+   **Done, 2026-11-01 (patch 267)**, `provenance/floppy-dma.md`: clear,
+   no Net/2-era text Berkeley changed found by the test (not "clear" in a stronger sense; see the record); Lite2's `at_dma` is a different text and FreeBSD 2.0 is
+   the earliest readable source with the fixes, so the code stays. The
+   missing MacLachlan credit is restored in `isa.c` (comment only).
 6. **Holders and licences (A3)** and **our own files' SPDX lines and
    `COPYRIGHT` (A4)**.
+   **Surveyed, 2026-11-01 (patch 267)**, `provenance/holders-licences.md`:
+   five wrong ledger cells fixed, six own files given their SPDX line.
+   **Not done:** `COPYRIGHT` itself, 24 partial holder cells, A3's named
+   files, and a header-against-donor check (0 of 60). The 48 writing
+   files and 20 fixtures without the line are the maintainer's call.
 
 ## Stage 4: the replay, by first fit
 

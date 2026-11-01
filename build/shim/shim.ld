@@ -1,3 +1,4 @@
+/* SPDX-FileCopyrightText: 2026 Nicholas Martin */
 ENTRY(_start)
 SECTIONS {
 	. = 8M;	/* clear of the kernel, which now runs at 1M */

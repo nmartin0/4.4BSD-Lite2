@@ -1,4 +1,6 @@
 /*
+ * SPDX-FileCopyrightText: 2026 Nicholas Martin
+ *
  * AI-ONLY NOTE: the host side of building this tree's sbin/newfs/mkfs.c
  * with the host compiler, for build/mkfs-host.c. The tree is not
  * touched; everything the host needs is here.

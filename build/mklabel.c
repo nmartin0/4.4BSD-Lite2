@@ -1,4 +1,6 @@
 /*
+ * SPDX-FileCopyrightText: 2026 Nicholas Martin
+ *
  * AI-ONLY NOTE: a host tool, not part of the kernel or of the tree's
  * own sbin/disklabel. It writes the smallest disk label wdopen will
  * accept, so the kernel can get past `wd0: bad disk label'.

@@ -1,4 +1,6 @@
 /*
+ * SPDX-FileCopyrightText: 2026 Nicholas Martin
+ *
  * AI-ONLY NOTE: a host tool that puts /sbin/init into the filesystem
  * build/mkfs-host.c has made, so the kernel has something to exec.
  * The tree is not touched: this links against this tree's own

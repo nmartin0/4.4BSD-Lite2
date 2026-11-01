@@ -12,7 +12,7 @@
  * at all; where one is missing, a permissively licensed donor is
  * imported and cut down to what this tree's interfaces want.
  *
- * Donor: NetBSD 1.0, Christopher G. Demetriou, 1994, three-clause
+ * Donor: NetBSD 1.0, Christopher G. Demetriou, 1994, under the Regents' four-clause
  * BSD. Chosen by measurement across every reachable release --
  * NetBSD 0.9 through 1.3 and FreeBSD 1.1.5 through 2.2 -- compiled
  * against this tree's own headers:

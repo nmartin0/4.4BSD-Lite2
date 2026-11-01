@@ -38,6 +38,15 @@
 
 /*
  * code to manage AT bus
+ *
+ * 92/08/18 Frank P. MacLachlan (fpm@crash.cts.com):
+ * Fixed uninitialized variable problem and added code to deal with DMA
+ * page boundaries in isa_dmarangecheck().  Fixed word mode DMA count
+ * compution and reorganized DMA setup code in isa_dmastart().
+ *
+ * AI-ONLY NOTE (patch 267): this credit is FreeBSD 2.0's own, which the
+ * tree took the code from and left the credit out of; added back,
+ * docs/provenance/floppy-dma.md.
  */
 
 #include <sys/param.h>
@@ -178,8 +187,10 @@ isa_defaultirq() {
  * isa_dmarangecheck, is FreeBSD 2.0's i386/isa/isa.c (rev 1.35),
  * unchanged but for pmap_kernel(), written kernel_pmap here, and
  * stands in place of 386BSD's at_dma. NetBSD 1.0's isa/dma.c and
- * OpenBSD's first isadma.c (1995) carry the same functions, line for
- * line; FreeBSD's is the one in this file's own lineage. at_dma
+ * OpenBSD's first isadma.c (1995) carry the same functions, 60 and 58
+ * of this region's 95 distinct lines (docs/provenance/floppy-dma.md,
+ * measured; an earlier version of this note said "line for line");
+ * FreeBSD's is the one in this file's own lineage. at_dma
  * programmed channel 2's registers whatever channel it was given,
  * bounced only user addresses, through a buffer from geteblk that
  * could lie anywhere, and handed the controller kernel addresses

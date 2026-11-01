@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Nicholas Martin
 #	devices.spec -- the device nodes of the install root
 #
 # AI-ONLY NOTE: an mtree specification, read by makefs -F (see

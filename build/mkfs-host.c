@@ -1,4 +1,6 @@
 /*
+ * SPDX-FileCopyrightText: 2026 Nicholas Martin
+ *
  * AI-ONLY NOTE: a host driver for this tree's sbin/newfs/mkfs.c, so a
  * filesystem can be written onto an image file from the build host.
  * The tree is not touched: mkfs.c compiles exactly as it stands and
