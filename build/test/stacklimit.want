@@ -1,0 +1,11 @@
+T begin
+T default stack limit: 512 KB
+T stack maximum: 32 MB
+T grew 31 MB
+T within the maximum, 31 MB: errno=0, exit 0
+T past the maximum, 33 MB: errno=0, killed by signal 11
+T past the old maximum, 129 MB: errno=0, killed by signal 11
+T root asks for 128 MB, gets: 32 MB, maximum 32 MB
+T grew 1 MB
+T root, limit 128 MB, grow 1 MB: errno=0, exit 0
+T end

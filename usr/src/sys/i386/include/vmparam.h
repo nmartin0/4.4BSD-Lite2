@@ -65,8 +65,11 @@
  * AI-ONLY NOTE: the data size limits are FreeBSD 2.0's, 64 MB to
  * begin with and 128 MB at most, where Lite2's were 6 and 32: GCC
  * 2.95.3's C++ compiler needs more than 6 MB for the STL's strings,
- * and every descendant raised both (decided 2026-10-18). MAXSSIZ
- * follows MAXDSIZ, as Lite2 has it.
+ * and every descendant raised both (decided 2026-10-18). Lite2 sets
+ * MAXSSIZ to MAXDSIZ, so that raise also made the stack's maximum 128
+ * MB; it is Lite2's own 32 MB again, as the decision of 2026-10-18 says
+ * the stack limits stay (docs/provenance/stack-limit.md). The kernel
+ * caps RLIMIT_STACK at it (kern_resource.c).
  */
 #define	MAXTSIZ		(6*1024*1024)		/* max text size */
 #ifndef DFLDSIZ
@@ -79,7 +82,7 @@
 #define	DFLSSIZ		(512*1024)		/* initial stack size limit */
 #endif
 #ifndef	MAXSSIZ
-#define	MAXSSIZ		MAXDSIZ			/* max stack size */
+#define	MAXSSIZ		(32*1024*1024)		/* max stack size */
 #endif
 
 /*

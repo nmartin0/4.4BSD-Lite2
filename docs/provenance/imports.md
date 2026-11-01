@@ -415,9 +415,14 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	contrib/binutils-2.11.2		GNU's release, NetBSD 1.6's changes, a target
 	lib/libcompat/4.1: gtty, stty, ftime	NetBSD 1.0
 	usr.bin/m4/m4.1			NetBSD 1.0
-	kern/sys_process.c		FreeBSD 2.2, adapted
+	kern/sys_process.c		NetBSD 1.0, shrink-wrapped (patch
+					271); PT_WRITE_U through FreeBSD's
+					ptrace_write_u
+	i386/i386/microtime.s		NetBSD 1.0, shrink-wrapped (patch 270)
+	kern/kern_resource.c, vm/vm_glue.c: maxsmap	NetBSD 1.0 (patch 272)
 	i386/i386/procfs_machdep.c	Pendry, as NetBSD had it (Jan 1994), adapted
 	i386 machdep.c: ptrace_set_pc, ptrace_write_u	FreeBSD 2.2, adapted
+					(kept for NetBSD 1.0's sys_process.c)
 	i386 ptrace.h: PT_GETREGS family	FreeBSD 2.2
 	i386 reg.h: struct reg, NetBSD (1993); struct fpreg, FreeBSD 2.1.0
 	lib/libc/sys/ptrace.2		FreeBSD 2.2, adapted
@@ -773,6 +778,12 @@ call in that gap saw a reloaded counter, no request and the old
 donors' read-the-IRR heuristics, NetBSD's `> 12' and FreeBSD's
 overflow threshold, cannot see this). Real hardware raises the request
 at the reload, so the clamp may never act there; that is not measured.
+Patch 270 (2026-11-01; kind B, #686) replaces the C microtime by NetBSD
+1.0's microtime.s itself (v1.8, McCanne), the earlier donor text, with
+nine labelled changes (docs/provenance/microtime.md); the one-tick check
+stays in clock.c as microtime(), around the donor's microtime_8254.
+resettodr is kept: NetBSD 1.0's needs its whole RTC section, which would
+clear the interrupt the statistics clock uses.
 Tested: 100k gettimeofday calls non-decreasing, settimeofday then
 reboot round-trips leap day, DST and year-end dates, disk stress clean.
 

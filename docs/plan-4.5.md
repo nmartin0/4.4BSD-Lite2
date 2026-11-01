@@ -279,13 +279,26 @@ numbers.
      (1994) comes before FreeBSD 2.2's (1997). Its unchecked
      `PT_WRITE_U` is a hole, fixed by the first fix of it. This
      coincides with the A2 item.
+     **Done, 2026-11-01 (patch 271)**, `provenance/ptrace-firstfit.md`.
+     NetBSD 1.0's file, but its line's first fix (NetBSD 1.1 removes
+     `PT_READ_U`/`PT_WRITE_U`) breaks this tree's gdb, shown; the hole is
+     closed with the `ptrace_write_u` the tree already had, recorded as
+     a departure from the rule.
    - **The stack limit** (#442): FreeBSD 2.0, the source of
      `MAXDSIZ`, sets `MAXSSIZ` to 64 MB in the same file. Taking its
      line completes the patch.
+     **Done differently, 2026-11-01 (patch 272)**,
+     `provenance/stack-limit.md`: NetBSD 1.0 (8 MB) is the earlier donor,
+     and the maintainer's decision of 2026-10-18 keeps the stack limits
+     Lite2's, so `MAXSSIZ` is Lite2's 32 MB, with NetBSD 1.0's `maxsmap`
+     cap so that a root limit above it cannot break exec.
    - **`microtime`** (#686): NetBSD 1.0's `microtime.s` is a donor
      text that closes the gap. Under the source order it comes before
      our C. `resettodr`'s donor (NetBSD 1.0's) is measured the same
      way.
+     **Done, 2026-11-01 (patch 270)**, `provenance/microtime.md`:
+     NetBSD 1.0's `microtime.s`; `resettodr` kept (its donor needs
+     NetBSD's whole RTC section).
 2. **One decision must be measured first:**
    - **`sh`'s `getpwd`** (#264): NetBSD 1.1's four-line `getcwd` form
      is earlier than the loop we took. The loop is kept only if it

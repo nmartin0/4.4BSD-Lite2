@@ -114,7 +114,9 @@ close, not a finding that the files are clean.
 | FreeBSD | 2.1.0, adapted | `i386/isa/if_ed.c`, `if_edreg.h` | not yet checked (`if_ed-assign.md` is a later bugfix, not a clearance measurement) | David Greenman's own notice | -- |
 | NetBSD | 1.0 | `lib/libcompat/4.1`: `gtty`, `stty`, `ftime` | not yet checked | -- | -- |
 | NetBSD | 1.0 | `usr.bin/m4/m4.1` | not yet checked | -- | -- |
-| FreeBSD | 2.2, rev 1.24 (Fagan 1994), adapted | `kern/sys_process.c` | **measured, 2026-11-01** (`a2-files.md`): 16 of 182 lines (9%) are in 386BSD's `sys_process.c` (Net/2's body, 0.1) and not Lite2's stub -- all interface (`ptrace`'s signature, `case PT_...:` labels, a few one-line idioms); clear on this test. The Net/2 share fell 51%, 30%, 18%, 8% through FreeBSD 1.0, 1.1.5.1, 2.0 and 2.2 as Fagan's rewrite replaced it; NetBSD 1.0's is 4%. First-fit replay (NetBSD 1.0's) is stage 4, #380 | Sean Eric Fagan 1994, four-clause, advertising clause | #375 |
+| NetBSD | 1.0, rev 1.33.2.4 (Demetriou 1994), shrink-wrapped (patch 271); `PT_WRITE_U` confined by FreeBSD 2.2's `ptrace_write_u` | `kern/sys_process.c` | **measured, 2026-11-01** (`ptrace-firstfit.md`): 9 of 253 lines (3%) are in 386BSD 0.1's Net/2 body and not Lite2's stub, all `case PT_...:` labels and one `#ifdef`; clear on this test. Replaces FreeBSD 2.2's (16 of 182, 9%, `a2-files.md`) by first fit. NetBSD 1.1's removal of the U requests not taken (it breaks this tree's gdb, shown) | Demetriou 1994 and the Regents'/USL's, four-clause, advertising clause | #380, #375 |
+| NetBSD | 1.0, `i386/microtime.s` v1.8 (McCanne, 1993), shrink-wrapped, 9 labelled changes (patch 270) | `i386/i386/microtime.s`; `isa/timerreg.h` (the TIMER_ lines moved out of `clock.c`) | **0 lines shared with what it replaces; donor, not measured against Net/2** (`microtime.md`): 386BSD has no `microtime.s`; the Regents' notice is Lite2-era. The one-tick check kept in `clock.c` is patch 217's, in no donor | the Regents' 1993, four-clause, advertising clause | #686 |
+| NetBSD | 1.0, `kern_resource.c` rev 1.20 and `vm_glue.c` rev 1.39: `maxsmap` (patch 272) | `kern/kern_resource.c`, `vm/vm_glue.c` (three lines); `i386/include/vmparam.h` `MAXSSIZ` 32 MB, Lite2's value | clear: Lite2's own files with NetBSD 1.0's three Lite-based lines (`stack-limit.md`) | the Regents' (Lite2's own notice) | #442 |
 | NetBSD (as it had it, Jan 1994), adapted | -- | `i386/i386/procfs_machdep.c` | **likely clear, 2026-11-01** (`a2-files.md`; a sibling of Lite2's own files, nothing comparable readable): Pendry's own `/proc` code for 4.4BSD, of which Lite2 ships two siblings (`hp300`, `pmax`) under the same Regents-and-Pendry notice; 45% of its lines are in `hp300`'s; 386BSD, which carries Net/2's text, has no `/proc`. Not a settlement body | Regents and Pendry's | #375 |
 | FreeBSD | 2.2, adapted | `i386/i386/machdep.c`: `ptrace_set_pc`, `ptrace_write_u` | not yet checked | -- | -- |
 | FreeBSD | 2.2 | `i386/include/ptrace.h`: `PT_GETREGS` family | not yet checked | -- | -- |
@@ -207,7 +209,9 @@ hand, not estimated:
 **Recounted by script, 2026-11-01 (patch 265)**, the hand counts above
 not having been reproducible: the three kind tables held **60 rows**
 (41 kind D, 15 kind E, 4 kind F); patch 267 added the `isa.c` DMA row
-(kind D), making **61** (42 D, 15 E, 4 F). Four were added today --
+(kind D), making **61** (42 D, 15 E, 4 F). Patches 270 and 272 added two
+more (NetBSD 1.0's `microtime.s` and `maxsmap`), and patch 271 replaced
+the `sys_process.c` row, making **63**. Four were added today --
 `kern_acct.c`, `kern_physio.c`, `vfs_bio.c` and `tty_subr.c`, which
 `imports.md` had never listed and so the ledger, built from it, had
 not either (`a2-files.md`) -- and the three HOLD rows were resolved.

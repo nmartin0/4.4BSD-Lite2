@@ -75,6 +75,7 @@
 
 int	avefree = 0;		/* XXX */
 unsigned maxdmap = MAXDSIZ;	/* XXX */
+unsigned maxsmap = MAXSSIZ;	/* XXX */ /* AI-ONLY NOTE: NetBSD 1.0's, for kern_resource.c */
 int	readbuffers = 0;	/* XXX allow kgdb to read kernel buffer pool */
 
 int

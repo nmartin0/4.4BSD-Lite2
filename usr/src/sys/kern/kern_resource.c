@@ -271,7 +271,7 @@ dosetrlimit(p, which, limp)
 	struct rlimit *limp;
 {
 	register struct rlimit *alimp;
-	extern unsigned maxdmap;
+	extern unsigned maxdmap, maxsmap;	/* AI-ONLY NOTE: maxsmap, NetBSD 1.0 */
 	int error;
 
 	if (which >= RLIM_NLIMITS)
@@ -300,10 +300,19 @@ dosetrlimit(p, which, limp)
 		break;
 
 	case RLIMIT_STACK:
-		if (limp->rlim_cur > maxdmap)
-			limp->rlim_cur = maxdmap;
-		if (limp->rlim_max > maxdmap)
-			limp->rlim_max = maxdmap;
+		/*
+		 * AI-ONLY NOTE: maxsmap, not maxdmap, as NetBSD 1.0 has it
+		 * (kern_resource.c, with `maxsmap = MAXSSIZ' in vm_glue.c).
+		 * exec maps the stack from USRSTACK - MAXSSIZ, and a larger
+		 * limit, which only the super-user can set, made the stack
+		 * region's size wrap and killed every later exec of the
+		 * process (docs/provenance/stack-limit.md). The two were the
+		 * same number until MAXSSIZ was told apart from MAXDSIZ.
+		 */
+		if (limp->rlim_cur > maxsmap)
+			limp->rlim_cur = maxsmap;
+		if (limp->rlim_max > maxsmap)
+			limp->rlim_max = maxsmap;
 		/*
 		 * Stack is allocated to the max at exec time with only
 		 * "rlim_cur" bytes accessible.  If stack limit is going
