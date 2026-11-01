@@ -56,8 +56,10 @@
 void	proc_reparent __P((struct proc *child, struct proc *newparent));
 /*
  * AI-ONLY NOTE: the machine-dependent halves of ptrace(2), as FreeBSD
- * 2.2's <sys/ptrace.h> declares them; kern/sys_process.c is FreeBSD
- * 2.2's. Single-stepping is Lite2's own procfs_sstep (procfs.h).
+ * 2.2's <sys/ptrace.h> declares them. kern/sys_process.c is NetBSD
+ * 1.0's (patch 271), which calls ptrace_set_pc where NetBSD calls
+ * process_set_pc, and sends PT_WRITE_U through ptrace_write_u.
+ * Single-stepping is Lite2's own procfs_sstep (procfs.h).
  */
 int	ptrace_set_pc __P((struct proc *p, unsigned int addr));
 int	ptrace_write_u __P((struct proc *p, vm_offset_t off, int data));
