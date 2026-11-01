@@ -41,24 +41,24 @@
 /*
  * AI-ONLY NOTE: the bodies below, lost in the AT&T settlement.
  *
- * This is deliberately an interim state, and is meant to be replaced
- * function by function. docs/provenance/clist.md records the whole
- * search: no post-settlement BSD restored CSRG's clist, every one
- * wrote its own, so taking any of them is a transplant -- kind D in
- * docs/provenance/imports.md's terms -- and not a restoration. The
- * canonical answer for a settlement body is to write it, which is how
- * execve and ten of vfs_bio.c's fourteen were done.
+ * This is the state 4.5BSD ships (decided 2026-11-01, patch 266). It was
+ * first written as "interim, to be replaced function by function", when
+ * the rule for a settlement body was to write it; the rule is now to
+ * import it from a donor (docs/provenance/precedent.md), and this file
+ * is imported. docs/provenance/clist.md records the whole search: no
+ * post-settlement BSD restored CSRG's clist, every one wrote its own,
+ * so taking any of them is a transplant -- kind D in
+ * docs/provenance/imports.md's terms -- and not a restoration.
  *
- * It is here first because it works, and because a working clist is
- * the only way to check a written one. With these bodies the kernel
- * reaches a shell and the shell's own output arrives on the console:
+ * The one function not imported is ndqb, below, which is this port's
+ * own writing. Whether a donor's can replace it is left to 4.6BSD.
+ *
+ * With these bodies the kernel reaches a shell and the shell's own
+ * output arrives on the console:
  *
  *	/etc/rc: Can't open /etc/rc
  *
- * which is sh failing to find its startup file and saying so. Nothing
- * in this tree could print that before. Each body written to replace
- * one of these can now be checked against a kernel that works, rather
- * than only read.
+ * which is sh failing to find its startup file and saying so.
  *
  * What is here, and from where:
  *

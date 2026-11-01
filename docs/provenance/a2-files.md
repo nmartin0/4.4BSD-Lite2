@@ -154,14 +154,26 @@ a fifteen-line change. Rows for the other four are in `clearance.md` and
 `imports.md`.
 
 `tty_subr.c` is FreeBSD 2.0's `getc`/`putc`/`b_to_q` family (David
-Greenman) with its `ndqb` stubbed, per `clist.md`. It was not measured
+Greenman) with its `ndqb` written here to 4.4BSD's shape (FreeBSD 2.0 has none), per `clist.md`. It was not measured
 here: neither 386BSD has a `tty_subr.c` (they use Jolitz's ring), so
-there is nothing readable to compare it with. Its note still says it is
-"deliberately an interim state ... to be replaced function by
-function" and that "the canonical answer for a settlement body is to
-write it", which was the rule before patch 262 and is not now; the
-note is stale. Left for the maintainer to say whether the interim state
-is the end state for 4.5BSD.
+there is nothing readable to compare it with. Its note called it "deliberately an interim state ... to be replaced
+function by function" and said "the canonical answer for a settlement
+body is to write it", which was the rule before patch 262 and is not
+now. **Decided by the maintainer, 2026-11-01 (patch 266):** this is the
+state 4.5BSD ships, and the note is rewritten to say so. The record
+had said `ndqb` was "stubbed"; the file says it is written, to 4.4BSD's
+shape, since FreeBSD 2.0 has no such function. That one function is the
+port's own writing, and a donor's replacing it is left to 4.6BSD.
+
+## ptrace on a program you may run but not read
+
+`ptrace` lets a process attach to a program it can execute but not read,
+and so read its memory. Every BSD examined does the same (`sys_process.c`
+is Fagan's, as NetBSD 1.0's and OpenBSD's are). **Decided by the
+maintainer, 2026-11-01 (patch 266): not changed in 4.5BSD**, which is
+the first faithful fit; listed as a known issue and left to 4.6BSD
+(`plan-4.6.md`). Untested here whether any BSD refuses it under some
+option; none was found.
 
 ## What was not established
 

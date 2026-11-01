@@ -294,6 +294,14 @@ Mach-VM machine code where the Mach VM is kept, and is held to Lite2's
 machine-dependent minimum. tahoe has no daughter port and is
 the project's own throughout.
 
+## Carried from 4.5BSD, decided 2026-11-01
+
+- **`ptrace` on an executable-but-unreadable program** can read its
+  memory (`provenance/a2-files.md`). Every BSD examined does; decide
+  whether 4.6BSD refuses it.
+- **`kern/tty_subr.c`'s `ndqb`** is this port's own writing; replace it
+  with a donor's if one is found (`provenance/clist.md`).
+
 ## What runs alongside every stage
 
 - The replay of 4.5BSD's earlier decisions when a file is touched
