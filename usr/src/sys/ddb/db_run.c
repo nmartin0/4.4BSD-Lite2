@@ -166,8 +166,13 @@ db_stop_at_pc(is_breakpoint)
 	 * (its breakpoint is counted in db_cond_check, ours in the
 	 * --bkpt->count above). Without it every counted breakpoint
 	 * ("break addr,N") fell through to here on its first N-1 hits and
-	 * stopped as if it were a step. NetBSD 1.0-1.3, FreeBSD 2.0-3.0
-	 * and OpenBSD all lack the test.
+	 * stopped as if it were a step. NetBSD 1.0-1.3 and FreeBSD 2.0-3.0
+	 * lack the test. OpenBSD fixed the same bug on 5 November 2024
+	 * (1ac7f822d3e, Lichtman via miod) with `else return 0' in the
+	 * count branch, returning before the step-mode tests rather than
+	 * after them. (This note first said OpenBSD lacked it; corrected
+	 * 2026-11-01, patch 274, bestfit-sweep.tsv row 630. Mach 3.0's
+	 * form is kept, as the earliest that closes the gap.)
 	 */
 	if (db_find_breakpoint_here(pc))
 		return (FALSE);

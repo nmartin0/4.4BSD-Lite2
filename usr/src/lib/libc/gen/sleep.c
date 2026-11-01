@@ -46,7 +46,7 @@ static int ringring;
 /*
  * AI-ONLY NOTE: declared here, not inside sleep(): GCC 14 rejects a
  * static function declaration at block scope. Taken from OpenBSD
- * (1996), lib/libc/gen/sleep.c, which declares it __P((int)) and gives
+ * (late 1996), lib/libc/gen/sleep.c, which declares it __P((int)) and gives
  * the definition the signal number the handler is passed. NetBSD
  * rewrote these two files around nanosleep instead, which is more
  * than this needs.

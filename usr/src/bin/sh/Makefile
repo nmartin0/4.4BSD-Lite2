@@ -27,7 +27,8 @@ init.c: mkinit ${SRCS}
 # AI-ONLY NOTE: these three are compiled with ${HOSTCC} and run during
 # the build to generate source, so they must be built for the machine
 # doing the building. OpenBSD's bin/sh/Makefile has used ${HOSTCC}
-# here since 1996. Built with ${CC} for a target that is not this
+# here since 12 October 1996 (58d5cc90b7b, "use HOSTCC"); its June
+# 1996 tree still used ${CC}. (Date added 2026-11-01, patch 274.) Built with ${CC} for a target that is not this
 # machine, mknodes dies with SIGSEGV as soon as make runs it.
 mkinit: ${.CURDIR}/mkinit.c
 	${HOSTCC} ${CFLAGS} ${.CURDIR}/mkinit.c -o $@

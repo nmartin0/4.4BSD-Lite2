@@ -42,15 +42,14 @@ static char sccsid[] = "@(#)courier.c	8.1 (Berkeley) 6/6/93";
 #include "tip.h"
 #include <stdio.h>
 
-/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
-static	int	cour_connect __P((void));
-static	int	cour_swallow __P((char *));
+/*
+ * AI-ONLY NOTE: three functions called before they are defined, which
+ * OpenBSD's 1997 lines (below) leave undeclared, keep NetBSD 1.4's
+ * prototypes, so that no call is an implicit declaration.
+ */
 static	void	cour_nap __P((void));
-static	void	cour_napx __P((int));
-static	int	coursync __P((void));
 static	void	cour_verbose_read __P((void));
 static	void	cour_write __P((int, char *, int));
-static	void	sigALRM __P((int));
 
 #define	MAXRETRY	5
 
@@ -58,7 +57,9 @@ static	void sigALRM();
 static	int timeout = 0;
 static	int connected = 0;
 static	jmp_buf timeoutbuf, intbuf;
-static	int coursync();
+/* AI-ONLY NOTE: see aculib/biz22.c; OpenBSD's lines of 2 April 1997. */
+static	int coursync(), cour_connect(), cour_swallow();
+static	void cour_napx();
 
 cour_dialer(num, acu)
 	register char *num;

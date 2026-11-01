@@ -45,7 +45,7 @@ static FILE *tf;
 /*
  * AI-ONLY NOTE: declared here, not inside the function that calls it:
  * GCC 14 rejects a static function declaration at block scope, and no
- * option accepts it. Taken from OpenBSD (1996), lib/libc, which has
+ * option accepts it. Taken from OpenBSD (late 1996), lib/libc, which has
  * these at file scope with __P prototypes; NetBSD 1.3 (1998) did the
  * same later. The contemporaries otherwise keep the block-scope form,
  * which no longer compiles.

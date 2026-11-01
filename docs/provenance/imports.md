@@ -723,7 +723,7 @@ took, but does not drain. disablertclock, new, writes register B without
 the bit and reads C, and boot() calls it after splhigh(): the chip's
 registers survive a warm reset, so the periodic bit would otherwise be
 left on for whatever boots next.
-No donor of the period does that at shutdown; it is mine. Register B is
+No donor of 1994-97 does that at shutdown; OpenBSD's rtcstop (2010-08-11, 3191b86a3db, at ACPI sleep) writes the same register B value, which this body is, plus the read of C (attribution corrected 2026-11-01, patch 274; bestfit-sweep.tsv row 683). Register B is
 still written as a constant (24 hour, BCD, no daylight saving), as
 startrtclock and FreeBSD 2.2.8 do, which is what bcd() in inittodr
 assumes. Tested under QEMU: profil ticks 271 of 296 expected with the

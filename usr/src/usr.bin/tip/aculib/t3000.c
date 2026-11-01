@@ -42,13 +42,12 @@ static char sccsid[] = "@(#)t3000.c	8.1 (Berkeley) 6/6/93";
 #include "tip.h"
 #include <stdio.h>
 
-/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
-static	int	t3000_connect __P((void));
-static	int	t3000_swallow __P((char *));
-static	void	sigALRM __P((int));
+/*
+ * AI-ONLY NOTE: two functions called before they are defined, which
+ * OpenBSD's 1997 lines (below) leave undeclared, keep NetBSD 1.4's
+ * prototypes, so that no call is an implicit declaration.
+ */
 static	void	t3000_nap __P((void));
-static	void	t3000_napx __P((int));
-static	int	t3000_sync __P((void));
 static	void	t3000_write __P((int, char *, int));
 
 #define	MAXRETRY	5
@@ -57,7 +56,9 @@ static	void sigALRM();
 static	int timeout = 0;
 static	int connected = 0;
 static	jmp_buf timeoutbuf, intbuf;
-static	int t3000_sync();
+/* AI-ONLY NOTE: see aculib/biz22.c; OpenBSD's lines of 2 April 1997. */
+static	int t3000_sync(), t3000_connect(), t3000_swallow();
+static	void t3000_napx();
 
 t3000_dialer(num, acu)
 	register char *num;

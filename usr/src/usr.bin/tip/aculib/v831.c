@@ -40,12 +40,11 @@ static char sccsid[] = "@(#)v831.c	8.1 (Berkeley) 6/6/93";
  */
 #include "tip.h"
 
-/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
-static	int	dialit __P((char *, char *));
-static	char   *sanitize __P((char *));
-
 int	v831_abort();
 static	void alarmtr();
+/* AI-ONLY NOTE: see aculib/biz22.c; OpenBSD's lines of 2 April 1997. */
+static	int dialit();
+static	char *sanitize();
 extern	int errno;
 
 static jmp_buf jmpbuf;

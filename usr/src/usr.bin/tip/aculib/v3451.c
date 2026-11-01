@@ -40,14 +40,11 @@ static char sccsid[] = "@(#)v3451.c	8.1 (Berkeley) 6/6/93";
  */
 #include "tip.h"
 
-/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
-static	void	alarmtr __P((int));
-static	int	expect __P((char *));
-static	int	notin __P((char *, char *));
-static	int	prefix __P((char *, char *));
-static	void	vawrite __P((char *, int));
-
 static	jmp_buf Sjbuf;
+
+/* AI-ONLY NOTE: see aculib/biz22.c; OpenBSD's lines of 2 April 1997. */
+static	int expect(), notin(), prefix();
+static	void vawrite(), alarmtr();
 
 v3451_dialer(num, acu)
 	register char *num;

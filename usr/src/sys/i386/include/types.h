@@ -55,11 +55,12 @@ typedef	unsigned long	vm_size_t;
 /*
  * AI-ONLY NOTE: register_t is used by <sys/ktrace.h>, <sys/systm.h>
  * and usr.bin/kdump, and this tree defines it for hp300 and sparc and
- * not for i386. The line is this tree's own, copied from
- * sys/hp300/include/types.h and sys/sparc/include/types.h, where it
- * reads the same and sits in the same place. No BSD of the period has
- * it in an i386 types.h to take instead: NetBSD 1.0's does not define
- * it either. int32_t is what the two architectures here use and is
+ * not for i386. The line is NetBSD 1.1's i386 types.h's, `typedef
+ * int32_t register_t;', which OpenBSD's of 1996 has too; it also reads
+ * the same in this tree's hp300 and sparc types.h. NetBSD 1.0's i386
+ * types.h does not define it. (This note first said no BSD of the
+ * period had it in an i386 types.h and called the line this tree's
+ * own; corrected 2026-11-01, patch 274, bestfit-sweep.tsv row 66.) int32_t is what the two architectures here use and is
  * the width of a register on this one. Spelled int since <stdint.h>
  * (NetBSD 1.6's), as NetBSD 1.6's i386 types.h has it: int32_t is
  * now <sys/types.h>'s, after this header.

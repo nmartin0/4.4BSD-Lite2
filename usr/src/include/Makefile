@@ -6,9 +6,13 @@
 # ./COPYRIGHT at the top of this tree (SPDX: BSD-4-Clause-UC). It
 # carries no copyright block of its own and none is added here.
 #
-# The copies target below is taken from NetBSD 1.0 (October 1994),
-# include/Makefile, and is identical in OpenBSD's include/Makefile
-# from 1996 onwards. Both descend from the same Berkeley file as
+# The copies target below is NetBSD 1.1's include/Makefile (1995),
+# whose find has -follow; OpenBSD's first import (1995-10-18) and its
+# 1996 file are the same text, and NetBSD 1.0's (October 1994) is the
+# same target without -follow. (Attribution corrected 2026-11-01, patch
+# 274: this note first named NetBSD 1.0, which lacks the -follow taken;
+# bestfit-sweep.tsv row 9 named OpenBSD 1996, and the review found
+# NetBSD 1.1 earlier with the same text.) Both descend from the same Berkeley file as
 # this one, and neither carries a copyright block either, so there
 # is no further notice to reproduce and no new copyright arises: the
 # lines are theirs, re-spelled for this tree's paths.
@@ -38,7 +42,11 @@ DIRS=arpa protocols
 # where those headers have been installed beside sys. This tree has
 # nine miscfs headers and installed none of them. OpenBSD extends this
 # list the same way for what its own programs need, adding ddb, scsi
-# and gnu/ext2fs to the nine here.
+# and gnu/ext2fs to the nine here. FreeBSD 3.0 installs isofs/cd9660's
+# headers for the same mount_cd9660 include (LNOHEADERDIRS isofs,
+# LSUBDIRS isofs/cd9660); the one word added to LDIRS here is the
+# smaller change for the same need. (Attribution added 2026-11-01,
+# patch 274; bestfit-sweep.tsv row 48.)
 LDIRS=	isofs miscfs net netccitt netinet netiso netns nfs sys ufs vm
 
 NOOBJ=	noobj
@@ -99,9 +107,9 @@ install: ${SHARED}
 # so the headers under ufs/ufs, ufs/ffs, ufs/lfs and ufs/mfs are not
 # missed; no longer requires /usr/X11; and removes machine with rm -rf,
 # since copies makes it a directory, as this file's rm -rf note says.
-# Both contemporaries write this target this way -- NetBSD 1.0 and
-# OpenBSD 1996 -- with the same pax, the same find with -follow, the
-# same netiso/xebec exclusion and the same rm -rf. See the head of
+# The contemporaries write this target this way -- NetBSD 1.1 and
+# OpenBSD 1995-96, and NetBSD 1.0 but for -follow -- with the same pax,
+# the same netiso/xebec exclusion and the same rm -rf. See the head of
 # this file for where it came from and under what terms.
 copies:
 	@echo copies: ${LDIRS}

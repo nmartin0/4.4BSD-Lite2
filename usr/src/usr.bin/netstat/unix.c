@@ -65,10 +65,11 @@ static struct	file *file, *fileNFILE;
  * AI-ONLY NOTE: ns_nfiles, not nfiles. This file defines KERNEL before
  * <sys/file.h> to get struct file, and that same block declares
  * `extern int nfiles', so a static of the same name is a static
- * declaration after a non-static one, which GCC 14 rejects. NetBSD 10
- * renames the local to ns_nfiles for this reason; every contemporary,
- * and NetBSD through 1.6, keeps the clash, which older compilers
- * allowed.
+ * declaration after a non-static one, which GCC 14 rejects. NetBSD 4
+ * renames the local to ns_nfiles (NetBSD 3 does not), and NetBSD 10
+ * still has it; every contemporary keeps the clash, which older
+ * compilers allowed. (This note first named NetBSD 10 as the source;
+ * corrected 2026-11-01, patch 274.)
  */
 static int	ns_nfiles;
 extern	kvm_t *kvmd;

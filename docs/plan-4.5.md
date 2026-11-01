@@ -303,6 +303,10 @@ numbers.
    - **`sh`'s `getpwd`** (#264): NetBSD 1.1's four-line `getcwd` form
      is earlier than the loop we took. The loop is kept only if it
      fixes a hole the 1.1 form has.
+     **Measured, 2026-11-01 (patch 273)**, `provenance/pwd.md`: the form
+     is first in OpenBSD 1995-12 and NetBSD 1.2, not 1.1, and its
+     256-byte buffer fails on a path over 255 characters (shown in the
+     guest with a 574-character path). The loop stays.
 3. **Six of the sweep's decisions are right for 4.5BSD and are kept.**
    Each was the first fit. 4.6BSD judges them again:
    - the ELF start-up files from NetBSD 1.6 (#20), right for GCC
@@ -315,6 +319,10 @@ numbers.
 4. **The attribution corrections** from the sweep: #9, #12, #31, #48,
    #55, #56, #66, #109, #629, #630, #683. #54 (`tip`) also moves to
    OpenBSD's 1997 form, which is earlier than NetBSD 1.4's.
+   **Done, 2026-11-01 (patch 274)**: each note corrected in its file,
+   and the list is in `provenance/precedent.md`, *Corrections to
+   committed messages*. `tip` moved to OpenBSD's form with its objects
+   unchanged.
 5. **A first-fit pass over the 354 patches the sweep kept.** A best-fit
    KEEP can still be a later donor where an earlier one had the same
    fix. The sweep's measurements (each candidate's snapshot, and

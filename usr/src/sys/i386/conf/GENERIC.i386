@@ -98,10 +98,13 @@ controller	isa0
 # exists: nothing in this tree defines cndriver, while pccons.c defines
 # pcdriver and its handler is pcrint.
 #
-# The line below is Berkeley's own. Their ARGO and BLITZ configurations
-# were updated at the rename and read exactly this; GENERIC.i386 and
-# CIRCE were missed. The Lite releases ship only GENERIC.i386, so the
-# corrected form is not in this tree -- it is in the CSRG history.
+# The line below is Lite2's own GENERIC.i386 line with cn read as pc
+# and cnrint as pcrint, the names Lite2's own pccons.c and files.i386
+# give; NetBSD 1.0's GENERICAHA has the same `device pc0 at isa? port
+# "IO_KBD"' (with its own interrupt syntax). (Re-cited 2026-11-01, patch
+# 274: this note first cited Berkeley configurations seen in the CSRG
+# history, which this project no longer reads; the line needs nothing
+# but Lite2 and NetBSD 1.0. bestfit-sweep.tsv row 109.)
 device		pc0	at isa? port "IO_KBD" tty irq 1 vector pcrint
 device		npx0	at isa? port "IO_NPX" irq 13 vector npxintr
 # AI-ONLY NOTE: COMCONSOLE, so the console is com0 and not the VGA

@@ -37,22 +37,23 @@ static char sccsid[] = "@(#)biz22.c	8.1 (Berkeley) 6/6/93";
 
 #include "tip.h"
 
-/*
- * AI-ONLY NOTE: these are declared here, not inside the functions that
- * call them: GCC 14 rejects a static function declaration at block
- * scope. The lines are NetBSD 1.4's, from usr.bin/tip/aculib, the
- * earliest release with them at file scope and prototyped; only the
- * ones this file needs are taken. Every contemporary still writes them
- * inside the functions.
- */
-static	int	cmd __P((char *));
-static	int	detect __P((char *));
-
 #define DISCONNECT_CMD	"\20\04"	/* disconnection string */
 
 static	void sigALRM();
 static	int timeout = 0;
 static	jmp_buf timeoutbuf;
+
+/*
+ * AI-ONLY NOTE: these are declared at file scope, not inside the
+ * functions that call them: GCC 14 rejects a static function
+ * declaration at block scope. The lines are OpenBSD's of 2 April 1997
+ * (aa61d02e15b, "Merge in good changes from NetBSD"), which moved the
+ * same declarations out unprototyped and joined them to Lite2's own
+ * file-scope lines; that is fewer lines and keeps Lite2's style.
+ * (This replaces NetBSD 1.4's prototyped block, taken first; patch
+ * 274, bestfit-sweep.tsv row 54.)
+ */
+static int cmd(), detect();
 
 /*
  * Dial up on a BIZCOMP Model 1022 with either

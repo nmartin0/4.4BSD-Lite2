@@ -41,16 +41,15 @@ static char sccsid[] = "@(#)ventel.c	8.1 (Berkeley) 6/6/93";
  */
 #include "tip.h"
 
-/* AI-ONLY NOTE: see aculib/biz22.c; NetBSD 1.4's declarations. */
-static	void	echo __P((char *));
-static	int	gobble __P((char, char *));
-static	int	vensync __P((int));
-
 #define	MAXRETRY	5
 
 static	void sigALRM();
 static	int timeout = 0;
 static	jmp_buf timeoutbuf;
+
+/* AI-ONLY NOTE: see aculib/biz22.c; OpenBSD's lines of 2 April 1997. */
+static	int gobble(), vensync();
+static	void echo();
 
 /*
  * some sleep calls have been replaced by this macro

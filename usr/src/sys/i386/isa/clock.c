@@ -370,10 +370,13 @@ enablertclock() {
  * AI-ONLY NOTE: the periodic interrupt is switched off on the way
  * down, from boot(), so that what boots next (the BIOS, a boot
  * loader, another system) is not handed a periodic interrupt it
- * did not ask for: register B survives a warm reset. None of the
- * donors of the period does
- * this; FreeBSD 2.2.8 only clears the bit again at its own start,
- * as startrtclock does here.
+ * did not ask for: register B survives a warm reset. No donor of
+ * 1994-97 does this; FreeBSD 2.2.8 only clears the bit again at its
+ * own start, as startrtclock does here. OpenBSD's rtcstop (11 August
+ * 2010, 3191b86a3db, called at ACPI sleep) writes the same register B
+ * value to stop the periodic interrupt; this body is that, plus the
+ * read of register C. (This note first said no donor does this;
+ * corrected 2026-11-01, patch 274, bestfit-sweep.tsv row 683.)
  */
 void
 disablertclock()

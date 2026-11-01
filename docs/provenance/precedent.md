@@ -246,6 +246,11 @@ reorganisation renamed it to pc, that GENERIC.i386 and CIRCE were
 never followed through while ARGO and BLITZ were, and that the
 corrected line is Berkeley's own. The Lite releases ship only
 GENERIC.i386, which is why the corrected form is not in this tree.
+(Re-cited 2026-11-01, patch 274: the line is now cited from Lite2's own
+GENERIC.i386, pccons.c and files.i386, with NetBSD 1.0's GENERICAHA,
+and not from the history; this project no longer reads the CSRG
+history at all. The paragraph above is kept as the record of what was
+done then.)
 
 ## Proving an absence
 
@@ -348,6 +353,52 @@ maintainer's working copies; it is not part of building this system.
   alternative considered at the time, moving `#include "extern.h"'
   below the struct, therefore has no precedent anywhere; it compiles,
   and that is all that can be said for it.
+
+- **The sweep's attribution corrections** (`bestfit-sweep.tsv`,
+  `plan-4.5.md` stage 4 item 4), made 2026-11-01 in patch 274. Each
+  commit below named the wrong donor, the wrong date, or said no donor
+  existed when one did. The code is unchanged except for `tip` (#54),
+  and the note in the file now says what is true. Each claim was
+  checked again in the donor before the note was changed.
+  - `2e19a013` include/Makefile (#9): the copies target is NetBSD
+    1.1's (its `find -follow`), the same text as OpenBSD's of 1995-96;
+    NetBSD 1.0's has no `-follow`. (The sweep's row named OpenBSD 1996;
+    the review found NetBSD 1.1 earlier.)
+  - `44781479` libc (#12): OpenBSD's file-scope declarations in
+    getttyent.c, sleep.c and usleep.c are of late 1996 (`c8f91e0d750`,
+    1996-09-15), not its June 1996 tree; ns_ntoa.c's is earlier, of
+    1996-03-25 (`9102a256798`). (The sweep's row was wrong on ns_ntoa.)
+  - `ecf7b9b3` bin/sh/Makefile (#31): OpenBSD's `HOSTCC` dates from
+    1996-10-12 (`58d5cc90b7b`).
+  - `c80d57ef` include/Makefile (#48): FreeBSD 3.0 installs the isofs
+    headers for the same need; the one-word LDIRS change stays.
+  - `d96ec787` tip (#54): OpenBSD's 1997-04-02 form (`aa61d02e15b`),
+    unprototyped and joined to Lite2's own file-scope lines, replaces
+    NetBSD 1.4's prototyped block; NetBSD 1.4's prototypes stay for the
+    five functions called before they are defined, which OpenBSD leaves
+    to implicit declaration (five in the default build;
+    `t3000_verbose_read`, under `DEBUG`, stays undeclared, as in
+    NetBSD 1.4). The seven objects are byte for byte the same.
+  - `86455ce0` fpr (#55): the `gettext` line is NetBSD 1.3's, not 1.4's
+    first.
+  - `e2598954` netstat (#56): the `ns_nfiles` rename is NetBSD 4's
+    (NetBSD 3 lacks it), not 10's first.
+  - `b9a2b44f` i386 types.h (#66): `typedef int32_t register_t;` is in
+    NetBSD 1.1's i386 types.h and OpenBSD's of 1996; the commit's "no
+    BSD of the period has it" was wrong.
+  - `983934d4` the console line (#109): re-cited from Lite2's own
+    GENERIC.i386, pccons.c and files.i386 with NetBSD 1.0's GENERICAHA,
+    not from the CSRG history.
+  - `c2907245` ddb db_input.c (#629): OpenBSD has had `lstart + lsize -
+    1` since 1996-03-11 (`b2471a9d0d1`); the note said it kept the old
+    value. The note now credits OpenBSD first, the BSD donor, which
+    took it from Mach 3.0.
+  - `65172f27` ddb db_run.c (#630): OpenBSD fixed the counted-breakpoint
+    bug on 2024-11-05 (`1ac7f822d3e`); the note said it lacked it.
+    Mach 3.0's form is kept.
+  - `d06ce5f6` clock.c (#683): OpenBSD's `rtcstop` (2010-08-11,
+    `3191b86a3db`) writes the same register B value; the note said no
+    donor did this.
 
 ## Two decisions checked after the fact
 

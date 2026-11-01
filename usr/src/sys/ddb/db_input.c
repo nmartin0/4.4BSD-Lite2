@@ -199,12 +199,18 @@ db_readline(lstart, lsize)
 	db_lbuf_start = lstart;
 	/*
 	 * AI-ONLY NOTE: changed (2026-10-26) -- the end of the line is one
-	 * byte before the end of the buffer, as CMU's Mach 3.0
-	 * ddb/db_input.c has it (lstart + lsize - 1; its log entry "Fixed
-	 * incorrect db_lbuf_end setting", 29 August 1991, tak). With
+	 * byte before the end of the buffer, as OpenBSD's ddb/db_input.c
+	 * has it (lstart + lsize - 1, below), which took it from CMU's
+	 * Mach 3.0 (its log entry "Fixed incorrect db_lbuf_end setting",
+	 * 29 August 1991, tak). With
 	 * lstart + lsize a full line took the whole buffer and the
-	 * newline stored at db_le went one byte past it. NetBSD 1.0-1.3,
-	 * FreeBSD 2.0-3.0 and OpenBSD kept the old setting. The NUL that
+	 * newline stored at db_le went one byte past it. NetBSD 1.0-1.3
+	 * and FreeBSD 2.0-3.0 kept the old setting. OpenBSD has had this
+	 * same line since 11 March 1996 (b2471a9d0d1, "Debbuger changed
+	 * towards the latest Mach"), and still has it; it is the BSD
+	 * donor, which comes before Mach in the source order. (This note
+	 * first said OpenBSD kept the old setting; corrected 2026-11-01,
+	 * patch 274, bestfit-sweep.tsv row 629.) The NUL that
 	 * db_readline stores after the newline is still one byte past a
 	 * line that fills the buffer; Mach 3.0 has the same.
 	 */
