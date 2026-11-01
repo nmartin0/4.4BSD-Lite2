@@ -265,7 +265,12 @@ numbers.
    **Surveyed, 2026-11-01 (patch 267)**, `provenance/holders-licences.md`:
    five wrong ledger cells fixed, six own files given their SPDX line.
    **Not done:** `COPYRIGHT` itself, 24 partial holder cells, A3's named
-   files, and a header-against-donor check (0 of 60). The write-ups got the line in
+   files, and a header-against-donor check (0 of 60).
+   **Finished, 2026-11-01 (patch 275)**: all 63 rows checked against the
+   donors' originals (no holder dropped; two small takings judged and
+   recorded), every licence cell completed, holders added to `locore.s`,
+   `boot2.c` and both `nlist.c`, the `diff3.sh` records corrected, and
+   `COPYRIGHT` extended after Lite2's unchanged text. The write-ups got the line in
    patch 268 (maintainer: yes); the 20 `.want` fixtures cannot, as the
    test compares them exactly.
 

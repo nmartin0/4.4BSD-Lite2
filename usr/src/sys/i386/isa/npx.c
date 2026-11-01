@@ -220,7 +220,8 @@ npxdna()
 	load_cr0(rcr0() & ~CR0_EM);	/* stop emulating */
 	/*
 	 * Record the owner before frstor, which may raise an IRQ13 when the
-	 * state it loads has an error pending (NetBSD 1.0's comment).
+	 * state it loads has an error pending (FreeBSD 1.0's comment,
+	 * which NetBSD 1.0 also has; credit corrected, patch 275).
 	 */
 	npxproc = curproc;
 	asm("	frstor %0 " : : "m" (curpcb->pcb_savefpu));
@@ -230,8 +231,10 @@ npxdna()
 /*
  * Free the coprocessor (if p has it) when p exits: set EM again, so
  * that the next process's first FPU instruction traps and loads its
- * own state. NetBSD 1.0's npxexit; FreeBSD 1.1.5.1's saves into the
- * dying process's pcb, which nothing reads.
+ * own state. FreeBSD 1.0's and 1.1.5.1's npxexit, under the Jolitz and
+ * Regents notices this file carries (NetBSD 1.0's takes no argument and
+ * does not test the owner). (This note first called it NetBSD 1.0's;
+ * corrected 2026-11-01, patch 275.)
  */
 void
 npxexit(p)
@@ -252,8 +255,9 @@ npxexit(p)
  * particular, it's much easier to install a special handler than to
  * guarantee that it's safe to use npxintr() and its supporting code.
  *
- * AI-ONLY NOTE: FreeBSD 1.1.5.1's npxsave, which NetBSD 1.0's is, with
- * three differences. The vector is npx_intrno, found in npxattach
+ * AI-ONLY NOTE: FreeBSD's npxsave (in FreeBSD 1.0, October 1993, and
+ * 1.1.5.1; NetBSD 1.0 carries the same), under this file's own Jolitz
+ * and Regents notices, with three differences. The vector is npx_intrno, found in npxattach
  * where theirs is found by their probe; the coprocessor's mask is
  * npx0mask, as there; and the interrupt flag is put back as it was
  * found where theirs is set, because swtch calls this with

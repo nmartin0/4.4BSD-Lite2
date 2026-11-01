@@ -93,14 +93,18 @@ appendix output, not a list to paste.
 **A3's named items** (`roadmap-audit.md`), whether the holder is in the
 file now:
 
-| file | holder asked for | in the file now |
+(This table is the survey's, as measured before patch 275; the column
+"in the file now" was true then. What patch 275 did with each item is
+in the table under "A3 finished", at the end of this note.)
+
+| file | holder asked for | in the file now (before patch 275) |
 |---|---|---|
 | `sys/i386/i386/locore.s` | Hannum | no |
 | `sys/i386/include/cpu.h` | Hannum | no |
 | `sys/i386/isa/npx.c` | Hannum | no |
 | `sys/boot/i386/boot2/boot2.c` | The NetBSD Foundation | no (Nordier is) |
 | `sys/kern/subr_rmap.c` | the Regents and USL | no (TooLs/Solfrank is) |
-| `diff3.sh` | Caldera | the file is gone; the ledger keeps a "Previously here" row |
+| `diff3.sh` | Caldera | the file is gone (patch 157); Caldera's licence was never the donor's for this file (OpenBSD never shipped it); the ledger row is corrected (patch 275) |
 | `sys/i386/isa/wd.c`, `wdreg.h` | Regents | yes, both |
 | `sys/sys/cdio.h` | (named in A3) | the file has no copyright text at all |
 | `lib/libc/gen/nlist.c` | Demetriou 1996 | no (the line is in `nlist_elf32.c`) |
@@ -393,3 +397,62 @@ files (as a `#` line, the files already begin with `#` header lines). Only
 lines were added. The 20 `.want` fixtures are left without it: the kernel
 test compares them with its output exactly. Check: every tracked file
 under `docs/` except `docs/reference/test_mk7.3` now has the line.
+
+## A3 finished (2026-11-01, patch 275)
+
+Five read-only workers did the measurement in parallel, each writing a
+report outside the tree; the integrator checked their key evidence
+against the donors and made every edit.
+
+**Every ledger row's header against the donor's original: 63 of 63.**
+In 61 rows the tree's notices are the donor's, word for word where the
+files are the donor's; no donor holder or licence was found dropped.
+The two exceptions are judged and recorded rather than restored:
+
+- `pmap.c` (row 15): FreeBSD 2.0's file carries John S. Dyson's and
+  David Greenman's 1994 lines beside the Regents'; what this tree took
+  from it is the `DMAPAGES` name and two expressions using it, judged
+  too small to carry their notice.
+- `machdep.c`'s `ptrace_set_pc`/`ptrace_write_u` (row 30): FreeBSD's
+  file carries Terrence R. Lambert's 1992 line, but `ptrace_write_u` was
+  added by Bruce Evans on 1995-01-14 (FreeBSD's security fix,
+  `20415301cd`), after Lambert's work, so Lambert's line is not carried
+  for it (checked by the integrator in FreeBSD's history).
+
+Every row's "Licence/notice" cell now names every holder, the clause
+count and whether there is an advertising clause, so the 20 rows whose
+advertising clause was recorded nowhere are recorded there. Caldera's
+2001-2002 licence on `deroff` and `ching` is in the ledger and in
+`COPYRIGHT`. Other corrections the check found: rows 37-38 were not
+"byte for byte" NetBSD's (bc's `proto.h` and nine uucp files are
+patched, no notice touched); row 42's glue is FSF/GPL, not
+"Berkeley/FreeBSD"; row 44 includes gprof's Regents notices; and the
+"McCanne" credit for `microtime.s` (row 27) is withdrawn, as the donor
+names no author. Rows 48-50: Demetriou's line is inside the Regents'
+four-clause block in the donors too.
+
+**A3's named files:**
+
+| file | done |
+|---|---|
+| `locore.s` | Charles Hannum's 1993-1994 line added (NetBSD 1.0's copyout, CPU detection, esym) |
+| `cpu.h` | not needed: no Hannum text; the three `CPUCLASS_` constants are Demetriou's `cputypes.h`, named in the note |
+| `npx.c` | not needed: the code is FreeBSD 1.0's, under the Jolitz and Regents notices it carries; its notes and `imports.md` corrected (they credited NetBSD 1.0) |
+| `boot2.c` | The NetBSD Foundation's 1997 notice added in a second block (NetBSD 1.3's `loadfile.c` symbol loading), verbatim |
+| `subr_rmap.c` | not needed: NetBSD 1.2's file byte for byte, no Lite2 text left |
+| `diff3.sh` | records corrected: it was Berkeley's own, not OpenBSD's, and Caldera's licence was put on it without a source |
+| `wd.c`, `wdreg.h` | not needed: FreeBSD 2.1.0's headers unchanged |
+| `cdio.h` | no notice in any donor; recorded as untraced |
+| both `nlist.c` | Christopher G. Demetriou's 1996 line added (NetBSD 1.3's dispatcher and table) |
+| run-4's small items | none needs a holder: the donor holders are already present, or the lines are short, only-way hooks; two judgement calls (machdep.c's CPU-name table, clock.c's `delay`) are left without Hannum's line and recorded here |
+
+**`COPYRIGHT`**: Lite2's text unchanged; a section after it names the
+other holders and licences, points to the ledger, and states that this
+project's own files carry no licence yet and are not under the Berkeley
+terms.
+
+Not checked: the full text of sendmail's third-party contrib notices
+(matched line by line, not transcribed); Lite2's own `compress`; whether
+any header is legally sufficient. The numbers in `roadmap-audit.md`'s
+A3 list are run-4 report indexes, not `bestfit-sweep.tsv` rows.
+

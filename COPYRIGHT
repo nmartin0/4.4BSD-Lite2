@@ -62,3 +62,51 @@ The views and conclusions contained in the software and documentation are
 those of the authors and should not be interpreted as representing official
 policies, either expressed or implied, of the Regents of the University
 of California.
+
+#	Added for 4.5BSD.  AI-ONLY NOTE, written 2026-11-01 (patch 275).
+
+Everything above is 4.4BSD-Lite2's COPYRIGHT and is unchanged.
+
+This release also carries software that is not the Regents', taken
+from later BSD systems and from third parties.  Each such file keeps
+the copyright notice and licence it came with, and those govern it.
+docs/provenance/clearance.md records, for each file taken from a
+donor, where it came from and what its notice says, checked against
+the donor's original; holder lines added to Berkeley's own files for
+code taken into them are recorded in docs/provenance/imports.md.
+
+Holders other than the Regents whose notices this release adds:
+
+  Under four-clause licences with an advertising clause, each of
+  which requires its own acknowledgement, worded in the file's notice:
+	Christopher G. Demetriou; The NetBSD Foundation, Inc.;
+	Charles Hannum (with the Regents' terms); Christos Zoulas
+	(1998) and Ross Harvey (lib/csu); TooLs GmbH (Wolfgang
+	Solfrank); Winning Strategies, Inc. (expr.1); Caldera
+	International, Inc. (deroff, ching); Jan-Simon Pendry,
+	Theo de Raadt, Simon J. Gerraty (ac.8), Bruce D. Evans (the
+	slice layer's .c files) and Eric P. Allman (each with the
+	Regents' terms); and the third-party notices that sendmail
+	8.8.8 ships.
+
+  Under licences without an advertising clause:
+	Christos Zoulas (1994, three-clause); Robert Nordier; Bruce D.
+	Evans (<sys/diskslice.h>, two-clause); Simon J. Gerraty and
+	Christopher G. Demetriou (ac.c, their own two-condition
+	notice); Cronyx Ltd. (Serge Vakulenko); David Greenman;
+	Poul-Henning Kamp ("beer-ware"); Marcel Moolenaar; John T.
+	Kohl; Paul Vixie; Thomas Koenig and David Parsons; Adrian
+	Mariano; Lucent Technologies (awk); Carnegie Mellon University
+	(ddb); the University of Maryland (crunchgen).
+
+  Under the GNU General Public License, with each package's COPYING:
+	contrib/: gcc, binutils, gdb, diff, grep, bc and dc, and
+	Taylor UUCP; and gdb's FreeBSD glue under gnu/usr.bin/gdb.
+
+<sys/cdio.h> carries no copyright or licence in any donor; its terms
+are untraced.  expr's code and ptrace.2 are in the public domain.
+
+Files written for this project carry an SPDX-FileCopyrightText line
+naming Nicholas Martin and no licence identifier.  No licence is yet
+asserted for them, and the Berkeley terms above do not cover them
+(docs/provenance/precedent.md, "What in this tree is ours").

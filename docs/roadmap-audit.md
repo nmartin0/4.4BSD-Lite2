@@ -118,10 +118,14 @@ work on these files until done.
 Hannum's copyright in `locore.s`/`cpu.h` (#139) and `npx.c` (#684);
 the NetBSD Foundation notice and Nordier's in `boot2.c` (#636); the
 Regents/USL notice in `subr_rmap.c` (#279); the Caldera licence put on
-`diff3.sh` (#402, since deleted; the records still describe it);
+`diff3.sh` (#402, since deleted; its records were corrected in patch
+275);
 `wd.c`, `wdreg.h` and `sys/cdio.h` (#313); Demetriou's 1996 line in
 `nlist.c` (#274); and the small ones the run-4 reports list. Each is
-a header fix plus an imports.md line.
+a header fix plus an imports.md line. **Finished 2026-11-01 (patch
+275)**, `provenance/holders-licences.md`: holders added to `locore.s`,
+`boot2.c` and both `nlist.c`; the rest judged and recorded; every
+ledger row checked against the donor; `COPYRIGHT` extended.
 
 **A4. Our own files.** The SPDX copyright line for the maintainer on
 every file of ours that lacks it (`build/*.sh`, `build/mklabel.c`,

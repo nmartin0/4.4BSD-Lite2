@@ -762,7 +762,7 @@ Patch 216 (decided 2026-10-29; kind B) gives the i386 kernel a real
 microtime() and a real resettodr(). 4.4BSD-Lite2's i386 microtime
 returned the tick-granular `time`, and resettodr was an empty stub, so
 the RTC was never written back on settimeofday(). microtime is the
-8254 counter-latch algorithm (McCanne) as in NetBSD 1.0's i386
+8254 counter-latch algorithm as in NetBSD 1.0's i386
 microtime and FreeBSD 2.0.5's microtime.s, rewritten in C with three
 differences: the reload value comes from hz, counts scale by
 tick/reload (not 1000/1193), and the request register is selected with
@@ -779,7 +779,9 @@ donors' read-the-IRR heuristics, NetBSD's `> 12' and FreeBSD's
 overflow threshold, cannot see this). Real hardware raises the request
 at the reload, so the clamp may never act there; that is not measured.
 Patch 270 (2026-11-01; kind B, #686) replaces the C microtime by NetBSD
-1.0's microtime.s itself (v1.8, McCanne), the earlier donor text, with
+1.0's microtime.s itself (v1.8; the Regents' 1993 notice, no author
+named -- the McCanne credit this entry first gave is withdrawn, patch
+275), the earlier donor text, with
 nine labelled changes (docs/provenance/microtime.md); the one-tick check
 stays in clock.c as microtime(), around the donor's microtime_8254.
 resettodr is kept: NetBSD 1.0's needs its whole RTC section, which would
@@ -801,8 +803,12 @@ switch. Lite2's swtch and savectx call npxsave() under `#ifdef NPX`; the
 generated npx.h defines NNPX, so the blocks were never assembled, no
 npxsave existed, and EM was never set again after the first DNA fault.
 Donors checked, in order: FreeBSD 1.1.5.1, whose locore/swtch.s Lite2's
-blocks are, and 2.0.5, whose npx.c has npxsave and npxexit; NetBSD 1.0,
-whose npxsave, npxexit and npxdna these are. Their npxsave is taken
+blocks are, and 2.0.5, whose npx.c has npxsave and npxexit; NetBSD 1.0.
+(Corrected 2026-11-01, patch 275: this said NetBSD 1.0's npxsave,
+npxexit and npxdna are taken. They are FreeBSD 1.0's (October 1993) and
+1.1.5.1's, under Jolitz's and the Regents' notices, which npx.c already
+carries; NetBSD 1.0 has the same npxsave under a notice adding Charles
+Hannum (1994), but its npxexit takes no argument and was not taken.) Their npxsave is taken
 whole, with its IRQ13 handler (locore.s npxsaveintr, built from their
 probeintr), except that it puts the interrupt flag back as it found it,
 because swtch calls it with interrupts off. Not taken: their probe
@@ -1096,7 +1102,11 @@ boot2's says why each flag changed, -fno-reorder-functions above all.
 The boot blocks install to /usr/mdec under disklabel's names.
 
 The licence of boot1, boot2, BTX and lib.h is Nordier's own: use and
-redistribution provided the notice and disclaimer are kept. btxld's
+redistribution provided the notice and disclaimer are kept. boot2.c's
+-d symbol loading (0be95f6d) is NetBSD 1.3's alpha loadfile.c
+elf_exec(), The NetBSD Foundation's (1997, Jason R. Thorpe), four-clause
+with an advertising clause; boot2.c carries that notice in a second
+block after Nordier's (added 2026-11-01, patch 275). btxld's
 is the two-clause BSD licence.
 
 **A root inside the kernel.** Berkeley's MFS already has a miniroot:
@@ -1235,7 +1245,10 @@ some. FreeBSD
 2.1.0's drivers are written to the old i386 one, isa_device and
 isa_driver, which this tree has. So FreeBSD 2.1.0's wd.c, wdreg.h,
 atapi.c, atapi.h and wcd.c are taken, with the two things its wd.c
-cannot be had without: <sys/cdio.h>, and the slice layer --
+cannot be had without: <sys/cdio.h> (which carries no copyright or
+licence in FreeBSD 1.0 through 2.1.0 or here; it names Julian
+Elischer, 1993, and Frank Durda IV, 1995; its terms are untraced), and
+the slice layer --
 kern/subr_diskslice.c, kern/subr_dkbad.c, i386/isa/diskslice_machdep.c
 and <sys/diskslice.h> -- which its wd.c opens, reads and checks every
 transfer through. The import commit is them as shipped; the next
@@ -1766,9 +1779,14 @@ through the macros, both lines and trigrams drawn; man 6 ching shows
 NetBSD's page.
 
 **usr.bin/diff** was here from patch 155 to patch 157: Berkeley's
-4.3-Reno diff and diff3, which the Lite cut removed as
+4.3-Reno diff and diff3prog, which the Lite cut removed as
 %sccs.include.proprietary.c%, as OpenBSD took them back under
-Caldera's licence on 25 June 2003, with Berkeley's diff3.sh. Patch 157
+Caldera's licence (25 June and 31 July 2003), and Berkeley's own
+diff3.sh (8.1, marked proprietary) from Berkeley's history, which
+OpenBSD did not take -- its diff3 front end is Todd Miller's own
+diff3.ksh. Patch 156 put Caldera's licence on diff3.sh on the
+assumption that Caldera's grant reached it; nothing showed that, and
+OpenBSD never did so. (Corrected 2026-11-01, patch 275.) Patch 157
 removed them by the maintainer's rule -- an alternative not derived
 from Caldera-licensed code is preferred (deferred.md, *Caldera's
 licence, and what the BSDs took under it*) -- and GNU diff 2.6, kind
@@ -1902,3 +1920,21 @@ sooner -- was about momentum, not authenticity.
 
 It is recorded here rather than quietly fixed, because the next person
 should be able to see where the line was drawn loosely and re-draw it.
+
+**Holders added, 2026-11-01 (patch 275; roadmap-audit.md A3).** Each
+donor's original was read before its holder line was added:
+i386/i386/locore.s carries Charles Hannum's 1993-1994 line from NetBSD
+1.0's locore.s, whose copyout (patch 243), CPU detection (a64a1d48) and
+esym and bss handling (63f1fca5) are taken -- the terms are the
+Regents' four clauses, the file's own; lib/libc/gen/nlist.c and
+usr.sbin/kvm_mkdb/nlist.c carry Christopher G. Demetriou's 1996 line,
+for NetBSD 1.3's per-format table and dispatcher (__fdnlist,
+create_knlist), above the Regents' as NetBSD's do; boot2.c carries The
+NetBSD Foundation's notice (above). Judged not to need a holder, with
+the reason recorded in docs/provenance/holders-licences.md: cpu.h's
+three CPUCLASS_ constants (Demetriou's cputypes.h), npx.c (FreeBSD 1.0
+text, notices already carried), subr_rmap.c (no Lite2 text left), wd.c
+and wdreg.h (FreeBSD's headers unchanged), the DMAPAGES lines in
+pmap.c, ptrace_write_u (Bruce Evans's, not Lambert's), and the short,
+only-way hooks of the run-4 list.
+

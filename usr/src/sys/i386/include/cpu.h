@@ -205,9 +205,10 @@ extern unsigned char	intr_nesting_level;	/* isa/icu.s; CLKF_INTR reads it */
  * NetBSD's machine/cputypes.h when the June 1993 merge arrived and
  * left the three CPUCLASS_ values behind -- which is the half that
  * identifycpu() sets and that copyout and the CR0_WP enable test.
- * Taken from the same place, under this file's own copyright as the
- * kinds already are, rather than importing a header that carries
- * another author's.
+ * Taken from the same place, NetBSD's machine/cputypes.h (Christopher
+ * G. Demetriou, 1993, three-clause): three constants and their values
+ * are not carried with his notice, as Berkeley's five CPU_ values were
+ * not. (Source named 2026-11-01, patch 275.)
  */
 
 /*

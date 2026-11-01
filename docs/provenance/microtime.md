@@ -11,8 +11,9 @@ for `resettodr`, and what the test shows and does not.
 
 `usr/src/sys/i386/i386/microtime.s`: NetBSD 1.0's
 `sys/arch/i386/i386/microtime.s`, `$Id: microtime.s,v 1.8 1994/05/04
-02:07:24 mycroft Exp $`, Steve McCanne's, under the Regents' 1993
-notice with the advertising clause, which the file keeps with its
+02:07:24 mycroft Exp $`, under the Regents' 1993 notice with the
+advertising clause, which names no author (a McCanne credit given
+here first is withdrawn, patch 275), which the file keeps with its
 RCS tag. Read from a plain export of the NetBSD 1.0 tree
 (`netbsd-1-0.microtime.s`); NetBSD 1.1 and 1.2 were read alongside.
 1.1 (v1.16, cgd, April 1995) differs in being shorter, in testing

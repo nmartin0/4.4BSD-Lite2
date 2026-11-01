@@ -35,8 +35,10 @@
 
 /*
  * AI-ONLY NOTE: this is NetBSD 1.0's sys/arch/i386/i386/microtime.s,
- * v 1.8 1994/05/04 (Steve McCanne's, in Berkeley's 1993 notice
- * above), imported as a transplant with the changes below and none
+ * v 1.8 1994/05/04 (under Berkeley's 1993 notice above, which names
+ * no author; an earlier version of this note credited Steve McCanne,
+ * which nothing in the file supports -- corrected 2026-11-01, patch
+ * 275), imported as a transplant with the changes below and none
  * other; docs/provenance/microtime.md has the measurement and the
  * tests. What was cut or changed to fit this tree:
  *
