@@ -25,6 +25,9 @@
 # set): QEMU 8.2.2 can lose disk
 # interrupts otherwise (the guest then sits idle, as in the CD install),
 # and the one-instruction-per-block mode it asks for is slower.
+# KTEST_FILES="dir file ..." puts more files on the disk, each pair a
+# directory of its own holding that one file, as addfile-host takes them
+# (execsh.sh uses it for the real /bin/sh).
 # KTEST_LOG=file keeps the whole console output (the `T' lines are all that
 # is compared; a kernel that prints its own diagnostics shows them there). Needs the
 # cross tools of build/sysroot.sh in $L2_BUILD, a host cc that can make
@@ -59,7 +62,8 @@ $CC -static -o $w/init build/test/$T.c
 dd if=/dev/zero of=$w/disk.img bs=1M count=20 2>/dev/null
 $w/mklabel $w/disk.img 40000 >/dev/null
 $w/mkfs-host $w/disk.img >/dev/null 2>&1
-$w/addfile-host $w/disk.img sbin $w/init dev console:c:0:0 d wd0a:b:0:0 >/dev/null
+$w/addfile-host $w/disk.img sbin $w/init dev console:c:0:0 d wd0a:b:0:0 \
+    ${KTEST_FILES} >/dev/null
 
 # the shim loads the kernel; the disk is a snapshot, so it is not changed
 gcc -m32 -ffreestanding -fno-pic -fno-stack-protector -fno-builtin -O1 \

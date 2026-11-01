@@ -38,7 +38,10 @@
  * 153 of its 162 lines are taken. The nine dropped are prototypes for
  * exec_elf_makecmds and elf_copyargs, which belong to NetBSD's exec
  * framework -- struct exec_package and the vmcmd set -- and this tree
- * does not have that framework and is not taking it. What remains is
+ * did not have that framework when this was written. (It does now,
+ * from 2026-10-31: exec_elf_makecmds's prototype is restored at the
+ * foot of this file; see the note there. This paragraph is kept as
+ * what it said, corrected rather than rewritten.) What remains is
  * the on-disk format alone: Elf32_Ehdr, Elf32_Phdr, the e_ident magic,
  * and the machine, type and program-header constants, which are the
  * ELF specification and not anyone's design. (An earlier form of this
@@ -275,6 +278,18 @@ struct elf_args {
         u_long  arg_phentsize;  /* Size of program header */
         u_long  arg_phnum;      /* Number of program headers */
 };
+
+/*
+ * AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md): restored
+ * from revision 1.1, now that this tree has NetBSD's exec framework
+ * (sys/exec.h): the first of the nine lines this note's companion
+ * above says were dropped. The elf_copyargs prototypes stay dropped;
+ * that function is for dynamically linked programs, which this tree
+ * does not build and kern/exec_elf.c does not load.
+ */
+struct proc;		/* AI-ONLY NOTE: for ddb/db_elf.c, which */
+struct exec_package;	/* includes this without <sys/exec.h> */
+int exec_elf_makecmds __P((struct proc *, struct exec_package *));
 
 #endif /* KERNEL */
 

@@ -391,6 +391,8 @@ are small, and every one says so in its own AI-ONLY NOTE.
 	lib/libl/Makefile	  4 lines	NetBSD 1.0
 	lib/libc/gen/nlist_elf32.c	NetBSD 1.3, adapted
 	usr.sbin/kvm_mkdb/nlist_elf32.c	NetBSD 1.3, adapted
+	kern/exec_elf.c			NetBSD 1.1, Zoulas; adapted, then whole
+					(patch 262; unlisted until then)
 	sys/exec_elf.h: Shdr, Sym	NetBSD 1.3
 	sys/boot/i386			FreeBSD 4.1, adapted
 	usr.sbin/btxld			FreeBSD 4.1, adapted
@@ -1346,6 +1348,8 @@ gives them.
 	lib/libcompat/4.3/regex.c   93 lines	NetBSD 1.0
 	bin/expr			679 lines	NetBSD 1.0, unmodified
 	sys/kern/subr_rmap.c		NetBSD 1.2, a note added
+	sys/kern/kern_exec.c, exec_subr.c,	NetBSD 1.0 and 1.1, shrink-wrapped
+	  exec_conf.c, exec_script.c	(patch 262)
 	usr.bin/awk			Kernighan, 20121220, unmodified
 	usr.sbin/cron, usr.bin/crontab	NetBSD 1.0, NetBSD's later fixes
 	usr.bin/at, libexec/atrun	NetBSD 1.0, NetBSD's and OpenBSD's
@@ -1394,6 +1398,25 @@ same code with <sys/systm.h> included and the two longs printed with
 FreeBSD 2.0 had replaced resource maps for swap with its own rlist,
 which would change both callers. TooLs GmbH's licence is four-clause,
 with an advertising clause. install.md, *Swap*, has the measurement.
+
+**sys/kern/kern_exec.c** (patch 262; decided 2026-10-31) replaces the
+`execve` this tree had written into the stub (#204) with NetBSD's exec
+framework: NetBSD 1.0's kern_exec.c (rev 1.55; Christopher G.
+Demetriou, Wolfgang Solfrank, TooLs GmbH) with NetBSD 1.1's three
+fixes to its lines, exec_subr.c (rev 1.8) with exec_aout.c's stack
+setup moved in, exec_script.c (rev 1.8.2.1), exec_conf.c (1.1's, rev
+1.14, cut to `#!' and ELF), sys/exec_script.h, and sys/exec.h's
+framework; kern/exec_elf.c becomes NetBSD 1.1's whole loader (Zoulas)
+less its dynamic-linking and emulation parts. The body it replaces had
+been written by reading the encumbered kern_exec.c and quoted its
+getxfile() in a comment (patch 261 removed the quotation); this is
+precedent.md's rule for a missing body -- an import, shrink-wrapped --
+applied. Demetriou's licences are four-clause, with an advertising
+clause. With it, kind B, one line in Lite2's own kern/kern_resource.c:
+RLIMIT_STACK rounded to a page when set, NetBSD 1.3's fix for the
+overlap NetBSD 1.0's stack setup makes otherwise (found by independent
+review). docs/provenance/exec-stack.md has the options weighed, every
+change to the donor text, and what behaves differently.
 
 **usr.bin/awk** is the One True Awk -- Aho, Weinberger and Kernighan's
 own, the AT&T awk that 4.4BSD-Lite lost with the settlement -- at

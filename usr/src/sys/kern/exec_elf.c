@@ -25,51 +25,68 @@
  * THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
  * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF
  * THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ *
  */
 
 /*
- * AI-ONLY NOTE: the two functions below are taken verbatim from NetBSD
- * 1.1's kern/exec_elf.c, revision 1.3 of 16 September 1995 -- the
- * earliest NetBSD release with a working i386 ELF loader. This tree's
- * binaries are ELF and GNU ld has no i386 a.out emulation, which
- * docs/provenance/csu-elf.md records for lib/csu; kern/kern_exec.c's
- * execve is one of the thirty-five bodies the AT&T settlement removed,
- * so there is nothing of Berkeley's here to correct.
+ * AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md): NetBSD 1.1's
+ * kern/exec_elf.c, rev 1.3 of 16 September 1995, the first NetBSD ELF
+ * loader, now that this tree has the exec framework it plugs into
+ * (sys/exec.h, kern/exec_subr.c, kern/exec_conf.c, kern/kern_exec.c).
+ * Until today this file held three of its functions, adapted to work
+ * without that framework, and kern_exec.c did the rest itself.
  *
- * Only these two of that file's five functions are taken, because only
- * these two are free of NetBSD's exec framework, which this tree does
- * not have and is not adopting:
+ * Taken out, all for programs this tree does not have -- every ELF
+ * program it builds is static, with one text and one data segment and
+ * no PT_INTERP (all 515 ELF executables in the built root, 473 files,
+ * counted 2026-10-31):
  *
- *	elf_check_header   27 lines, 0 references to exec_package
- *	elf_read_from      20 lines, 0 references to exec_package
- *	elf_load_psection  48 lines, 4 -- adapted separately
- *	elf_set_segment    33 lines, 7 -- not needed, it records text,
- *	                   data and bss into an exec_package where
- *	                   Berkeley's execve keeps them in locals
- *	elf_copyargs       84 lines, 1 -- not needed, execve copies its
- *	                   own arguments as 4.4BSD and 386BSD both do
+ *	elf_probe_funcs	the SVR4 and Linux emulations' probes
+ *	elf_copyargs	the auxiliary vector for a dynamic linker
+ *	elf_load_file	loads that dynamic linker
  *
- * Both use only what 4.4BSD-Lite2 already has: bcmp, and vn_rdwr at
- * kern/vfs_vnops.c. Nothing was changed, not even the XXX comment
- * above the machine switch or the indentation of elf_read_from's
- * second comment, which is NetBSD's.
+ * and in exec_elf_makecmds the interpreter's path, its loading and its
+ * argument block go with them: a program that asks for an interpreter
+ * is refused with ENOEXEC rather than started without one. Also not
+ * taken, for its own reason given where it was: the line that marks
+ * the vnode VTEXT.
  *
- * AI-ONLY NOTE: elf_read_from has since changed in one line (patch 246,
- * a short read returns ENOEXEC; docs/provenance/elf-short-read.md).
- *
- * Three-clause BSD, Christos Zoulas 1994. No Regents notice, so
- * nothing here is Berkeley's, and docs/provenance/imports.md records
- * it as a transplant.
+ * Kept from this tree's own earlier fixes to the same functions, each
+ * with its note below: elf_check_header's machine types from
+ * <machine/elf_machdep.h> (2026-10-27); ELF_ROUND and ELF_TRUNC for
+ * ELF_ALIGN (NetBSD exec_elf32.c rev 1.18); elf_read_from's short
+ * read returning ENOEXEC (patch 246, NetBSD 1.2). Added: the bound on
+ * e_phnum, from NetBSD exec_elf32.c rev 1.61 -- see elf_check_header.
  */
 
 #include <sys/param.h>
 #include <sys/systm.h>
+#include <sys/kernel.h>
 #include <sys/proc.h>
+#include <sys/malloc.h>
 #include <sys/namei.h>
 #include <sys/vnode.h>
+#include <sys/exec.h>
 #include <sys/exec_elf.h>
 
+#include <sys/mman.h>
 #include <vm/vm.h>
+#include <vm/vm_param.h>
+#include <vm/vm_map.h>
+
+#include <machine/cpu.h>
+#include <machine/reg.h>
+/*
+ * AI-ONLY NOTE: NetBSD includes <machine/exec.h> here as well. Lite2's
+ * <sys/exec.h>, above, already includes it, and it has no guard.
+ */
+
+static int elf_set_segment __P((struct exec_package *, u_long, u_long,
+	int));
+static int elf_read_from __P((struct proc *, struct vnode *, u_long,
+	caddr_t, int));
+static void elf_load_psection __P((struct exec_vmcmd_set *,
+	struct vnode *, Elf32_Phdr *, u_long *, u_long *, int *));
 
 /*
  * AI-ONLY NOTE: changed (2026-10-31) -- split into ELF_ROUND and
@@ -101,7 +118,9 @@
  * ELF_ALIGN only at the two sites that want rounding up; ELF_TRUNC
  * (identical to the old ELF_ALIGN) replaces it at the one that wants
  * truncating down. This path is presently unreachable in this tree:
- * kern_exec.c's only caller always passes `addr = ELF32_NO_ADDR',
+ * kern_exec.c's only caller always passes `addr = ELF32_NO_ADDR'
+ * (since patch 262 the caller is exec_elf_makecmds, below, and it
+ * passes the same),
  * so the `*addr != ELF32_NO_ADDR' branch below, where the bug
  * lives, never runs -- fixed anyway, since latent-but-wrong code is
  * still wrong code, and no donor fix was skipped over for being
@@ -110,6 +129,15 @@
 #define ELF_ROUND(a, b)		(((a) + (b) - 1) & ~((b) - 1))
 #define ELF_TRUNC(a, b)		((a) & ~((b) - 1))
 
+/*
+ * elf_check_header():
+ *
+ * Check header for validity; return 0 of ok ENOEXEC if error
+ *
+ * XXX machine type needs to be moved to <machine/param.h> so
+ * just one comparison can be done. Unfortunately, there is both
+ * em_486 and em_386, so this would not work on the i386.
+ */
 int
 elf_check_header(eh, type)
 	Elf32_Ehdr *eh;
@@ -137,10 +165,127 @@ elf_check_header(eh, type)
 	if (eh->e_type != type)
 		return ENOEXEC;
 
+	/*
+	 * AI-ONLY NOTE (2026-10-31): the bound on e_phnum is NetBSD's
+	 * exec_elf32.c rev 1.61 (Charles M. Hannum, 15 December 2000,
+	 * "Tighten up the ELF signature checks"), the first NetBSD
+	 * revision to have one. Without it exec_elf_makecmds mallocs
+	 * e_phnum program headers, M_WAITOK, for any number a file
+	 * claims. Rev 1.61 bounds e_shnum in the same line; that half is
+	 * not taken -- exec reads no section headers, and NetBSD itself
+	 * later raised that bound (to 1024, then 32768) where it refused
+	 * real programs.
+	 */
+	if (eh->e_phnum > 128)
+		return ENOEXEC;
+
 	return 0;
 }
 
-int
+/*
+ * elf_load_psection():
+ * 
+ * Load a psection at the appropriate address
+ */
+static void
+elf_load_psection(vcset, vp, ph, addr, size, prot)
+	struct exec_vmcmd_set *vcset;
+	struct vnode *vp;
+	Elf32_Phdr *ph;
+	u_long *addr;
+	u_long *size;
+	int *prot;
+{
+	u_long uaddr, msize, rm, rf;
+	long diff, offset;
+
+	/*
+         * If the user specified an address, then we load there.
+         */
+	if (*addr != ELF32_NO_ADDR) {
+		if (ph->p_align > 1) {
+			*addr = ELF_ROUND(*addr, ph->p_align);
+			uaddr = ELF_TRUNC(ph->p_vaddr, ph->p_align);
+		} else
+			uaddr = ph->p_vaddr;
+		diff = ph->p_vaddr - uaddr;
+	} else {
+		*addr = uaddr = ph->p_vaddr;
+		if (ph->p_align > 1)
+			*addr = ELF_TRUNC(uaddr, ph->p_align);
+		diff = uaddr - *addr;
+	}
+
+	*prot |= (ph->p_flags & Elf32_pf_r) ? VM_PROT_READ : 0;
+	*prot |= (ph->p_flags & Elf32_pf_w) ? VM_PROT_WRITE : 0;
+	*prot |= (ph->p_flags & Elf32_pf_x) ? VM_PROT_EXECUTE : 0;
+
+	offset = ph->p_offset - diff;
+	*size = ph->p_filesz + diff;
+	msize = ph->p_memsz + diff;
+
+	NEW_VMCMD(vcset, vmcmd_map_readvn, *size, *addr, vp, offset, *prot);
+
+	/*
+         * Check if we need to extend the size of the segment
+         */
+	rm = round_page(*addr + msize);
+	rf = round_page(*addr + *size);
+
+	if (rm != rf) {
+		NEW_VMCMD(vcset, vmcmd_map_zero, rm - rf, rf, NULLVP, 0, *prot);
+		*size = msize;
+	}
+}
+
+/*
+ * elf_set_segment():
+ *
+ * Decide if the segment is text or data, depending on the protection
+ * and set it appropriately
+ */
+static int
+elf_set_segment(epp, vaddr, size, prot)
+	struct exec_package *epp;
+	u_long vaddr;
+	u_long size;
+	int prot;
+{
+	/*
+         * Kludge: Unfortunately the current implementation of
+         * exec package assumes a single text and data segment.
+         * In Elf we can have more, but here we limit ourselves
+         * to two and hope :-(
+         * We also assume that the text is r-x, and data is rwx or rw-.
+         */
+	switch (prot) {
+	case (VM_PROT_READ | VM_PROT_EXECUTE):
+		if (epp->ep_tsize != ELF32_NO_ADDR)
+			return ENOEXEC;
+		epp->ep_taddr = vaddr;
+		epp->ep_tsize = size;
+		break;
+
+	case (VM_PROT_READ | VM_PROT_WRITE):
+	case (VM_PROT_READ | VM_PROT_WRITE | VM_PROT_EXECUTE):
+		if (epp->ep_dsize != ELF32_NO_ADDR)
+			return ENOEXEC;
+		epp->ep_daddr = vaddr;
+		epp->ep_dsize = size;
+		break;
+
+	default:
+		return ENOEXEC;
+	}
+	return 0;
+}
+
+/*
+ * elf_read_from():
+ *
+ *	Read from vnode into buffer at offset.
+ */
+static int
 elf_read_from(p, vp, off, buf, size)
 	struct vnode *vp;
 	u_long off;
@@ -168,98 +313,129 @@ elf_read_from(p, vp, off, buf, size)
 }
 
 /*
- * AI-ONLY NOTE: elf_load_psection, adapted rather than taken. NetBSD
- * 1.1's is at their exec_elf.c:212 and is 48 lines, of which four
- * touch their exec framework: the vcset parameter and its
- * declaration, and two NEW_VMCMD calls. The other 44 -- the alignment
- * arithmetic, the protection bits and the memsz/filesz difference --
- * are taken unchanged.
+ * exec_elf_makecmds(): Prepare an Elf binary's exec package
  *
- * The two NEW_VMCMD calls become the work those commands do. From
- * their exec_subr.c:155 and :183:
+ * First, set of the various offsets/lengths in the exec package.
  *
- *	vmcmd_map_readvn   vm_allocate, then vn_rdwr, then vm_map_protect
- *	vmcmd_map_zero     vm_allocate, then vm_map_protect
+ * Then, mark the text image busy (so it can be demand paged) or error
+ * out if this is not possible.  Finally, set up vmcmds for the
+ * text, data, bss, and stack segments.
  *
- * so the calls below are those sequences written out, with this
- * tree's own vm_allocate at vm/vm_user.c, vn_rdwr at
- * kern/vfs_vnops.c and vm_map_protect at vm/vm_map.c.
- *
- * What the framework buys, and why not having it is sound here. A
- * vmcmd set is a deferred-action list: an activator plans the new
- * address space, and the list runs only once the kernel has committed
- * to the exec, so a header that fails to parse cannot have already
- * destroyed the process. Acting immediately is correct only if
- * validation has finished first -- which is exactly how 4.4BSD's
- * execve is built, reading and checking the whole header before it
- * calls vm_deallocate on the old address space. The caller must
- * preserve that order, and the one written for this tree does.
- *
- * The signature therefore loses vcset and gains the proc, because the
- * vm calls need p->p_vmspace where the commands carried it.
+ * XXX no demand paging (yet?)
  */
 int
-elf_load_psection(p, vp, ph, addr, size, prot)
+exec_elf_makecmds(p, epp)
 	struct proc *p;
-	struct vnode *vp;
-	Elf32_Phdr *ph;
-	u_long *addr;
-	u_long *size;
-	int *prot;
+	struct exec_package *epp;
 {
-	u_long uaddr, msize, rm, rf;
-	long diff, offset;
-	int error;
+	Elf32_Ehdr *eh = epp->ep_hdr;
+	Elf32_Phdr *ph, *pp;
+	int error, i;
+	u_long phsize;
+
+	if (epp->ep_hdrvalid < sizeof(Elf32_Ehdr))
+		return ENOEXEC;
+
+	if (elf_check_header(eh, Elf32_et_exec))
+		return ENOEXEC;
 
 	/*
-	 * If the user specified an address, then we load there.
-	 */
-	if (*addr != ELF32_NO_ADDR) {
-		if (ph->p_align > 1) {
-			*addr = ELF_ROUND(*addr, ph->p_align);
-			uaddr = ELF_TRUNC(ph->p_vaddr, ph->p_align);
-		} else
-			uaddr = ph->p_vaddr;
-		diff = ph->p_vaddr - uaddr;
-	} else {
-		*addr = uaddr = ph->p_vaddr;
-		if (ph->p_align > 1)
-			*addr = ELF_TRUNC(uaddr, ph->p_align);
-		diff = uaddr - *addr;
+         * check if vnode is in open for writing, because we want to
+         * demand-page out of it.  if it is, don't do it, for various
+         * reasons
+         */
+	if (epp->ep_vp->v_writecount != 0) {
+#ifdef DIAGNOSTIC
+		if (epp->ep_vp->v_flag & VTEXT)
+			panic("exec: a VTEXT vnode has writecount != 0\n");
+#endif
+		return ETXTBSY;
 	}
+	/*
+         * Allocate space to hold all the program headers, and read them
+         * from the file
+         */
+	phsize = eh->e_phnum * sizeof(Elf32_Phdr);
+	ph = (Elf32_Phdr *) malloc(phsize, M_TEMP, M_WAITOK);
 
-	*prot |= (ph->p_flags & Elf32_pf_r) ? VM_PROT_READ : 0;
-	*prot |= (ph->p_flags & Elf32_pf_w) ? VM_PROT_WRITE : 0;
-	*prot |= (ph->p_flags & Elf32_pf_x) ? VM_PROT_EXECUTE : 0;
+	if ((error = elf_read_from(p, epp->ep_vp, eh->e_phoff,
+				    (caddr_t) ph, phsize)) != 0)
+		goto bad;
 
-	offset = ph->p_offset - diff;
-	*size = ph->p_filesz + diff;
-	msize = ph->p_memsz + diff;
-
-	/* NEW_VMCMD(vcset, vmcmd_map_readvn, *size, *addr, vp, offset, *prot) */
-	if (error = vm_allocate(&p->p_vmspace->vm_map, addr, *size, 0))
-		return (error);
-	if (error = vn_rdwr(UIO_READ, vp, (caddr_t)*addr, *size, offset,
-	    UIO_USERSPACE, IO_UNIT|IO_NODELOCKED, p->p_ucred, (int *)0, p))
-		return (error);
-	if (error = vm_map_protect(&p->p_vmspace->vm_map, trunc_page(*addr),
-	    round_page(*addr + *size), *prot, FALSE))
-		return (error);
+	epp->ep_tsize = ELF32_NO_ADDR;
+	epp->ep_dsize = ELF32_NO_ADDR;
 
 	/*
-	 * Check if we need to extend the size of the segment
-	 */
-	rm = round_page(*addr + msize);
-	rf = round_page(*addr + *size);
+         * Load all the necessary sections
+         */
+	for (i = 0; i < eh->e_phnum; i++) {
+		u_long  addr = ELF32_NO_ADDR, size = 0;
+		int prot = 0;
 
-	if (rm != rf) {
-		/* NEW_VMCMD(vcset, vmcmd_map_zero, rm - rf, rf, NULLVP, 0, *prot) */
-		if (error = vm_allocate(&p->p_vmspace->vm_map, &rf, rm - rf, 0))
-			return (error);
-		if (error = vm_map_protect(&p->p_vmspace->vm_map,
-		    trunc_page(rf), round_page(rm), *prot, FALSE))
-			return (error);
-		*size = msize;
+		pp = &ph[i];
+
+		switch (ph[i].p_type) {
+		case Elf32_pt_load:
+			elf_load_psection(&epp->ep_vmcmds, epp->ep_vp,
+				&ph[i], &addr, &size, &prot);
+			if ((error = elf_set_segment(epp, addr, size,
+						      prot)) != 0)
+				goto bad;
+			break;
+
+		case Elf32_pt_shlib:
+			error = ENOEXEC;
+			goto bad;
+
+		case Elf32_pt_interp:
+			/*
+			 * AI-ONLY NOTE: refused. NetBSD 1.1 loads the
+			 * interpreter named here (elf_load_file, not taken);
+			 * this tree has no dynamic linker to load.
+			 */
+			error = ENOEXEC;
+			goto bad;
+
+		case Elf32_pt_dynamic:
+		case Elf32_pt_phdr:
+		case Elf32_pt_note:
+			break;
+
+		default:
+			/*
+			 * Not fatal, we don't need to understand everything
+			 * :-)
+			 */
+			break;
+		}
 	}
-	return (0);
+
+	epp->ep_entry = eh->e_entry;
+
+	free((char *) ph, M_TEMP);
+	/*
+	 * AI-ONLY NOTE (2026-10-31): NetBSD 1.1 sets VTEXT on the vnode
+	 * here, `epp->ep_vp->v_flag |= VTEXT;'. Not taken. VTEXT marks a
+	 * vnode the vnode pager is paging text from, and only
+	 * vnode_pager_dealloc (vm/vnode_pager.c) clears it; this loader
+	 * never maps the file -- vmcmd_map_readvn reads the segments in,
+	 * as NetBSD's own comment above says ("no demand paging") -- so no
+	 * pager would ever exist to clear it, and the flag would stay on
+	 * every program ever run. Stuck, it is not harmless here:
+	 * nfs/nfs_bio.c's nfs_doio kills any process reading a VTEXT file
+	 * over NFS whose modification time has changed ("Process killed due
+	 * to text file modification"), and the DIAGNOSTIC panic above
+	 * would fire for an exec of a program that has run before and is
+	 * open for writing at the time. (A stuck VTEXT lasts only while
+	 * the vnode stays cached: getnewvnode clears v_flag when it
+	 * recycles one.) Nothing in this tree set VTEXT before this patch.
+	 * The open-for-writing check above, ETXTBSY, is kept: Lite2's own
+	 * execve(2) documents it.
+	 */
+	return exec_aout_setup_stack(p, epp);
+
+bad:
+	free((char *) ph, M_TEMP);
+	kill_vmcmds(&epp->ep_vmcmds);
+	return ENOEXEC;
 }

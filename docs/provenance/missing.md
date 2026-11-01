@@ -421,6 +421,13 @@ Since then: all but tty_subr.c's ndqb and hil_subr.c, which this build
 does not compile, are filled from NetBSD 1.0 and 1.2 and FreeBSD
 2.2; sys_process.c, the last, with ptrace (a56c2f9b).
 
+AI-ONLY NOTE (2026-10-31): that sentence was not true of execve until
+patch 262. kern_exec.c's body was written here (#204), by reading the
+encumbered file for its shape, and quoted its getxfile() in a comment;
+patch 261 removed the quotation and patch 262 replaced the body with
+NetBSD 1.0's exec framework and NetBSD 1.1's ELF loader
+(docs/provenance/exec-stack.md). With that, the sentence holds.
+
 ### Why not 386BSD 0.1, which is closer
 
 The obvious objection, and it has to be answered here because every

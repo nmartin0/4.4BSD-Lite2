@@ -1,0 +1,63 @@
+T begin
+T args: argc=4 argv=[/good|args|one|two words] env=[A=1|B=two]
+T ps_strings: nargv=4 argv=same nenv=2 envp=same
+T stack: 300 KB used, deep()=2850
+T ELF program: exec errno=0, exit 0
+T stack past its limit: exec errno=0, killed by signal 11
+T script: argc=5 argv=[/sbin/init|role-script|/s1|x|y]
+T script with an argument: exec errno=0, exit 0
+T script: argc=4 argv=[/sbin/init|/s2|x|y]
+T script without one: exec errno=0, exit 0
+T long line: argv[1] is 46 bytes
+T script, 60-byte line: exec errno=0, exit 0
+T script, 70-byte line: exec errno=8, exit 99
+T script run by a script: exec errno=8, exit 99
+T script, interpreter missing: exec errno=2, exit 99
+T not a program: exec errno=8, exit 99
+T no execute permission: exec errno=13, exit 99
+T a directory: exec errno=13, exit 99
+T no such file: exec errno=2, exit 99
+T suid: ruid=7 euid=5 rgid=7 egid=6
+T saved ids: seteuid back -> 5, setegid back -> 6
+T set-id program, as uid 7: exec errno=0, exit 0
+T suidscript: ruid=7 euid=7 rgid=7 egid=7
+T set-id script, as uid 7: exec errno=0, exit 0
+T big: argc=3, argv[2] 16000 bytes
+T arguments of 16000 bytes: exec errno=0, exit 0
+T arguments over ARG_MAX: exec errno=7, exit 99
+T cloexec: fd 10 errno=9, fd 11 flags=0
+T close-on-exec: exec errno=0, exit 0
+T sig: usr1=default usr2=ignored hup=blocked
+T signals: exec errno=0, exit 0
+T args: argc=3 argv=[/good|args|rlim] env=[A=1|B=two]
+T ps_strings: nargv=3 argv=same nenv=2 envp=same
+T stack: 300 KB used, deep()=2850
+T stack limit 1025K: exec errno=0, exit 0
+T null argv: exec errno=22, exit 99
+T argc 0: ran
+T empty argv and environment: exec errno=0, exit 0
+T long line: argv[1] is 50 bytes
+T script, 64-byte line: exec errno=0, exit 0
+T script, 65-byte line: exec errno=8, exit 99
+T traced set-id program, as uid 7: stopped with signal 5
+T suid: ruid=7 euid=7 rgid=7 egid=7
+T saved ids: seteuid back -> -1, setegid back -> -1
+T traced set-id program, as uid 7: exec errno=0, exit 0
+T traced execute-only program, as uid 7: stopped with signal 5
+T suid: ruid=7 euid=7 rgid=7 egid=7
+T saved ids: seteuid back -> -1, setegid back -> -1
+T traced execute-only program, as uid 7: exec errno=0, exit 0
+T e_phnum 200: exec errno=8, exit 99
+T a PT_INTERP header: exec errno=8, exit 99
+T sigdeliver: handler ran 1 time(s)
+T signal after exec: exec errno=0, exit 0
+T setpgid on an exec'd child: errno=13
+T textvp: is /good
+T procfs file: exec errno=0, exit 0
+T program open for writing: exec errno=26, exit 99
+T open for writing a program that has run: errno=0
+T chain: reached the last of 6 programs
+T exec chain: exec errno=0, exit 0
+T vforked child ran
+T vfork: parent resumed, child exit 0
+T end

@@ -1,0 +1,8 @@
+T begin
+T sh: $0=/s $1=one $#=1
+T ls by substitution: ls
+T ls of a missing file: status 0
+T a #!/bin/sh script: exec errno=0, exit 0
+T sh -c: 0
+T sh -c: exec errno=0, exit 0
+T end

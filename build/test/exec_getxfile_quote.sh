@@ -14,6 +14,11 @@
 # the quoted fragment reappears or the replacement comment is removed
 # without putting something else in its place.
 #
+# Changed (2026-10-31, the next patch): kern_exec.c is now NetBSD 1.0's
+# and computes no stack address of its own -- the stack is NetBSD's
+# exec_aout_setup_stack, in kern/exec_subr.c -- so the last check asks
+# for that instead of for the old body's stack arithmetic.
+#
 #   sh build/test/exec_getxfile_quote.sh
 set -e
 cd "$(dirname "$0")/../.."
@@ -35,9 +40,13 @@ grep -q 'AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md)' "$F" || {
 	exit 1
 }
 
-grep -q 'trunc_page(USRSTACK - size) - NBPG' "$F" || {
-	echo "exec_getxfile_quote.sh: $F no longer computes the stack address this way at all -- check the fix is still in place" >&2
+if grep -q 'trunc_page(USRSTACK - size)' "$F"; then
+	echo "exec_getxfile_quote.sh: $F computes the stack as the old body did -- stale" >&2
+	exit 1
+fi
+grep -q '^exec_aout_setup_stack(p, epp)' usr/src/sys/kern/exec_subr.c || {
+	echo "exec_getxfile_quote.sh: the stack is not set up by exec_subr.c's exec_aout_setup_stack -- check" >&2
 	exit 1
 }
 
-echo "all checks passed: no quoted getxfile() text; the fix's own reasoning is in its place"
+echo "all checks passed: no quoted getxfile() text; NetBSD's framework sets up the stack"

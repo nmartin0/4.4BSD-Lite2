@@ -1,11 +1,10 @@
+/*	$NetBSD: kern_exec.c,v 1.55 1994/06/29 06:32:24 cgd Exp $	*/
+
 /*-
- * Copyright (c) 1982, 1986, 1991, 1993
- *	The Regents of the University of California.  All rights reserved.
- * (c) UNIX System Laboratories, Inc.
- * All or some portions of this file are derived from material licensed
- * to the University of California by American Telephone and Telegraph
- * Co. or Unix System Laboratories, Inc. and are reproduced herein with
- * the permission of UNIX System Laboratories, Inc.
+ * Copyright (C) 1993, 1994 Christopher G. Demetriou
+ * Copyright (C) 1992 Wolfgang Solfrank.
+ * Copyright (C) 1992 TooLs GmbH.
+ * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
  * modification, are permitted provided that the following conditions
@@ -17,25 +16,59 @@
  *    documentation and/or other materials provided with the distribution.
  * 3. All advertising materials mentioning features or use of this software
  *    must display the following acknowledgement:
- *	This product includes software developed by the University of
- *	California, Berkeley and its contributors.
- * 4. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
+ *	This product includes software developed by TooLs GmbH.
+ * 4. The name of TooLs GmbH may not be used to endorse or promote products
+ *    derived from this software without specific prior written permission.
  *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
+ * THIS SOFTWARE IS PROVIDED BY TOOLS GMBH ``AS IS'' AND ANY EXPRESS OR
+ * IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES
+ * OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED.
+ * IN NO EVENT SHALL TOOLS GMBH BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
+ * SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,
+ * PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
+ * OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
+ * WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR
+ * OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
+ * ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+ */
+
+/*
+ * AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md): NetBSD 1.0's
+ * kern/kern_exec.c, rev 1.55 of 29 June 1994 -- check_exec and execve,
+ * the generic half of NetBSD's exec framework -- in place of the body
+ * this tree had written for execve, one of the thirty-five the AT&T
+ * settlement removed (missing.md), whose shape was read from the
+ * encumbered 4.4BSD file. Lite2's own text in this file was the
+ * includes, a struct execve_args and a stub returning ENOSYS; the struct
+ * is Lite2's sys/syscallargs.h's now, so the Regents' and USL's notice
+ * that headed the stub is replaced by the notice of the code that is
+ * here.
  *
- *	from: @(#)kern_exec.c	8.1 (Berkeley) 6/10/93
+ * NetBSD 1.1's fixes to these lines (rev 1.72), each the first fix of
+ * its hole on this line:
+ *  - check_exec keeps the first interesting error from the exec switch,
+ *    not the last ENOEXEC;
+ *  - the strings are aligned whether or not there is an environment;
+ *  - ps_strings records the argv and envp vectors (attributed to
+ *    Charles M. Hannum, rev 1.69, 16 May 1995, by this tree's
+ *    <sys/exec.h>; the per-file history before 1999 is not in the
+ *    mirrors here to confirm it), which is what this tree's
+ *    <sys/exec.h> and libkvm already expect; the comment on
+ *    ps_envstr's line takes 1.1's wording with it.
+ * Not taken from 1.1: its emulation switch (struct emul, e_copyargs,
+ * e_setregs, p_emul) -- this tree has no emulations -- and the
+ * sys_execve name.
+ *
+ * Fitted to Lite2, each marked where it is:
+ *  - the arguments through SCARG, as Lite2's sys/syscallargs.h
+ *    declares them (as NetBSD 1.1 also does), with that header
+ *    included; retval is register_t;
+ *  - VOP_UNLOCK with flags and proc, as Lite2's vnode locking has it;
+ *  - setregs as Lite2's i386 machdep.c has it, with the stack pointer
+ *    set by cpu_setstack;
+ *  - the old image is removed up to USRSTACK, not VM_MAXUSER_ADDRESS
+ *    (see the note where it is done);
+ *  - ep_setup and ep_emul are gone with their fields (sys/exec.h).
  */
 
 #include <sys/param.h>
@@ -50,477 +83,511 @@
 #include <sys/file.h>
 #include <sys/acct.h>
 #include <sys/exec.h>
-#include <sys/exec_elf.h>
 #include <sys/ktrace.h>
 #include <sys/resourcevar.h>
+#include <sys/wait.h>
+#include <sys/mman.h>
 #include <sys/signalvar.h>
 #include <sys/stat.h>
-#include <sys/errno.h>
-#include <sys/wait.h>
+#include <sys/syscallargs.h>
+
+#include <vm/vm.h>
+#include <vm/vm_kern.h>
 
 #include <machine/cpu.h>
 #include <machine/reg.h>
 
-#include <vm/vm.h>
-#include <vm/vm_param.h>
-#include <vm/vm_map.h>
-#include <vm/vm_kern.h>
+#ifdef COPY_SIGCODE
+extern char sigcode[], esigcode[];
 
-int elf_check_header __P((Elf32_Ehdr *, int));
-int elf_read_from __P((struct proc *, struct vnode *, u_long, caddr_t, int));
-int elf_load_psection __P((struct proc *, struct vnode *, Elf32_Phdr *,
-	u_long *, u_long *, int *));
+#define	szsigcode	(esigcode - sigcode)
+#else
+#define	szsigcode	0
+#endif
+
+/*
+ * check exec:
+ * given an "executable" described in the exec package's namei info,
+ * see what we can do with it.
+ *
+ * ON ENTRY:
+ *	exec package with appropriate namei info
+ *	proc pointer of exec'ing proc
+ *	NO SELF-LOCKED VNODES
+ *
+ * ON EXIT:
+ *	error:	nothing held, etc.  exec header still allocated.
+ *	ok:	filled exec package, one locked vnode.
+ *
+ * EXEC SWITCH ENTRY:
+ * 	Locked vnode to check, exec package, proc.
+ *
+ * EXEC SWITCH EXIT:
+ *	ok:	return 0, filled exec package, one locked vnode.
+ *	error:	destructive:
+ *			everything deallocated execept exec header.
+ *		non-descructive:
+ *			error code, locked vnode, exec header unmodified
+ */
+int
+check_exec(p, epp)
+	struct proc *p;
+	struct exec_package *epp;
+{
+	int error, i;
+	struct vnode *vp;
+	char *cp, *ep, *name;
+	struct nameidata *ndp;
+	int resid;
+
+	ndp = epp->ep_ndp;
+	ndp->ni_cnd.cn_nameiop = LOOKUP;
+	ndp->ni_cnd.cn_flags = FOLLOW | LOCKLEAF | SAVENAME;
+	/* first get the vnode */
+	if (error = namei(ndp))
+		return error;
+	epp->ep_vp = vp = ndp->ni_vp;
+
+	/* check for regular file */
+	if (vp->v_type != VREG) {
+		error = EACCES;
+		goto bad1;
+	}
+
+	/* get attributes */
+	if (error = VOP_GETATTR(vp, epp->ep_vap, p->p_ucred, p))
+		goto bad1;
+
+	/* Check mount point */
+	if (vp->v_mount->mnt_flag & MNT_NOEXEC) {
+		error = EACCES;
+		goto bad1;
+	}
+	if ((vp->v_mount->mnt_flag & MNT_NOSUID) || (p->p_flag & P_TRACED))
+		epp->ep_vap->va_mode &= ~(VSUID | VSGID);
+
+	/* check access.  for root we have to see if any exec bit on */
+	if (error = VOP_ACCESS(vp, VEXEC, p->p_ucred, p))
+		goto bad1;
+	if ((epp->ep_vap->va_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) == 0) {
+		error = EACCES;
+		goto bad1;
+	}
+
+	/* try to open it */
+	if (error = VOP_OPEN(vp, FREAD, p->p_ucred, p))
+		goto bad1;
+
+	/* now we have the file, get the exec header */
+	if (error = vn_rdwr(UIO_READ, vp, epp->ep_hdr, epp->ep_hdrlen, 0,
+	    UIO_SYSSPACE, IO_NODELOCKED, p->p_ucred, &resid, p))
+		goto bad2;
+	epp->ep_hdrvalid = epp->ep_hdrlen - resid;
+
+	/*
+	 * set up the vmcmds for creation of the process
+	 * address space
+	 */
+	error = ENOEXEC;
+	for (i = 0; i < nexecs && error != 0; i++) {
+		int newerror;
+
+		if (execsw[i].es_check == NULL)
+			continue;
+
+		newerror = (*execsw[i].es_check)(p, epp);
+		/* make sure the first "interesting" error code is saved. */
+		if (!newerror || error == ENOEXEC)
+			error = newerror;
+		if (epp->ep_flags & EXEC_DESTR && error != 0)
+			return error;
+	}
+	if (!error) {
+		/* check that entry point is sane */
+		if (epp->ep_entry > VM_MAXUSER_ADDRESS)
+			error = ENOEXEC;
+
+		/* check limits */
+		if ((epp->ep_tsize > MAXTSIZ) ||
+		    (epp->ep_dsize > p->p_rlimit[RLIMIT_DATA].rlim_cur))
+			error = ENOMEM;
+
+		if (!error)
+			return (0);
+	}
+
+	/*
+	 * free any vmspace-creation commands,
+	 * and release their references
+	 */
+	kill_vmcmds(&epp->ep_vmcmds);
+
+bad2:
+	/*
+	 * unlock and close the vnode, restore the old one, free the
+	 * pathname buf, and punt.
+	 */
+	VOP_UNLOCK(vp, 0, p);		/* Lite2's VOP_UNLOCK */
+	vn_close(vp, FREAD, p->p_ucred, p);
+	FREE(ndp->ni_cnd.cn_pnbuf, M_NAMEI);
+	return error;
+
+bad1:
+	/*
+	 * free the namei pathname buffer, and put the vnode
+	 * (which we don't yet have open).
+	 */
+	FREE(ndp->ni_cnd.cn_pnbuf, M_NAMEI);
+	vput(vp);
+	return error;
+}
 
 /*
  * exec system call
  */
-struct execve_args {
-	char	*fname;
-	char	**argp;
-	char	**envp;
-};
-/*
- * AI-ONLY NOTE: written, not restored. This is one of the thirty-five
- * bodies the AT&T settlement removed -- docs/provenance/missing.md --
- * so the signature, the call sites and struct execve_args above are
- * Berkeley's and the body is not.
- *
- * The shape is 4.4BSD's, read from the encumbered kern_exec.c as
- * docs/provenance/precedent.md allows reading XNU: namei the path,
- * VOP_GETATTR, the MNT_NOEXEC and setuid checks, VOP_ACCESS, the VREG
- * test, then read the header; handle `#!' by re-naming the
- * interpreter and looping; copy the arguments into exec_map; and only
- * then commit, destroying the old address space and mapping the new.
- * That order matters and is kept: nothing is torn down until the
- * image is known to be loadable, which is also why
- * kern/exec_elf.c:elf_load_psection can act immediately where
- * NetBSD's defers through a vmcmd list.
- *
- * Where 4.4BSD parses a.out -- ZMAGIC, NMAGIC, OMAGIC and the
- * a_text/a_data/a_bss arithmetic -- this reads an ELF header instead,
- * because this tree's binaries are ELF and GNU ld has no i386 a.out
- * emulation. The three ELF functions are NetBSD 1.1's, imported and
- * adapted in kern/exec_elf.c.
- *
- * What is this project's own: the program-header loop, which walks
- * e_phnum entries and calls elf_load_psection for each PT_LOAD. That
- * is the part no donor could supply, because every post-settlement
- * BSD wraps it in an exec framework this tree does not have.
- */
 /* ARGSUSED */
 execve(p, uap, retval)
 	register struct proc *p;
-	register struct execve_args *uap;
-	int *retval;
+	register struct execve_args /* {
+		syscallarg(char *) path;
+		syscallarg(char **) argp;
+		syscallarg(char **) envp;
+	} */ *uap;
+	register_t *retval;
 {
-	register struct nameidata *ndp;
-	struct nameidata nd;
-	struct ucred *cred = p->p_ucred;
-	struct vnode *vp;
-	struct vattr vattr;
-	struct vmspace *vm;
-	Elf32_Ehdr eh;
-	Elf32_Phdr *ph = NULL;
-	char cfarg[MAXINTERP];
-	char *cp, *sharg;
-	vm_offset_t execargs = 0;
-	u_long entry, addr, size;
-	int indir, uid, gid, prot;
-	int na, ne, nc, cc, len, resid, ssize, phsize;
 	int error, i;
-	int ap, ucp;
+	struct exec_package pack;
+	struct nameidata nid;
+	struct vattr attr;
+	struct ucred *cred = p->p_ucred;
+	char *argp;
+	char **cpp, *dp, *sp, *np;
+	int argc, envc, len;
+	char *stack;
 	struct ps_strings arginfo;
-
-	indir = 0;
-	uid = cred->cr_uid;
-	gid = cred->cr_gid;
-	NDINIT(&nd, LOOKUP, FOLLOW | LOCKLEAF | SAVENAME, UIO_USERSPACE,
-	    uap->fname, p);
-	ndp = &nd;
-again:
-	if (error = namei(ndp))
-		return (error);
-	vp = ndp->ni_vp;
-	if (error = VOP_GETATTR(vp, &vattr, cred, p))
-		goto bad;
-	if (vp->v_mount->mnt_flag & MNT_NOEXEC) {
-		error = EACCES;
-		goto bad;
-	}
-	if ((vp->v_mount->mnt_flag & MNT_NOSUID) == 0) {
-		if (vattr.va_mode & VSUID)
-			uid = vattr.va_uid;
-		if (vattr.va_mode & VSGID)
-			gid = vattr.va_gid;
-	}
-	if (error = VOP_ACCESS(vp, VEXEC, cred, p))
-		goto bad;
-	if ((p->p_flag & P_TRACED) && (error = VOP_ACCESS(vp, VREAD, cred, p)))
-		goto bad;
-	if (vp->v_type != VREG ||
-	    (vattr.va_mode & (VEXEC|(VEXEC>>3)|(VEXEC>>6))) == 0) {
-		error = EACCES;
-		goto bad;
-	}
+	struct vmspace *vm = p->p_vmspace;
+	char **tmpfap;
 
 	/*
-	 * Read the header. An ELF file begins with Elf32_e_ident; a
-	 * script with `#!'. 4.4BSD reads a union of struct exec and a
-	 * MAXINTERP buffer for the same purpose.
+	 * figure out the maximum size of an exec header, if necessary.
+	 * XXX should be able to keep LKM code from modifying exec switch
+	 * when we're still using it, but...
 	 */
-	bzero((caddr_t)&eh, sizeof (eh));
-	if (error = vn_rdwr(UIO_READ, vp, (caddr_t)&eh, sizeof (eh),
-	    (off_t)0, UIO_SYSSPACE, (IO_UNIT|IO_NODELOCKED), cred, &resid,
-	    (struct proc *)0))
-		goto bad;
-
-	if (elf_check_header(&eh, Elf32_et_exec) != 0) {
-		/*
-		 * Not ELF. A script, then, unless we are already one
-		 * level deep -- 4.4BSD refuses to follow a `#!' line
-		 * that names another script, and so does this.
-		 */
-		cp = (char *)&eh;
-		if (cp[0] != '#' || cp[1] != '!' || indir) {
-			error = ENOEXEC;
-			goto bad;
-		}
-		for (cp = (char *)&eh + 2;; ++cp) {
-			if (cp >= (char *)&eh + sizeof (eh)) {
-				error = ENOEXEC;
-				goto bad;
-			}
-			if (*cp == '\n') {
-				*cp = '\0';
-				break;
-			}
-			if (*cp == '\t')
-				*cp = ' ';
-		}
-		cp = (char *)&eh + 2;
-		while (*cp == ' ')
-			cp++;
-		ndp->ni_dirp = cp;
-		while (*cp && *cp != ' ')
-			cp++;
-		cfarg[0] = '\0';
-		if (*cp) {
-			*cp++ = '\0';
-			while (*cp == ' ')
-				cp++;
-			if (*cp)
-				bcopy((caddr_t)cp, (caddr_t)cfarg, MAXINTERP);
-		}
-		indir = 1;
-		vput(vp);
-		ndp->ni_segflg = UIO_SYSSPACE;
-		uid = cred->cr_uid;	/* shell scripts can't be setuid */
-		gid = cred->cr_gid;
-		goto again;
+	if (exec_maxhdrsz == 0) {
+		for (i = 0; i < nexecs; i++)
+			if (execsw[i].es_check != NULL
+			    && execsw[i].es_hdrsz > exec_maxhdrsz)
+				exec_maxhdrsz = execsw[i].es_hdrsz;
 	}
+
+	/* init the namei data to point the file user's program name */
+	NDINIT(&nid, LOOKUP, NOFOLLOW, UIO_USERSPACE, SCARG(uap, path), p);
 
 	/*
-	 * Read the program headers, before anything is destroyed.
+	 * initialize the fields of the exec package.
 	 */
-	if (eh.e_phnum == 0 || eh.e_phentsize != sizeof (Elf32_Phdr)) {
-		error = ENOEXEC;
-		goto bad;
-	}
-	phsize = eh.e_phnum * sizeof (Elf32_Phdr);
-	ph = (Elf32_Phdr *)malloc(phsize, M_TEMP, M_WAITOK);
-	if (error = elf_read_from(p, vp, eh.e_phoff, (caddr_t)ph, phsize))
-		goto bad;
+	pack.ep_name = SCARG(uap, path);
+	MALLOC(pack.ep_hdr, void *, exec_maxhdrsz, M_EXEC, M_WAITOK);
+	pack.ep_hdrlen = exec_maxhdrsz;
+	pack.ep_hdrvalid = 0;
+	pack.ep_ndp = &nid;
+	pack.ep_vmcmds.evs_cnt = 0;
+	pack.ep_vmcmds.evs_used = 0;
+	pack.ep_vap = &attr;
+	pack.ep_flags = 0;
 
-	/*
-	 * Copy the arguments into exec_map, which is where 4.4BSD puts
-	 * them: out of the old address space before it is destroyed and
-	 * out of the new one before it exists.
-	 */
-	na = 0;
-	ne = 0;
-	nc = 0;
-	cc = NCARGS;
-	execargs = kmem_alloc_wait(exec_map, NCARGS);
-	if (execargs == (vm_offset_t)0)
-		panic("execve: kmem_alloc_wait");
-	cp = (char *)execargs;
-	for (;;) {
-		ap = NULL;
-		sharg = NULL;
-		if (indir && na == 0) {
-			sharg = ndp->ni_cnd.cn_nameptr;
-			ap = (int)sharg;
-			uap->argp++;			/* ignore argv[0] */
-		} else if (indir && (na == 1 && cfarg[0])) {
-			sharg = cfarg;
-			ap = (int)sharg;
-		} else if (indir && (na == 1 || na == 2 && cfarg[0]))
-			ap = (int)uap->fname;
-		else if (uap->argp) {
-			ap = fuword((caddr_t)uap->argp);
-			uap->argp++;
-		}
-		if (ap == NULL && uap->envp) {
-			uap->argp = NULL;
-			if ((ap = fuword((caddr_t)uap->envp)) != NULL)
-				uap->envp++, ne++;
-		}
-		if (ap == NULL)
-			break;
-		na++;
-		if (ap == -1) {
-			error = EFAULT;
-			goto bad;
-		}
-		do {
-			if (nc >= NCARGS-1) {
-				error = E2BIG;
-				goto bad;
-			}
-			if (sharg) {
-				len = strlen(sharg) + 1;
-				bcopy(sharg, cp, (unsigned)len);
-				sharg += len;
-				error = 0;
-			} else
-				error = copyinstr((caddr_t)ap, cp,
-				    (unsigned)cc, (u_int *)&len);
-			ap += len;
-			cp += len;
-			nc += len;
-			cc -= len;
-		} while (error == ENAMETOOLONG);
-		if (error) {
-			if (error == EFAULT)
-				error = EFAULT;
-			goto bad;
-		}
-	}
-	if (na == 0) {
-		error = EFAULT;
-		goto bad;
-	}
-	nc = (nc + NBPW-1) & ~(NBPW - 1);
+	/* see if we can run it. */
+	if (error = check_exec(p, &pack))
+		goto freehdr;
 
-	/*
-	 * Everything is validated and copied. Commit: the old address
-	 * space goes now, and nothing below may fail recoverably.
-	 */
-	vm = p->p_vmspace;
-	if (vm->vm_refcnt > 1) {
-		p->p_vmspace = vmspace_alloc(VM_MIN_ADDRESS, VM_MAXUSER_ADDRESS,
-		    1);
-		vmspace_free(vm);
-		vm = p->p_vmspace;
-	} else {
-#ifdef SYSVSHM
-		if (vm->vm_shm)
-			shmexit(p);
+	/* XXX -- THE FOLLOWING SECTION NEEDS MAJOR CLEANUP */
+
+	/* allocate an argument buffer */
+	argp = (char *) kmem_alloc_wait(exec_map, NCARGS);
+#ifdef DIAGNOSTIC
+	if (argp == (vm_offset_t) 0)
+		panic("execve: argp == NULL");
 #endif
-		(void) vm_map_remove(&vm->vm_map, VM_MIN_ADDRESS,
-		    VM_MAXUSER_ADDRESS);
+	dp = argp;
+	argc = 0;
+
+	/* copy the fake args list, if there's one, freeing it as we go */
+	if (pack.ep_flags & EXEC_HASARGL) {
+		tmpfap = pack.ep_fa;
+		while (*tmpfap != NULL) {
+			char *cp;
+
+			cp = *tmpfap;
+			while (*cp)
+				*dp++ = *cp++;
+			*dp++;
+
+			FREE(*tmpfap, M_EXEC);
+			tmpfap++; argc++;
+		}
+		FREE(pack.ep_fa, M_EXEC);
+		pack.ep_flags &= ~EXEC_HASARGL;
 	}
+
+	/* Now get argv & environment */
+	if (!(cpp = SCARG(uap, argp))) {
+		error = EINVAL;
+		goto bad;
+	}
+
+	if (pack.ep_flags & EXEC_SKIPARG)
+		cpp++;
+
+	while (1) {
+		len = argp + ARG_MAX - dp;
+		if (error = copyin(cpp, &sp, sizeof(sp)))
+			goto bad;
+		if (!sp)
+			break;
+		if (error = copyinstr(sp, dp, len, (u_int *) & len)) {
+			if (error == ENAMETOOLONG)
+				error = E2BIG;
+			goto bad;
+		}
+		dp += len;
+		cpp++;
+		argc++;
+	}
+
+	envc = 0;
+	if (cpp = SCARG(uap, envp)) {	/* environment need not be there */
+		while (1) {
+			len = argp + ARG_MAX - dp;
+			if (error = copyin(cpp, &sp, sizeof(sp)))
+				goto bad;
+			if (!sp)
+				break;
+			if (error = copyinstr(sp, dp, len, (u_int *) & len)) {
+				if (error == ENAMETOOLONG)
+					error = E2BIG;
+				goto bad;
+			}
+			dp += len;
+			cpp++;
+			envc++;
+		}
+	}
+	dp = (char *) ALIGN(dp);
+
+	/* Now check if args & environ fit into new stack */
+	len = ((argc + envc + 2) * sizeof(char *) + sizeof(int) +
+	    dp + STACKGAPLEN + szsigcode + sizeof(struct ps_strings)) - argp;
+	len = ALIGN(len);	/* make the stack "safely" aligned */
+
+	if (len > pack.ep_ssize) { /* in effect, compare to initial limit */
+		error = ENOMEM;
+		goto bad;
+	}
+
+	/* adjust "active stack depth" for process VSZ */
+	pack.ep_ssize = len;	/* maybe should go elsewhere, but... */
+
+	/* Unmap old program */
+#ifdef sparc
+	kill_user_windows(p);		/* before stack addresses go away */
+#endif
+	/* Kill shared memory and unmap old program */
+#ifdef SYSVSHM
+	if (vm->vm_shm)
+		shmexit(p);
+#endif
+	/*
+	 * AI-ONLY NOTE: up to USRSTACK, where NetBSD has
+	 * VM_MAXUSER_ADDRESS. On NetBSD's i386 the two are equal
+	 * (vmparam.h: `#define USRSTACK VM_MAXUSER_ADDRESS'); on Lite2's,
+	 * VM_MAXUSER_ADDRESS (0xEFBFD000) is a page below USRSTACK
+	 * (0xEFBFE000), and that page is user stack: PS_STRINGS is at its
+	 * top, trap.c and vm_unix.c grow the stack down from USRSTACK, and
+	 * the map reaches past it (vmspace0's map is made to VM_MAX_ADDRESS
+	 * and every fork copies its bounds; vm_fork leaves only USRSTACK
+	 * and up uninherited). Removing only to VM_MAXUSER_ADDRESS left
+	 * that page behind -- start_init's argument page, inherited by
+	 * every process -- and a stack mapped up to USRSTACK would not fit
+	 * beside it. The u-area and page tables at USRSTACK and above are
+	 * not touched, as they were not before.
+	 */
+	vm_deallocate(&vm->vm_map, VM_MIN_ADDRESS,
+		USRSTACK - VM_MIN_ADDRESS);
+
+	/* Now map address space */
+	vm->vm_taddr = (char *) pack.ep_taddr;
+	vm->vm_tsize = btoc(pack.ep_tsize);
+	vm->vm_daddr = (char *) pack.ep_daddr;
+	vm->vm_dsize = btoc(pack.ep_dsize);
+	vm->vm_ssize = btoc(pack.ep_ssize);
+	vm->vm_maxsaddr = (char *) pack.ep_maxsaddr;
+
+	/* create the new process's VM space by running the vmcmds */
+#ifdef DIAGNOSTIC
+	if (pack.ep_vmcmds.evs_used == 0)
+		panic("execve: no vmcmds");
+#endif
+	for (i = 0; i < pack.ep_vmcmds.evs_used && !error; i++) {
+		struct exec_vmcmd *vcp;
+
+		vcp = &pack.ep_vmcmds.evs_cmds[i];
+		error = (*vcp->ev_proc)(p, vcp);
+	}
+
+	/* free the vmspace-creation commands, and release their references */
+	kill_vmcmds(&pack.ep_vmcmds);
+
+	/* if an error happened, deallocate and punt */
+	if (error)
+		goto exec_abort;
+
+	/* remember information about the process */
+	arginfo.ps_nargvstr = argc;
+	arginfo.ps_nenvstr = envc;
+
+	/* Now copy argc, args & environ to new stack */
+	stack = (char *) (USRSTACK - len);
+	cpp = (char **) stack;
+
+	if (copyout(&argc, cpp++, sizeof(argc)))
+		goto exec_abort;
+	dp = (char *) (cpp + argc + envc + 2);
+
+	/* XXX don't copy them out, remap them! */
+	arginfo.ps_argvstr = cpp; /* remember location of argv for later */
+	for (sp = argp; --argc >= 0; sp += len, dp += len) {
+		len = strlen(sp) + 1;
+		if (copyout(&dp, cpp++, sizeof(dp))
+		    || copyoutstr(sp, dp, len, 0))
+			goto exec_abort;
+	}
+	np = 0;
+	if (copyout(&np, cpp++, sizeof(np)))
+		goto exec_abort;
+
+	arginfo.ps_envstr = cpp; /* remember location of envp for later */
+	for (; --envc >= 0; sp += len, dp += len) {
+		len = strlen(sp) + 1;
+		if (copyout(&dp, cpp++, sizeof(dp))
+		    || copyoutstr(sp, dp, len, 0))
+			goto exec_abort;
+	}
+	if (copyout(&np, cpp, sizeof(np)))
+		goto exec_abort;
+
+	/* copy out the process's ps_strings structure */
+	if (copyout(&arginfo, (char *) PS_STRINGS, sizeof(arginfo)))
+		goto exec_abort;
+
+#ifdef COPY_SIGCODE
+	/* copy out the process's signal trapoline code */
+	if (copyout((char *) sigcode, ((char *) PS_STRINGS) - szsigcode,
+		szsigcode)) {
+		goto exec_abort;
+	}
+#endif
+
+	fdcloseexec(p);		/* handle close on exec */
+	execsigs(p);		/* reset catched signals */
+
+	/* set command name & other accounting info */
+	len = min(nid.ni_cnd.cn_namelen, MAXCOMLEN);
+	bcopy(nid.ni_cnd.cn_nameptr, p->p_comm, len);
+	p->p_comm[len] = 0;
+	p->p_acflag &= ~AFORK;
+
+	/* record proc's vnode, for use by procfs and others */
+        if (p->p_textvp)
+                vrele(p->p_textvp);
+	VREF(pack.ep_vp);
+	p->p_textvp = pack.ep_vp;
+
+	p->p_flag |= P_EXEC;
 	if (p->p_flag & P_PPWAIT) {
 		p->p_flag &= ~P_PPWAIT;
-		wakeup((caddr_t)p->p_pptr);
+		wakeup((caddr_t) p->p_pptr);
 	}
 
 	/*
-	 * AI-ONLY NOTE: the program-header loop is this project's own.
-	 * Every post-settlement BSD wraps it in an exec framework --
-	 * NetBSD's exec_package, FreeBSD's imgact -- so none could
-	 * supply it in this shape. It is the minimum the ELF
-	 * specification asks: for each PT_LOAD segment, map p_filesz
-	 * bytes from p_offset at p_vaddr and zero to p_memsz, which is
-	 * what elf_load_psection does.
+	 * deal with set[ug]id.
+	 * MNT_NOEXEC and P_TRACED have already been used to disable s[ug]id.
 	 */
-	vm->vm_taddr = (caddr_t)eh.e_entry;
-	vm->vm_tsize = 0;
-	vm->vm_daddr = 0;
-	vm->vm_dsize = 0;
-	for (i = 0; i < eh.e_phnum; i++) {
-		if (ph[i].p_type != Elf32_pt_load)
-			continue;
-		addr = ELF32_NO_ADDR;
-		size = 0;
-		prot = 0;
-		if (error = elf_load_psection(p, vp, &ph[i], &addr, &size,
-		    &prot))
-			goto exec_abort;
-		if (prot & VM_PROT_EXECUTE) {
-			vm->vm_taddr = (caddr_t)addr;
-			vm->vm_tsize = btoc(size);
-		} else {
-			vm->vm_daddr = (caddr_t)addr;
-			vm->vm_dsize = btoc(size);
+	p->p_flag &= ~P_SUGID;
+	if (((attr.va_mode & VSUID) != 0 &&
+	    p->p_ucred->cr_uid != attr.va_uid)
+	    || (attr.va_mode & VSGID) != 0 &&
+	    p->p_ucred->cr_gid != attr.va_gid) {
+		p->p_ucred = crcopy(cred);
+#ifdef KTRACE
+		/*
+		 * If process is being ktraced, turn off - unless
+		 * root set it.
+		 */
+		if (p->p_tracep && !(p->p_traceflag & KTRFAC_ROOT)) {
+			vrele(p->p_tracep);
+			p->p_tracep = NULL;
+			p->p_traceflag = 0;
 		}
-	}
-	entry = eh.e_entry;
-
-	/*
-	 * AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md): the
-	 * `- NBPG' is load-bearing, not slack, and the reasoning is
-	 * restated here in this tree's own words rather than by quoting
-	 * the encumbered 4.4BSD getxfile() this was originally checked
-	 * against (that quotation has been removed; see exec-stack.md
-	 * for why it should never have been here). On this i386 port
-	 * USRSTACK is 0xEFBFE000, but
-	 * VM_MAXUSER_ADDRESS -- where the vmspace's map actually ends -- is
-	 * 0xEFBFD000, one page lower, because the page directory's own
-	 * window sits just below USRSTACK on this port. A stack region
-	 * computed to run up to USRSTACK therefore reaches one page past
-	 * the map's own end, and vm_allocate refuses it outright. An
-	 * earlier version of this body omitted the `- NBPG' and every exec
-	 * failed here: all four of init's PT_LOAD segments mapped, then the
-	 * stack allocation failed, and exec_abort killed the process with
-	 * SIGABRT -- the `init died (signal 6, exit 0)' this kernel was
-	 * printing before this was understood.
-	 *
-	 * The vm_map_protect below has the same purpose Berkeley's did:
-	 * everything above the current stack limit is left VM_PROT_NONE,
-	 * so the stack grows by faulting into it rather than being wired
-	 * at MAXSSIZ from the start.
-	 */
-	size = round_page(MAXSSIZ);
-	addr = (u_long)trunc_page(USRSTACK - size) - NBPG;
-	if (error = vm_allocate(&vm->vm_map, &addr, size, FALSE))
-		goto exec_abort;
-	size -= round_page(p->p_rlimit[RLIMIT_STACK].rlim_cur);
-	if (error = vm_map_protect(&vm->vm_map, addr, addr + size,
-	    VM_PROT_NONE, FALSE))
-		goto exec_abort;
-	vm->vm_maxsaddr = (caddr_t)addr;
-	vm->vm_ssize = 0;
-
-	free((caddr_t)ph, M_TEMP);
-	ph = NULL;
-	vput(vp);
-	vp = NULL;
-
-	/*
-	 * Copy the arguments onto the new stack.
-	 *
-	 * AI-ONLY NOTE: below struct ps_strings, which is filled in
-	 * after the loop. PS_STRINGS, in Berkeley's <sys/exec.h>, is
-	 * the top sizeof(struct ps_strings) bytes under USRSTACK, and
-	 * ps, w and every kvm_getargv reader look there for where the
-	 * strings are and how many; this body used to put the strings
-	 * themselves in those bytes and never write the structure, so
-	 * ps showed every command in parentheses. The structure at
-	 * PS_STRINGS with the strings and the argv and envp vectors
-	 * below it is how NetBSD 1.0 and FreeBSD 2.0 both arrange the
-	 * top of the stack -- each puts more between the two, signal
-	 * trampoline or spare space, which this tree does not need --
-	 * and the fields are set as NetBSD 1.1's copyargs sets them
-	 * (Charles M. Hannum, kern_exec.c 1.69, 16 May 1995), and
-	 * FreeBSD 2.2's exec_copyout_strings: the argv vector, the
-	 * argument count, the envp vector, the environment count --
-	 * the vectors, one word above the stack pointer and after
-	 * argv's terminating 0, where FreeBSD 2.0's, as this body did,
-	 * gave the first string of each.
-	 */
-	arginfo.ps_nargvstr = na - ne;
-	arginfo.ps_nenvstr = ne;
-	ssize = (na + 3) * NBPW;
-	ucp = (int)PS_STRINGS - nc;
-	ap = ucp - ssize;
-	ssize += nc;
-	cpu_setstack(p, ap);
-	/*
-	 * AI-ONLY NOTE: the stack's depth so far, as the core file and
-	 * ps count it. FreeBSD 2.0.5 through 2.2.8 set vm_ssize at exec
-	 * (`vmspace->vm_ssize = SGROWSIZ >> PAGE_SHIFT') and NetBSD
-	 * 1.6's execve sets it from the pack (`vm->vm_ssize =
-	 * btoc(pack.ep_ssize)'); both put it where the stack is made.
-	 * This body made it 0 above and left the count to trap.c's
-	 * stack hack, and a process that takes no stack fault after
-	 * exec -- gdb's `crash' is one -- dumped a core file with no
-	 * stack in it. The depth is what the strings and vectors above
-	 * have used: USRSTACK down to the new stack pointer, rounded as
-	 * trap.c rounds it.
-	 */
-	vm->vm_ssize = clrnd(btoc(USRSTACK - ap));
-	(void) suword((caddr_t)ap, na-ne);
-	arginfo.ps_argvstr = (char **)(ap + NBPW);
-	nc = 0;
-	cp = (char *)execargs;
-	cc = NCARGS;
-	for (;;) {
-		ap += NBPW;
-		if (na == ne) {
-			(void) suword((caddr_t)ap, 0);
-			ap += NBPW;
-			arginfo.ps_envstr = (char **)ap;
-		}
-		if (--na < 0)
-			break;
-		(void) suword((caddr_t)ap, ucp);
-		do {
-			error = copyoutstr(cp, (caddr_t)ucp, (unsigned)cc,
-			    (u_int *)&len);
-			ucp += len;
-			cp += len;
-			nc += len;
-			cc -= len;
-		} while (error == ENAMETOOLONG);
-		if (error == EFAULT)
-			panic("exec: EFAULT");
-	}
-	(void) suword((caddr_t)ap, 0);
-	(void) copyout((caddr_t)&arginfo, (caddr_t)PS_STRINGS,
-	    sizeof(arginfo));
-
-	execsigs(p);
-	fdcloseexec(p);
-	if (p->p_flag & P_TRACED)
-		psignal(p, SIGTRAP);
-	p->p_acflag &= ~AFORK;
-	if (uid != cred->cr_uid || gid != cred->cr_gid) {
-		p->p_ucred = cred = crcopy(cred);
-		cred->cr_uid = uid;
-		cred->cr_gid = gid;
+#endif
+		if (attr.va_mode & VSUID)
+			p->p_ucred->cr_uid = attr.va_uid;
+		if (attr.va_mode & VSGID)
+			p->p_ucred->cr_gid = attr.va_gid;
 		p->p_flag |= P_SUGID;
 	}
-	/*
-	 * AI-ONLY NOTE: the saved user and group ids are the effective ones
-	 * the new image runs with, as POSIX has execve set them, and as
-	 * NetBSD 1.1's and FreeBSD 2.0's execve do, after the set-id case
-	 * and whether or not it applied (FreeBSD's comment: "Implement
-	 * correct POSIX saved uid behavior"). Without them a setuid program
-	 * that gave up its privilege by seteuid could not take it back:
-	 * at and atq, setuid root, could not open /var/at.
-	 */
-	p->p_cred->p_svuid = cred->cr_uid;
-	p->p_cred->p_svgid = cred->cr_gid;
-	bcopy(ndp->ni_cnd.cn_nameptr, p->p_comm, MAXCOMLEN);
-	p->p_comm[MAXCOMLEN] = '\0';
-	setregs(p, entry, retval);
-	kmem_free_wakeup(exec_map, execargs, NCARGS);
-	FREE(ndp->ni_cnd.cn_pnbuf, M_NAMEI);
-	return (0);
+	p->p_cred->p_svuid = p->p_ucred->cr_uid;
+	p->p_cred->p_svgid = p->p_ucred->cr_gid;
+
+	kmem_free_wakeup(exec_map, (vm_offset_t) argp, NCARGS);
+
+	FREE(nid.ni_cnd.cn_pnbuf, M_NAMEI);
+	VOP_CLOSE(pack.ep_vp, FREAD, cred, p);
+	vput(pack.ep_vp);
+
+	/* setup new registers and do misc. setup. */
+	cpu_setstack(p, (int) stack);		/* Lite2's i386: setregs */
+	setregs(p, pack.ep_entry, retval);	/* takes no stack */
+
+	if (p->p_flag & P_TRACED)
+		psignal(p, SIGTRAP);
+
+	FREE(pack.ep_hdr, M_EXEC);
+	return 0;
+
+bad:
+	/* free the vmspace-creation commands, and release their references */
+	kill_vmcmds(&pack.ep_vmcmds);
+	/* kill any opened file descriptor, if necessary */
+	if (pack.ep_flags & EXEC_HASFD) {
+		pack.ep_flags &= ~EXEC_HASFD;
+		exec_closefd(p, pack.ep_fd);
+	}
+	/* close and put the exec'd file */
+	VOP_CLOSE(pack.ep_vp, FREAD, cred, p);
+	vput(pack.ep_vp);
+	FREE(nid.ni_cnd.cn_pnbuf, M_NAMEI);
+	kmem_free_wakeup(exec_map, (vm_offset_t) argp, NCARGS);
+
+freehdr:
+	FREE(pack.ep_hdr, M_EXEC);
+	return error;
 
 exec_abort:
 	/*
-	 * The address space is already gone; the process cannot
-	 * continue. 4.4BSD has no recovery here either.
+	 * the old process doesn't exist anymore.  exit gracefully.
+	 * get rid of the (new) address space we have created, if any, get rid
+	 * of our namei data and vnode, and exit noting failure
 	 */
-	if (ph)
-		free((caddr_t)ph, M_TEMP);
-	if (execargs)
-		kmem_free_wakeup(exec_map, execargs, NCARGS);
-	if (vp)
-		vput(vp);
-	FREE(ndp->ni_cnd.cn_pnbuf, M_NAMEI);
+	vm_deallocate(&vm->vm_map, VM_MIN_ADDRESS,
+		USRSTACK - VM_MIN_ADDRESS);	/* as above */
+	FREE(nid.ni_cnd.cn_pnbuf, M_NAMEI);
+	VOP_CLOSE(pack.ep_vp, FREAD, cred, p);
+	vput(pack.ep_vp);
+	kmem_free_wakeup(exec_map, (vm_offset_t) argp, NCARGS);
+	FREE(pack.ep_hdr, M_EXEC);
 	exit1(p, W_EXITCODE(0, SIGABRT));
-	return (0);
+	exit1(p, -1);
 
-bad:
-	if (ph)
-		free((caddr_t)ph, M_TEMP);
-	if (execargs)
-		kmem_free_wakeup(exec_map, execargs, NCARGS);
-	if (vp)
-		vput(vp);
-	FREE(ndp->ni_cnd.cn_pnbuf, M_NAMEI);
-	return (error);
+	/* NOTREACHED */
+	return 0;
 }

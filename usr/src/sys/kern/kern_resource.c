@@ -308,7 +308,27 @@ dosetrlimit(p, which, limp)
 		 * Stack is allocated to the max at exec time with only
 		 * "rlim_cur" bytes accessible.  If stack limit is going
 		 * up make more accessible, if going down make inaccessible.
+		 *
+		 * AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md): the
+		 * round_page below is NetBSD 1.3's (kern_resource.c rev 1.42 as
+		 * that release ships it; not in 1.0 to 1.2; the exact commit is
+		 * not recoverable from the mirrors here), whose comment gives the
+		 * reason: "Since allocation is done in terms of page, roundup
+		 * "rlim_cur" (otherwise, contiguous regions overlap)." The
+		 * stack setup NetBSD 1.0's exec framework brought in
+		 * (kern/exec_subr.c, exec_aout_setup_stack) maps two regions
+		 * that meet at USRSTACK - rlim_cur; vm_allocate rounds the lower
+		 * one's size up and truncates the upper one's start down, so
+		 * with a limit that is not a whole number of pages the lower
+		 * ends at round_page(USRSTACK - rlim_cur), a page above where
+		 * the upper begins, they overlap,
+		 * the second allocation fails, and the exec kills the process
+		 * (found by independent review: a 1025K stack limit, as csh's
+		 * `limit stacksize 1025k' sets, made every exec die with
+		 * SIGABRT). The execve before patch 262 made one region and
+		 * rounded the limit itself, so it did not need this.
 		 */
+		limp->rlim_cur = round_page(limp->rlim_cur);
 		if (limp->rlim_cur != alimp->rlim_cur) {
 			vm_offset_t addr;
 			vm_size_t size;

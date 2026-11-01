@@ -60,7 +60,15 @@
 #include <sys/syslimits.h>
 
 #define	MAXCOMLEN	16		/* max command name remembered */
-#define	MAXINTERP	32		/* max interpreter file name length */
+/*
+ * AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md): 64, NetBSD
+ * 1.0's value, where Lite2 has 32. It bounds the whole `#!' line the
+ * exec switch reads (kern/exec_conf.c, kern/exec_script.c), and this
+ * tree ships a script whose line is 35 bytes: groff's afmtodit,
+ * `#! /usr/bin/perl -P- # -*- Perl -*-'. The execve before this one
+ * read 52 bytes for the line and so ran it; at 32 it would not run.
+ */
+#define	MAXINTERP	64		/* max interpreter file name length */
 #define	MAXLOGNAME	12		/* max login name length */
 #define	MAXUPRC		CHILD_MAX	/* max simultaneous processes */
 #define	NCARGS		ARG_MAX		/* max bytes for an exec function */

@@ -180,7 +180,9 @@ numbers.
    mislabeled kind D (small fixes inside Lite2's own files, not file
    transplants) and one direct self-contradiction (patch 213);
    corrected in `imports.md` to kind B/C, per the standing rule that
-   the tree's own records get fixed when wrong.
+   the tree's own records get fixed when wrong. (56 rows after patch
+   262, which added the exec framework and the ELF loader's missing
+   row; 24 with a stated finding.)
 2. **`execve`** (A2; #204, #206). The `getxfile` lines quoted from 4.4
    come out. Candidates in source order:
    - 386BSD 0.1's own `execve`, if the ledger finds it clear and it
@@ -206,6 +208,24 @@ numbers.
    it) too large to land in the same patch as the measurement. Until
    it lands, A2's 53% line-match finding is not resolved, only the
    one literal quotation inside it.
+   **Done, patch 262** (`provenance/exec-stack.md`): NetBSD's exec
+   framework shrink-wrapped in place of the body #204 wrote --
+   NetBSD 1.0's `kern_exec.c`, `exec_subr.c`, `exec_script.c` and
+   `sys/exec.h` framework with 1.1's fixes, 1.1's `exec_conf.c` and
+   ELF loader -- by `precedent.md`'s rule for a missing body, after
+   the maintainer weighed every option (OSFMK, Mach, Lites, a
+   386BSD splice, FreeBSD's line, NetBSD) and chose NetBSD. Tested by
+   `build/test/execve.c` under QEMU, the plan's whole list and the
+   behaviours that change; the same test against the old kernel
+   shows which lines tell them apart, and a real-shell test and a
+   multi-user boot run the system's own programs. Independent review
+   found one regression -- NetBSD 1.0's stack setup killed the exec of
+   any process with a stack limit not a whole number of pages -- fixed
+   with NetBSD 1.3's line in `kern_resource.c`, and the test now shows
+   it. Four errors in patch 261's record corrected there.
+   `kern/exec_elf.c`, never in `imports.md` and so never in the
+   ledger, now in both. Left for the maintainer: a traced process may
+   exec a program it cannot read, as every BSD allows.
 3. **The other A2 files:** `kern_acct.c`, `subr_rmap.c`,
    `kern_physio.c`, `sys_process.c`. Each is measured, given a
    ledger row, and re-derived if it is not clear.

@@ -365,6 +365,16 @@ start_init(p, framep)
 	 * They changed the allocation instead. NetBSD 1.0's
 	 * init_main.c:347 is `addr = USRSTACK - PAGE_SIZE;', which is
 	 * the top of the user stack and inside the map on every port.
+	 *
+	 * AI-ONLY NOTE (2026-10-31; docs/provenance/exec-stack.md,
+	 * correction 3): the reason given above is wrong, though the
+	 * change is right. Proc 1's map is vmspace0's, forked, and runs to
+	 * VM_MAX_ADDRESS (vmspace0 is made so, above; vmspace_fork copies
+	 * the bounds), so the old page was inside it. What vm_allocate
+	 * refused was an overlap: vm_fork (vm/vm_glue.c) allocates
+	 * [USRSTACK, UPT_MAX_ADDRESS) in every new map for the u-area and
+	 * page tables, and VM_MAX_ADDRESS - PAGE_SIZE lies in it. This
+	 * page, USRSTACK - PAGE_SIZE, is the first below that entry.
 	 */
 	addr = trunc_page(USRSTACK - PAGE_SIZE);
 	if (vm_allocate(&p->p_vmspace->vm_map, &addr, PAGE_SIZE, FALSE) != 0)

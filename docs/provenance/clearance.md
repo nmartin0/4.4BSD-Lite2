@@ -93,6 +93,7 @@ close, not a finding that the files are clean.
 | NetBSD | 1.0 | `lib/libl/Makefile` (4 lines) | not yet checked | -- | -- |
 | NetBSD | 1.3, adapted | `lib/libc/gen/nlist_elf32.c` | not yet checked | Demetriou's four-clause, advertising clause | -- |
 | NetBSD | 1.3, adapted | `usr.sbin/kvm_mkdb/nlist_elf32.c` | not yet checked | Demetriou's four-clause, advertising clause | -- |
+| NetBSD | 1.1, rev 1.3 (Christos Zoulas); adapted, then whole less its dynamic-linking and emulation parts (patch 262) | `kern/exec_elf.c` | **measured** (`exec-stack.md`): 0 of its 91 distinct code lines in 386BSD 0.0's or 0.1's `kern_execve.c`; clear on what can lawfully be compared. **Missing from this ledger until 2026-10-31**: `imports.md` had never listed it, and the ledger was built from `imports.md` | Zoulas's three-clause | #202/#203; 262 |
 | NetBSD | 1.3 (`Shdr`/`Sym`, rev 1.1 from NetBSD 1.1 for the header) | `sys/exec_elf.h` | not yet checked | Demetriou's four-clause, advertising clause | -- |
 | FreeBSD | 4.1, adapted | `sys/boot/i386` (`boot1.s`, `boot2.c`, `lib.h`, `sio.s`, `btx*.s`/`.h`) | not yet checked | Nordier's own (notice + disclaimer kept) | -- |
 | FreeBSD | 4.1, adapted | `usr.sbin/btxld` | not yet checked | two-clause BSD | -- |
@@ -135,6 +136,7 @@ close, not a finding that the files are clean.
 | NetBSD | 1.0 | `lib/libcompat/4.3/regex.c` (93 lines) | clear: Berkeley-licensed (James da Silva, U. Maryland, contributed to Berkeley), not a NetBSD invention; same text in NetBSD 1.1 and OpenBSD 1996 | Regents | -- |
 | NetBSD | 1.0, unmodified | `bin/expr` (679 lines) | clear: public domain (Pace Willisson) + Conklin's rewrite; the manual page is separately copyrighted | public domain (code) / four-clause w/ advertising (page, Winning Strategies Inc. 1993) | -- |
 | NetBSD | 1.2, rev 1.11 (surveyed against 1.0's rev 1.9, functionally identical) | `sys/kern/subr_rmap.c` | cross-checked against `clist.md`'s own table; **HOLD -- also flagged by `roadmap-audit.md` A2/A3** (missing Regents/USL notice, per #279) | Wolfgang Solfrank / TooLs GmbH, 1992/1994, four-clause, advertising clause | #279 |
+| NetBSD | 1.0 (kern_exec.c rev 1.55, exec_subr.c rev 1.8, exec_script.c rev 1.8.2.1, exec_script.h rev 1.5, exec.h rev 1.43.2.2) with 1.1's fixes; exec_conf.c from 1.1 (rev 1.14) | `sys/kern/kern_exec.c`, `exec_subr.c`, `exec_conf.c`, `exec_script.c`; `sys/exec_script.h`; the framework in `sys/exec.h` | **measured** (`exec-stack.md`): of 373 distinct code lines in the four `.c` files, 2 are also in 386BSD 0.0's `kern_execve.c` and 4 in 0.1's, all generic; none of the body it replaces survives except lines NetBSD's text has in its own right. The encumbered 4.4BSD file is not compared (never read); clear on what can lawfully be compared | Demetriou's four-clause, advertising clause; Solfrank / TooLs GmbH on `kern_exec.c`; de Raadt and the Regents on `exec.h` | 262 (replacing #204, #206) |
 | Kernighan (onetrueawk) | 20121220, unmodified | `usr.bin/awk` | clear: Lucent's 1997 permission notice, no advertising clause; replaced the gawk Lite2 itself shipped | Lucent 1997 | #154 |
 | NetBSD | 1.0, NetBSD's later fixes | `usr.sbin/cron`, `usr.bin/crontab` | clear: Vixie's cron 3.0; Berkeley's was AT&T's, cut from Lite2 | Vixie's notice | #181 |
 | NetBSD | 1.0, NetBSD's + OpenBSD's later fixes | `usr.bin/at`, `libexec/atrun` | clear: Koenig's `at` + Parsons's changes; Berkeley's AT&T's, cut from Lite2 | Koenig/Parsons, via NetBSD | #181 |
@@ -159,6 +161,12 @@ close, not a finding that the files are clean.
 | OpenBSD | 25 Jun 2003 import of Berkeley's 4.3-Reno `diff`/`diff3` under Caldera's licence | `usr.bin/diff`, `diff3.sh` | present patches 155-157; removed by patch 157, "an alternative not derived from Caldera-licensed code is preferred"; GNU diff 2.6 (kind D, above) took its place. Not a current donor file. |
 
 ## What this ledger shows, plainly
+
+AI-ONLY NOTE (2026-10-31, patch 262): two rows added since the count
+below -- `kern/exec_elf.c` (kind D, never listed before; measured,
+clear) and NetBSD's exec framework (kind E; measured, clear) -- making
+56 rows, 24 with a stated finding; the 3 split, 3 HOLD and 26 not yet
+checked are unchanged. The count below is patch 259's, kept as made.
 
 54 donor-file rows above (40 kind D, 10 kind E, 4 kind F). Counted by
 hand, not estimated:
