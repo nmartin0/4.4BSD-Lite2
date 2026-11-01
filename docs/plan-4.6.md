@@ -71,7 +71,36 @@ As in 4.5BSD, but choosing by best fit, not first fit:
 Decided already: 4.4BSD-Lite2 is the base; i386 and amd64 are separate
 ports; FreeBSD's boot blocks stay until UEFI, then OpenBSD's loaders
 and `bootarg`; `pool(9)`; the best-fit rule; the driver interface at
-OpenBSD's 1996-2014 plateau; big-lock SMP first.
+OpenBSD's 1996-2014 plateau; SMP as below (decided 2026-11-01).
+
+**SMP and threads, decided by the maintainer on 2026-11-01**, on the
+reasoning in `analysis-4.6-smp-review.md` and the reply that followed
+it:
+
+1. **No kernel preemption.** Lite2 preempts only on return to user
+   mode (`cpu.h`, every port: "Preempt the current process if in
+   interrupt from user mode, or after the current trap/syscall if in
+   system mode"), and its locking rests on "run to completion or a
+   sleep". Not supported until there is a reason and a donor.
+2. **One kernel lock first, as an interim**, released in `mi_switch`
+   and retaken after it, as OpenBSD's of 2004 and NetBSD 2.0's are: Lite2's
+   run-to-completion rule kept true on many CPUs. It is scaffolding,
+   expected to be removed, not FreeBSD's permanent Giant.
+3. **Underneath it, Lite2's own multiprocessor locks made real**:
+   `simple_lock` on C17 atomics (its multiprocessor path has never
+   compiled and is fixed first), `lockmgr` as it is, the VFS and VM
+   interlocks; OpenBSD's `mtx` at an IPL for data an interrupt also
+   touches; `ltsleep` (NetBSD 1.5's) for a sleep that releases an
+   interlock. NetBSD 2.0-4.0 is the precedent for real `simple_lock`,
+   `lockmgr` and `ltsleep` together.
+4. **The conversion path**: subsystems leave the kernel lock by taking
+   Lite2's own locks on their data, as Lite2 began with the VFS, where
+   measurement shows contention, until the kernel lock is gone.
+   Per-subsystem tokens (DragonFly's design, Apple's funnels) are not
+   the path: they are not 4.4's, and Apple's split went badly.
+5. **Threads on OpenBSD's rthreads split** (`struct proc` the thread,
+   `struct process` the process), decided with SMP; stopping a whole
+   process across CPUs designed with it.
 
 ## Stage 0: from the 4.5BSD release
 
@@ -245,7 +274,10 @@ Begins with **D1** and **D2**.
 2. **`paddr_t`, PAE, the no-execute bit,** and W^X and ASLR under D7.
 3. **SMP on the i386:**
    - the local and I/O APICs and the MP table;
-   - the kernel lock, `mtx` at IPL, rwlocks;
+   - the kernel lock (released in `mi_switch`), `mtx` at IPL, rwlocks
+     where imported drivers need them; Lite2's `simple_lock` and
+     `lockmgr` made real; `ltsleep`; no kernel preemption (decided
+     2026-11-01, above);
    - the per-CPU 4.4 scheduler;
    - TLB shootdown in the pmap.
 4. **Per-CPU `pool` caches.** Superpage reservations as a design in the

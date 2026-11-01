@@ -442,7 +442,7 @@ four-clause block in the donors too.
 | `subr_rmap.c` | not needed: NetBSD 1.2's file byte for byte, no Lite2 text left |
 | `diff3.sh` | records corrected: it was Berkeley's own, not OpenBSD's, and Caldera's licence was put on it without a source |
 | `wd.c`, `wdreg.h` | not needed: FreeBSD 2.1.0's headers unchanged |
-| `cdio.h` | no notice in any donor; recorded as untraced |
+| `cdio.h` | no notice in any donor; shipped so by FreeBSD since 1.0 (1993) under its Berkeley terms, and NetBSD's and OpenBSD's own have none (patch 277) |
 | both `nlist.c` | Christopher G. Demetriou's 1996 line added (NetBSD 1.3's dispatcher and table) |
 | run-4's small items | none needs a holder: the donor holders are already present, or the lines are short, only-way hooks; two judgement calls (machdep.c's CPU-name table, clock.c's `delay`) are left without Hannum's line and recorded here |
 

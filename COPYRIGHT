@@ -103,8 +103,9 @@ Holders other than the Regents whose notices this release adds:
 	contrib/: gcc, binutils, gdb, diff, grep, bc and dc, and
 	Taylor UUCP; and gdb's FreeBSD glue under gnu/usr.bin/gdb.
 
-<sys/cdio.h> carries no copyright or licence in any donor; its terms
-are untraced.  expr's code and ptrace.2 are in the public domain.
+<sys/cdio.h> carries no copyright or licence of its own: FreeBSD has
+shipped it so since its first release (1.0, 1993), under that tree's
+Berkeley terms, and NetBSD's and OpenBSD's own cdio.h carry none.  expr's code and ptrace.2 are in the public domain.
 
 Files written for this project carry an SPDX-FileCopyrightText line
 naming Nicholas Martin and no licence identifier.  No licence is yet

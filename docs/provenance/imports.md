@@ -1247,7 +1247,11 @@ isa_driver, which this tree has. So FreeBSD 2.1.0's wd.c, wdreg.h,
 atapi.c, atapi.h and wcd.c are taken, with the two things its wd.c
 cannot be had without: <sys/cdio.h> (which carries no copyright or
 licence in FreeBSD 1.0 through 2.1.0 or here; it names Julian
-Elischer, 1993, and Frank Durda IV, 1995; its terms are untraced), and
+Elischer, 1993, and Frank Durda IV, 1995; FreeBSD has shipped it
+without a notice since its first release, 1.0 of October 1993, under
+that tree's Berkeley COPYRIGHT, and NetBSD's and OpenBSD's own cdio.h
+have no notice either, to this day -- checked 2026-11-01, patch 277),
+and
 the slice layer --
 kern/subr_diskslice.c, kern/subr_dkbad.c, i386/isa/diskslice_machdep.c
 and <sys/diskslice.h> -- which its wd.c opens, reads and checks every

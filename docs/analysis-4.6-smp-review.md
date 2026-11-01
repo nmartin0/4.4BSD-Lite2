@@ -692,3 +692,17 @@ These are the maintainer's to decide, not this review's:
   `vm-buildout`, `radixvm-design`); not in this tree.
 - **Nothing was built or run.** Section 6, step 1 is the first thing
   that would test any of this.
+
+## Afterwards: decided (2026-11-01)
+
+The maintainer asked for a reality check on the leans above. On a closer
+reading, L5's per-subsystem tokens are not the canonical path: every BSD
+big lock is already one token (released on sleep, retaken on wake;
+checked in OpenBSD 2004 and NetBSD 2.0, and DragonFly renamed its own
+`mp_token` in 2010), per-subsystem tokens are DragonFly's and Apple's,
+not 4.4's, and Apple's paper reports its split went badly. Lite2's own
+code points to its spin locks, `lockmgr` and interlocks. Preemption: 4.4
+never intended it. The maintainer decided: no preemption; one kernel lock
+as an interim, released on sleep; Lite2's own locks made real underneath
+and the conversion path by them; rthreads. Recorded in `plan-4.6.md`.
+
