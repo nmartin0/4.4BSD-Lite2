@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The A2 files: sys_process.c and its kin, measured
 
 Stage 3, item 3 of `plan-4.5.md`; `roadmap-audit.md`'s A2, "the text

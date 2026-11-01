@@ -383,3 +383,13 @@ partial or missing-holder ledger cells; the named A3 files' holders
 test fixtures should carry the SPDX line. A3 is therefore **not done**.
 No header was compared with a donor's original (0 of 60): see the limit
 at the top.
+
+## Patch 268 (2026-11-01): the write-ups
+
+On the maintainer's instruction ("Yes"), the SPDX copyright line (no
+licence identifier) was added to the 45 files under `docs/` that lacked
+it: 43 `.md` files (as an HTML comment on the first line) and 2 `.tsv`
+files (as a `#` line, the files already begin with `#` header lines). Only
+lines were added. The 20 `.want` fixtures are left without it: the kernel
+test compares them with its output exactly. Check: every tracked file
+under `docs/` except `docs/reference/test_mk7.3` now has the line.

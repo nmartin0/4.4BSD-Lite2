@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # `at` treats two-digit years as 19xx and tests the wrong pointer
 
 plan-4.5.md stage 2, item 5; the sweep's #483 (`audit-bestfit.md`

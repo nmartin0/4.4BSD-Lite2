@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Where this tree contradicts itself, and which spelling to follow
 
 4.4BSD-Lite2 was written over fifteen years by many hands, and in

@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The clist routines: every precedent, read
 
 `kern/tty_subr.c` is ten of the thirty-five settlement bodies, and

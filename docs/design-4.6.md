@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # 4.6BSD: what it is for, and how it is built
 
 Decided by the maintainer, 2026-10-29. This file records the goal and

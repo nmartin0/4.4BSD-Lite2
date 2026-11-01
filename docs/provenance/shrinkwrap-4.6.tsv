@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Nicholas Martin
 # Shrink-wrap candidates for 4.6BSD (measured 2026-10-28)
 # Columns: file under sys/, its lines in this tree, then the percentage of this
 # tree's lines that survive (diff -w) in NetBSD 1.3 (branch netbsd-1-3),

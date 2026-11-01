@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # What 4.4BSD-Lite2 names and does not contain
 
 ## How to tell why something is missing

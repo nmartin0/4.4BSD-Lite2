@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The plan of work: finishing 4.5BSD
 
 Decided by the maintainer, 2026-10-30: 4.5BSD and 4.6BSD have
@@ -263,8 +265,9 @@ numbers.
    **Surveyed, 2026-11-01 (patch 267)**, `provenance/holders-licences.md`:
    five wrong ledger cells fixed, six own files given their SPDX line.
    **Not done:** `COPYRIGHT` itself, 24 partial holder cells, A3's named
-   files, and a header-against-donor check (0 of 60). The 48 writing
-   files and 20 fixtures without the line are the maintainer's call.
+   files, and a header-against-donor check (0 of 60). The write-ups got the line in
+   patch 268 (maintainer: yes); the 20 `.want` fixtures cannot, as the
+   test compares them exactly.
 
 ## Stage 4: the replay, by first fit
 

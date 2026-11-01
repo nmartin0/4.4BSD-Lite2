@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # `compress` can overrun its decode stack
 
 plan-4.5.md stage 2, item 4; the sweep's #526 (`audit-bestfit.md`).

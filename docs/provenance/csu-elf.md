@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Provenance: ELF startup code (lib/csu/i386_elf, lib/csu/common_elf)
 
 The i386 ELF startup code in `usr/src/lib/csu/i386_elf/` and

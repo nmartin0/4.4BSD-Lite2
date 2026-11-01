@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Where the work stands
 
 ## Now: multi-user, installed by itself

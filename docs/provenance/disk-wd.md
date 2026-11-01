@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The IDE driver's lineage, measured
 
 Measured 2026-10-30 at the maintainer's request, to settle plan-4.5.md

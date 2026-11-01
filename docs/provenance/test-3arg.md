@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # `test` gets three-argument `-a`/`-o` wrong
 
 plan-4.5.md stage 2, item 5; the sweep's #504 (`audit-bestfit.md`

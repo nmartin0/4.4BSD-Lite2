@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The clearance ledger
 
 Stage 3, item 1; `roadmap-audit.md`'s audit station A1, "the legal

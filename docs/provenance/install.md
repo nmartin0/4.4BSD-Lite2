@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The system installs its own /bin
 
 Until now the root image held what `build/addfile-host.c` could put on

@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The plan of work: from 4.5BSD to 4.6BSD
 
 Written 2026-10-30 at the maintainer's request, after the best-fit

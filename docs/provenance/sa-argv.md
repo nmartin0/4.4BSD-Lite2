@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # `sa` passes `char **` to `%s`
 
 plan-4.5.md stage 2, item 5; the sweep's #512 (`audit-bestfit.md`

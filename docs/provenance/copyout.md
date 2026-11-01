@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # copyin and copyout: the bound, and the 386 path
 
 Done 2026-10-30 (patch 243, reviewed twice; see the commit message), plan-4.5.md stage 2, item 1; the first

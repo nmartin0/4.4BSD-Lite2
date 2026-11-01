@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Working on this tree
 
 Notes from the sessions that linked and then ran the i386 kernel.

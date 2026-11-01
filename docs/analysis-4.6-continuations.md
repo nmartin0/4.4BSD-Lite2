@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The continuations of 4.4BSD, subsystem by subsystem, and how they fit
 
 Written 2026-10-29 at the maintainer's request, as a second and deeper

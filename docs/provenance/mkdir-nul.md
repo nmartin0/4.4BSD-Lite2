@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # `mkdir -p` writes '/' over the path's terminating NUL
 
 plan-4.5.md stage 2, item 5; the sweep's #452 (`audit-bestfit.md`

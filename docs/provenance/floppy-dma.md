@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The floppy's DMA code, measured
 
 Measured 2026-11-01 for plan-4.5.md stage 3, item 5 (#373), the same

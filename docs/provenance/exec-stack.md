@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # `execve`: the quoted `getxfile` lines, and NetBSD's exec framework in its place
 
 Stage 3, item 2; audit station A2 (`roadmap-audit.md`): commits #204

@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # 4.6BSD design guide
 
 Recorded 2026-10-30 at the maintainer's request: everything the

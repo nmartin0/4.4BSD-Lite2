@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # pwd: error() in a forked child, and the descendants' answer
 
 `docs/provenance/stdarg.md` ends by noting a bug it uncovered and did

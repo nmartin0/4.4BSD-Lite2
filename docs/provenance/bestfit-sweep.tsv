@@ -1,3 +1,4 @@
+# SPDX-FileCopyrightText: 2026 Nicholas Martin
 # patch	hash	type	verdict	chosen source	better or more complete candidate	reason
 1	64b39d64	docs-in-src	KEEP	own conversion of Lite2 PostScript docs to PDF	-	Binary PDFs beside Lite2's PostScript; no code, no donor question
 7	93777fa1	donor-fix	KEEP	NetBSD 1.0 share/mk/bsd.subdir.mk (set -e)	-	One token per loop; NetBSD 1.0 text verified identical; OpenBSD same; rewrites are larger

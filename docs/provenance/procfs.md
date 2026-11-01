@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # procfs: 4.4BSD's own answer, complete and unadopted
 
 `docs/provenance/clist.md` ends by concluding that no BSD restored

@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # What was deferred, and what the tree says to do instead
 
 Every item here was read out of a commit message or an `AI-ONLY NOTE`

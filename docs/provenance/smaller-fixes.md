@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Eight small, unrelated fixes ("the smaller ones")
 
 plan-4.5.md stage 2, item 6. Eight small, unrelated fixes bundled

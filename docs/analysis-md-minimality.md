@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # How little machine-dependent code each port has needed
 
 Measured 2026-10-29 at the maintainer's request. The question: across

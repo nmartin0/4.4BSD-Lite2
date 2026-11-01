@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The ELF loader accepts a short read
 
 Done 2026-10-30 (patch 246), plan-4.5.md stage 2, item 2; the sweep's

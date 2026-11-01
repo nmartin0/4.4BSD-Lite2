@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Lite2's inactive subsystems, judged by what the descendants did
 
 Twice now this project has found a subsystem complete in the tree and

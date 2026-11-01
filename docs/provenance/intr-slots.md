@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The stray-interrupt counter collision
 
 plan-4.5.md stage 2, item 7; `roadmap-audit.md`'s "#687's stray-vector

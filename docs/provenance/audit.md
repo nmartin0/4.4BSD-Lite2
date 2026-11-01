@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Where a donor was cited and this tree had the answer
 
 An audit of every commit on `dev3` that cites NetBSD, FreeBSD, OpenBSD

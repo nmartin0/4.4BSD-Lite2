@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # The buffer cache: NetBSD 1.1's corrections
 
 Done 2026-10-31 (patch 248; reviewed twice, see the commit message), plan-4.5.md stage 2, item 3; the sweep's

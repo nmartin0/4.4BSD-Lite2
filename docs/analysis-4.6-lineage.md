@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # How far the 4.4BSD lineage reaches: a roadblock analysis for 4.6BSD
 
 **Superseded in part (2026-10-29): `analysis-4.6-continuations.md` is

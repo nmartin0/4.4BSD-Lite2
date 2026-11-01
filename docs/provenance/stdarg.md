@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # stdarg.h: the tree's own header was miscompiling the tree
 
 A shell that could not run a command turned out to be a header. This

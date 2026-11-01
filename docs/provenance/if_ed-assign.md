@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # `if_ed` assigns where it compares
 
 plan-4.5.md stage 2, item 5; the sweep's #443 (`audit-bestfit.md`

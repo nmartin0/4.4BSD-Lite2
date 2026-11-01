@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Roadmap: 4.5BSD
 
 Two releases, decided by the maintainer (2026-10-22).

@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Lites, surveyed as a donor
 
 Lites is a 4.4BSD-Lite server for the Mach microkernel, written by

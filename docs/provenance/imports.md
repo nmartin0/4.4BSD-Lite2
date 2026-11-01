@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # What is Berkeley's, what is borrowed, and what is neither
 
 Every change on this branch falls into one of six kinds. The kinds are

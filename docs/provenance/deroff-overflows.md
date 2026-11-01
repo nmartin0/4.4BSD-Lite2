@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # `deroff` has three separate buffer-overflow holes
 
 plan-4.5.md stage 2, item 5. Three unrelated overflow bugs in

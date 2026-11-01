@@ -1,3 +1,5 @@
+<!-- SPDX-FileCopyrightText: 2026 Nicholas Martin -->
+
 # Roadmap: 4.6BSD
 
 4.6BSD is cut from 4.5BSD once 4.5BSD is complete (`docs/roadmap.md`),
