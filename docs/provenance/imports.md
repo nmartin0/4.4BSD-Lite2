@@ -1937,4 +1937,8 @@ text, notices already carried), subr_rmap.c (no Lite2 text left), wd.c
 and wdreg.h (FreeBSD's headers unchanged), the DMAPAGES lines in
 pmap.c, ptrace_write_u (Bruce Evans's, not Lambert's), and the short,
 only-way hooks of the run-4 list.
+Patch 276 (2026-11-01, the maintainer's decision) adds Charles
+Hannum's 1993-1994 line, as NetBSD 1.0's files have it, to
+i386/i386/machdep.c (NetBSD 1.0's CPU-name table in identifycpu) and
+i386/isa/clock.c (delay and gettick after NetBSD 1.0's clock.c).
 

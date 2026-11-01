@@ -456,3 +456,16 @@ Not checked: the full text of sendmail's third-party contrib notices
 any header is legally sufficient. The numbers in `roadmap-audit.md`'s
 A3 list are run-4 report indexes, not `bestfit-sweep.tsv` rows.
 
+## Hannum's line in machdep.c and clock.c (2026-11-01, patch 276)
+
+The two judgement calls above were decided by the maintainer the
+conservative way: Charles Hannum's "Copyright (c) 1993, 1994 Charles
+Hannum." line, as NetBSD 1.0's own machdep.c and clock.c have it above
+the Regents', is added to i386/i386/machdep.c (for the CPU-name table,
+`struct cpu_nameclass` and `i386_cpus[]`, from NetBSD 1.0's
+identifycpu, a64a1d48) and to i386/isa/clock.c (for `delay`'s loop and
+`gettick`, after NetBSD 1.0's clock.c, 300439b8). The terms are the
+Regents' four clauses, the files' own. Lambert's 1992 line in NetBSD's
+machdep.c is not added: what was taken is NetBSD's own table, not
+Lambert's text (FreeBSD's version of his file has a different table).
+
