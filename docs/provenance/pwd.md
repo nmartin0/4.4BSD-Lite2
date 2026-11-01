@@ -250,3 +250,41 @@ so it takes an inherited value to see a difference, and preferring
 This shell's `trap` takes signal numbers only. POSIX requires names,
 so it is a real conformance gap rather than a bug, and it belongs with
 the other POSIX work rather than here.
+
+## The earlier getcwd form, measured (2026-11-01, patch 273)
+
+`plan-4.5.md` stage 4 item 2 (#264) asked whether the four-line
+`getcwd` form, earlier than the loop this file took, should replace it;
+the loop was to stay only if it fixes a hole that form has.
+
+**Where the form first appears.** The plan called it NetBSD 1.1's. It
+is not: NetBSD 1.1's `cd.c` still forks `/bin/pwd`. The form,
+
+	if (getcwd(buf, sizeof(buf)) == NULL)
+		error("getcwd() failed: %s", strerror(errno));
+	curdir = savestr(buf);
+
+with `char buf[MAXPWD]` and `MAXPWD` 256, is first in OpenBSD's
+`bin/sh/cd.c` of 1995-12-14 (`80d189ed55a`, "update from netbsd ...
+Use getcwd() to get the current working directory, instead of forking
+/bin/pwd") and in NetBSD 1.2's (rev 1.15.4.1), unchanged in 1.3.
+
+**The hole.** A 256-byte buffer cannot hold a path longer than 255
+characters, and this system's `PATH_MAX` is 1024. Measured in the guest
+(scratch harness, the release root, the current kernel): a directory
+30 components deep, 574 characters,
+
+	/bin/pwd | wc -c                 575
+	sh -c pwd | wc -c                575      <- this tree's loop
+	getcwd(buf, 256)                 NULL, errno 34 (ERANGE)
+
+The last line is a three-line program doing exactly what the earlier
+form does. So in that directory a shell with the earlier form would
+answer `pwd` with "getcwd() failed: Result too large", and so would
+every `cd` that needs the physical directory. This tree's loop doubles
+the buffer on `ERANGE` and does not.
+
+**Decision:** the loop stays, as the plan's own condition says. Not
+done: a shell rebuilt with the earlier form and run; the program above
+stands in for it, since the form's whole behaviour in that case is that
+one call.
